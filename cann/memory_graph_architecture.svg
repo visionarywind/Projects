@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <style>
+    text { font-family: 'Noto Sans CJK SC', 'Noto Sans CJK TC', 'Droid Sans Fallback', 'Helvetica Neue', Helvetica, Arial, sans-serif; fill: #111827; }
+    .title { font-size: 22px; font-weight: 600; }
+    .layer { font-size: 13px; font-weight: 600; fill: #6b7280; }
+    .label { font-size: 15px; font-weight: 600; }
+    .sub { font-size: 12px; fill: #6b7280; }
+    .box { fill: #ffffff; stroke: #d1d5db; stroke-width: 1.5; }
+    .blue { fill: #eff6ff; stroke: #93c5fd; }
+    .green { fill: #f0fdf4; stroke: #86efac; }
+    .purple { fill: #faf5ff; stroke: #d8b4fe; }
+    .orange { fill: #fff7ed; stroke: #fdba74; }
+    .teal { fill: #f0fdfa; stroke: #5eead4; }
+  </style>
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#2563eb"/></marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#16a34a"/></marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#9333ea"/></marker>
+    <marker id="arrow-r" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#dc2626"/></marker>
+  </defs>
+  <rect width="1200" height="800" fill="#ffffff"/>
+  <text x="600" y="34" text-anchor="middle" class="title">CANN Runtime：Memory / Graph / Stream / Event 任务架构</text>
+
+  <text x="45" y="88" text-anchor="end" class="layer">API</text>
+  <rect x="50" y="60" width="200" height="72" rx="8" class="box green"/>
+  <text x="150" y="88" text-anchor="middle" class="label">Memory API</text>
+  <text x="150" y="111" text-anchor="middle" class="sub">rtMalloc / rtFree / Pool</text>
+  <rect x="290" y="60" width="200" height="72" rx="8" class="box blue"/>
+  <text x="390" y="88" text-anchor="middle" class="label">Kernel / Memcpy API</text>
+  <text x="390" y="111" text-anchor="middle" class="sub">rtLaunchKernel / rtMemcpyAsync</text>
+  <rect x="530" y="60" width="200" height="72" rx="8" class="box purple"/>
+  <text x="630" y="88" text-anchor="middle" class="label">Event / Notify API</text>
+  <text x="630" y="111" text-anchor="middle" class="sub">Record / Wait / Synchronize</text>
+  <rect x="770" y="60" width="200" height="72" rx="8" class="box purple"/>
+  <text x="870" y="88" text-anchor="middle" class="label">Graph API</text>
+  <text x="870" y="111" text-anchor="middle" class="sub">Capture / Build / Execute</text>
+
+  <text x="45" y="223" text-anchor="end" class="layer">Runtime</text>
+  <rect x="50" y="195" width="200" height="76" rx="8" class="box green"/>
+  <text x="150" y="224" text-anchor="middle" class="label">MemoryPool / SOMA</text>
+  <text x="150" y="248" text-anchor="middle" class="sub">Segment · block · 地址生命周期</text>
+  <rect x="290" y="195" width="200" height="76" rx="8" class="box blue"/>
+  <text x="390" y="224" text-anchor="middle" class="label">Stream</text>
+  <text x="390" y="248" text-anchor="middle" class="sub">顺序时间线 · SQ/CQ 句柄</text>
+  <rect x="530" y="195" width="200" height="76" rx="8" class="box purple"/>
+  <text x="630" y="224" text-anchor="middle" class="label">Event / Notify</text>
+  <text x="630" y="248" text-anchor="middle" class="sub">ID · 时间戳 · Notifier map</text>
+  <rect x="770" y="195" width="200" height="76" rx="8" class="box purple"/>
+  <text x="870" y="224" text-anchor="middle" class="label">Model / CaptureModel</text>
+  <text x="870" y="248" text-anchor="middle" class="sub">持久 Task · 依赖 · External Event</text>
+
+  <text x="45" y="366" text-anchor="end" class="layer">任务</text>
+  <rect x="125" y="335" width="300" height="88" rx="8" class="box blue"/>
+  <text x="275" y="365" text-anchor="middle" class="label">TaskFactory / TaskAllocator</text>
+  <text x="275" y="388" text-anchor="middle" class="sub">TaskInfo 槽位 · id/flipNum · type union</text>
+  <text x="275" y="406" text-anchor="middle" class="sub">Normal / Fast Launch</text>
+  <rect x="475" y="335" width="250" height="88" rx="8" class="box orange"/>
+  <text x="600" y="365" text-anchor="middle" class="label">ToCommand / ToConstructSqe</text>
+  <text x="600" y="388" text-anchor="middle" class="sub">类型分发表 · sqeNum · pkgStat</text>
+  <text x="600" y="406" text-anchor="middle" class="sub">David / Stars 编码</text>
+  <rect x="775" y="335" width="260" height="88" rx="8" class="box teal"/>
+  <text x="905" y="365" text-anchor="middle" class="label">Stream task rings</text>
+  <text x="905" y="388" text-anchor="middle" class="sub">taskPublicBuff_ · taskPersistentBuff_</text>
+  <text x="905" y="406" text-anchor="middle" class="sub">head / tail · delayRecycleTaskid_</text>
+
+  <text x="45" y="510" text-anchor="end" class="layer">设备</text>
+  <rect x="125" y="480" width="300" height="88" rx="8" class="box blue"/>
+  <text x="275" y="510" text-anchor="middle" class="label">SQ / CQ / Logic CQ</text>
+  <text x="275" y="533" text-anchor="middle" class="sub">SQE 提交 · CQE 报告</text>
+  <text x="275" y="551" text-anchor="middle" class="sub">sqHead / taskId / errorCode</text>
+  <rect x="475" y="480" width="250" height="88" rx="8" class="box orange"/>
+  <text x="600" y="510" text-anchor="middle" class="label">Driver / HAL</text>
+  <text x="600" y="533" text-anchor="middle" class="sub">halSqTaskSend · LogicCqReportV2</text>
+  <text x="600" y="551" text-anchor="middle" class="sub">资源不足重试 · 状态检查</text>
+  <rect x="775" y="480" width="260" height="88" rx="8" class="box purple"/>
+  <text x="905" y="510" text-anchor="middle" class="label">Notify / Event signal</text>
+  <text x="905" y="533" text-anchor="middle" class="sub">时间戳 · Notify 位 · Host 唤醒</text>
+  <text x="905" y="551" text-anchor="middle" class="sub">跨 Stream / IPC / PCIe</text>
+
+  <text x="45" y="655" text-anchor="end" class="layer">执行</text>
+  <rect x="245" y="625" width="260" height="82" rx="8" class="box blue"/>
+  <text x="375" y="655" text-anchor="middle" class="label">TS / AICPU / Device Engine</text>
+  <text x="375" y="679" text-anchor="middle" class="sub">按 Stream 顺序执行 SQE</text>
+  <rect x="625" y="625" width="300" height="82" rx="8" class="box green"/>
+  <text x="775" y="655" text-anchor="middle" class="label">Device memory / Pool</text>
+  <text x="775" y="679" text-anchor="middle" class="sub">显存地址 · 参数 · Graph workspace</text>
+
+  <path d="M150 132 L150 195" stroke="#16a34a" stroke-width="1.8" marker-end="url(#arrow-green)"/>
+  <path d="M390 132 L390 195" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+  <path d="M630 132 L630 195" stroke="#9333ea" stroke-width="1.8" marker-end="url(#arrow-purple)"/>
+  <path d="M870 132 L870 195" stroke="#9333ea" stroke-width="1.8" marker-end="url(#arrow-purple)"/>
+  <path d="M390 271 L390 335" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+  <path d="M630 271 L630 335" stroke="#9333ea" stroke-width="1.8" marker-end="url(#arrow-purple)"/>
+  <path d="M870 271 L870 335" stroke="#9333ea" stroke-width="1.8" marker-end="url(#arrow-purple)"/>
+  <path d="M250 271 L250 305 L275 305 L275 335" stroke="#16a34a" stroke-width="1.6" fill="none" marker-end="url(#arrow-green)"/>
+  <path d="M425 379 L475 379" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+  <path d="M725 379 L775 379" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+  <path d="M905 423 L905 450 L275 450 L275 480" stroke="#2563eb" stroke-width="1.8" fill="none" marker-end="url(#arrow-blue)"/>
+  <path d="M600 423 L600 480" stroke="#dc2626" stroke-width="1.8" marker-end="url(#arrow-r)"/>
+  <path d="M425 524 L475 524" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+  <path d="M725 524 L775 524" stroke="#9333ea" stroke-width="1.8" marker-end="url(#arrow-purple)"/>
+  <path d="M600 568 L600 595 L375 595 L375 625" stroke="#2563eb" stroke-width="1.8" fill="none" marker-end="url(#arrow-blue)"/>
+  <path d="M600 568 L600 595 L775 595 L775 625" stroke="#16a34a" stroke-width="1.8" fill="none" marker-end="url(#arrow-green)"/>
+  <path d="M505 666 L625 666" stroke="#16a34a" stroke-width="1.8" marker-end="url(#arrow-green)"/>
+  <path d="M905 625 L905 585 L1035 585 L1035 568" stroke="#9333ea" stroke-width="1.6" fill="none" marker-end="url(#arrow-purple)"/>
+
+  <g transform="translate(55,748)">
+    <line x1="0" y1="8" x2="32" y2="8" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+    <text x="40" y="12" class="sub">主任务流</text>
+    <line x1="130" y1="8" x2="162" y2="8" stroke="#16a34a" stroke-width="1.8" marker-end="url(#arrow-green)"/>
+    <text x="170" y="12" class="sub">内存数据</text>
+    <line x1="260" y1="8" x2="292" y2="8" stroke="#9333ea" stroke-width="1.8" marker-end="url(#arrow-purple)"/>
+    <text x="300" y="12" class="sub">异步依赖</text>
+    <line x1="390" y1="8" x2="422" y2="8" stroke="#dc2626" stroke-width="1.8" marker-end="url(#arrow-r)"/>
+    <text x="430" y="12" class="sub">设备边界/回收</text>
+  </g>
+</svg>

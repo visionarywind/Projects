@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <style>
+    text { font-family: 'Noto Sans CJK SC', 'Noto Sans CJK TC', 'Droid Sans Fallback', 'Helvetica Neue', Helvetica, Arial, sans-serif; fill: #111827; }
+    .title { font-size: 22px; font-weight: 600; }
+    .participant { font-size: 14px; font-weight: 600; }
+    .msg { font-size: 12px; }
+    .note { font-size: 11px; fill: #6b7280; }
+    .life { stroke: #9ca3af; stroke-width: 1.2; stroke-dasharray: 5 5; }
+    .activation { fill: #dbeafe; stroke: #60a5fa; stroke-width: 1; }
+    .frame { fill: #fafafa; stroke: #d1d5db; stroke-width: 1.2; stroke-dasharray: 5 4; }
+  </style>
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#2563eb"/></marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#9333ea"/></marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#16a34a"/></marker>
+    <marker id="arrow-r" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#dc2626"/></marker>
+  </defs>
+  <rect width="1200" height="900" fill="#ffffff"/>
+  <text x="600" y="32" text-anchor="middle" class="title">TaskInfo → SQE → SQ/CQ → Complete → Recycle 时序</text>
+
+  <rect x="40" y="52" width="120" height="42" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <rect x="220" y="52" width="120" height="42" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <rect x="400" y="52" width="120" height="42" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <rect x="580" y="52" width="120" height="42" rx="8" fill="#fff7ed" stroke="#fdba74"/>
+  <rect x="760" y="52" width="120" height="42" rx="8" fill="#fff7ed" stroke="#fdba74"/>
+  <rect x="940" y="52" width="120" height="42" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+  <rect x="1120" y="52" width="60" height="42" rx="8" fill="#faf5ff" stroke="#d8b4fe"/>
+  <text x="100" y="78" text-anchor="middle" class="participant">API 调用者</text>
+  <text x="280" y="78" text-anchor="middle" class="participant">TaskFactory</text>
+  <text x="460" y="78" text-anchor="middle" class="participant">Engine</text>
+  <text x="640" y="78" text-anchor="middle" class="participant">Stream/SQE</text>
+  <text x="820" y="78" text-anchor="middle" class="participant">Driver/HAL</text>
+  <text x="1000" y="78" text-anchor="middle" class="participant">Device TS</text>
+  <text x="1150" y="78" text-anchor="middle" class="participant">CQ</text>
+
+  <line x1="100" y1="94" x2="100" y2="820" class="life"/>
+  <line x1="280" y1="94" x2="280" y2="820" class="life"/>
+  <line x1="460" y1="94" x2="460" y2="820" class="life"/>
+  <line x1="640" y1="94" x2="640" y2="820" class="life"/>
+  <line x1="820" y1="94" x2="820" y2="820" class="life"/>
+  <line x1="1000" y1="94" x2="1000" y2="820" class="life"/>
+  <line x1="1150" y1="94" x2="1150" y2="820" class="life"/>
+
+  <rect x="273" y="122" width="14" height="50" class="activation"/>
+  <rect x="453" y="222" width="14" height="135" class="activation"/>
+  <rect x="633" y="302" width="14" height="95" class="activation"/>
+  <rect x="813" y="397" width="14" height="55" class="activation"/>
+  <rect x="993" y="452" width="14" height="55" class="activation"/>
+  <rect x="1143" y="522" width="14" height="82" class="activation"/>
+  <rect x="453" y="604" width="14" height="105" class="activation"/>
+  <rect x="273" y="730" width="14" height="48" class="activation"/>
+
+  <line x1="100" y1="130" x2="280" y2="130" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+  <text x="190" y="123" text-anchor="middle" class="msg">Alloc(stream, type)</text>
+  <text x="190" y="143" text-anchor="middle" class="note">分配 TaskInfo 槽位和 task id</text>
+
+  <line x1="280" y1="175" x2="100" y2="175" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+  <text x="190" y="168" text-anchor="middle" class="msg">返回 TaskInfo*</text>
+
+  <line x1="100" y1="220" x2="460" y2="220" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+  <text x="280" y="213" text-anchor="middle" class="msg">SubmitTask(task)</text>
+  <text x="280" y="233" text-anchor="middle" class="note">Context 检查 + Normal/Fast 分流</text>
+
+  <line x1="460" y1="265" x2="640" y2="265" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+  <text x="550" y="258" text-anchor="middle" class="msg">ToCommand / ToConstructSqe</text>
+
+  <rect x="535" y="280" width="330" height="108" class="frame"/>
+  <text x="545" y="297" class="note">alt 提交形态</text>
+  <line x1="640" y1="320" x2="820" y2="320" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arrow-r)"/>
+  <text x="730" y="313" text-anchor="middle" class="msg">halSqTaskSend(sqe)</text>
+  <text x="730" y="333" text-anchor="middle" class="note">设备 SQ；无资源则重试</text>
+  <line x1="640" y1="365" x2="820" y2="365" stroke="#9333ea" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow-purple)"/>
+  <text x="730" y="358" text-anchor="middle" class="msg">Software SQ / AutoSplit</text>
+  <text x="730" y="378" text-anchor="middle" class="note">写 Host SQE buffer，serial id 映射</text>
+
+  <line x1="820" y1="415" x2="1000" y2="415" stroke="#dc2626" stroke-width="1.6" marker-end="url(#arrow-r)"/>
+  <text x="910" y="408" text-anchor="middle" class="msg">enqueue SQE</text>
+  <line x1="1000" y1="470" x2="1150" y2="470" stroke="#16a34a" stroke-width="1.6" marker-end="url(#arrow-green)"/>
+  <text x="1075" y="463" text-anchor="middle" class="msg">执行完成 → CQE</text>
+  <text x="1075" y="483" text-anchor="middle" class="note">sqHead / taskId / errorCode</text>
+
+  <line x1="1150" y1="535" x2="460" y2="535" stroke="#16a34a" stroke-width="1.6" marker-end="url(#arrow-green)"/>
+  <text x="805" y="528" text-anchor="middle" class="msg">LogicCqReportV2 → ProcReport</text>
+  <text x="805" y="548" text-anchor="middle" class="note">按 sqHead 定位 TaskInfo，批量处理 m 条报告</text>
+
+  <line x1="460" y1="580" x2="460" y2="620" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+  <text x="475" y="605" class="msg">Complete(task)</text>
+  <text x="475" y="622" class="note">类型回调、结果、错误</text>
+
+  <rect x="525" y="640" width="520" height="75" class="frame"/>
+  <text x="535" y="657" class="note">opt Event/Notify 分支</text>
+  <line x1="460" y1="680" x2="1000" y2="680" stroke="#9333ea" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow-purple)"/>
+  <text x="730" y="673" text-anchor="middle" class="msg">TaskTriggerEvent / SendingNotify</text>
+  <text x="730" y="694" text-anchor="middle" class="note">Notifier map 唤醒 Host 或解除 Wait 依赖</text>
+
+  <line x1="460" y1="745" x2="280" y2="745" stroke="#dc2626" stroke-width="1.6" marker-end="url(#arrow-r)"/>
+  <text x="370" y="738" text-anchor="middle" class="msg">TaskFactory::Recycle</text>
+  <text x="370" y="758" text-anchor="middle" class="note">TaskUnInitProc + 归还 ID/槽位</text>
+
+  <line x1="280" y1="790" x2="100" y2="790" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+  <text x="190" y="783" text-anchor="middle" class="msg">异步完成可见；下次 Alloc 复用</text>
+
+  <g transform="translate(50,850)">
+    <line x1="0" y1="8" x2="30" y2="8" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arrow-blue)"/><text x="38" y="12" class="note">控制/调用</text>
+    <line x1="125" y1="8" x2="155" y2="8" stroke="#16a34a" stroke-width="1.6" marker-end="url(#arrow-green)"/><text x="163" y="12" class="note">完成报告</text>
+    <line x1="255" y1="8" x2="285" y2="8" stroke="#9333ea" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrow-purple)"/><text x="293" y="12" class="note">Event/Notify</text>
+    <line x1="405" y1="8" x2="435" y2="8" stroke="#dc2626" stroke-width="1.6" marker-end="url(#arrow-r)"/><text x="443" y="12" class="note">设备边界/回收</text>
+  </g>
+</svg>
