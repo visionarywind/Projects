@@ -3,8 +3,8 @@
 - 文档目的：为没有参与过项目的开发者提供可追溯的架构、实现、运行、调试和扩展地图。
 - 适用范围：当前工作树中的 Megatron-LM 与 Megatron Core 源码。
 - 对应源码版本：`main`，提交 `8190837c2b6ce176a431bc2a6ffd3439507648a7`（本知识库生成时工作树含文档变更）。
-- 证据状态：总览已完成；核心模块、Demo 和跨模块文档为部分完成，详见 [分析状态](00-overview/analysis-state.md)。
-- 最后更新：2026-09-10
+- 证据状态：总览已完成；M01-M06、Demo 和跨模块文档已完成首版静态分析，动态验证仍待完成，详见 [分析状态](00-overview/analysis-state.md)。
+- 最后更新：2026-09-11
 
 ## 项目一句话介绍
 
@@ -76,6 +76,14 @@ flowchart LR
 - [修改影响图](90-cross-module/change-impact-map.md)
 - [性能关键路径](90-cross-module/performance-critical-paths.md)
 
+### 分级面试题库
+
+- [QA 总入口](99-roadmap/qa.md)
+- [入门级 100 题](99-roadmap/qa-beginner.md)
+- [中级 100 题](99-roadmap/qa-intermediate.md)
+- [高级 100 题](99-roadmap/qa-advanced.md)
+- [专家级 100 题](99-roadmap/qa-expert.md)
+
 ### 实践层
 
 - [快速上手](99-roadmap/quick-start.md)
@@ -92,12 +100,12 @@ flowchart LR
 
 | ID | 模块 | 一句话职责 | 状态 |
 |---|---|---|---|
-| M01 | Core 模型 | 用配置和 ModuleSpec 组装 GPT/Hybrid/Mamba 等模型 | 部分完成 |
-| M02 | 并行性 | 创建并维护 TP、PP、DP、CP、EP 等通信拓扑与 pipeline 调度 | 部分完成 |
-| M03 | 训练运行时 | 初始化作业、驱动迭代、同步梯度、记录与保存 | 部分完成 |
-| M04 | 数据管线 | 构建 tokenizer、mock/真实数据集并形成 microbatch | 部分完成 |
-| M05 | 优化器与检查点 | 更新参数并以 sharded state dict 保存/恢复模型 | 部分完成 |
-| M06 | 推理与工具 | 提供推理引擎、服务入口、转换和数据预处理工具 | 部分完成 |
+| M01 | Core 模型 | 用配置和 ModuleSpec 组装 GPT/Hybrid/Mamba 等模型 | 首版完成，待深挖 |
+| M02 | 并行性 | 创建并维护 TP、PP、DP、CP、EP 等通信拓扑与 pipeline 调度 | 首版完成，待实测 |
+| M03 | 训练运行时 | 初始化作业、驱动迭代、同步梯度、记录与保存 | 首版完成，待专项验证 |
+| M04 | 数据管线 | 构建 tokenizer、mock/真实数据集并形成 microbatch | 首版完成，待真实数据验证 |
+| M05 | 优化器与检查点 | 更新参数并以 sharded state dict 保存/恢复模型 | 首版完成，待 round-trip |
+| M06 | 推理与工具 | 提供推理引擎、服务入口、转换和数据预处理工具 | 首版完成，待运行验证 |
 
 ## 三条最重要的端到端流程
 
@@ -151,7 +159,7 @@ BASE_REF=main CHECK_ONLY=true SKIP_DOCS=false bash tools/autoformat.sh
 
 ## 文档状态与未解决问题
 
-当前文档完成了仓库盘点、模块划分、总览初稿和代表性 Demo 选取；模块内部逐函数实现卡片、跨模块完整错误/资源轨迹、实际 GPU 运行验证仍是“部分完成”或“未验证”，具体缺口见 [analysis-state.md](00-overview/analysis-state.md)。
+当前文档已完成仓库盘点、模块划分、总览、M01-M06 首版静态分析、D01 轨迹、跨模块地图和实践路线；M01 backend、复杂并行/异步路径、完整资源清理以及实际 GPU/NCCL/推理验证仍待继续，具体缺口见 [analysis-state.md](00-overview/analysis-state.md)。
 
 ## 相关文档
 

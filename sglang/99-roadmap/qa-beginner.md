@@ -1,421 +1,933 @@
-# 入门级 QA：SGLang 与大模型推理
-
+# 入门级面试题：SGLang
 - 题数：100
-- 适用对象：第一次接触 SGLang、Transformer 推理和 GPU 服务系统的读者
-- 使用方式：先遮住“参考答案”自测；回答不仅要说名词，还要说明对象、阶段和数据如何变化。
-- 证据范围：本题集以当前知识库和 checkout `f1a512c51c73ab660cf41e1af3110c7c11e3b600` 为背景。涉及实际 GPU、模型或多卡运行的题目，源码理解不等于运行验证。
+- 适用对象：第一次接触项目、Transformer、GPU 训练/推理系统的读者
+- 证据锚点：当前知识库记录的 checkout `f1a512c51c73ab660cf41e1af3110c7c11e3b600`。
+- 作答要求：每题包含参考答案、小白解释、技术分析和拓展分析；涉及 GPU/多卡/性能的结论必须区分静态源码理解与实际运行验证。
+- 项目一句话：SGLang Runtime 面向大模型推理服务，把请求规范化、tokenization、IPC、scheduler、KV cache、ModelRunner、采样和输出组织成连续批处理系统。
+- 主要证据：README、00-overview、01/02 请求流程、M03-M10、90-cross-module 和现有 QA/实践文档。
 
-## A. 大模型推理基础（1-25）
+## A. LLM 推理基础（1-10）
 
-### 1. 什么是大语言模型推理？
+### 1. 什么是「大语言模型推理」，它在 SGLang 中解决什么问题？
 
-**参考答案：** 给定输入 token，模型执行前向计算得到 logits，再根据采样策略选择下一个 token，重复这一过程直到停止。推理服务还要负责请求接收、排队、显存管理、批处理、输出和清理。
+**参考答案：** 自回归推理每一步用已有 token 预测下一个 token；服务还必须管理排队、显存、批处理、停止条件和输出协议。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 2. 什么是 token？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。自回归推理每一步用已有 token 预测下一个 token；服务还必须管理排队、显存、批处理、停止条件和输出协议。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** token 是 tokenizer 将文本切分后的离散编号，可能对应字符、子词或一段常见字符串。模型实际接收的是 token id，而不是原始字符串。
+**技术分析：** 自回归推理每一步用已有 token 预测下一个 token；服务还必须管理排队、显存、批处理、停止条件和输出协议。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 3. tokenizer 在推理链路中做什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 2. SGLang 里为什么需要理解「token」？
 
-**参考答案：** tokenizer 将文本转成 input ids，并在返回阶段把生成 token ids 转成文本。它还会校验输入长度、处理特殊 token 和流式增量文本。
+**参考答案：** token 是 tokenizer 产生的整数 ID；一个汉字、词片段或空格都可能是不同 token，不能假定 token 与字符一一对应。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 4. 什么是 prompt？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。token 是 tokenizer 产生的整数 ID；一个汉字、词片段或空格都可能是不同 token，不能假定 token 与字符一一对应。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** prompt 是请求提供给模型的上下文 token 序列，可以包含系统指令、用户问题、历史对话和多模态占位信息。
+**技术分析：** token 是 tokenizer 产生的整数 ID；一个汉字、词片段或空格都可能是不同 token，不能假定 token 与字符一一对应。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 5. 什么是 prefill？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 3. 请用小白能懂的话解释「tokenizer」的作用。
 
-**参考答案：** prefill 是第一次处理输入上下文的阶段。模型通常一次计算多个输入 token，并把每层 attention 的 K/V 写入 KV cache。
+**参考答案：** TokenizerManager 在输入侧做 tokenization/校验，在输出侧做 detokenization；流式输出必须记住已发送文本边界。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 6. 什么是 decode？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。TokenizerManager 在输入侧做 tokenization/校验，在输出侧做 detokenization；流式输出必须记住已发送文本边界。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** decode 是已经有上下文 cache 后，每次为请求生成一个或少量新 token 的阶段。它通常受单步延迟和 KV cache 读写影响较大。
+**技术分析：** TokenizerManager 在输入侧做 tokenization/校验，在输出侧做 detokenization；流式输出必须记住已发送文本边界。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 7. prefill 和 decode 的主要区别是什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 4. 如果「prompt」出错，初学者最容易观察到什么现象？
 
-**参考答案：** prefill 处理大量新输入 token，计算密集且可并行；decode 每个请求通常只处理一个新 token，但需要读取长上下文 KV，常更受内存带宽和 batch 调度影响。
+**参考答案：** prompt 是请求提供的上下文 token 序列；系统指令、历史对话和多模态占位都会影响长度与 KV 预算。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 8. 什么是 logits？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。prompt 是请求提供的上下文 token 序列；系统指令、历史对话和多模态占位都会影响长度与 KV 预算。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** logits 是模型对词表中每个 token 的未归一化分数。对 logits 做 softmax 可得到概率分布，但实际采样常先应用温度、惩罚和约束。
+**技术分析：** prompt 是请求提供的上下文 token 序列；系统指令、历史对话和多模态占位都会影响长度与 KV 预算。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 9. 什么是 softmax？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 5. 「prefill」和相邻模块之间通常传递什么数据？
 
-**参考答案：** softmax 将一组分数转换为和为 1 的非负概率。推理中通常不必显式保存完整概率，而是在 logits 上做变换后选择 token。
+**参考答案：** prefill 一次处理输入上下文并把每层 K/V 写入 cache；它通常计算密集，直接影响 TTFT。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 10. greedy decoding 是什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。prefill 一次处理输入上下文并把每层 K/V 写入 cache；它通常计算密集，直接影响 TTFT。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** 每一步选择 logits 最大的 token。它确定性较强，但不一定得到最有质量或最多样的文本。
+**技术分析：** prefill 一次处理输入上下文并把每层 K/V 写入 cache；它通常计算密集，直接影响 TTFT。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 11. temperature 做什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 6. 什么是「decode」，它在 SGLang 中解决什么问题？
 
-**参考答案：** temperature 调整 logits 的尖锐程度。较低温度更偏向高分 token，较高温度增加随机性；温度为零通常对应特殊的贪心路径。
+**参考答案：** decode 在已有 cache 上逐步生成新 token；单步 token 少，但要读取整个历史 KV，常受内存带宽和调度影响。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 12. top-k 和 top-p 有什么区别？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。decode 在已有 cache 上逐步生成新 token；单步 token 少，但要读取整个历史 KV，常受内存带宽和调度影响。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** top-k 只保留分数最高的固定 k 个 token；top-p 按概率从高到低累积，保留达到 p 的动态数量 token。二者都减少低概率候选。
+**技术分析：** decode 在已有 cache 上逐步生成新 token；单步 token 少，但要读取整个历史 KV，常受内存带宽和调度影响。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 13. 什么是 EOS？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 7. SGLang 里为什么需要理解「logits」？
 
-**参考答案：** EOS 是模型定义的结束 token。生成到 EOS 后，请求通常可以标记完成并停止继续 decode。
+**参考答案：** logits 是词表每个 token 的未归一化分数；penalty、grammar 和 temperature 的顺序决定最终采样语义。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 14. 什么是 stop string？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。logits 是词表每个 token 的未归一化分数；penalty、grammar 和 temperature 的顺序决定最终采样语义。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** stop string 是用户指定的文本停止条件。它可能跨越多个 token，因此服务需要维护增量文本或足够的 token 窗口来判断。
+**技术分析：** logits 是词表每个 token 的未归一化分数；penalty、grammar 和 temperature 的顺序决定最终采样语义。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 15. 什么是最大新 token 数？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 8. 请用小白能懂的话解释「softmax」的作用。
 
-**参考答案：** 它限制一次请求最多生成多少 token，防止请求无限 decode，并参与 scheduler 的 KV 容量预算。
+**参考答案：** softmax 把分数变成概率；实现需要数值稳定，并处理 mask 后全为无穷小的异常情况。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 16. 什么是上下文长度？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。softmax 把分数变成概率；实现需要数值稳定，并处理 mask 后全为无穷小的异常情况。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** 上下文长度是模型能处理的输入与生成序列上限。它限制 KV cache 容量、位置编码范围和请求 admission。
+**技术分析：** softmax 把分数变成概率；实现需要数值稳定，并处理 mask 后全为无穷小的异常情况。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 17. 什么是 KV cache？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 9. 如果「greedy decoding」出错，初学者最容易观察到什么现象？
 
-**参考答案：** Transformer attention 中已经计算出的 key/value 张量。后续 decode 复用它们，避免每一步重新计算全部历史 token。
+**参考答案：** greedy 每步选最大 logit，确定性强但缺少随机探索；temperature 为零常会进入类似路径。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 18. 为什么 KV cache 会成为瓶颈？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。greedy 每步选最大 logit，确定性强但缺少随机探索；temperature 为零常会进入类似路径。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** 每个请求、每层、每个 token 都需要存储 K/V，长上下文和大 batch 会快速消耗 GPU 显存；容量不足会限制并发，甚至触发 retraction 或 abort。
+**技术分析：** greedy 每步选最大 logit，确定性强但缺少随机探索；temperature 为零常会进入类似路径。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 19. 什么是 batch？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 10. 「temperature」和相邻模块之间通常传递什么数据？
 
-**参考答案：** batch 是一次模型 forward 同时处理的一组请求或 token。推理 batch 不一定要求每个请求长度相同，通常需要额外的长度和索引 metadata。
+**参考答案：** temperature 改变分数尺度；低温度使分布更尖，高温度带来更多随机性，极端值必须有明确语义。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 20. 什么是 continuous batching？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。temperature 改变分数尺度；低温度使分布更尖，高温度带来更多随机性，极端值必须有明确语义。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** continuous batching 允许请求在不同时间加入或离开运行 batch，而不是等待整个静态 batch 完成，从而提高 GPU 利用率和服务吞吐。
+**技术分析：** temperature 改变分数尺度；低温度使分布更尖，高温度带来更多随机性，极端值必须有明确语义。 本题属于“LLM 推理基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 21. 静态 batching 和 continuous batching 的差别是什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+## B. 采样与停止（11-20）
 
-**参考答案：** 静态 batching 在开始时固定成员；continuous batching 每轮根据等待队列、运行请求和资源预算重新规划，能混合不同请求的 prefill/decode 生命周期。
+### 11. 什么是「top-k」，它在 SGLang 中解决什么问题？
 
-### 22. 什么是吞吐和延迟？
+**参考答案：** top-k 保留固定数量最高分候选；k 的边界、排序稳定性和 grammar mask 后的候选数需要检查。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 吞吐表示单位时间处理的 token 或请求数量；延迟表示请求等待或完成所需时间。服务通常要在吞吐、首 token 延迟和单 token 延迟之间权衡。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。top-k 保留固定数量最高分候选；k 的边界、排序稳定性和 grammar mask 后的候选数需要检查。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 23. TTFT 和 TPOT 通常分别表示什么？
+**技术分析：** top-k 保留固定数量最高分候选；k 的边界、排序稳定性和 grammar mask 后的候选数需要检查。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** TTFT 是从请求进入到首个输出 token 的时间；TPOT 常指后续每个输出 token 的平均时间。prefill、排队和 decode 会分别影响它们。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 12. SGLang 里为什么需要理解「top-p」？
 
-### 24. 什么是流式输出？
+**参考答案：** top-p 按概率累计保留动态候选；舍入、至少保留一个 token 和 mask 后空集合是常见边界。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 服务每生成一部分 token 就返回增量文本，而不是等待完整结果。它降低用户感知延迟，但增加状态、断连和增量拼接的复杂度。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。top-p 按概率累计保留动态候选；舍入、至少保留一个 token 和 mask 后空集合是常见边界。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 25. 为什么推理服务不能只调用一次模型 forward？
+**技术分析：** top-p 按概率累计保留动态候选；舍入、至少保留一个 token 和 mask 后空集合是常见边界。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 自回归生成需要根据上一步 token 再计算下一步，直到满足停止条件；服务还要在每一步维护 cache、batch、请求状态和输出。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 13. 请用小白能懂的话解释「EOS」的作用。
 
-## B. SGLang 总体结构（26-50）
+**参考答案：** EOS 是模型定义的结束 token；scheduler 判断 EOS 后仍需把 finish 结果传回并释放请求资源。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 26. SGLang 的 SRT 是什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。EOS 是模型定义的结束 token；scheduler 判断 EOS 后仍需把 finish 结果传回并释放请求资源。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** SRT 是 SGLang Runtime，负责请求管理、调度、模型执行、KV cache、采样、输出和设备后端等运行时职责。
+**技术分析：** EOS 是模型定义的结束 token；scheduler 判断 EOS 后仍需把 finish 结果传回并释放请求资源。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 27. SGLang 的普通请求主链是什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 14. 如果「stop string」出错，初学者最容易观察到什么现象？
 
-**参考答案：** 客户端/API 或 Engine → TokenizerManager → IPC → Scheduler → ScheduleBatch → worker/ModelRunner → result processor → 输出 IPC → ReqState/HTTP 或 Engine 返回。
+**参考答案：** stop string 可能跨多个 token；TokenizerManager 需要增量拼接，避免将 stop 文本错误发送给客户端。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 28. `ServerArgs` 负责什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。stop string 可能跨多个 token；TokenizerManager 需要增量拼接，避免将 stop 文本错误发送给客户端。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** 它承载服务启动参数和解析结果，例如模型路径、并行规模、调度和 backend 配置。解析后的配置会发布给不同 runtime 角色。
+**技术分析：** stop string 可能跨多个 token；TokenizerManager 需要增量拼接，避免将 stop 文本错误发送给客户端。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 29. 为什么 raw CLI 参数不是最终运行时配置？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 15. 「最大新 token」和相邻模块之间通常传递什么数据？
 
-**参考答案：** 某些值需要根据模型、设备、并行拓扑或其他参数派生。SGLang 会先 resolution，再将角色所需的配置投影到各进程，避免热路径反复推导。
+**参考答案：** 它限制 decode 轮数和 KV 增长，是防止无限请求的调度边界。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 30. Engine 和 server API 有什么关系？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。它限制 decode 轮数和 KV 增长，是防止无限请求的调度边界。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** Engine 提供离线或 Python 调用入口，HTTP/API 提供网络服务入口；它们最终可以汇入类似的 TokenizerManager、Scheduler 和模型执行主线。
+**技术分析：** 它限制 decode 轮数和 KV 增长，是防止无限请求的调度边界。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 31. TokenizerManager 的职责是什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 16. 什么是「上下文长度」，它在 SGLang 中解决什么问题？
 
-**参考答案：** 它管理输入规范化、tokenization、请求本地状态、向 scheduler dispatch，以及接收输出后进行增量文本组织和返回。
+**参考答案：** 上下文上限同时限制模型位置、KV 容量和 admission；输入与输出的总长度不能只看 prompt。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 32. `ReqState` 是什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。上下文上限同时限制模型位置、KV 容量和 admission；输入与输出的总长度不能只看 prompt。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** `ReqState` 是 tokenizer/API 进程中的本地请求状态，保存输出列表、完成状态、事件、原始请求、文本 chunks 和 abort/dispatched 信息。
+**技术分析：** 上下文上限同时限制模型位置、KV 容量和 admission；输入与输出的总长度不能只看 prompt。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 33. scheduler-side `Req` 和 `ReqState` 有什么区别？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 17. SGLang 里为什么需要理解「流式输出」？
 
-**参考答案：** `ReqState` 负责调用者一侧的异步等待和输出汇聚；`Req` 负责 scheduler 侧的 token、生成、KV、队列、finish 和批次状态。二者通过 `rid` 关联。
+**参考答案：** streaming 每生成一段就返回；它降低感知延迟，却要求维护 offset、断连、重复消息和最终终态。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 34. `rid` 为什么重要？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。streaming 每生成一段就返回；它降低感知延迟，却要求维护 offset、断连、重复消息和最终终态。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** `rid` 是跨输入、scheduler、输出和本地状态的关联键。批量输出必须用它把第 i 项结果匹配到正确的 `ReqState`。
+**技术分析：** streaming 每生成一段就返回；它降低感知延迟，却要求维护 offset、断连、重复消息和最终终态。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 35. Scheduler 的核心职责是什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 18. 请用小白能懂的话解释「TTFT」的作用。
 
-**参考答案：** 接收请求、维护 waiting/running 状态、决定 admission、管理 prefill/decode 批次、协调 KV 资源、调用 worker、处理结果和应对资源不足。
+**参考答案：** TTFT 从请求进入到首 token，包含排队、tokenize、prefill 和首个输出；平均值会掩盖长尾。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 36. `ScheduleBatch` 是什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。TTFT 从请求进入到首 token，包含排队、tokenize、prefill 和首个输出；平均值会掩盖长尾。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** 它是 scheduler 为一次 forward 准备的工作对象，包含请求集合、KV pool/allocator、prefix cache、forward mode、序列长度和 device 输入 metadata。
+**技术分析：** TTFT 从请求进入到首 token，包含排队、tokenize、prefill 和首个输出；平均值会掩盖长尾。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 37. `ForwardBatch` 是什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 19. 如果「TPOT」出错，初学者最容易观察到什么现象？
 
-**参考答案：** 它是模型 worker 侧一次 forward 所需的输入和 metadata 快照，由 `ScheduleBatch` 构造，包含 input ids、cache locations、序列长度和 sampling 信息等。
+**参考答案：** TPOT 反映后续 token 的间隔，decode 调度、KV 读取、采样和通信都会影响它。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 38. `TpModelWorker` 做什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。TPOT 反映后续 token 的间隔，decode 调度、KV 读取、采样和通信都会影响它。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** 它为模型执行构造 `ForwardBatch`，调用 `ModelRunner`，处理 PP rank 差异、prefill-only、verify、sampling 和 `GenerationBatchResult` 组织。
+**技术分析：** TPOT 反映后续 token 的间隔，decode 调度、KV 读取、采样和通信都会影响它。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 39. `ModelRunner` 做什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 20. 「吞吐」和相邻模块之间通常传递什么数据？
 
-**参考答案：** 它持有模型和执行 backend，负责 forward、attention metadata、eager/graph 选择、logits 处理和 sampling。
+**参考答案：** 吞吐是单位时间完成的 token/请求；只提升吞吐而牺牲 TTFT/TPOT 未必符合服务目标。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 40. `GenerationBatchResult` 包含什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。吞吐是单位时间完成的 token/请求；只提升吞吐而牺牲 TTFT/TPOT 未必符合服务目标。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** 它可以包含 logits、next token ids、CUDA Graph 可运行信息、PP proxy tensors 以及专家或 indexer 等辅助结果。
+**技术分析：** 吞吐是单位时间完成的 token/请求；只提升吞吐而牺牲 TTFT/TPOT 未必符合服务目标。 本题属于“采样与停止”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 41. 为什么 worker 不直接返回最终文本？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+## C. SGLang 总体（21-30）
 
-**参考答案：** worker 主要处理 device tensor 和 token ids；停止判断、请求状态、KV 生命周期、detokenization 和协议输出分散在 scheduler 与 tokenizer/API 层。
+### 21. 什么是「SRT」，它在 SGLang 中解决什么问题？
 
-### 42. 什么是 ready 信号？
+**参考答案：** SRT 是 SGLang Runtime，串起请求管理、scheduler、模型执行、KV cache、sampling 和输出。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** ready 表示子进程已完成关键初始化并可以服务，不只是 OS 进程已经创建。SGLang 会在 scheduler/worker 初始化后通过 pipe 等机制通知父进程。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。SRT 是 SGLang Runtime，串起请求管理、scheduler、模型执行、KV cache、sampling 和输出。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 43. 为什么 process started 不等于 ready？
+**技术分析：** SRT 是 SGLang Runtime，串起请求管理、scheduler、模型执行、KV cache、sampling 和输出。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 子进程启动后还要发布配置、初始化分布式通信、加载模型、建立 KV pool 和 backend；任一步失败都可能导致进程存在但 runtime 不可用。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 22. SGLang 里为什么需要理解「Engine」？
 
-### 44. SGLang 中常见的进程边界有哪些？
+**参考答案：** Engine 是离线/Python 调用入口；它与 HTTP server 的入口不同，但可汇入相似的 runtime 请求链。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 主进程/Engine、TokenizerManager、Scheduler、Detokenizer，以及 worker/device 执行上下文。具体部署模式可能改变边界。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。Engine 是离线/Python 调用入口；它与 HTTP server 的入口不同，但可汇入相似的 runtime 请求链。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 45. IPC 在请求链路中做什么？
+**技术分析：** Engine 是离线/Python 调用入口；它与 HTTP server 的入口不同，但可汇入相似的 runtime 请求链。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** IPC 将 tokenized request、控制请求和输出对象跨进程传输。它还承载启动 ready、abort、shutdown 等控制语义。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 23. 请用小白能懂的话解释「HTTP server」的作用。
 
-### 46. 为什么 IPC 字段变化危险？
+**参考答案：** HTTP server 把网络协议转换为内部请求，负责鉴权/参数/流式响应等边界，不应直接拥有 GPU KV 细节。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 字段要同时满足输入 normalize、序列化、scheduler 消费、结果输出和旧/不同进程边界的对齐要求；漏改一处可能导致静默错位或无法清理。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。HTTP server 把网络协议转换为内部请求，负责鉴权/参数/流式响应等边界，不应直接拥有 GPU KV 细节。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 47. SGLang 的模块 ID M03/M04/M05 分别表示什么？
+**技术分析：** HTTP server 把网络协议转换为内部请求，负责鉴权/参数/流式响应等边界，不应直接拥有 GPU KV 细节。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** M03 是 Tokenizer 与请求状态，M04 是 Scheduler 与连续批处理，M05 是模型执行。模块 ID 表示职责边界，不等于单个目录。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 24. 如果「ServerArgs」出错，初学者最容易观察到什么现象？
 
-### 48. 读源码时为什么要区分控制流、数据流和生命周期？
+**参考答案：** ServerArgs 承载启动输入和派生配置；模型、设备、并行规模决定的值应在启动期解析而非每 token 重算。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 函数调用顺序不等于对象所有权或资源释放顺序。请求可能跨进程，batch 可能被 overlap 延迟持有，KV tensor 也可能脱离 Python 对象继续存在。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。ServerArgs 承载启动输入和派生配置；模型、设备、并行规模决定的值应在启动期解析而非每 token 重算。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 49. 什么是控制面和执行面？
+**技术分析：** ServerArgs 承载启动输入和派生配置；模型、设备、并行规模决定的值应在启动期解析而非每 token 重算。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 控制面负责配置、进程、调度、请求和状态；执行面负责 GPU tensor、模型层、attention、通信和 kernel。SGLang 在两者之间传递计划和结果。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 25. 「配置解析」和相邻模块之间通常传递什么数据？
 
-### 50. 为什么源码分析要标记“已确认、推断、未知”？
+**参考答案：** 配置解析将 raw CLI/环境输入投影成角色所需 runtime config；不同进程看到的字段集合可以不同。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 静态阅读可以确认调用和字段，但不能自动证明 GPU 性能、实际模型输出或所有部署变体。标记证据等级可避免把推测当成运行事实。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。配置解析将 raw CLI/环境输入投影成角色所需 runtime config；不同进程看到的字段集合可以不同。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-## C. 调度、批处理与 KV（51-75）
+**技术分析：** 配置解析将 raw CLI/环境输入投影成角色所需 runtime config；不同进程看到的字段集合可以不同。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 51. Scheduler 每轮普通主循环大致做什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 26. 什么是「控制面」，它在 SGLang 中解决什么问题？
 
-**参考答案：** 接收请求，计算下一批计划，更新 running batch；有 batch 时执行并处理结果，无 batch 时进行 idle 维护，再保存本轮 batch 状态。
+**参考答案：** 控制面决定请求、配置、队列和状态；它不等于 GPU 上的实际 kernel 完成状态。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 52. waiting queue 和 running batch 分别表示什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。控制面决定请求、配置、队列和状态；它不等于 GPU 上的实际 kernel 完成状态。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** waiting queue 中的请求尚未进入当前执行计划；running batch 中的请求已经被 scheduler 接纳，正在经历 prefill、decode 或相关结果处理。
+**技术分析：** 控制面决定请求、配置、队列和状态；它不等于 GPU 上的实际 kernel 完成状态。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 53. 什么是 admission？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 27. SGLang 里为什么需要理解「执行面」？
 
-**参考答案：** admission 是判断等待请求能否加入执行批次的过程，需要同时考虑 token budget、KV 容量、请求数、prefix 命中、优先级和 backend 约束。
+**参考答案：** 执行面负责 tensor、attention、模型层、通信和采样；它通过 batch/结果契约接受控制面计划。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 54. `PrefillAdder` 的职责是什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。执行面负责 tensor、attention、模型层、通信和采样；它通过 batch/结果契约接受控制面计划。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** 它根据剩余 token/page budget、请求状态、prefix cache 和 allocator 能力，逐个判断请求能否加入 prefill，并处理 chunked prefill 等情况。
+**技术分析：** 执行面负责 tensor、attention、模型层、通信和采样；它通过 batch/结果契约接受控制面计划。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 55. 为什么不能简单把 waiting list 全部拼成 batch？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 28. 请用小白能懂的话解释「ready 信号」的作用。
 
-**参考答案：** GPU 显存、KV slots、最大 token 数、attention tile、priority、chunking 和 running batch 都有约束，全部加入可能无法执行或破坏公平性。
+**参考答案：** ready 应表示模型、通信、KV pool 和 backend 初始化完成；进程存活只表示 OS 进程没有退出。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 56. 什么是 chunked prefill？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。ready 应表示模型、通信、KV pool 和 backend 初始化完成；进程存活只表示 OS 进程没有退出。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** 当完整输入无法在一轮预算内处理时，将一个请求的 prefill 拆成多个 chunk，跨多个调度轮次完成，同时保留其部分 KV 和请求状态。
+**技术分析：** ready 应表示模型、通信、KV pool 和 backend 初始化完成；进程存活只表示 OS 进程没有退出。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 57. chunked request 为什么需要复用 request row？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 29. 如果「进程边界」出错，初学者最容易观察到什么现象？
 
-**参考答案：** 同一个请求跨 chunk 继续执行，需要保留原有 KV 映射和生命周期；重新分配 row 可能丢失或混淆已有 cache 位置。
+**参考答案：** Tokenizer、Scheduler、Detokenizer 和 worker 之间的进程边界决定序列化、错误传播和资源清理方式。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 58. `prepare_for_extend` 做什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。Tokenizer、Scheduler、Detokenizer 和 worker 之间的进程边界决定序列化、错误传播和资源清理方式。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** 将 batch 设为 extend 模式，取每个请求未命中 prefix 的 fill ids，计算 extend/prefix/sequence lengths，并通过 allocator 分配本轮输出 cache locations。
+**技术分析：** Tokenizer、Scheduler、Detokenizer 和 worker 之间的进程边界决定序列化、错误传播和资源清理方式。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 59. `prepare_for_decode` 做什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 30. 「IPC」和相邻模块之间通常传递什么数据？
 
-**参考答案：** 将 batch 设为 decode 模式，为每个请求分配一个或相应数量的下一 token cache 位置，并更新序列长度 metadata。
+**参考答案：** IPC 传输 tokenized request、结果、abort、shutdown 和 ready；字段改动必须同时检查发送、接收和兼容性。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 60. extend 和 decode 的 `input_ids` 有什么不同？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。IPC 传输 tokenized request、结果、abort、shutdown 和 ready；字段改动必须同时检查发送、接收和兼容性。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** extend 通常包含尚未写入 cache 的多个输入 token；decode 通常每个请求只推进一个新 token，具体 speculative 分支可能改变数量。
+**技术分析：** IPC 传输 tokenized request、结果、abort、shutdown 和 ready；字段改动必须同时检查发送、接收和兼容性。 本题属于“SGLang 总体”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 61. 什么是 prefix cache？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+## D. 请求对象（31-40）
 
-**参考答案：** 它缓存已经计算过的 token 前缀及其 KV indices，使后续具有相同前缀的请求可以跳过重复 prefill。
+### 31. 什么是「GenerateReqInput」，它在 SGLang 中解决什么问题？
 
-### 62. Radix Cache 为什么叫 radix？
+**参考答案：** 它是 API 侧原始请求对象，面向用户参数；dispatch 前需要规范化为 scheduler 能消费的 tokenized 形态。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 它以 token 序列前缀构成树/基数结构，共享相同前缀节点，而不是为每个完整请求独立保存一份键值。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。它是 API 侧原始请求对象，面向用户参数；dispatch 前需要规范化为 scheduler 能消费的 tokenized 形态。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 63. page alignment 为什么重要？
+**技术分析：** 它是 API 侧原始请求对象，面向用户参数；dispatch 前需要规范化为 scheduler 能消费的 tokenized 形态。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** KV cache 常按 page/block 管理；只有对齐的 token 区间适合作为可复用 cache 节点，尾部 partial page 需要特殊保护和释放逻辑。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 32. SGLang 里为什么需要理解「TokenizedGenerateReqInput」？
 
-### 64. `ReqToTokenPool` 保存什么映射？
+**参考答案：** 它携带已处理 token ids 和采样/会话元数据，适合跨进程传递，不应依赖 HTTP 对象生命周期。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 它把 scheduler 请求 row 和逻辑 token 位置映射到实际 KV slot。模型 attention 通过这类 metadata 找到请求历史的 KV。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。它携带已处理 token ids 和采样/会话元数据，适合跨进程传递，不应依赖 HTTP 对象生命周期。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 65. 为什么 request pool 的第 0 行是 padding row？
+**技术分析：** 它携带已处理 token ids 和采样/会话元数据，适合跨进程传递，不应依赖 HTTP 对象生命周期。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** CUDA Graph 或 padded batch 可能使用 0 作为 dummy request index；保留安全的零行可避免 dummy 读写污染真实请求。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 33. 请用小白能懂的话解释「ReqState」的作用。
 
-### 66. `prefix_indices` 表示什么？
+**参考答案：** ReqState 位于 tokenizer/API 侧，保存 event、输出 chunks、完成状态和 rid 映射；它不是 GPU scheduler 的请求对象。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 它表示请求已经命中或拥有的 prefix KV indices，scheduler 可据此跳过对应输入 token，并从未命中区间继续 extend。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。ReqState 位于 tokenizer/API 侧，保存 event、输出 chunks、完成状态和 rid 映射；它不是 GPU scheduler 的请求对象。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 67. `extend_range` 表示什么？
+**技术分析：** ReqState 位于 tokenizer/API 侧，保存 event、输出 chunks、完成状态和 rid 映射；它不是 GPU scheduler 的请求对象。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 它描述本轮 prefill/extend 需要写入的请求序列区间，连接 token 输入长度、序列长度和 KV allocation。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 34. 如果「scheduler-side Req」出错，初学者最容易观察到什么现象？
 
-### 68. 什么是 decode retraction？
+**参考答案：** Req 是 scheduler 侧的运行时状态，维护 token、队列、KV、finish reason 和采样相关字段。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 当 decode 需要的 KV 容量不足时，scheduler 暂时移除部分请求，释放或备份其资源，稍后重排；无法安全恢复时对请求 abort。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。Req 是 scheduler 侧的运行时状态，维护 token、队列、KV、finish reason 和采样相关字段。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 69. retraction 为什么优于立即 OOM？
+**技术分析：** Req 是 scheduler 侧的运行时状态，维护 token、队列、KV、finish reason 和采样相关字段。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 它把全局资源压力转换成请求级降级或延迟，尽量保留服务进程和其他请求继续运行。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 35. 「rid」和相邻模块之间通常传递什么数据？
 
-### 70. 哪些请求可能不能被 retraction 恢复？
+**参考答案：** rid 是跨请求对象、batch 输出和本地 state 的关联键；batch 位置改变时仍靠 rid 找回正确调用者。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 例如备份资源不足、beam group 约束或请求状态不允许安全释放时，scheduler 可能设置 abort finish reason，而不是重新排队。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。rid 是跨请求对象、batch 输出和本地 state 的关联键；batch 位置改变时仍靠 rid 找回正确调用者。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 71. 什么是 prefix cache lock/reference？
+**技术分析：** rid 是跨请求对象、batch 输出和本地 state 的关联键；batch 位置改变时仍靠 rid 找回正确调用者。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 它防止仍被请求或 cache 使用的 radix node 被过早回收。请求完成、迁移或重新匹配时必须正确增减引用。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 36. 什么是「BatchOutput」，它在 SGLang 中解决什么问题？
 
-### 72. 完成请求缓存时为什么要释放 duplicate KV？
+**参考答案：** BatchOutput 按 batch 行携带 token/文本/状态；接收方必须用 rids 重新映射，而不能盲信列表位置。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** radix cache 可能已经拥有部分 prefix；新请求 row 中重复或未插入的 KV 不再需要独占，必须释放以避免显存泄漏。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。BatchOutput 按 batch 行携带 token/文本/状态；接收方必须用 rids 重新映射，而不能盲信列表位置。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 73. finished cache 和 unfinished cache 有什么区别？
+**技术分析：** BatchOutput 按 batch 行携带 token/文本/状态；接收方必须用 rids 重新映射，而不能盲信列表位置。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** finished request 通常按最终输入加生成结果缓存；unfinished/chunked request 需要保留可继续执行的工作集并重新匹配 prefix，保护 partial page。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 37. SGLang 里为什么需要理解「stream」？
 
-### 74. priority 会影响什么？
+**参考答案：** 「stream」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** priority 可以影响等待请求的 admission 顺序、抢占/回收选择或 cache 插入优先级，具体效果取决于调度和 cache policy 实现。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「stream」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 75. 调度器如何选择 prefill 还是 decode？
+**技术分析：** 「stream」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 它综合 running batch、waiting queue、chunked 状态、token/KV 预算、prefill delay 和配置，在没有合适新 prefill 时通常推进已有 running 请求的 decode。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 38. 请用小白能懂的话解释「abort」的作用。
 
-## D. 模型执行、并行与输出（76-100）
+**参考答案：** abort 是取消/失败控制消息；dispatch 后的 abort 需要让 scheduler 停止推进并释放 row、slot 和 cache 引用。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 76. `ForwardBatch.init_new` 为什么不能随意修改 `ScheduleBatch`？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。abort 是取消/失败控制消息；dispatch 后的 abort 需要让 scheduler 停止推进并释放 row、slot 和 cache 引用。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** `ScheduleBatch` 可能被 overlap 或 scheduler 继续保存和恢复；forward 对象应承载本轮视图，隐式原地修改会造成跨轮或跨 stream 生命周期错误。
+**技术分析：** abort 是取消/失败控制消息；dispatch 后的 abort 需要让 scheduler 停止推进并释放 row、slot 和 cache 引用。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 77. `ForwardBatch` 中的 `out_cache_loc` 是什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 39. 如果「finish reason」出错，初学者最容易观察到什么现象？
 
-**参考答案：** 它指定本轮 forward 产生的 K/V 应写入哪些 cache 位置，通常由 scheduler/KV allocator 预先决定。
+**参考答案：** 「finish reason」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 78. `TpModelWorker` 的 TP 是什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「finish reason」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** Tensor Parallel 将模型参数或计算张量沿维度切分到多个 GPU，并通过 collective 协作完成一个模型层或 forward。
+**技术分析：** 「finish reason」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 79. PP 是什么？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 40. 「detokenization」和相邻模块之间通常传递什么数据？
 
-**参考答案：** Pipeline Parallel 按模型层或阶段切分，不同 GPU/进程负责不同层区间，hidden states 在 stage 之间传递。
+**参考答案：** detokenization 把 token 增量转成文本；UTF-8 和子词边界使“每 token 一段字符串”的假设不可靠。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-### 80. DP 和 TP 的直观区别是什么？
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。detokenization 把 token 增量转成文本；UTF-8 和子词边界使“每 token 一段字符串”的假设不可靠。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-**参考答案：** TP 让多个设备共同计算同一个请求/模型副本的张量；DP 通常让不同副本或 rank 处理不同请求/数据，并可能需要负载同步。
+**技术分析：** detokenization 把 token 增量转成文本；UTF-8 和子词边界使“每 token 一段字符串”的假设不可靠。 本题属于“请求对象”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-### 81. PP last rank 为什么通常负责 sampling？
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+## E. 调度基础（41-50）
 
-**参考答案：** 最后一个 pipeline stage 才拥有最终 logits；前面的 rank 只有中间 hidden/proxy tensors，不能独立选择最终 token。
+### 41. 什么是「Scheduler」，它在 SGLang 中解决什么问题？
 
-### 82. PP 非 last rank 返回什么？
+**参考答案：** Req 是 scheduler 侧的运行时状态，维护 token、队列、KV、finish reason 和采样相关字段。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 它通常返回给下一个 stage 使用的 proxy hidden states 或相关结果，而不是最终 `next_token_ids`。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。Req 是 scheduler 侧的运行时状态，维护 token、队列、KV、finish reason 和采样相关字段。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 83. `ModelRunner.forward` 的输出是什么？
+**技术分析：** Req 是 scheduler 侧的运行时状态，维护 token、队列、KV、finish reason 和采样相关字段。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 它返回包含 logits output、graph eligibility 和可能的专家/indexer辅助结果的 runner output，供 worker 组织成 generation result。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 42. SGLang 里为什么需要理解「waiting queue」？
 
-### 84. 为什么 prefill-only 请求可能返回 dummy token ids？
+**参考答案：** waiting queue 保存尚未进入当前执行计划的请求；等待时间长可能是预算/优先级问题而非模型慢。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 这类请求只需要计算输入 logprob或其他 prefill 输出，不应启动正常 decode；为保持 result shape 和接口对齐，worker 可创建与 batch size 匹配的 dummy ids。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。waiting queue 保存尚未进入当前执行计划的请求；等待时间长可能是预算/优先级问题而非模型慢。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 85. speculative decoding 是什么？
+**技术分析：** waiting queue 保存尚未进入当前执行计划的请求；等待时间长可能是预算/优先级问题而非模型慢。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 使用较快的 draft 模型/路径提出多个候选 token，再由 target 模型验证并接受部分候选，以减少目标模型逐 token执行的成本。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 43. 请用小白能懂的话解释「running batch」的作用。
 
-### 86. speculative verify 为什么可能跳过普通 sampling？
+**参考答案：** running batch 表示 scheduler 已接纳的请求集合；它还可能对应尚未完成的异步设备工作。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** verify 阶段的接受/拒绝逻辑由 speculative 算法控制，不应把它误当成普通 decode 的一次独立采样。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。running batch 表示 scheduler 已接纳的请求集合；它还可能对应尚未完成的异步设备工作。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 87. CUDA Graph 的收益是什么？
+**技术分析：** running batch 表示 scheduler 已接纳的请求集合；它还可能对应尚未完成的异步设备工作。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 对形状和内存地址稳定的 GPU 工作，减少重复 kernel launch 和 Python 调度开销，可能降低延迟。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 44. 如果「admission」出错，初学者最容易观察到什么现象？
 
-### 88. CUDA Graph 为什么不能覆盖所有 batch？
+**参考答案：** admission 同时检查 token、KV page、请求数、prefix hit 和 backend shape 约束。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 动态 batch、动态 token width、embedding override、metadata shape、backend 或 DP 条件可能不满足 capture/replay 要求，因此需要 eager fallback。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。admission 同时检查 token、KV page、请求数、prefix hit 和 backend shape 约束。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 89. attention backend 做什么？
+**技术分析：** admission 同时检查 token、KV page、请求数、prefix hit 和 backend shape 约束。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 它准备 attention metadata 并调用适配硬件、模型结构和 KV layout 的 attention kernel/实现，分别服务 prefill、decode 或特殊模式。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 45. 「continuous batching」和相邻模块之间通常传递什么数据？
 
-### 90. grammar constrained decoding 是什么？
+**参考答案：** continuous batching 每轮允许请求加入/完成/离开，使 GPU 少等待，但 admission 和状态清理更复杂。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 根据 JSON schema、regex 或其他 grammar 在每一步生成前计算合法 token mask，将非法 token 的 logits 屏蔽，再执行采样。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。continuous batching 每轮允许请求加入/完成/离开，使 GPU 少等待，但 admission 和状态清理更复杂。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 91. grammar mask 为什么属于运行时状态？
+**技术分析：** continuous batching 每轮允许请求加入/完成/离开，使 GPU 少等待，但 admission 和状态清理更复杂。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 合法 token 集合随已经生成的 token 改变，mask 需要按请求、batch 行和 device 在每轮更新，不能只在请求开始时固定。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 46. 什么是「ScheduleBatch」，它在 SGLang 中解决什么问题？
 
-### 92. `SamplingBatchInfo.filter_batch` 为什么重要？
+**参考答案：** ScheduleBatch 是 scheduler 的计划和资源对象，可能跨轮保存并被 overlap 逻辑引用。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 请求完成或被移除后，temperature、top-k/top-p、seed、penalty、grammar 和 custom processor 的数组都必须按同一行索引过滤，否则会把参数用于错误请求。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。ScheduleBatch 是 scheduler 的计划和资源对象，可能跨轮保存并被 overlap 逻辑引用。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 93. logits bias 和 grammar mask 的顺序为什么要明确？
+**技术分析：** ScheduleBatch 是 scheduler 的计划和资源对象，可能跨轮保存并被 overlap 逻辑引用。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 不同变换的语义可能不同；SGLang 的 sampling info 明确组织 pre-grammar transforms、grammar mask 和 post-grammar bias，顺序变化可能改变结果。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 47. SGLang 里为什么需要理解「ForwardBatch」？
 
-### 94. `next_token_ids` 如何变成最终文本？
+**参考答案：** ForwardBatch 是一次设备执行的快照，包含 input ids、seq lens、KV locations 和 attention metadata。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** scheduler result processor 将 token 写回 `Req` 并生成输出对象；TokenizerManager 根据 rid 找到 `ReqState`，增量 detokenize/拼接后返回文本。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。ForwardBatch 是一次设备执行的快照，包含 input ids、seq lens、KV locations 和 attention metadata。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 95. 调用者断连时为什么要 abort？
+**技术分析：** ForwardBatch 是一次设备执行的快照，包含 input ids、seq lens、KV locations 和 attention metadata。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 调用者不再消费结果，但 scheduler 可能仍持有请求和 KV；发送 abort 可释放运行状态、cache 引用和相关资源。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 48. 请用小白能懂的话解释「PrefillAdder」的作用。
 
-### 96. 为什么完成时要删除 `rid_to_state`？
+**参考答案：** PrefillAdder 将等待请求按预算逐个放入 prefill，并处理 prefix、chunking 和资源不足。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 表示本地不再等待该请求，并释放状态引用；如果不删除，长期服务会积累内存和错误的重复关联。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。PrefillAdder 将等待请求按预算逐个放入 prefill，并处理 prefix、chunking 和资源不足。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 97. overlap loop 的基本思想是什么？
+**技术分析：** PrefillAdder 将等待请求按预算逐个放入 prefill，并处理 prefix、chunking 和资源不足。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 当前 batch 的 GPU forward 与上一 batch 的 CPU result processing 交错执行，以隐藏部分 CPU 开销，但需要 snapshot、stream/event 和共享数据读写同步。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 49. 如果「chunked prefill」出错，初学者最容易观察到什么现象？
 
-### 98. 为什么 `last_batch` 不一定是设备上当前唯一 batch？
+**参考答案：** chunked prefill 把长 prompt 分多轮处理；必须保留 request row、KV 映射和推进位置。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** overlap 模式中 result queue、上一批、当前批可能处于不同生命周期阶段；Python 变量名不能简单等同于 GPU 实际执行状态。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。chunked prefill 把长 prompt 分多轮处理；必须保留 request row、KV 映射和推进位置。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-### 99. 一个完整请求结束前至少要清理哪些东西？
+**技术分析：** chunked prefill 把长 prompt 分多轮处理；必须保留 request row、KV 映射和推进位置。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-**参考答案：** 本地 ReqState、scheduler-side Req、waiting/running 引用、KV row/slots、radix lock/reference、IPC 临时资源以及必要的输出/abort状态。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 50. 「batch row」和相邻模块之间通常传递什么数据？
 
-### 100. 初学者如何判断自己真正理解了 SGLang？
+**参考答案：** batch 是一次 forward 同时处理的请求/token 集合；不同长度需要 seq lens、索引和 mask metadata。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
 
-**参考答案：** 能从一个 prompt 追踪到 tokenized object、rid state、scheduler Req、admission、ScheduleBatch、ForwardBatch、ModelRunner/sample、result processor、BatchStrOutput、最终文本和 cleanup，并能说明每一步所在进程、设备和资源所有权。
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。batch 是一次 forward 同时处理的请求/token 集合；不同长度需要 seq lens、索引和 mask metadata。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
 
-## 自测标准
+**技术分析：** batch 是一次 forward 同时处理的请求/token 集合；不同长度需要 seq lens、索引和 mask metadata。 本题属于“调度基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
 
-- 90-100：能独立讲清普通请求主线，并定位主要状态对象。
-- 70-89：掌握主线，但需要回看 KV、IPC、并行或输出清理。
-- 50-69：具备术语基础，建议按 M03→M04→M08→M05 顺序重读。
-- 0-49：先阅读 `01-concepts/` 和总览，再重新作答。
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+## F. KV 基础（51-60）
+
+### 51. 什么是「KV cache」，它在 SGLang 中解决什么问题？
+
+**参考答案：** KV cache 保存 attention 历史的 key/value，避免每个 decode step 重新计算全部历史，是推理服务主要显存账本。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。KV cache 保存 attention 历史的 key/value，避免每个 decode step 重新计算全部历史，是推理服务主要显存账本。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** KV cache 保存 attention 历史的 key/value，避免每个 decode step 重新计算全部历史，是推理服务主要显存账本。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 52. SGLang 里为什么需要理解「KV slot」？
+
+**参考答案：** KV slot 是物理 cache 存储位置；它和表示请求的 row 不是同一个概念。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。KV slot 是物理 cache 存储位置；它和表示请求的 row 不是同一个概念。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** KV slot 是物理 cache 存储位置；它和表示请求的 row 不是同一个概念。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 53. 请用小白能懂的话解释「request row」的作用。
+
+**参考答案：** request row 是请求到 token/KV 映射表中的行；释放 row 前要确保设备和延迟结果不再使用。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。request row 是请求到 token/KV 映射表中的行；释放 row 前要确保设备和延迟结果不再使用。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** request row 是请求到 token/KV 映射表中的行；释放 row 前要确保设备和延迟结果不再使用。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 54. 如果「ReqToTokenPool」出错，初学者最容易观察到什么现象？
+
+**参考答案：** 它维护逻辑 token 位置到物理 KV slot 的映射，让 attention 找到正确的历史。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。它维护逻辑 token 位置到物理 KV slot 的映射，让 attention 找到正确的历史。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 它维护逻辑 token 位置到物理 KV slot 的映射，让 attention 找到正确的历史。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 55. 「token-to-KV allocator」和相邻模块之间通常传递什么数据？
+
+**参考答案：** token 是 tokenizer 产生的整数 ID；一个汉字、词片段或空格都可能是不同 token，不能假定 token 与字符一一对应。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。token 是 tokenizer 产生的整数 ID；一个汉字、词片段或空格都可能是不同 token，不能假定 token 与字符一一对应。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** token 是 tokenizer 产生的整数 ID；一个汉字、词片段或空格都可能是不同 token，不能假定 token 与字符一一对应。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 56. 什么是「Radix Cache」，它在 SGLang 中解决什么问题？
+
+**参考答案：** Radix Cache 按 token 前缀组织可复用 KV；命中减少 prefill，但增加 lock/ref、eviction 和 ownership 约束。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。Radix Cache 按 token 前缀组织可复用 KV；命中减少 prefill，但增加 lock/ref、eviction 和 ownership 约束。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** Radix Cache 按 token 前缀组织可复用 KV；命中减少 prefill，但增加 lock/ref、eviction 和 ownership 约束。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 57. SGLang 里为什么需要理解「prefix hit」？
+
+**参考答案：** prefix hit 返回已有 KV indices；本轮只计算未命中区间，同时仍需按完整序列建立 metadata。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。prefix hit 返回已有 KV indices；本轮只计算未命中区间，同时仍需按完整序列建立 metadata。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** prefix hit 返回已有 KV indices；本轮只计算未命中区间，同时仍需按完整序列建立 metadata。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 58. 请用小白能懂的话解释「page」的作用。
+
+**参考答案：** page 是 cache 管理和 attention 索引的粒度；page size 会影响碎片、命中率和 metadata 开销。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。page 是 cache 管理和 attention 索引的粒度；page size 会影响碎片、命中率和 metadata 开销。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** page 是 cache 管理和 attention 索引的粒度；page size 会影响碎片、命中率和 metadata 开销。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 59. 如果「cache lock」出错，初学者最容易观察到什么现象？
+
+**参考答案：** lock/ref 防止正在使用的 cache node 被 eviction；漏加会过早释放，漏减会泄漏。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。lock/ref 防止正在使用的 cache node 被 eviction；漏加会过早释放，漏减会泄漏。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** lock/ref 防止正在使用的 cache node 被 eviction；漏加会过早释放，漏减会泄漏。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 60. 「cache cleanup」和相邻模块之间通常传递什么数据？
+
+**参考答案：** cleanup 必须同时处理 row、slot、radix 引用、sampling 状态和本地 rid state。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。cleanup 必须同时处理 row、slot、radix 引用、sampling 状态和本地 rid state。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** cleanup 必须同时处理 row、slot、radix 引用、sampling 状态和本地 rid state。 本题属于“KV 基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+## G. 模型执行（61-70）
+
+### 61. 什么是「TpModelWorker」，它在 SGLang 中解决什么问题？
+
+**参考答案：** 它把 scheduler 的计划转换成设备 forward，并处理 PP rank、prefill/decode 和结果契约。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。它把 scheduler 的计划转换成设备 forward，并处理 PP rank、prefill/decode 和结果契约。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 它把 scheduler 的计划转换成设备 forward，并处理 PP rank、prefill/decode 和结果契约。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 62. SGLang 里为什么需要理解「ModelRunner」？
+
+**参考答案：** ModelRunner 持有模型和执行 backend，负责 attention metadata、eager/graph 选择、forward 和 sampling。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。ModelRunner 持有模型和执行 backend，负责 attention metadata、eager/graph 选择、forward 和 sampling。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** ModelRunner 持有模型和执行 backend，负责 attention metadata、eager/graph 选择、forward 和 sampling。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 63. 请用小白能懂的话解释「ForwardBatch.init_new」的作用。
+
+**参考答案：** ForwardBatch 是一次设备执行的快照，包含 input ids、seq lens、KV locations 和 attention metadata。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。ForwardBatch 是一次设备执行的快照，包含 input ids、seq lens、KV locations 和 attention metadata。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** ForwardBatch 是一次设备执行的快照，包含 input ids、seq lens、KV locations 和 attention metadata。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 64. 如果「attention backend」出错，初学者最容易观察到什么现象？
+
+**参考答案：** 「attention backend」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「attention backend」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「attention backend」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 65. 「CUDA Graph」和相邻模块之间通常传递什么数据？
+
+**参考答案：** CUDA Graph 复用已捕获的 launch 图，要求 shape、地址和 metadata 满足条件；不能把“想用”当成“一定可用”。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。CUDA Graph 复用已捕获的 launch 图，要求 shape、地址和 metadata 满足条件；不能把“想用”当成“一定可用”。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** CUDA Graph 复用已捕获的 launch 图，要求 shape、地址和 metadata 满足条件；不能把“想用”当成“一定可用”。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 66. 什么是「eager mode」，它在 SGLang 中解决什么问题？
+
+**参考答案：** eager 允许动态 shape 和 metadata，但 launch 开销可能更高；它是 graph 不适用时的正确性兜底。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。eager 允许动态 shape 和 metadata，但 launch 开销可能更高；它是 graph 不适用时的正确性兜底。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** eager 允许动态 shape 和 metadata，但 launch 开销可能更高；它是 graph 不适用时的正确性兜底。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 67. SGLang 里为什么需要理解「sampling batch」？
+
+**参考答案：** batch 是一次 forward 同时处理的请求/token 集合；不同长度需要 seq lens、索引和 mask metadata。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。batch 是一次 forward 同时处理的请求/token 集合；不同长度需要 seq lens、索引和 mask metadata。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** batch 是一次 forward 同时处理的请求/token 集合；不同长度需要 seq lens、索引和 mask metadata。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 68. 请用小白能懂的话解释「GenerationBatchResult」的作用。
+
+**参考答案：** 它承载 logits、next token、PP proxy 或辅助结果；字段是否有效取决于 forward mode 和 rank。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。它承载 logits、next token、PP proxy 或辅助结果；字段是否有效取决于 forward mode 和 rank。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 它承载 logits、next token、PP proxy 或辅助结果；字段是否有效取决于 forward mode 和 rank。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 69. 如果「PP rank」出错，初学者最容易观察到什么现象？
+
+**参考答案：** PP 切分层间 stage；P2P hidden 传递和 stage 顺序构成执行契约。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。PP 切分层间 stage；P2P hidden 传递和 stage 顺序构成执行契约。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** PP 切分层间 stage；P2P hidden 传递和 stage 顺序构成执行契约。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 70. 「logprob」和相邻模块之间通常传递什么数据？
+
+**参考答案：** logprob 必须对应实际采样所用的 logits 语义和 token 历史；prefill/decode、filter/reorder 会改变对齐风险。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。logprob 必须对应实际采样所用的 logits 语义和 token 历史；prefill/decode、filter/reorder 会改变对齐风险。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** logprob 必须对应实际采样所用的 logits 语义和 token 历史；prefill/decode、filter/reorder 会改变对齐风险。 本题属于“模型执行”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+## H. 并行基础（71-80）
+
+### 71. 什么是「TP」，它在 SGLang 中解决什么问题？
+
+**参考答案：** TP 切分层内计算；group、权重 shard、activation shape 和 collective 都必须一致。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。TP 切分层内计算；group、权重 shard、activation shape 和 collective 都必须一致。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** TP 切分层内计算；group、权重 shard、activation shape 和 collective 都必须一致。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 72. SGLang 里为什么需要理解「PP」？
+
+**参考答案：** PP 切分层间 stage；P2P hidden 传递和 stage 顺序构成执行契约。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。PP 切分层间 stage；P2P hidden 传递和 stage 顺序构成执行契约。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** PP 切分层间 stage；P2P hidden 传递和 stage 顺序构成执行契约。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 73. 请用小白能懂的话解释「DP」的作用。
+
+**参考答案：** DP 复制执行并按请求/数据分工；不同 rank 的 batch/padding 仍可能必须参加同步。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。DP 复制执行并按请求/数据分工；不同 rank 的 batch/padding 仍可能必须参加同步。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** DP 复制执行并按请求/数据分工；不同 rank 的 batch/padding 仍可能必须参加同步。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 74. 如果「EP」出错，初学者最容易观察到什么现象？
+
+**参考答案：** EP 将 experts 分布到 rank，routing 后需要 dispatch/combine；动态负载造成通信和尾部延迟。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。EP 将 experts 分布到 rank，routing 后需要 dispatch/combine；动态负载造成通信和尾部延迟。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** EP 将 experts 分布到 rank，routing 后需要 dispatch/combine；动态负载造成通信和尾部延迟。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 75. 「global rank」和相邻模块之间通常传递什么数据？
+
+**参考答案：** 「global rank」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「global rank」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「global rank」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 76. 什么是「local GPU」，它在 SGLang 中解决什么问题？
+
+**参考答案：** 「local GPU」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「local GPU」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「local GPU」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 77. SGLang 里为什么需要理解「process group」？
+
+**参考答案：** 「process group」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「process group」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「process group」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 78. 请用小白能懂的话解释「collective」的作用。
+
+**参考答案：** 「collective」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「collective」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「collective」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 79. 如果「placement」出错，初学者最容易观察到什么现象？
+
+**参考答案：** 「placement」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「placement」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「placement」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 80. 「multi-node」和相邻模块之间通常传递什么数据？
+
+**参考答案：** 「multi-node」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「multi-node」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「multi-node」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“并行基础”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+## I. 加载与扩展（81-90）
+
+### 81. 什么是「model loader」，它在 SGLang 中解决什么问题？
+
+**参考答案：** loader 读取 checkpoint 并将参数交给模型对象；加载成功不代表 KV/backend/graph 已 ready。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。loader 读取 checkpoint 并将参数交给模型对象；加载成功不代表 KV/backend/graph 已 ready。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** loader 读取 checkpoint 并将参数交给模型对象；加载成功不代表 KV/backend/graph 已 ready。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 82. SGLang 里为什么需要理解「checkpoint shard」？
+
+**参考答案：** 文件 shard 是存储布局，运行时 TP/PP shard 是计算布局；loader 负责二者映射。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。文件 shard 是存储布局，运行时 TP/PP shard 是计算布局；loader 负责二者映射。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 文件 shard 是存储布局，运行时 TP/PP shard 是计算布局；loader 负责二者映射。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 83. 请用小白能懂的话解释「weight_loader」的作用。
+
+**参考答案：** weight_loader 处理切片、fused 参数、transpose、quant scale 和 expert 归属，不能用简单字典赋值替代。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。weight_loader 处理切片、fused 参数、transpose、quant scale 和 expert 归属，不能用简单字典赋值替代。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** weight_loader 处理切片、fused 参数、transpose、quant scale 和 expert 归属，不能用简单字典赋值替代。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 84. 如果「quantization」出错，初学者最容易观察到什么现象？
+
+**参考答案：** 量化不只是换 dtype，还包括 packed layout、scale、group size 和 kernel 解释方式。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。量化不只是换 dtype，还包括 packed layout、scale、group size 和 kernel 解释方式。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 量化不只是换 dtype，还包括 packed layout、scale、group size 和 kernel 解释方式。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 85. 「MoE」和相邻模块之间通常传递什么数据？
+
+**参考答案：** MoE 用 router 将 token 发给少数 experts；容量、负载均衡和 dispatch 通信决定性能。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。MoE 用 router 将 token 发给少数 experts；容量、负载均衡和 dispatch 通信决定性能。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** MoE 用 router 将 token 发给少数 experts；容量、负载均衡和 dispatch 通信决定性能。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 86. 什么是「LoRA」，它在 SGLang 中解决什么问题？
+
+**参考答案：** LoRA 为请求或模型增加低秩 adapter；不同 adapter 可能阻止 batch 合并或 CUDA Graph 复用。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。LoRA 为请求或模型增加低秩 adapter；不同 adapter 可能阻止 batch 合并或 CUDA Graph 复用。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** LoRA 为请求或模型增加低秩 adapter；不同 adapter 可能阻止 batch 合并或 CUDA Graph 复用。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 87. SGLang 里为什么需要理解「multimodal」？
+
+**参考答案：** 多模态输入可能把媒体转成 embedding/占位 token，token 数与实际输入布局不再是简单文本假设。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。多模态输入可能把媒体转成 embedding/占位 token，token 数与实际输入布局不再是简单文本假设。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 多模态输入可能把媒体转成 embedding/占位 token，token 数与实际输入布局不再是简单文本假设。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 88. 请用小白能懂的话解释「speculative decoding」的作用。
+
+**参考答案：** speculative 先由 draft 提议多个 token，再由 target 验证；accepted token 才能提交到序列和 KV。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。speculative 先由 draft 提议多个 token，再由 target 验证；accepted token 才能提交到序列和 KV。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** speculative 先由 draft 提议多个 token，再由 target 验证；accepted token 才能提交到序列和 KV。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 89. 如果「disaggregation」出错，初学者最容易观察到什么现象？
+
+**参考答案：** disaggregation 把 prefill/decode 或服务角色拆开；KV 传输需要 layout、版本、完成事件和失败回收协议。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。disaggregation 把 prefill/decode 或服务角色拆开；KV 传输需要 layout、版本、完成事件和失败回收协议。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** disaggregation 把 prefill/decode 或服务角色拆开；KV 传输需要 layout、版本、完成事件和失败回收协议。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 90. 「HiCache」和相邻模块之间通常传递什么数据？
+
+**参考答案：** 分层 cache 在 GPU、host 或远端之间迁移 KV；每层必须有版本和 ownership，否则可能读到旧数据。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。分层 cache 在 GPU、host 或远端之间迁移 KV；每层必须有版本和 ownership，否则可能读到旧数据。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 分层 cache 在 GPU、host 或远端之间迁移 KV；每层必须有版本和 ownership，否则可能读到旧数据。 本题属于“加载与扩展”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+## J. 排错入门（91-100）
+
+### 91. 什么是「请求超时」，它在 SGLang 中解决什么问题？
+
+**参考答案：** 「请求超时」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「请求超时」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「请求超时」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 92. SGLang 里为什么需要理解「进程启动失败」？
+
+**参考答案：** 「进程启动失败」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「进程启动失败」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「进程启动失败」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 93. 请用小白能懂的话解释「显存不足」的作用。
+
+**参考答案：** 显存不足可能来自真实容量、碎片、protected cache、graph buffer 或 allocator 泄漏，不能只看 nvidia-smi。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。显存不足可能来自真实容量、碎片、protected cache、graph buffer 或 allocator 泄漏，不能只看 nvidia-smi。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 显存不足可能来自真实容量、碎片、protected cache、graph buffer 或 allocator 泄漏，不能只看 nvidia-smi。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 94. 如果「输出错位」出错，初学者最容易观察到什么现象？
+
+**参考答案：** 「输出错位」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「输出错位」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「输出错位」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 95. 「重复 token」和相邻模块之间通常传递什么数据？
+
+**参考答案：** token 是 tokenizer 产生的整数 ID；一个汉字、词片段或空格都可能是不同 token，不能假定 token 与字符一一对应。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。token 是 tokenizer 产生的整数 ID；一个汉字、词片段或空格都可能是不同 token，不能假定 token 与字符一一对应。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** token 是 tokenizer 产生的整数 ID；一个汉字、词片段或空格都可能是不同 token，不能假定 token 与字符一一对应。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 96. 什么是「graph fallback」，它在 SGLang 中解决什么问题？
+
+**参考答案：** 「graph fallback」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「graph fallback」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「graph fallback」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 97. SGLang 里为什么需要理解「tokenizer 瓶颈」？
+
+**参考答案：** TokenizerManager 在输入侧做 tokenization/校验，在输出侧做 detokenization；流式输出必须记住已发送文本边界。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。TokenizerManager 在输入侧做 tokenization/校验，在输出侧做 detokenization；流式输出必须记住已发送文本边界。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** TokenizerManager 在输入侧做 tokenization/校验，在输出侧做 detokenization；流式输出必须记住已发送文本边界。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 98. 请用小白能懂的话解释「scheduler 瓶颈」的作用。
+
+**参考答案：** 「scheduler 瓶颈」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「scheduler 瓶颈」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「scheduler 瓶颈」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 99. 如果「GPU 瓶颈」出错，初学者最容易观察到什么现象？
+
+**参考答案：** 「GPU 瓶颈」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「GPU 瓶颈」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「GPU 瓶颈」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+### 100. 「未验证性能」和相邻模块之间通常传递什么数据？
+
+**参考答案：** 「未验证性能」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 这道题的核心结论是：必须同时追踪请求 ID、batch 行、request row、KV slot 和终态；推理服务的逻辑状态与 GPU 异步执行完成点不是同一件事。
+
+**小白解释：** 可以把 SGLang 想成一个同时接待很多人的厨房。「未验证性能」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 就像点单、排队、备料、烹饪或出餐中的一个步骤；如果只看步骤名字而不看订单号，就可能把一个人的结果交给另一个人。
+
+**技术分析：** 「未验证性能」需要结合上下游接口理解：它会改变输入、状态、资源或结果中的至少一项，不能只根据名称推断行为。 本题属于“排错入门”主题。在 SGLang 的推理主线中，相关对象通常沿请求状态、scheduler、batch、设备执行、KV cache 或输出 IPC 边界传递。 重点检查三条链：请求是否通过 TokenizerManager/ReqState 和 IPC 正确交给 Scheduler/Req；batch 构造是否保持 rid、行、seq lens、KV metadata 和 sampling 参数的一致置换；设备 stream/event 完成后，row、slot、radix 引用和输出 state 才能安全回收。先回答“它是什么、为什么需要、数据往哪里走”，再补充一个简单例子。 知识库以 `srt/entrypoints`、managers、model_executor、mem_cache、distributed 和现有请求流程文章为证据；真实 GPU、模型和多卡行为仍需运行验证。
+
+**拓展分析：** 可继续追问：如何构造三个带不同 token、seed、grammar 和 KV sentinel 的请求，随机执行 filter、prefix hit、chunked prefill、retraction、overlap 和 abort，证明不会串行或泄漏？性能上记录 TTFT/TPOT 的分位数、队列时间、cache 命中、retraction、graph fallback、IPC 和 GPU forward 时间；单 kernel 变快不等于端到端变快。
+
+
+## 使用建议
+
+先遮住答案自测，再对照四段内容复盘。回答技术题时，明确对象、输入输出、状态变化、资源所有权、失败语义和验证边界；不要把未执行的 GPU、NPU、模型、多卡或性能命令写成运行事实。

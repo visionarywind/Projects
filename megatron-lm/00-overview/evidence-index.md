@@ -2,23 +2,35 @@
 
 - 文档目的：集中登记总览和跨文档反复使用的最小证据。
 - 适用范围：目标提交 `8190837c2b6ce176a431bc2a6ffd3439507648a7`。
-- 证据状态：已确认（行号按当前工作树源码核对）
-- 最后更新：2026-09-10
+- 证据状态：已确认（行号按当前工作树源码核对）；动态行为未验证。
+- 最后更新：2026-09-11
 
 | 结论 | 证据 | 支持文档 |
 |---|---|---|
 | 仓库由 LM 参考程序与 Core 组成 | [README.md:15-21] | project-overview, architecture |
 | 顶层结构包含 core/training/tests/examples/tools/docs | [README.md:65-87] | project-overview |
 | GPT 入口导入 builder、dataset、training | [pretrain_gpt.py:33-80] | architecture, M03 |
+| `get_batch` 负责 TP/CP/packing batch 边界 | [pretrain_gpt.py:111+] | M04, cross-module |
 | builder 根据 spec/TE/MoE/异构配置选择实现 | [gpt_builders.py:24-110] | M01 |
 | provider 可切换 ModelOpt builder | [model_provider.py:19-58] | M01, cross-module |
 | 初始化检查 CUDA 并设置 distributed/model parallel | [megatron/training/initialize.py:48-176] | M02, M03 |
 | process_state 存储多维 group | [megatron/core/parallel_state.py:28-165] | M02 |
 | group wrapper 调用 torch.new_group | [megatron/core/parallel_state.py:232-260] | M02 |
+| `initialize_model_parallel` 创建 TP/PP/DP/CP/EP/GTP groups | [megatron/core/parallel_state.py:600-1029] | M02 |
 | schedule 按 PP/VP 选择实现 | [megatron/core/pipeline_parallel/schedules.py:53-168] | M02, M03 |
+| 无 pipeline 调度逐 microbatch 执行并 finalize grads | [schedules.py:723-928] | M02, M03 |
 | GPTModel 构造 embedding/decoder/output | [megatron/core/models/gpt/gpt_model.py:98-242] | M01 |
+| GPTModel.forward 串联 preprocess、decoder、postprocess | [megatron/core/models/gpt/gpt_model.py:567-674] | M01, M06 |
+| TransformerBlock.forward 逐层执行并处理 recompute/offload/norm | [megatron/core/transformer/transformer_block.py:506-780] | M01, M02 |
+| training.pretrain 编排初始化、setup、data、train | [megatron/training/training.py:1530+] | M03 |
+| train_step 调用 schedule、optimizer.step 和 scheduler | [megatron/training/training.py:3092+] | M03, M05 |
 | D01 初始化、数据、训练和 checkpoint 完整存在 | [examples/run_simple_mcore_train_loop.py:28-283] | D01 |
+| GPTDataset 产生 shifted tokens/labels/masks | [megatron/core/datasets/gpt_dataset.py:264+] | M04 |
 | optimizer 有 TE/Apex/Torch fallback | [megatron/core/optimizer/__init__.py:13-35] | M05 |
+| save/load checkpoint 位于 training checkpointing | [megatron/training/checkpointing.py:611+,2469+] | M05 |
+| StaticInferenceEngine 优先包装 DynamicInferenceEngine | [megatron/core/inference/engines/static_engine.py:35-132] | M06 |
+| DynamicInferenceEngine 管理 dynamic requests/KV context | [megatron/core/inference/engines/dynamic_engine.py:292-427] | M06 |
+| text generation server 构造 inference engine 并启动服务 | [tools/run_text_generation_server.py:51-192] | M06 |
 | unit test 使用 distributed runner | [skills/mcore-testing/SKILL.md:117-155] | M03, testing-recipes |
 | format script 运行 black/isort/pylint/ruff/mypy | [tools/autoformat.sh:37-42] | build-and-deploy |
 | docs 使用 Sphinx | [docs/documentation.md:21-60] | build-and-deploy |
@@ -34,8 +46,4 @@
 
 ## 未解决问题
 
-动态调用（TE kernel、torch autograd C++ engine、NCCL）只有静态入口证据，真实目标需运行或 profiler 确认。
-
-## 下一步阅读建议
-
-从入口证据开始，沿每条链路进入模块文档。
+动态调用（TE kernel、torch autograd C++ engine、NCCL、推理服务网络行为）只有静态入口证据，真实目标需运行或 profiler 确认。
