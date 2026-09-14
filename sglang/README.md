@@ -41,36 +41,46 @@
 
 ### C. 实现层：按模块 ID 深入源码
 
-23. [M03 Tokenizer 与请求状态](01-modules/M03-tokenizer-request-state/README.md)：请求状态、tokenize、IPC dispatch、增量输出与清理。
-24. [M04 Scheduler 与连续批处理](01-modules/M04-scheduler-batching/README.md)：waiting/running admission、PrefillAdder、ScheduleBatch、forward 和 retraction。
-25. [模型加载与并行初始化](03-model-loading/01-模型加载与并行初始化.md)：M06/M07/M05/M08/M09 的启动主链。
-26. [M07 分布式并行](01-modules/M07-分布式并行.md)：WORLD、TP/PP、attention/MoE 拓扑、GroupCoordinator、collective 与清理。
+23. [M01 CLI 与服务启动](01-modules/M01-cli-service-startup/README.md)：延迟解析、backend registry、部署分支和进程树清理。
+24. [M02 HTTP/API 与协议](01-modules/M02-http-api-protocol/README.md)：native/OpenAI 协议、请求转换、SSE、错误、disconnect 和 abort。
+25. [M03 Tokenizer 与请求状态](01-modules/M03-tokenizer-request-state/README.md)：请求状态、tokenize、IPC dispatch、增量输出与清理。
+26. [M04 Scheduler 与连续批处理](01-modules/M04-scheduler-batching/README.md)：waiting/running admission、PrefillAdder、ScheduleBatch、forward 和 retraction。
 27. [M05 模型执行](01-modules/M05-model-execution/README.md)：ForwardBatch、TP worker、ModelRunner、CUDA Graph、sampling 与结果边界。
-28. [M08 KV Cache 与 Radix Cache](01-modules/M08-kv-cache/README.md)：request row、KV slot、prefix match、Radix 插入、回收与 retraction。
-29. [M09 Attention 与 CUDA Graph](01-modules/M09-attention-cuda-graph/README.md)：backend metadata、eager/graph 选择、capture eligibility 与 overlap 边界。
-30. [M10 采样与约束输出](01-modules/M10-sampling-constraints/README.md)：SamplingBatchInfo、penalty、grammar mask、sampler 和输出边界。
+28. [M06 模型加载与权重](01-modules/M06-model-loading/README.md)：ModelConfig、loader、PP filter、weight mapping、量化和 barrier。
+29. [M07 分布式并行](01-modules/M07-分布式并行.md)：WORLD、TP/PP、attention/MoE 拓扑、GroupCoordinator、collective 与清理。
+30. [M08 KV Cache 与 Radix Cache](01-modules/M08-kv-cache/README.md)：request row、KV slot、prefix match、Radix 插入、回收与 retraction。
+31. [M09 Attention 与 CUDA Graph](01-modules/M09-attention-cuda-graph/README.md)：backend metadata、eager/graph 选择、capture eligibility 与 overlap 边界。
+32. [M10 采样与约束输出](01-modules/M10-sampling-constraints/README.md)：SamplingBatchInfo、penalty、grammar mask、sampler 和输出边界。
+33. [M11 Speculative decoding](01-modules/M11-speculative-decoding/README.md)：draft/target、accept/reject、bonus token、KV 回滚和算法变体。
+34. [M12 多模态 Runtime](01-modules/M12-multimodal-runtime/README.md)：media preprocess、placeholder、feature cache、M-RoPE 和 rank 分片。
+35. [M13 分离部署与 HiCache](01-modules/M13-disaggregation-hicache/README.md)：KV transfer、bootstrap、staging、prefetch/restore 和失败状态。
+36. [M14 MoE、量化与 LoRA](01-modules/M14-moe-quantization-lora/README.md)：quant method、expert location/EPLB 和 adapter 生命周期。
+37. [M15 多进程与 IPC](01-modules/M15-ipc-control-plane/README.md)：scheduler/detokenizer 子进程、ZMQ、startup pipe、序列化和 cleanup。
+38. [M16 Kernel 与设备后端](01-modules/M16-kernel-device-backend/README.md)：platform resolver、AOT/JIT/fallback 和设备能力边界。
+39. [M17 Rust、Router 与 Gateway](01-modules/M17-rust-router-gateway/README.md)：PyO3/gRPC、KV-aware router、service discovery 和可靠性。
+40. [M18 测试、Benchmark 与 CI](01-modules/M18-testing-benchmark-ci/README.md)：suite 发现、过滤、分片、registered/manual、benchmark 和验证证据。
 
-> `03-model-loading/` 是模型加载专题目录；模块注册表中的 M06/M07 状态会随着实现级文章和专项文章补齐而更新。Radix Cache 专题文章尚待补充，当前先使用基础概念文章和现有请求链路中的证据。
+> `03-model-loading/` 是模型加载专题目录；实现层的模块文章位于 `01-modules/M06-model-loading/`。两者分别承担启动主链和独立实现细节。
 
-后续实现层将继续覆盖：CLI/API、Tokenizer、Scheduler、ModelRunner、KV/Radix Cache、attention/CUDA Graph、sampling/grammar、speculative decoding、多模态、disaggregation/HiCache、MoE/quantization/LoRA、IPC、kernel/device backend、Rust 服务和测试系统。只有达到模块注册表中的最低标准后，模块状态才会改为完成。
+所有模块都以普通 HTTP LLM 为主线，并把 Ray、diffusion、speculative、multimodal、disaggregation、Rust gateway 和设备后端写成替换或扩展路径。文章中的真实 GPU、多卡、模型下载、CUDA Graph、NCCL/NIXL/RDMA 和端到端执行均需另有运行证据；当前 checkout 只提供静态源码证据。
 
 ### D. 真实 Demo 解剖层
 
 - 目标目录：`80-demos/`。
 - 候选主线：`examples/runtime/engine/offline_batch_inference.py`，需要从 argparse、`ServerArgs`、`sgl.Engine`、子进程、`generate` 一直追到真实执行和 `shutdown`。
-- 当前状态：已创建 D01 深度文章；真实模型启动、checkpoint 加载、GPU 输出仍未验证。
+- 当前状态：已创建 D01 深度文章，并登记 D02 协议/结构化输出与 D03 speculative 静态链路；真实模型启动、checkpoint 加载、GPU 输出和端到端结果仍未验证。
 
 ### E. 跨模块串联层
 
 - 目标目录：`90-cross-module/`。
 - 计划集中记录 system wiring、接口契约、端到端 runtime trace、共享数据、配置影响、错误边界、修改影响和性能关键路径。
-- 当前状态：已建立 system wiring、接口契约、运行轨迹、端到端流程，以及调用链、共享数据、配置影响、错误边界、修改影响和性能路径；仍需与后续专题复核。
+- 当前状态：已建立 system wiring、接口契约、运行轨迹、端到端流程，以及调用链、共享数据、配置影响、错误边界、修改影响和性能路径；静态链接与引用审计已完成，变体运行证据仍待补充。
 
 ### F. 开发实践与路线层
 
 - 目标目录：`99-roadmap/`。
 - 计划包括快速上手、阅读路线、调试、功能开发、测试、性能、风险登记、技术债务和后续步骤。
-- 当前状态：已创建开发实践导航、快速上手、阅读、调试、开发配方、测试、性能、风险、技术债务和后续步骤；完整模块和真实运行验证仍未完成。
+- 当前状态：已创建开发实践导航、快速上手、阅读、调试、开发配方、测试、性能、风险、技术债务和后续步骤；静态审计已完成，真实模型、GPU、CUDA Graph、多卡通信和完整测试仍未验证。
 - [分级 QA 题库](99-roadmap/qa.md)：入门级 100 题、中级 100 题、高级 100 题、专家级 100 题；用于检验概念、调用链、状态、资源、性能和故障分析。
 
 ## QA 题库

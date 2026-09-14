@@ -14,6 +14,7 @@ HTTP JSON
   -> waiting queue
   -> prefix match + KV admission
   -> ScheduleBatch
+  -> speculative draft/verify (optional)
   -> ForwardBatch
   -> ModelRunner.forward
   -> logits processor + sampler

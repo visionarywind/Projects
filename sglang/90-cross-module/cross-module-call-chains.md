@@ -1,6 +1,6 @@
 # 跨模块调用链
 
-- 文档目的：把普通 Engine 请求从入口追踪到 scheduler、worker 和输出，不停在 wrapper 名称。
+- 文档目的：把普通 Engine 请求从入口追踪到 scheduler、worker 和输出，并标注可选的 speculative、多模态、KV transfer 与 gateway 扩展，不停在 wrapper 名称。
 - 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
 - 证据状态：部分完成
 - 最后更新：2026-09-10

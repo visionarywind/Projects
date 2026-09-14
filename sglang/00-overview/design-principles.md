@@ -4,7 +4,7 @@
 
 ## 1. 配置先解析，再投影
 
-`ServerArgs` 接收原始输入，resolution pipeline 计算派生决定，runtime config bags 才是业务进程读取的有效配置。**已确认**：`source-doc/02-request-flow/05-配置解析与运行时上下文.md` 记录了 `_raw_input`、declaration stash、`resolve_once` 和 `publish` 的源码链。
+`ServerArgs` 接收原始输入，resolution pipeline 计算派生决定，runtime config bags 才是业务进程读取的有效配置。**已确认**：`02-request-flow/05-配置解析与运行时上下文.md` 记录了 `_raw_input`、declaration stash、`resolve_once` 和 `publish` 的源码链。
 
 阅读规则：看到一个配置字段时，先找它的定义、解析 handler 和 runtime bag 消费者，不要假设 CLI 字段就是运行时最终值。
 

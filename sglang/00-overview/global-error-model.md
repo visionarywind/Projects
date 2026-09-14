@@ -14,7 +14,11 @@ KV 不足、请求 abort、停止条件和 batch admission 失败属于请求/�
 
 模型架构不支持、checkpoint 缺失、dtype/quantization 不兼容、GPU OOM、kernel 错误和 collective hang 属于 worker 初始化或执行错误。它们可能无法只对一个请求隔离。
 
-## 4. 进程边界
+## 4. 变体与设备边界
+
+多模态 placeholder/feature 数量不一致、KV transfer poll timeout、staging restore 失败、LoRA slot/adapter 失配、kernel 编译或设备 capability 不支持、router/gateway upstream 断开，分别发生在输入、缓存/网络、设备或外部服务边界。处理时要沿各模块的 ownership 释放资源；不能将具体 backend 的 retry/fallback 推断为公共行为。
+
+## 5. 进程边界
 
 Scheduler exception 会记录 traceback，并通过父进程信号/监控机制传播；父进程清理进程树。startup pipe 还承担“初始化成功或失败”的控制信号，ZMQ 长期消息通道承担正常结果/请求流。
 

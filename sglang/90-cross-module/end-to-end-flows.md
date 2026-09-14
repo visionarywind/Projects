@@ -60,7 +60,35 @@ sequenceDiagram
 
 [`python/sglang/srt/managers/tokenizer_manager.py:836-845`][`python/sglang/srt/managers/tokenizer_manager.py:1750-1765`]
 
-## 覆盖矩阵
+## 流程四：可选变体的接入点
+
+```text
+OpenAI/native media
+  -> M02 protocol conversion
+  -> M12 processor / placeholder / feature transport
+  -> M03 tokenize state
+  -> M04 admission
+  -> M05 forward (M09 graph or eager)
+
+prefill worker
+  -> M13 KV sender/bootstrap
+  -> decode receiver/staging
+  -> M08 local KV commit
+  -> M04 decode
+
+base model request
+  -> M14 quant/MoE/LoRA metadata
+  -> M16 platform/kernel dispatch
+  -> M05 execution
+
+client
+  -> M17 gateway/router
+  -> M02 worker protocol
+  -> M15 worker/process lifecycle
+```
+
+这些是主线的扩展点，不表示每次请求都会经过所有模块。上述多模态特征、跨服务 KV、专用 kernel、Rust 网络服务和多 worker 路由均未在本次会话端到端运行。
+
 
 | 流程 | 真实入口 | 核心模块 | Demo/测试 |
 |---|---|---|---|

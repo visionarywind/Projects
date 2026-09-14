@@ -15,7 +15,13 @@
 | result processor | token、finish、KV、输出对齐 | M03/M04/M05/M08/M10 |
 | rank/group 初始化 | GPU placement、collective、模型层 | M06/M07、multi-GPU tests |
 | loader/weight mapping | 参数拥有者、量化后处理 | M05/M06/M14 |
-| shutdown/error path | child、socket、device 资源 | M03/M04/M15 |
+| multimodal placeholder/feature | token budget、embedding splice、position/graph metadata | M02/M03/M04/M05/M09/M12 |
+| KV transfer/staging | cache layout、admission、请求完成时机 | M04/M08/M13/M15、transfer backend |
+| quant/MoE/LoRA metadata | packed weights、expert routing、adapter slot | M05/M06/M07/M14/M16 |
+| platform/kernel dispatch | dtype/layout、graph eligibility、fallback | M05/M09/M14/M16/M18 |
+| Rust/router/gateway schema | stream、retry、worker routing、cancellation | M02/M04/M08/M13/M15/M17 |
+| suite/filter/benchmark config | 实际覆盖率、CI 分片、性能结论 | M18、受影响模块 |
+| shutdown/error path | child、socket、device 资源 | M03/M04/M15/M17 |
 
 ## 变更前问题
 

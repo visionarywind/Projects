@@ -1,7 +1,7 @@
 # 跨模块系统 wiring
 
 - 文档目的：把 SGLang 的启动、请求、执行和返回链路放在同一张运行时地图中。
-- 适用范围：M01、M03、M04、M05、M06、M07、M08、M09、M10、M15。
+- 适用范围：M01-M18（普通 HTTP LLM 主线及 speculative、multimodal、disaggregation、MoE/LoRA、设备、Rust/router 变体）。
 - 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
@@ -16,13 +16,13 @@
 
 ```mermaid
 flowchart LR
-    CLI[M01 CLI / Engine] --> CFG[ServerArgs resolution + publish]
+    CLI[M01 CLI] --> CFG[ServerArgs resolution + publish]
     CFG --> PROC[M15 Scheduler/Detokenizer processes]
     PROC --> DIST[M07 WORLD + parallel groups]
     DIST --> LOAD[M06 ModelConfig + loader]
     LOAD --> MEM[M08 KV pools / Radix Cache]
     MEM --> BACKEND[M09 attention / CUDA Graph]
-    API[Engine.generate or HTTP] --> M03[M03 TokenizerManager]
+    API[M02 HTTP / Engine.generate] --> M03[M03 TokenizerManager]
     M03 -->|ZMQ tokenized request| S[M04 Scheduler]
     S --> B[M04 ScheduleBatch]
     B --> W[M05 TP/PP worker]
@@ -60,6 +60,7 @@ flowchart LR
 ## 相关文档
 
 - [跨模块接口契约](interface-contracts.md)
+- [M15 多进程与 IPC 控制面](../01-modules/M15-ipc-control-plane/README.md)
 - [统一运行轨迹](runtime-trace.md)
 - [端到端流程](end-to-end-flows.md)
 - [配置影响图](configuration-impact-map.md)

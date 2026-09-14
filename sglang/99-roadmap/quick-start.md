@@ -6,7 +6,7 @@
 
 ## 推荐顺序
 
-1. 阅读仓库 `CLAUDE.md` 和 `source-doc/00-overview/analysis-state.md`。
+1. 阅读仓库 `CLAUDE.md` 和 `sglang/00-overview/analysis-state.md`。
 2. 确认 Python 3.10+、PyTorch、CUDA/目标硬件和模型可用性。
 3. 按仓库指导安装：`python3 -m pip install -e "python"`。**未验证**。
 4. 运行环境诊断：`python3 -m sglang.check_env`。**未验证**。

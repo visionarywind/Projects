@@ -1,24 +1,30 @@
 # 学习型高性能红黑树
 
-这是一个从零实现的、**单线程、唯一键、有序集合风格** C++ 红黑树。它位于本仓库的 `data-structure/`，可以独立使用 CMake 构建，不依赖仓库根目录的构建系统。
+这是一个从零实现的、**单线程、唯一键** C++ 红黑树项目，位于本仓库的 `data-structure/`，可以独立使用 CMake 构建，不依赖仓库根目录的构建系统。
+
+项目同时保留两条实现路线：
+
+- `rb_tree<Key, Compare>`：学习优先的 set-like 实现，使用 `nullptr` 表示叶子；
+- `rb_map<Key, T, Compare, Allocator>`：面向性能实验的 map-like 实现，使用黑色哨兵和节点 allocator。
 
 ## 当前状态
 
 当前版本已经包含：
 
-- `insert`、`contains`、`find`、`erase`、`clear`、`size`、`empty`；
+- `rb_tree` 的 `insert`、`contains`、`find`、`erase`、`clear`、`size`、`empty`；
 - 左旋、右旋、插入修复和删除修复；
-- 中序双向迭代器；
-- `verify_invariants()` 诊断检查器；
-- 基础、旋转、删除、迭代器和 `std::set` 差分测试。
+- 中序双向迭代器与 `--end()`；
+- `rb_map` 的 `insert`、`try_emplace`、`emplace`、`operator[]`、`find`、`contains`、`erase`、`clear` 和遍历；
+- `rb_map` 的黑色 `nil_` 哨兵、`leftmost_`/`rightmost_` 边界缓存和 allocator-aware 节点分配；
+- 两套实现的不变量检查、基础测试和固定 seed 差分测试；
+- `rb_map<int, uint64_t>` 与 `std::map<int, uint64_t>` 的 Release benchmark，支持中位数、最小值、最大值和 CSV 输出。
 
 当前版本有意不包含：
 
 - 线程安全和并发读写；
-- `map<Key, Value>`、`operator[]`、`emplace`；
-- allocator-aware API、节点池和自定义内存资源；
-- 序列化、持久化和 node handle；
-- 性能结论。正式 benchmark 会在正确性稳定后加入。
+- 完整 STL 兼容 API、node handle 和异构查找；
+- 节点池或自定义内存资源的专用实现；
+- 序列化和持久化。
 
 ## 构建和运行
 
@@ -32,6 +38,18 @@ ctest --test-dir data-structure/build/debug --output-on-failure
 ./data-structure/build/debug/rbtree_demo
 ```
 
+构建 benchmark：
+
+```bash
+cmake -S data-structure -B data-structure/build/bench-release \\
+  -DCMAKE_BUILD_TYPE=Release \\
+  -DRBTREE_BUILD_BENCHMARKS=ON
+cmake --build data-structure/build/bench-release -j2
+./data-structure/build/bench-release/rbtree_benchmark \\
+  --sizes=1024,16384,262144 --repetitions=7 --seed=20260911 \\
+  --csv=data-structure/build/bench-release/rb-vs-std-map.csv
+```
+
 建议的 Sanitizer 验证：
 
 ```bash
@@ -42,17 +60,20 @@ cmake --build data-structure/build/asan
 ctest --test-dir data-structure/build/asan --output-on-failure
 ```
 
-上面的命令需要本机有 CMake、C++17 编译器以及可用的 AddressSanitizer/UBSan；命令执行前只是验证方案，实际结果以本地输出为准。
+## 已验证的基准样例
+
+在当前环境使用 GCC、Release 优化、固定 seed `20260911`、3 次重复运行了规模 `1024,8192` 的样例。结果显示：`rb_map` 在 erase 和部分 find/iterate workload 上领先，但 insert 仍慢于 `std::map`。因此不能据此宣称普遍“吊打” `std::map`；应以相同编译器、硬件、allocator、数据规模和 workload 做可复现比较。
 
 ## 推荐阅读顺序
 
-1. `docs/invariants.md`：红黑树必须保持什么不变量；
-2. `include/rbtree/rb_tree.hpp`：先看 `insert`、旋转和 `insert_fixup`；
-3. 再看 `erase`、`transplant` 和 `erase_fixup`；
-4. `tests/rb_tree_insert_test.cpp` 和 `tests/rb_tree_erase_test.cpp`：每个算法案例如何被验证；
-5. `docs/implementation-notes.md`：实现取舍和 `nullptr` 叶子方案；
-6. `docs/testing-and-verification.md`：如何增加回归测试和运行 Sanitizer。
+1. [`docs/architecture.md`](docs/architecture.md)：先看总体架构、节点布局和插入/删除/验证流程图；
+2. `docs/invariants.md`：两种实现必须保持的不变量；
+3. `include/rbtree/rb_tree.hpp`：先看教学版的 `insert`、旋转和 `insert_fixup` 注释；
+4. `include/rbtree/rb_map.hpp`：再看哨兵、allocator、map 节点布局和 `erase_fixup` 注释；
+5. `tests/rb_map_differential_test.cpp`：看如何逐步对照 `std::map`；
+6. `benchmark/rb_map_benchmark.cpp`：看如何固定 workload、校验 checksum 并记录时间；
+7. `docs/implementation-notes.md` 与 `docs/testing-and-verification.md`：了解实现取舍和验证方法。
 
-## 性能路线
+## 性能原则
 
-第一版优先建立正确性证据。后续只有在固定 workload、编译器、数据规模和 seed 下完成基准后，才考虑黑色哨兵、节点布局、迭代化热路径或节点 allocator。一次本地运行不能证明“比 `std::set` 更快”。
+红黑树的 `O(log n)` 复杂度不意味着一定快过标准库。benchmark 的目标是找出明确 workload 上的优势，而不是预先承诺普遍胜出。任何 allocator、节点布局或算法优化，都必须同时通过正确性、Sanitizer 和可重放 benchmark。

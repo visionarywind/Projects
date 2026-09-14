@@ -3,6 +3,7 @@ project(rbtree LANGUAGES CXX)
 
 option(RBTREE_BUILD_TESTS "Build red-black tree tests" ON)
 option(RBTREE_BUILD_EXAMPLES "Build red-black tree examples" ON)
+option(RBTREE_BUILD_BENCHMARKS "Build red-black tree benchmarks" OFF)
 
 add_library(rbtree INTERFACE)
 target_include_directories(rbtree INTERFACE
@@ -25,8 +26,16 @@ if(RBTREE_BUILD_TESTS)
         tests/rb_tree_erase_test.cpp
         tests/rb_tree_iterator_test.cpp
         tests/rb_tree_differential_test.cpp
+        tests/rb_map_test.cpp
+        tests/rb_map_differential_test.cpp
     )
     target_link_libraries(rbtree_tests PRIVATE rbtree)
     target_compile_options(rbtree_tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
     add_test(NAME rbtree_tests COMMAND rbtree_tests)
+endif()
+
+if(RBTREE_BUILD_BENCHMARKS)
+    add_executable(rbtree_benchmark benchmark/rb_map_benchmark.cpp)
+    target_link_libraries(rbtree_benchmark PRIVATE rbtree)
+    target_compile_options(rbtree_benchmark PRIVATE -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
 endif()

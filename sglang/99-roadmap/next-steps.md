@@ -2,13 +2,11 @@
 
 ## 下一批优先级
 
-1. 复核 43 篇 Markdown 的链接、fence、标题和源码行号；
-2. 完成 M09/M10 与 M03-M08 的双向链接和真实测试地图；
-3. 深化 M06 loader、M07 group 消费、M08 allocator/eviction、M09 capture 和 M10 sampler kernel；
-4. 补 M01/M02、M11-M18 中最影响普通请求主线的模块；
-5. 扩展 D01 的实际运行记录，或登记第二个真实测试 Demo；
-6. 补 HTTP/OpenAI、multimodal、disaggregation 和 Rust 变体的端到端追踪；
-7. 完成实现深度、Demo 深度和跨模块审计后，再把状态从“部分/进行中”改成“已完成”。
+1. 继续复核 checkout 更新后的源码行号，并把 evidence index 中仍存在的 `...` 范围替换为精确范围；M06 的 loader dispatch、M08 allocator/eviction、M09 prefill capture 和 M10 sampler mask 已完成代表路径静态补强。
+2. 按需深化 M06-M10 的非代表性专用 backend/算法分支，不把代表路径误标为全覆盖；
+3. 为 M12-M18 的扩展路径继续补精确函数范围和对应测试映射；
+4. 在具备安全依赖和硬件的环境中分层验证 D01/D02/D03、GPU/多卡、Rust 和网络路径，并记录真实日志；
+5. 对文档变更持续执行本地链接、fence、标题、术语和 whitespace 审计。
 
 ## 完成判据
 

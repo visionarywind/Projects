@@ -16,7 +16,11 @@ M03 TokenizerManager ── IPC ── M04 Scheduler
                                       ├─ M08 KV pools / Radix Cache
                                       └─ M05 ModelRunner
                                              │
-                         kernels / attention / sampling
+                         M11 speculative / M12 multimodal / M13 transfer
+                         M14 quant-MoE-LoRA / M16 kernels-platforms
+                         M17 Rust-router-gateway / M18 verification
+                                             │
+                         kernels / attention / sampling / external services
                                              ▼
                                       GPU/NPU/XPU 等设备
 ```

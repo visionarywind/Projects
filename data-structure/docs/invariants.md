@@ -1,6 +1,6 @@
 # 红黑树不变量
 
-`verify_invariants()` 是学习阶段的诊断工具。它不是性能承诺；Release benchmark 运行时可以不调用，但每次算法改动都应在 Debug/测试中保留它。
+`verify_invariants()` 是学习阶段的诊断工具。它不是性能承诺；Release benchmark 运行时可以不调用，但每次算法改动都应在 Debug/测试中保留。节点布局和不变量在操作流程中的位置见 [`architecture.md`](architecture.md)。
 
 ## 必须保持的条件
 
@@ -21,6 +21,15 @@
 
 `verify_subtree` 递归检查边界 key、父指针、红色节点的孩子颜色，然后分别检查左右子树的节点数和黑高。空子树返回黑高 1，因此每个真实黑节点会使返回黑高加一。顶层另外检查根颜色、根父指针和返回节点数与 `size_` 的一致性。
 
-## 删除时的特殊点
+## `rb_map` 的哨兵规则
 
-本实现没有共享 `NIL` 哨兵，删除修复可能收到 `current == nullptr`。此时不能通过 `current->parent` 获取父节点，因此 `erase_fixup` 同时接收 `parent_of_current`。这是实现正确性的关键，不应为了缩短参数列表而删除。
+`rb_map` 使用每棵树独有的共享 `nil_` 哨兵，而不是 `nullptr`：
+
+1. `nil_` 永远是黑色，且不计入 `size_`；
+2. 空树时 `root_`、`leftmost_`、`rightmost_` 都等于 `&nil_`；
+3. 真实节点的空孩子等于 `&nil_`，迭代器不会返回哨兵；
+4. 非空树的根 parent 等于 `&nil_`；
+5. `nil_` 的 parent 在删除修复中可能暂时承载替换节点的父位置，但修复结束必须恢复其黑色状态；
+6. `leftmost_` 和 `rightmost_` 必须分别等于真实树的最小和最大节点。
+
+共享哨兵不能在旋转中被当作普通真实节点更新，否则一次删除可能污染后续修复的 parent 或颜色状态。

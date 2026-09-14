@@ -7,9 +7,21 @@
 
 namespace rbtree {
 
+// Teaching-oriented set-like red-black tree.
+//
+// This type stores only one Key per node and uses nullptr as the external leaf
+// representation.  The implementation intentionally keeps ownership and the
+// balancing algorithm visible: each real node is allocated with new and is
+// destroyed exactly once by erase() or clear().  rb_map (in rb_map.hpp) uses a
+// different, more allocation-oriented representation, so changes made here
+// remain easy to compare with the textbook algorithm.
 template <typename Key, typename Compare = std::less<Key>>
 class rb_tree {
 private:
+    // nullptr is deliberately used as the external black leaf in this
+    // teaching implementation.  A node owns no child through these pointers;
+    // all links are non-owning, and the tree owns every node reachable from
+    // root_.
     enum class color { red, black };
 
     struct node {
@@ -22,6 +34,8 @@ private:
         node* right = nullptr;
     };
 
+    // compare_ defines the BST order. root_ is the only owning entry point;
+    // size_ counts real nodes and never counts nullptr leaves.
     Compare compare_{};
     node* root_ = nullptr;
     std::size_t size_ = 0;
@@ -30,6 +44,9 @@ private:
         return current == nullptr ? color::black : current->colour;
     }
 
+    // Boundary search follows one root-to-leaf path, so it is O(height),
+    // which is O(log n) when the red-black invariants hold.  Empty subtrees
+    // return nullptr.
     static node* minimum(node* current) noexcept {
         if (current == nullptr) {
             return nullptr;
@@ -60,6 +77,9 @@ private:
         return current;
     }
 
+    // The successor either descends into the right subtree or climbs until it
+    // leaves a left edge.  predecessor() below is its mirror; both are
+    // O(height) and do not move nodes.
     static node* successor(node* current) noexcept {
         if (current == nullptr) {
             return nullptr;
@@ -124,6 +144,10 @@ private:
         return parent;
     }
 
+    // Left rotation preserves in-order order while changing the local shape:
+    // (1) move the promoted child's left subtree to pivot's right,
+    // (2) give the child pivot's old parent, and (3) put pivot below child.
+    // No node is allocated or moved, so unrelated iterators remain valid.
     void left_rotate(node* pivot) noexcept {
         node* child = pivot->right;
         pivot->right = child->left;
@@ -143,6 +167,8 @@ private:
     }
 
     void right_rotate(node* pivot) noexcept {
+        // Mirror operation: move child->right to pivot->left, then put pivot
+        // below the promoted child while preserving all parent links.
         node* child = pivot->left;
         pivot->left = child->right;
         if (child->right != nullptr) {
@@ -160,6 +186,10 @@ private:
         pivot->parent = child;
     }
 
+    // insert_fixup repairs only violations introduced by inserting a red leaf.
+    // A red parent creates a red-red edge.  The uncle-red case pushes the
+    // problem upward; the uncle-black cases turn an inner triangle into an
+    // outer line and rotate.  The right branch is the exact mirror.
     void insert_fixup(node* current) noexcept {
         while (current != root_ && node_color(current->parent) == color::red) {
             node* parent = current->parent;
@@ -208,6 +238,9 @@ private:
         }
     }
 
+    // transplant rewires one position but never destroys either node.  The
+    // caller must retain the node that represents the replacement and decide
+    // separately which physical node is eventually deleted.
     void transplant(node* old_node, node* new_node) noexcept {
         if (old_node->parent == nullptr) {
             root_ = new_node;
@@ -221,6 +254,10 @@ private:
         }
     }
 
+    // Removing a black node creates a temporary extra-black position.  Since
+    // nullptr has no parent field, parent_of_current carries the missing
+    // parent while current is null.  The four sibling cases are mirrored for
+    // the right side.
     void erase_fixup(node* current, node* parent_of_current) noexcept {
         while (current != root_ && node_color(current) == color::black) {
             if (parent_of_current == nullptr) {
@@ -237,6 +274,8 @@ private:
                 if (sibling == nullptr ||
                     (node_color(sibling->left) == color::black &&
                      node_color(sibling->right) == color::black)) {
+                    // Case 2: the sibling has no red child, so move the
+                    // temporary extra blackness up to the parent.
                     if (sibling != nullptr) {
                         sibling->colour = color::red;
                     }
@@ -420,6 +459,8 @@ public:
             return copy;
         }
 
+        // end() is represented by nullptr.  Keeping owner_ lets --end()
+        // return the maximum node instead of dereferencing nullptr.
         iterator& operator--() noexcept {
             current_ = current_ == nullptr ? maximum(owner_->root_) : predecessor(current_);
             return *this;
@@ -502,6 +543,9 @@ public:
     bool empty() const noexcept { return size_ == 0; }
     size_type size() const noexcept { return size_; }
 
+    // Search before allocation means duplicate insertion has no allocation
+    // side effect.  unique_ptr owns the new node until it has been linked;
+    // after release(), root_ becomes the ownership root for that node.
     bool insert(const Key& key) {
         node* parent = nullptr;
         node* current = root_;
@@ -560,6 +604,9 @@ public:
         return true;
     }
 
+    // Erase invalidates only the iterator pointing at target.  With two
+    // children, the successor node is physically transplanted rather than
+    // copied, preserving the key/value object and its address.
     void erase(iterator position) noexcept {
         node* target = position.current_;
         if (target == nullptr) {
@@ -616,6 +663,8 @@ public:
         size_ = 0;
     }
 
+    // Debug diagnostic for BST ordering, parent links, root color, the
+    // red-red prohibition, equal black height, and size consistency.
     bool verify_invariants() const {
         if (root_ == nullptr) {
             return size_ == 0;

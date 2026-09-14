@@ -18,7 +18,7 @@
 - HEAD：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`。
 - HEAD 提交：`[Config] msgspec.Struct for the config tier (#38753)`，提交时间为 `2026-09-09T19:41:19-07:00`。
 - HEAD 没有发现指向它的本地 tag；远程 `origin` 为 `https://github.com/sgl-project/sglang.git`。
-- 当前工作树包含未跟踪的 `source-doc/`；本知识库本身不是生产源码改动。
+- 当前工作树包含未跟踪或新增的 `sglang/` 知识库目录；本知识库本身不是生产源码改动。
 
 **已确认边界**：以上是本地 checkout 的版本，不等同于远程最新 release。任何文档结论都以该 commit 的源码为准。
 
@@ -64,4 +64,4 @@ sglang serve
 
 ## 5. 当前缺口
 
-已完成的 `source-doc/02-request-flow/` 文章详细解释了请求、调度、执行、配置和 IPC；本知识库新增的模块文章会逐步把这些文章映射到稳定的模块 ID。模型加载、attention backend、CUDA Graph、真实 Demo、跨模块修改影响和实践配方仍需继续补齐。
+已完成的 `02-request-flow/` 文章详细解释了请求、调度、执行、配置和 IPC；`01-modules/` 已建立 M01-M18 的实现层文章，并将多模态、分离部署、MoE/量化/LoRA、设备后端、Rust/router/gateway 和测试系统纳入模块地图。M06-M10 已补充 loader/weight mapping、group 拓扑、KV ownership、attention graph/fallback 和 sampling/grammar 的代表路径；完整专用变体与真实环境运行证据仍待补充。静态文章不替代 GPU、多卡、模型下载、网络传输和端到端测试。

@@ -10,7 +10,9 @@
 6. M05：理解 ForwardBatch、worker、forward 和 sample。
 7. M09/M10：理解 graph/eager、attention metadata、grammar 和 sampling。
 8. M06/M07：回看模型加载和并行拓扑如何在启动时建立上述资源。
-9. D01 和 `90-cross-module/`：把模块拼成一条真实请求轨迹。
+9. M11-M14：按需阅读 speculative、multimodal、disaggregation/HiCache 和 MoE/quant/LoRA 的扩展契约。
+10. M15-M18：阅读 IPC、设备/kernel、Rust/router/gateway 和测试系统，理解进程、硬件、网络与验证边界。
+11. D01 和 `90-cross-module/`：把模块拼成一条真实请求轨迹。
 
 ## 修改者路线
 

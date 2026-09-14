@@ -1,6 +1,8 @@
 # 实现笔记
 
-## 节点和所有权
+## 架构总览
+
+完整的组件关系、节点布局和运行流程见 [`architecture.md`](architecture.md)。本文保留实现层面的细节，建议先阅读架构图，再按下面的生命周期顺序对照 header 中的注释。
 
 第一版采用 `nullptr` 表示叶子，真实节点由 `rb_tree` 唯一拥有，并通过 `delete` 销毁。插入时先用 `std::unique_ptr` 暂时持有新节点：比较和分配完成后才把节点接入树，接入成功再释放临时所有权。析构和 `clear()` 递归销毁整棵树。
 
@@ -18,6 +20,14 @@
 
 由于空叶子是 `nullptr`，修复函数使用 `(current, parent_of_current)` 而不是只使用 current。兄弟为空时视为黑色且两个孩子也为空，算法向父节点上移。修复结束后再次确保根为黑色且根的 parent 为空。
 
-## 当前边界
+## `rb_map` 的性能实现
 
-拷贝和移动构造被显式禁用，避免在核心算法尚未覆盖资源语义时提供不完整的容器操作。迭代器只暴露 `const Key&`，不允许改变 key 破坏排序不变量。`erase(iterator)` 要求传入本树的有效迭代器；传入其他树的迭代器不属于公共契约。
+`rb_map<Key, T, Compare, Allocator>` 与教学版分开维护，避免为了 benchmark 破坏初版的可读性。它的真实节点继承一个只含链接和颜色的 `link`，再存放 `std::pair<const Key, T>`；共享的 `nil_` 只包含链接，不携带无效的 map value。
+
+每棵 `rb_map` 都有一个黑色哨兵：空树时 `root_`、`leftmost_` 和 `rightmost_` 都指向它，真实节点的空孩子也指向它。这样删除修复可以直接读取 `current->parent`、兄弟和兄弟孩子，而不需要额外传递空节点的父节点。旋转时不能无条件改写共享哨兵的 `parent`；只有真实子节点的 parent 才能被更新，且删除修复结束后再次强制哨兵为黑色。
+
+节点通过 `allocator_traits<Allocator>::rebind_alloc<node>` 分配和销毁。当前容器显式禁用拷贝和移动，先把资源语义控制在清晰范围内。`leftmost_`/`rightmost_` 缓存让 `begin()` 和 `--end()` 不需要从根重新搜索；插入、删除和清空必须同步维护这些缓存。
+
+## 计时边界
+
+benchmark 的 insert 从空容器开始，计入节点分配和树修复；find、iterate、erase 则在计时前用同一份数据填充容器。所有 workload 使用相同的 key 序列、seed 和 checksum。默认 allocator 的结果是端到端对比，不等价于只比较红黑树旋转算法。

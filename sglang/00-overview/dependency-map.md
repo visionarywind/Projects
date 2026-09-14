@@ -20,8 +20,18 @@ M05 ModelRunner
 M06 Model loading
   -> M07 rank/layout
   -> M14 quantization/MoE/LoRA hooks
+M11 Speculative
+  -> M04 scheduler / M05 execution / M08 KV ownership / M10 sampling
+M12 Multimodal
+  -> M02 protocol / M03 tokenize state / M05 model input / M09 graph eligibility
+M13 Disaggregation/HiCache
+  -> M04 admission / M08 KV layout / M15 transfer/control / external backends
+M14 MoE/quant/LoRA
+  -> M05 execution / M06 weights / M07 TP-EP / M16 kernels
 M16 Kernels/platforms
   -> M05/M09/M14
+M17 Rust/router/gateway
+  -> M02 protocol / M04 worker routing / M08-M13 KV-aware paths
 M18 Tests/CI
   -> all modules (verification boundary)
 ```
