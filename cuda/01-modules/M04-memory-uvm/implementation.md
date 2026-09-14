@@ -10,6 +10,16 @@
 
 `memdescIsCompatible` 对 location、cache、type、layout、depth、owner、映射、API source、页大小、固定地址、压缩和 handle types 等字段逐项比较；这使子分配复用必须满足属性完全兼容，而不是只比较大小（静态确认：[src/cui/memobj.c:113-163]）。
 
+## GPU memory pooling（内部 suballocator）
+
+`memobjAllocMemblockBacking` 先取得 HAL 的 `genericBlocksize`，再把 `noSuballoc` 最终解释为“显式禁止、类型/映射不支持，或请求大于建议 block”。可 suballocate 的请求先在 `memmgr->suballocatorRadixTrees` 中按完整 descriptor 找兼容 tree，再由 `radixTreeFindGEQ` 选择最小可容纳的空闲区；没有命中时创建至少 `max(size, genericBlocksize)` 的新 memblock，并按设备/host page size 取整（静态确认：[src/cui/memobj.c:265-308]；[src/cui/memmgr.c:89-136]）。
+
+每个可池化 memblock 的 `memRegions` 链表同时描述已分配和空闲区。新 block 的首段绑定给 memobj，尾段作为 radix node 进入 free tree；后续 best-fit 会把节点按 memblock alignment split。free 将 memobj 的 union 存储复用成 free node，再与前后相邻空闲区合并；若该 block 已无 memobj，则移除最后的 tree node 并释放 block（静态确认：[src/cui/suballocator.c:163-220,278-340,343-405]；[src/cui/memobj.c:878-943]）。
+
+这条路径只复用同一进程/`CUmemmgr` 中的 backing block。`memblockAlloc` 创建新 block 时仍需走 UVA reservation、pinned-memory 检查、DMAL allocation 和 host/device mapping；`memblockFree` 反向 unmap、调用 DMAL free 并归还 UVA（静态确认：[src/cui/memblock.c:471-562,565-680,682-740]）。
+
+`CU_MEM_BIN_COUNT`、`CUmembins` 和 `CUmemblock.membin` 在头文件中仍存在，但当前快照没有发现初始化或分配路径；不要把它们写成正在使用的 bin allocator。测试计划中的 `membins` 断言应视为遗留设计意图，需在可运行环境中确认（静态证据：[src/cuda_mem.h:173-182]；[src/cui/memmgr.h:21-23,85-86]；测试计划：[tests/cuda_test/memobj/unittest_memobj_alloc.hpp:170-255]）。
+
 ## Free
 
 `cuapiMemFree_common` 允许没有 current context 的场景，但要求全局 UVA manager 存在；先在 unified VA 查找，再在当前 memmgr 按 device pointer 查找。它检查 API source、sharing source memobj、base pointer，注销 P2P 映射，锁住对象 context 并同步后通知 tools、释放 memobj，最后倾倒 profiler 日志（静态确认：[src/api/apimem.c:231-339]）。
@@ -41,4 +51,3 @@ UVM DAG 是进程级全局同步图，节点 ID 在进程生命周期内不复�
 `uvmRegisterMemobj` 对非 CUDA-memobj sharing 对象先在 manager lock 下附着首个 stream，并记录 first/last attached stream，再调用 AL 的 `memobjRegister`；backend 失败时撤销当前 stream 附着。该顺序说明 stream tracking 是 UVM 注册的一部分，而不是注册成功后的附加统计；`uvmRegisterMemobjFinalize`/`uvmUnregisterMemobj` 负责后续完成/撤销状态（静态确认：[src/cui/cuiuvm.c:1311-1390]）。
 
 Kd8 映射路径还处理 host page split、non-managed heap range 的重叠/重复映射检测，以及 SKED/reflected memory 的 dynamic-parallelism 区域映射；这些条件失败会在进入更低层映射前返回错误。它说明 submemblock mapping 同时承担页粒度和设备执行特性的适配，但实际 fault、迁移和 RM 操作仍位于外部/后端边界，当前树未闭合（静态确认：[src/cui/cuiuvm.c:3950-4235]；后端结论为推断/未知）。
-

@@ -20,7 +20,7 @@ flowchart TD
   H --> A[src/api\ncuapi* wrapper]
   A --> C[src/cui\nCUI globals/TLS/context]
   C --> R1[CUdev/Device manager]
-  C --> R2[memmgr/memobj/UVA/UVM]
+  C --> R2[memmgr/memobj/suballocator/UVA/UVM]
   C --> R3[stream/marker/channel/QMD/pushbuffer]
   C --> R4[module/function/graph/parameter]
   R3 --> P[DMAL + HAL + 架构编码]
@@ -45,6 +45,10 @@ flowchart TD
 
 Context、stream、module/function、memobj 等是内部结构的指针/句柄。API 先从 TLS 找 current context，再在 context 或 pool 锁下修改状态。以 stream 为例，创建时从 pool 取对象，按需分配 QMD、UVM semaphore、CPU semaphore，建立 public handle 并登记 UVM；销毁先注销/释放异步资源，再放入 detached/free pool（`src/cui/cuistream.c:1740-1878,2004-2076`）。
 
+内存路径还要区分三种“池”：`CUheap` 负责 VA reservation/lookup，`suballocator.c` 在兼容的 `CUmemblock` 内按 best-fit 复用 free region，QMD/constant-bank/stream 等池则服务 Graph/提交资源。只有新 memblock 才进入 DMAL physical allocation；不能把 VA heap 或执行资源池描述成 GPU 显存池（静态确认：[src/cui/memobj.c:265-375]；[src/cui/suballocator.c:163-220,343-405]；[src/cui/memblock.c:471-562]）。
+
+Graph exec 是资源聚合层：instantiate 为每个 context 建立 QMD、constant-bank、HAL staging、internal stream/marker，并在 device scheduler 节点存在时创建 host/device backing；launch 用 UVM DAG、completion marker 和 memory tracking 延长异步引用，destroy 反向 detach 和释放（静态确认：[src/cui/cuigraph.c:1835-1933,4056-4162,1035-1205]）。
+
 ### 硬件抽象
 
 `CUdev->hal` 提供架构相关操作；Kernel launch 在 CUI 中完成参数/内存追踪和通用状态准备，再调用 `hal.launchCheck`、`encodeAbiConstBankGridParams` 等硬件特化操作（`src/cui/cuilaunch.c:229-319`）。实际启用哪个架构由 `NVCFG_GLOBAL_ARCH_*` 和 `cuda.nvmk` 条件决定，当前没有完整构建配置，属于未知。
@@ -65,6 +69,8 @@ Context、stream、module/function、memobj 等是内部结构的指针/句柄�
 
 - `[src/api/apilaunch.c:234-299]` context/function/stream 关联及 capture 分支。
 - `[src/cui/cuilaunch.c:176-217,242-319]` launch memory tracking、syscall callback、HAL check 和 ABI 编码。
+- `[src/cui/cuigraph.c:1835-1933,3304-3492,4056-4162]` graph 资源实例化、锁、marker、UVM running 和 launch。
+- `[src/cui/suballocator.c:163-220,343-405]` memblock 内 best-fit、split 和 coalesce。
 
 ## 未解决问题
 

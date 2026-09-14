@@ -1,6 +1,6 @@
 # CUDA 源码证据索引
 
-本索引列出当前知识库反复使用的关键源码证据。路径均相对于 `/home/mtuser/workspace/cuda`；“静态确认”表示已阅读源码文本，不表示构建或运行成功。
+本索引列出当前知识库反复使用的关键源码证据。路径均相对于 `source/cuda`；“静态确认”表示已阅读源码文本，不表示构建或运行成功。
 
 ## 版本、入口与构建
 
@@ -29,6 +29,11 @@
 - `[src/api/apimem.c:231-339]`：device free 查找、base pointer、同步释放。
 - `[src/api/apimem.c:352-414]`：host allocation 参数与 descriptor。
 - `[src/cui/memobj.c:82-110,113-163,210-280]`：子分配条件、兼容性和 backing。
+- `[src/cui/memobj.c:265-375,878-943]`：generic block size 决策、新 block 尾部 free region、suballocator free 和最后一个 memblock 回收。
+- `[src/cui/suballocator.c:22-59,163-220,225-340,343-405]`：radix tree 节点、best-fit、split、free/coalesce。
+- `[src/cui/memblock.c:471-562,565-680,682-740,967-1015]`：UVA/DMAL backing、资源释放和碎片率。
+- `[src/cui/memmgr.c:89-136,140-213,334-365]`：兼容 suballocator tree、VA heaps、manager 生命周期。
+- `[src/cuda_mem.h:173-182]`、`[src/cui/memmgr.h:21-23,85-86]`：遗留 `CUmembins` 声明；当前树未找到初始化/使用路径。
 - `[src/api/apistream.c:43-109,113-136]`：stream flags、创建和失败 detach。
 - `[src/cui/cuistream.c:1741-1877]`：stream 资源创建。
 - `[src/cui/cuistream.c:1897-1954,2004-2088]`：detach、marker reclaim、free pool。
@@ -44,6 +49,11 @@
 - `[src/cui/cuifunc.c:2501-2637,2803-2985]`：function resource merge、参数 packing/validation。
 - `[src/cui/cuijitlink.c:79-142,219-255,360-402]`：JIT link state、输入副本、finish/destroy。
 - `[src/cui/cuigraph.c:3304-3492,4056-4162]`：graph instantiate 多 context 锁、QMD 注册、launch/marker/UVM rollback。
+- `[src/cui/cuigraph.c:1835-1933,2054-2141]`：per-context QMD/constant-bank、internal stream、scheduler host/device backing 和 node instantiate。
+- `[src/cui/cuigraph.c:1035-1064,1093-1205]`：graph exec 资源 teardown、stream detach、QMD/constant-bank/marker/memobj 释放。
+- `[src/cui/cuigraph.c:3457-3492,4116-4157]`：instantiate/launch 错误路径中的锁数组和 API stream 恢复静态疑点。
+- `[src/api/apistream.c:538-575,627-667]`、`[src/cui/cuistream.c:2180-2268]`：capture begin/end、origin、invalidation 和 unjoined 清理。
+- `[src/api/apigraph.c:1332-1420]`、`[src/cui/cuigraph.c:4619-4915]`：graph exec update topology/node 参数约束。
 - `[src/cui/cuiuvm.c:1252-1328,2313-2428,3950-4235]`：UVM submemblock/managed registration、AL 选择、Kd8 特殊映射。
 - `[src/cui/peermap.c:12-134]`：P2P access 按类型 refcount 与零计数清理。
 - `[src/cui/gpfifo.c:313-416,437-490,716-796]`：GPFIFO entry 编码、tracking reclaim、flush unit 与 DMAL advance 边界。

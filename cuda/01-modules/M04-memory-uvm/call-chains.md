@@ -17,6 +17,25 @@ cuMemAlloc_v2
 
 最后两步是重要的所有权边界：局部 memmgr 成功不代表全局/P2P 登记成功；登记失败必须回滚。
 
+## 池化命中与新 block 链
+
+```text
+memobjAlloc
+ → memobjAllocMemblockBacking
+ → canSuballocate + HAL genericBlocksize/alignment
+ → memmgrGetSuballocatorRadixTree (descriptor compatibility)
+ → radixTreeFindGEQ (best-fit)
+ → split free region / attach memobj
+
+no fit
+ → allocSize = max(request, genericBlocksize)
+ → memblockAlloc
+ → DMAL.memblockAlloc + VA/mapping
+ → suballocatorSuballocateFromNewMemblock
+```
+
+可池化请求复用已有 `CUmemblock`，不会增加 `memblock->serial`；不兼容、过大、固定地址、sharing 或禁用 suballocator 时才创建新 block（静态确认：[src/cui/memobj.c:82-110,265-375]；[src/cui/memmgr.c:89-136]）。
+
 ## Free 链
 
 ```text
@@ -47,9 +66,20 @@ D01 的 `cudaHostAlloc(...Mapped)` 和 UVA 断言覆盖该对象关系（静态�
 
 ## 清理链
 
-## 清理链
-
 全局 init 失败按 `primary memmgr → userd VA → UVA → UVM → globals` 回滚；单对象失败按登记/lock 级别回滚。stream detach 还可能持有 launch 对 memobj 的异步引用，不能仅凭 host pointer 消失判断 backing 已可回收。
+
+池化 free 链为：
+
+```text
+memobjFree（先同步 context）
+ → memobjFreeInternal
+ → suballocatorFreeMemobj
+ → radix tree insert + adjacent coalesce
+ → 若 memblock 无 memobj：suballocatorRemoveMemblockNode
+ → memblockFree → DMAL free + VA/unmap
+```
+
+证据：[src/cui/memobj.c:946-964,878-943]；[src/cui/suballocator.c:343-405]；[src/cui/memblock.c:682-740]。
 
 ## UVM DAG / stream 状态
 

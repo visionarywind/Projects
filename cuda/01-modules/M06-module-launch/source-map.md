@@ -10,7 +10,9 @@
 | `src/cui/cuiparam.c` | 参数 size/packing 辅助 |
 | `src/cui/cuimod.c` | module 生命周期和 function 注册 |
 | `src/cui/cuielf*.c` | ELF/fatbinary 解析 |
-| `src/cui/cuigraph.c`、`graph.c` | graph/capture 节点 |
+| `src/cui/cuigraph.c`、`src/cui/cuigraph.h`、`src/cui/graph.c` | graph/capture 节点、实例资源和 teardown |
+| `src/api/apigraph.c`、`src/api/apistream.c` | graph API、capture begin/end、exec update |
+| `src/cui/cuistream.c` | capture state、origin/transitive streams、stream detach |
 | `src/cui/cuijitlink.c` | PTX JIT（受 feature macro 控制） |
 
 ## 测试证据
@@ -26,4 +28,4 @@
 
 ## 未知
 
-当前未完整读取 ELF section/attribute 解析、JIT compiler 外部调用、graph instantiate/update、各架构 QMD 字段和最终 push 方法。
+Graph 资源主线已补齐：per-context QMD/constant-bank/marker/internal stream、scheduler graph backing、launch tracking 和 destroy reverse path。仍未完整读取 ELF section/attribute 解析、JIT compiler 外部调用、各架构 QMD 字段和最终 push 方法；专用 graph 运行时测试尚未在 `tests.nvmk` 注册。

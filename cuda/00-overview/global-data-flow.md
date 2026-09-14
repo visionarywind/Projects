@@ -19,6 +19,7 @@ flowchart LR
   P[API 参数] --> V[校验/TLS/current ctx]
   V --> MD[CUmemdesc + CUmemobj]
   MD --> VA[UVA/UVM/P2P 登记]
+  MD --> PO[suballocator free-region reuse]
   V --> LD[CUIlaunchData + kernel params]
   LD --> Q[QMD/const bank/ABI 编码]
   Q --> PB[stream pushbuffer/channel]
@@ -31,9 +32,13 @@ flowchart LR
 
 `cuapiMemAlloc_common` 将 owner、location、apiSource、mapDevice 写入 `CUmemdesc`（`src/api/apimem.c:89-95`），在 context lock 下调用 `memobjAlloc`，之后调用 `memglobalsRegisterMemobj` 创建全局/P2P 关系，并通知 tools，最终返回 `memobjGetDevicePtr`（`:97-117`）。Free 先通过 unified VA 或当前 memmgr 找回对象，再检查 `apiSource` 和 base pointer，最后通知 tools 并 `memobjFree`（`:279-...`、`src/cui/cuimem.c:165-186`）。
 
+对于可 suballocate 的请求，`memobjAllocMemblockBacking` 先按完整 descriptor 选择兼容 radix tree，再从已有 memblock 取 best-fit free region；未命中时才创建至少 `max(size, genericBlocksize)` 的新 block。free 将区域重新插入 tree 并合并相邻空闲区，最后一个 memobj 才触发 DMAL/UVA backing 释放（静态确认：[src/cui/memobj.c:265-375,878-943]；[src/cui/suballocator.c:163-220,343-405]）。
+
 ## Launch 数据流
 
 `cuiLaunchKernel_nonreentrant` 先验证 packed/参数 metadata，设置 block shape 和 shared size，校验 grid，然后调用 `cuiProfilerLaunch`（`src/api/apilaunch.c:140-179`）。CUI setup 会追踪 function、syscall、context、module、reference 参数关联内存（`src/cui/cuilaunch.c:163-217`），调用 syscall callback、`hal.launchCheck`、常量 bank 和架构 ABI 编码（`:242-319`）。
+
+Graph capture 将同一入口转为 graph node；instantiate 再将 node 转为 per-context QMD/constant-bank/internal stream/marker 资源，并可创建 scheduler device backing。launch 的 memory tracking 和 completion marker 将这些引用延长到异步完成边界（静态确认：[src/api/apilaunch.c:252-286]；[src/cui/cuigraph.c:1835-1933,3495-3575,4056-4162]）。
 
 ## 错误流
 

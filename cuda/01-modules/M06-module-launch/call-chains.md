@@ -43,6 +43,28 @@ cuiGraphLaunch
 
 静态确认：[src/cui/cuigraph.c:3304-3492,4056-4162]。
 
+## Graph 资源分配与释放
+
+```text
+cuiGraphInstantiate
+ → per-context resource counts
+ → const-bank acquire + QMD array
+ → scheduler host backing + driver memobj（有 device nodes）
+ → internal stream + completion marker per node
+ → launch setup / HAL staging
+
+cuiGraphExecDestroy
+ → propagate completion QMD（已 launch）
+ → lock all graph contexts
+ → destroy nodes and completion markers
+ → detach internal streams
+ → qmdDeallocate + const-bank release
+ → memobjFree(scheduler backing) + host/HAL staging free
+ → release locks and clone links
+```
+
+资源分配集中在 `allocateExecutionResourcesFunctor`，反向清理由 `destroyCtxDataFunctor` 与 `cuiGraphDestroy` 完成（静态确认：[src/cui/cuigraph.c:1835-1933,1035-1064,1144-1205]）。
+
 ## 普通 launch
 
 ```text
@@ -87,6 +109,7 @@ cuLaunchKernel
 - `cuiFuncInitCheck` 必须验证 function handle 和 context；不能只用非空指针。
 - `cuiLaunchSetup_common` 的调用者需要持有 context lock（具体断言/调用约束需继续查全）。
 - launch memory tracking 的引用必须覆盖到异步完成边界；否则 free/stream detach 可能早于 GPU 使用。
+- graph exec destroy 不能只释放节点结构；必须按 QMD/constant-bank/stream/marker/scheduler memobj 的反向顺序清理，并保留 context lock 保护。
 - HAL 只提供架构特化操作，不能由接口名称推断 QMD 字段或 ABI 编码完全相同。
 
 ## Module unload reverse path

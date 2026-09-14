@@ -20,6 +20,36 @@ cuInit
 
 证据分别见 `[src/api/apiinit.c:19-47]`、`[src/cui/cuiinit.c:3060-3208]`、`[src/api/apimem.c:52-118]`、`[src/cui/cuistream.c:1741-1877]`、`[src/cui/cuilaunch.c:229-338,582-817]`、`[src/cui/cuistream.c:1926-1954,2004-2088]`。
 
+## 内存池化与 VA 分工
+
+```text
+memobj request
+ → descriptor compatibility
+ → suballocator radix tree best-fit
+ → existing memblock region OR new memblock
+ → DMAL physical backing + UVA/device mapping
+ → memobj pointer lookup / launch tracking
+ → free region coalesce OR last-memobj memblock release
+```
+
+`CUheap` 只维护 VA reservation/lookup；`CUsuballocatorRadixTree` 维护 block 内 free region；DMAL 才是物理资源边界。M04 的 Graph scheduler backing 也经由 `memobjAlloc` 进入这条链，而 QMD/constant-bank/stream pool 属于执行资源池（静态确认：[src/cui/memobj.c:265-375]；[src/cui/suballocator.c:163-220,343-405]；[src/cui/memblock.c:471-562]；[src/cui/cuigraph.c:1898-1932]）。
+
+## Graph 资源串联
+
+```text
+capture stream
+ → CUIgraph nodes/dependencies
+ → clone/flatten + per-context ctxData
+ → QMD/constant-bank/internal stream/marker
+ → optional scheduler host/device backing
+ → launch memory tracking + UVM DAG running
+ → topological stream push
+ → completion markers
+ → destroy: detach + qmd/const/memobj release
+```
+
+Graph exec 的静态 context 集合在 instantiate 确定，但 launch stream 可能追加临时 context lock；错误路径必须同时回滚 UVM running、锁数量和临时 stream 替换（静态确认：[src/cui/cuigraph.c:3304-3492,4056-4162]；静态风险：[src/cui/cuigraph.c:3457-3492,4116-4157]）。
+
 ## OpenCL 与工具旁路
 
 - OpenCL ICD/vendor dispatch 最终进入 `src/cl` public object；`CLIobjectData` 的 public/internal refcount tree 独立于 CUI `CUctx`、`CUmemobj` 和 GPU marker（[src/cl/cliobject.h:98-169]）。context destroy 必须先停 worker/callback thread 与 task graph，再清 pinned tracking 和 CUI contexts（[src/cl/clicontext.c:467-545]）。
@@ -43,3 +73,4 @@ cuInit
 - capture launch 不立即 push，而创建 graph node；普通 launch 才进入 M05 提交路径。
 - OpenCL ICD 最终把 vendor dispatch 接到相同 CUI/context/memory/stream 体系，但 enqueue/object 生命周期尚未完全闭合。
 - M10 通过 `basic_sanity` 和 stream/memory 单测验证这些边界；目前仅静态确认，未运行。
+- M10 当前没有专用 CUDA Graph/capture 测试；channel queued-dependency graph 只能证明提交层图，不覆盖 Graph API 的 instantiate/launch/destroy 资源生命周期。

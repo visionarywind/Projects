@@ -13,6 +13,15 @@
 | `CUIuvmDag`/`CUIuvmDagNode` | 跨 stream/context 的同步依赖 | unique node ID、event、null barriers |
 | `CUpeerMap` | peer access 软件引用表 | 每 access type 独立 refcount |
 
+## 池化专用结构
+
+| 类型 | 作用 | 生命周期/索引 |
+|---|---|---|
+| `CUsuballocatorRadixTree` | 按 descriptor 兼容性分组、按空闲区大小索引 | 挂在 `CUmemmgr->suballocatorRadixTrees`；manager 销毁时要求为空 |
+| `CUsuballocatorRadixNode` | 描述 memblock 内一个 free region | `node.key=size`；同时嵌入 `CUmemregion` 链表，分配时摘除，free 时重建并合并 |
+| `CUmemregion` | 标记 block 内区域是否已分配 | `CUmemblock.memRegions` 双向链表，覆盖 allocated/free 区间 |
+| `CUmembins`/`CUmembin` | 旧的 bin 字段 | 仅见声明和测试计划，当前树未找到初始化/使用路径 |
+
 ## 实现关系
 
 - `uvmInitAL` 按 zero-copy、Mac lite、UVM8/KdLite 条件填充后端函数表；`uvmMapSubmemblock` 和 `uvmUnmapSubmemblock` 在 manager lock 下转发到该表。
@@ -32,8 +41,10 @@
 - `src/api/apimem.c`：公开分配/free/host API 的参数与 ABI。
 - `src/cui/cuimem.c`：默认 flags、内部 device/host 分配/free。
 - `src/cui/memobj.c`：合法性、backing、子分配、共享实例。
-- `src/cui/memblock.c`：block 资源和映射。
-- `src/cui/memmgr.c`：manager、查找、对象集合。
+- `src/cui/suballocator.c`、`src/cui/radix.c`：best-fit、split、free/coalesce 索引。
+- `src/cui/memblock.c`：block 资源、`memRegions`、DMAL 释放和碎片率。
+- `src/cui/memmgr.c`：manager、兼容 tree、查找、对象集合。
+- `src/cui/heap.c`：VA reservation/lookup（不是物理显存池）。
 - `src/cui/cuivamanager.c`：UVA 管理器。
 - `src/cui/cuiuvm.c`、`cuiuvmdag.c`：UVM 运行机制；完整 fault 路径待补。
 
@@ -42,4 +53,7 @@
 - `[src/cui/memobj.c:82-110]` 子分配可行性条件。
 - `[src/cui/memobj.c:113-163]` descriptor 兼容性比较。
 - `[src/cui/memobj.c:210-280]` backing 复用与 HAL block size。
+- `[src/cui/memobj.c:265-375]` noSuballoc 决策、新 block 扩容和尾部 free region。
+- `[src/cui/suballocator.c:163-220,278-405]` best-fit、split、free/coalesce。
+- `[src/cui/memblock.c:471-562,565-680,682-740,967-1015]` DMAL backing、释放和碎片度量。
 - `[src/api/apimem.c:280-339]` pointer lookup、来源/base 检查和同步释放。

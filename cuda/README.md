@@ -1,10 +1,10 @@
 # CUDA 驱动项目理解知识库
 
-- 文档目的：帮助未参与过该项目的开发者理解 `/home/mtuser/workspace/cuda` 中 NVIDIA CUDA Driver 组件的架构、实现、构建、测试与修改影响。
+- 文档目的：帮助未参与过该项目的开发者理解 `source/cuda` 中 NVIDIA CUDA Driver 组件的架构、实现、构建、测试与修改影响。
 - 适用范围：源码快照、构建规则、测试和实验；不把标准 CUDA Toolkit 文档或外部 driver 树当成本仓库源码。
 - 对应源码版本：源码推断为 CUDA Driver API 10.2（`CUDA_VERSION=10020`）；具体提交未知。
 - 证据状态：核心初始化、上下文、内存、流、Kernel launch、UVM/GPFIFO/marker、module/ELF/JIT/graph、syscall host 侧生命周期、工具旁路、OpenCL 对象/interop host-side 生命周期和测试聚合入口已静态追踪；外部后端与设备执行未验证。
-- 最后更新：2026-09-11
+- 最后更新：2026-09-14
 - 前置阅读：无
 - 后续阅读：[项目定位](00-overview/project-overview.md) → [总体架构](00-overview/architecture.md) → [模块注册表](01-modules/module-registry.md) → [主 Demo](80-demos/D01-cuda-test-memory-stream/README.md)
 
@@ -56,8 +56,10 @@
 - [M02 Runtime/Context](01-modules/M02-runtime-context/README.md)
 - [M03 Device/HAL](01-modules/M03-device-hal/README.md)
 - [M04 Memory/UVA/UVM](01-modules/M04-memory-uvm/README.md)
+- M04 专题：[GPU 显存池化](01-modules/M04-memory-uvm/gpu-memory-pooling.md)
 - [M05 Stream/Submit](01-modules/M05-stream-submit/README.md)
 - [M06 Module/Launch](01-modules/M06-module-launch/README.md)
+- M06 专题：[Graph 资源生命周期](01-modules/M06-module-launch/graph-resource-lifecycle.md)
 - [M07 Kernel/Syscall](01-modules/M07-kernel-syscall/README.md)
 - [M08 Tools/Debug](01-modules/M08-tools-debug/README.md)
 - [M09 OpenCL/Interop](01-modules/M09-opencl-interop/README.md)
@@ -87,7 +89,7 @@ flowchart LR
     U[CUDA 应用 / 测试] --> A[M01 API/ABI\ninc/cuda.h + src/api]
     A --> R[M02 CUI Runtime\nTLS + globals + context]
     R --> D[M03 Device/HAL\nCUdev + dmal + arch HAL]
-    R --> M[M04 Memory\nmemmgr + memobj + UVA/UVM]
+    R --> M[M04 Memory\nmemmgr + memobj + suballocator + UVA/UVM]
     R --> S[M05 Stream/Submit\nstream + marker + channel + QMD]
     R --> L[M06 Module/Launch\nCUmod/CUfunc + launch + graph]
     L --> K[M07 Kernel/Syscall\nkernels + syscalls + asm]

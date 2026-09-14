@@ -9,6 +9,8 @@
 | 动态 UVM AL | `uvmInitAL` 按平台/全局选项选择 zero-copy、Mac、UVM8 或 KdLite | 仅读公共入口不能推断 fault/migration 和 channel 行为 |
 | submemblock 特殊映射 | Kd8 处理 host-page split、non-managed heap 与 SKED/reflected memory | 页粒度、重叠检测和动态并行映射的组合分支难以仅靠单元测试覆盖 |
 | P2P 引用与真实映射分离 | `CUpeerMap` 只维护 access refcount | bookkeeping 成功不等于 RM/设备 VA map 成功 |
+| 池化机制与遗留 membins 混淆 | 当前分配走 `CUsuballocatorRadixTree`；`CUmembins` 只见声明/测试计划 | 错误地把未启用的 bin 策略写成现行实现，导致测试和性能结论失真 |
+| 物理 backing 边界未闭合 | `memblockAlloc` 最终调用 `dmal.memblockAlloc`，backend 在当前快照外 | 无法仅凭 suballocator 证明页分配、回收、压缩或显存碎片行为 |
+| 空闲区碎片 | best-fit 只在兼容 descriptor tree 内搜索，碎片率为 `(totalFree-largestFree)/totalFree` | 兼容性分裂或交错 free 可能导致新 block 分配和显存占用增加 |
 
-**深度状态**：M04 已完成 API 分配/free、对象属性、子分配决策、UVM AL 选择、managed registration rollback、DAG/stream 状态和 P2P bookkeeping 的静态主线；待完成 fault/migration backend、IPC/external handle 端到端路径和各 DMAL memory backend。
-
+**深度状态**：M04 已完成 API 分配/free、suballocator best-fit/split/coalesce、对象属性、UVM AL 选择、managed registration rollback、DAG/stream 状态和 P2P bookkeeping 的静态主线；待完成 fault/migration backend、IPC/external handle 端到端路径、各 DMAL memory backend 和运行时碎片实验。
