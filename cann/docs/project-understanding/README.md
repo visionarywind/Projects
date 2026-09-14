@@ -39,7 +39,7 @@ flowchart LR
 - [M01-GE](01-modules/M01-ge/README.md)
 - [M02-ACL](01-modules/M02-acl/README.md)
 - [M03-Runtime](01-modules/M03-runtime/README.md)
-- [M04-Driver](01-modules/M04-driver/README.md)
+- [M04-Driver](01-modules/M04-driver/README.md)，以及 [Driver ordinary memory V2/V3 cache 深度分析](01-modules/M04-driver/driver-memory-pool-analysis.md)
 
 ## 三条最重要的端到端流程
 

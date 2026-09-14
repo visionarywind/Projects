@@ -17,4 +17,4 @@
 | `CMakeLists.txt` | 依赖、源文件和打包 | `[acl/CMakeLists.txt:110-190]` |
 | `tests/` | ACL UT 和测试脚本 | `tests/run_test.sh`（仓库文档） |
 
-Runtime 仓还包含公开 ACL Runtime 符号表和 Hook 入口 `[runtime/src/acl/aclrt.cpp:17-104]`；两处代码的最终打包归属需用安装包清单确认。
+Runtime 仓还包含公开 ACL Runtime 符号表和 Hook 入口 `[runtime/src/acl/aclrt/acl_rt.cpp:17-104]`；两处代码的最终打包归属需用安装包清单确认。

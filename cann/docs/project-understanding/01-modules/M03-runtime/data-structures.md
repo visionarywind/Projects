@@ -32,6 +32,13 @@ SoC 版本和平台资源信息由 ACL Runtime 基础实现缓存，包含 AICor
 
 C API 不直接暴露内部 C++ 对象，而通过 `RT_VALIDATE_AND_UNWRAP_OBJECT` 等宏校验和解包 `[runtime/src/runtime/api/api_c.cc:118-153]`。SOMA 的 `rtMemPool_t` 在当前实现中承载 `SegmentManager*`，但调用者仍必须通过公开 API 使用，不能依赖内部布局 `[runtime/src/runtime/feature/soma/soma.cc:245-264]`。
 
-## 锁与生命周期
+## 内存池选择矩阵
 
-KernelMemoryPoolManager 以 `shared_mutex` 保护池集合；分配/释放使用写锁，查询使用读锁。SegmentManager 自身以 mutex 保护 Segment 集合和计数。Context teardown 通过原子 teardown 状态和线程引用计数防止重复销毁或过早 delete `[runtime/src/runtime/core/src/pool/memory_pool_manager.cc:26-41,69-141,174-234]` `[runtime/src/runtime/core/src/context/context.cc:1887-1923]`。
+| 对象 | 索引/容器 | 选择策略 | 回收条件 |
+|---|---|---|---|
+| KernelMemoryPool 空闲块 | `MemoryList` 链表 | First-Fit | 池管理器按空闲池数量和状态回收 |
+| SOMA FREE Segment | `(size, basePtr)` 排序集合 | `lower_bound`，Best-Fit | force-free/trim 或 manager 生命周期 |
+| Driver V2 node | VA、size、mapped cache 多棵树 | exact/upper-bound；小请求先 mapped cache | threshold + 完整 mapped backing |
+| Driver V3 area | range 地址树 + 全局 size tree | exact/upper-bound；Best-Fit 行为 | 完整 idle range + shrink threshold |
+
+这里的 Driver 对象不属于 Runtime 的 C++ `SegmentManager`；跨层只通过 HAL/Driver ABI 联系。

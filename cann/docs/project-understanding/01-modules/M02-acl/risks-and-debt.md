@@ -10,7 +10,7 @@
 
 ## 中风险
 
-- 同一功能在 ACL 仓和 Runtime 仓出现，公开符号、打包目标和链接优先级需要安装包验证 `[acl/CMakeLists.txt:167-190]`、`[runtime/src/acl/aclrt.cpp:17-79]`。
+- 同一功能在 ACL 仓和 Runtime 仓出现，公开符号、打包目标和链接优先级需要安装包验证 `[acl/CMakeLists.txt:167-190]`、`[runtime/src/acl/aclrt/acl_rt.cpp:17-79]`。
 - 错误映射可能丢失底层扩展错误上下文；应保留原始错误和阶段日志。
 
 ## 待补技术债务

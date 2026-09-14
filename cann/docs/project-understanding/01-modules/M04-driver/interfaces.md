@@ -12,6 +12,8 @@
 | `queue_check_vector(vector)` | vector 地址可访问 | 检查数量、地址和长度 | 非法 vector 拒绝 `[149-175]` |
 | esched ioctl | ioctl 结构布局匹配 | 设置/等待/提交事件、查询调度信息 | 用户态/内核态 ABI 错误需诊断 |
 
-## 调用者责任
+| `halMemAlloc/halMemFree` | Runtime 普通内存进入 HAL；由 SVM V2/V3 判断 cache 或 normal | 返回 Driver 错误；cache 是否命中由 size/align/flag/NUMA/产品决定 `[driver-memory-pool-analysis.md]` |
+| Driver V2 ordinary cache | heap 内 mapped/unmapped node 按大小复用、切分、合并和 shrink | `DRV_ERROR_OUT_OF_MEMORY` 可能触发其他 heap/扩展；释放失败需检查回滚 |
+| Driver V3 ordinary cache | cache allocator 管理多个 range/area，normal backing 扩展后纳入 gen allocator | 完整 idle range 才 shrink；`DRV_ERROR_BUSY` 进入延迟 recycle |
 
 不要在 session 活动时销毁 HDC client；不要复用已释放 queue context；传入 ioctl 的结构体、指针、长度和版本必须匹配目标 Driver。

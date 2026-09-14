@@ -14,7 +14,12 @@
 - 设备节点、PCI 设备 ID、内核版本和权限要求未形成统一兼容矩阵。
 - Driver 错误向 Runtime/ACL 转换时可能丢失原始上下文。
 
-## 待补
+## SVM ordinary cache 风险
+
+- V2/V3 是产品编译分支；误以为当前环境使用另一代实现会导致错误定位和回归遗漏 `[driver/src/ascend_hal/svm/CMakeLists.txt:11-15]`。
+- V2 的 mapped/unmapped 状态、V3 的 range/area 状态和底层 backing 必须一致；静态源码不能确认闭源内核中的物理页生命周期。
+- cache threshold、fragmentation、shrink 和 `DRV_ERROR_BUSY` 处理需要长期压力与故障注入验证；当前没有命中率或性能数据。
+
 
 - 追踪每个 HAL API 到 ioctl、内核模块和设备命令。
 - 生成 ioctl ABI、结构体版本和符号导出清单。

@@ -26,6 +26,16 @@ HAL 构建组成见 `[driver/src/ascend_hal/CMakeLists.txt:9-29]`；SDK-driver �
 - `queue_drv_open/release`：进程 queue context 生命周期 `[driver/src/sdk_driver/queue/host/queue_fops.c:62-95]`。
 - `queue_drv_host_init/uninit`：内核侧 HDC session 连接 `[queue_fops.c:97-147]`。
 
+## 内存池专题
+
+普通 `rtMalloc` 下沉到 `halMemAlloc` 后，不是必然直接向设备申请，也不是 Runtime SOMA。Driver 根据产品和请求属性使用 ordinary cache：
+
+- `ascend910B`/`ascend910_93` 编译 V2：heap + 多棵 VA/size/mapped 红黑树；
+- `ascend950` 编译 V3：`cache_allocator` + 多个 `ga_range`/`ga_area`；
+- 两者都支持按大小 exact/upper-bound 复用、切分、相邻合并和延迟 shrink。
+
+请求是否实际进入 cache 还取决于 size、align、flag、NUMA、设备能力和当前状态。完整设计、Demo、行级走读和验证边界见 [driver-memory-pool-analysis.md](driver-memory-pool-analysis.md)。
+
 ## 边界
 
-Driver 不负责 GE 图优化或 ACL 高层模型接口；Runtime/ACL 通过 ABI 和设备协议使用其能力。具体 ioctl、设备节点和内核版本兼容矩阵待补。
+Driver 用户态源码可确认 HAL、SVM cache、VA/映射元数据和 ioctl 调用边界；闭源内核/固件中的物理页算法、设备完成时机和性能收益仍未验证。

@@ -20,6 +20,13 @@ cuInit
 
 证据分别见 `[src/api/apiinit.c:19-47]`、`[src/cui/cuiinit.c:3060-3208]`、`[src/api/apimem.c:52-118]`、`[src/cui/cuistream.c:1741-1877]`、`[src/cui/cuilaunch.c:229-338,582-817]`、`[src/cui/cuistream.c:1926-1954,2004-2088]`。
 
+## OpenCL 与工具旁路
+
+- OpenCL ICD/vendor dispatch 最终进入 `src/cl` public object；`CLIobjectData` 的 public/internal refcount tree 独立于 CUI `CUctx`、`CUmemobj` 和 GPU marker（[src/cl/cliobject.h:98-169]）。context destroy 必须先停 worker/callback thread 与 task graph，再清 pinned tracking 和 CUI contexts（[src/cl/clicontext.c:467-545]）。
+- `clWaitForEvents` 先等 submitted，再按 device 聚合 marker；GPU completed 快速路径仍需显式 clear pinned memcpy tracking（[src/cl/clevent.c:106-217]）。
+- Tools callback 从 launch begin 到 launch end 横跨 M06/M05；debugger 的 shared state、memcheck device table 和 profiler perfmon 可改变或观察主路径，但不取代 marker completion（[src/cui/cuilaunch.c:468-503,635-710,779-817]；[src/devtools/memcheck/memcheck.c:120-256]）。
+- GL/external interop 在 host 侧登记 resource 或由 DMAL 打开 handle，再创建 memobj/semaphore backing；fence、handle close 与 RM 所有权仍是外部边界（[src/cl/clgl.c:93-204]；[src/cui/cuiextinterop.c:21-171]）。
+
 ## 共享状态
 
 - `CUctx` 是 API 检查、memmgr、stream manager、module/function 和 sticky error 的关联根。

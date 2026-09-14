@@ -73,7 +73,10 @@ Runtime 普通 async free 会把 Segment 从 `allocedMap_` 移到 CACHED；force
 
 Host allocation 同样按 32-byte 对齐，host register 还要在 pin/map 能力不足时维护 Runtime 软件表。Host free/unregister 的顺序必须与 location、map、pin 状态相符 `[runtime/src/runtime/api/impl/api_impl_memory.cc:47-158,160-247]`。
 
-## 5. 异步完成边界
+### 4.4 Driver ordinary cache
+
+普通 `rtMalloc` 经过 Runtime policy 和 `halMemAlloc` 后，可能进入 Driver ordinary cache，而不是 SOMA。产品构建决定后端：`ascend910B`/`ascend910_93` 使用 V2 heap + 多棵树，`ascend950` 使用 V3 cache allocator + range/area。两者都可在 free 后暂存 backing，并在完整 node/range 空闲且达到阈值时 shrink；这部分行为与 Runtime `SegmentManager` 独立。[driver/src/ascend_hal/svm/CMakeLists.txt:11-15] [driver/build.sh:46-65]
+
 
 ### 5.1 普通任务
 
@@ -81,7 +84,7 @@ Stream 只是提交顺序和依赖的 Runtime 对象；真正设备消费在 Dri
 
 ### 5.2 SOMA
 
-SOMA async malloc 的本地 Segment 分配发生在 AICPU kernel 提交之前；提交失败时 Runtime 尝试 free，但默认非 force free，可能进入 CACHED。Driver V3 malloc 配置先建立本地 VMM segment，再发送 `SVM_SOMA_MEM_ALLOC`；free 配置先删除 segment，再发送 `SVM_SOMA_MEM_FREE`，源码明确标注 ioctl 失败“不回滚” `[runtime/src/runtime/api/impl/api_impl_soma.cc:64-150]` `[runtime/src/ascend_hal/svm/v3/api/master/svm_soma.c:744-821,862-901]`。
+SOMA async malloc 的本地 Segment 分配发生在 AICPU kernel 提交之前；提交失败时 Runtime 尝试 free，但默认非 force free，可能进入 CACHED。Driver V3 malloc 配置先建立本地 VMM segment，再发送 `SVM_SOMA_MEM_ALLOC`；free 配置先删除 segment，再发送 `SVM_SOMA_MEM_FREE`，源码明确标注 ioctl 失败“不回滚” `[runtime/src/runtime/api/impl/api_impl_soma.cc:64-150]` `[driver/src/ascend_hal/svm/v3/api/master/svm_soma.c:744-821,862-901]`。
 
 这形成一个必须测试的故障窗口：上层 Runtime 元数据、Driver 用户态 VMM segment、远端设备 pool client 和 AICPU 操作可能短暂处于不同状态。
 

@@ -118,7 +118,7 @@ Segment 携带 `basePtr`、`size`、`prev/next`、`streamId`、`graphId`、`even
 
 `rtMemPoolCreate` 经过 C API、`ApiImplSoma` 和 `SomaApi` 后，执行设备号转换、查询 HBM 总量/空闲量、获取 allocation granularity；`maxSize == 0` 时按总量向下对齐，指定值则向上对齐，超过总量失败。随后创建 `SegmentManager`、调用 Driver `StreamMemPoolCreate`、建立初始 VA Segment，并把 manager 注册到 `PoolRegistry` `[runtime/src/runtime/feature/soma/soma.cc:31-121]`。
 
-Runtime Standard SoC Driver 在创建时先保留 VA，构造 `soma_mem_pool_t{poolId, deviceId}` 和 HBM/huge-page/ACL module 属性，再调用 weak HAL `halMemPoolCreate`；HAL 失败会释放已保留 VA `[runtime/src/runtime/driver/npu_driver_standard_soc.cc:658-699]`。Driver V3 HAL 随后分配 global VA，并通过 `mem_pool_client_create` 建立远端 pool client `[runtime/src/ascend_hal/svm/v3/api/master/svm_soma.c:531-552]`。
+Runtime Standard SoC Driver 在创建时先保留 VA，构造 `soma_mem_pool_t{poolId, deviceId}` 和 HBM/huge-page/ACL module 属性，再调用 weak HAL `halMemPoolCreate`；HAL 失败会释放已保留 VA `[runtime/src/runtime/driver/npu_driver_standard_soc.cc:658-699]`。Driver V3 HAL 随后分配 global VA，并通过 `mem_pool_client_create` 建立远端 pool client `[driver/src/ascend_hal/svm/v3/api/master/svm_soma.c:531-552]`。
 
 ### 5.2 异步 AICPU 配置
 
@@ -128,7 +128,7 @@ Runtime 异步 malloc 先在本地 SegmentManager 分配，再组织参数并通
 
 异步 free 对 SOMA 指针先定位 pool 和 allocation size，调用 `StreamMemPoolAsyncConfig(..., true)`，再把本地段放入 cached 并提交 FREE 操作；非 SOMA 指针则注册 HostFunc，回调执行 `DevFreeStatic` `[runtime/src/runtime/api/impl/api_impl_soma.cc:111-195]`。
 
-Driver V3 的 `halMemPoolAsyncConfig` 校验 pool、地址、大小和 2 MiB 对齐，malloc 路径先增加 VMM segment 再发 `SVM_SOMA_MEM_ALLOC` ioctl；ioctl 失败会删除 segment。free 路径先删除 segment，再发 `SVM_SOMA_MEM_FREE`；源码明确标注失败时“不回滚”，所以 Driver 用户态本地状态可能已先改变 `[runtime/src/ascend_hal/svm/v3/api/master/svm_soma.c:744-821,862-901,928-979]`。
+Driver V3 的 `halMemPoolAsyncConfig` 校验 pool、地址、大小和 2 MiB 对齐，malloc 路径先增加 VMM segment 再发 `SVM_SOMA_MEM_ALLOC` ioctl；ioctl 失败会删除 segment。free 路径先删除 segment，再发 `SVM_SOMA_MEM_FREE`；源码明确标注失败时“不回滚”，所以 Driver 用户态本地状态可能已先改变 `[driver/src/ascend_hal/svm/v3/api/master/svm_soma.c:744-821,862-901,928-979]`。
 
 ### 5.3 trim 与隐式 trim
 

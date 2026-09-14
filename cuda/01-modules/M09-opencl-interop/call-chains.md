@@ -34,6 +34,33 @@ clCreateContext
 
 GL 入口在 ICD table 的 OpenCL 1.0 区段中出现，D3D10 入口按 `_WIN32` 条件加入或置 NULL（静态确认：[src/cl/cliicd.c:99-126]）。这证明入口/编译条件，不足以证明 GL/D3D resource acquire/release 已成功映射到 CUDA memobj；后者需要继续追踪 `clgl.c`、`clid3d.cpp`、`cuiextinterop.c` 和底层 sync。
 
-## 所有权边界
+## 所有权与异步边界
 
-loader 的临时库句柄和 platform 查询数组由 `khrIcdVendorAdd` 清理；vendor 节点和 dispatch table 由 loader/vendor deinitialize 清理。OpenCL public object 的 retain/release 与 CUI context/memobj 的释放并非同一引用计数，修改时必须分别核对两套生命周期。
+```text
+CLIobjectData(parent/children + public/internal refs)
+ → public clRelease*
+ → cliObjectTryRelease
+ → type-specific destroy
+ → CUI queue/memobj/event/task cleanup
+ → parent can be destroyed only after children/internal refs vanish
+```
+
+```text
+clWaitForEvents
+ → validate + wait until submitted
+ → group by device
+ → ctxMarkerSetMax
+ → marker status / flush / wait
+ → clear pinned memcpy tracking on GPU-completed fast path
+```
+
+```text
+GL/D3D/external handle
+ → resource registration or DMAL handle open
+ → CLI/CUmemobj backing
+ → enqueue acquire/release or semaphore acquire/release
+ → marker/task completion
+ → object/handle close
+```
+
+最后一条链的 acquire/release 到具体 HAL/RM fence 的映射未在当前证据中完全闭合；不要将 public `clReleaseMemObject` 直接等同于外部图形资源已完成释放。

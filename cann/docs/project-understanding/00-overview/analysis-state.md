@@ -4,13 +4,13 @@
 - 适用范围：整个工作区
 - 对应源码版本：GE `47020afc8`；ACL `d26308d3`；Runtime `dae460b78`；Driver `6e2914c`
 - 证据状态：已确认（Git 状态与静态盘点）；细节覆盖部分完成
-- 最后更新：2026-09-10
+- 最后更新：2026-09-14
 - 前置阅读：项目根 README
 - 后续阅读：`90-cross-module/end-to-end-flows.md` → `99-roadmap/next-steps.md`
 
 ## 当前批次
 
-第二批已完成 Runtime 内存与资源生命周期的源码级专题，并将关键事实回写到 Runtime 与跨模块文档。重点区分 KernelMemoryPool、SOMA stream-ordered pool 和普通 device/Host memory 三条路径，核对了 Segment 状态、PoolRegistry ownership、AICPU 异步 ABI、Driver V3 free 的不回滚窗口，以及 `TryToReuse` 和隐式 trim 的当前 no-op 实现。四仓库源码、构建、测试和真实设备行为仍未在本环境执行验证。
+第二批已完成 Runtime 内存与资源生命周期的源码级专题，并将关键事实回写到 Runtime 与跨模块文档。第三批进一步完成 Driver ordinary memory cache 的 V2/V3 专题与 M04 索引同步：确认 V2 heap/多棵红黑树、V3 cache_allocator/gen_allocator、exact/upper-bound 复用、split/merge、shrink 和产品构建选择。重点区分 KernelMemoryPool、SOMA stream-ordered pool、Driver ordinary cache 三条路径；`TryToReuse` 和隐式 trim 的当前 no-op 状态仍保持明确。四仓库源码、构建、测试和真实设备行为仍未在本环境执行验证。
 
 ## 已完成文档
 
@@ -48,6 +48,7 @@
 | 目录覆盖 | 四个顶层模块已归类 | GE/Runtime/Driver 内部大量子模块未逐一展开 |
 | 模块覆盖 | 4 个稳定模块均有入口文档 | GE Compiler/Executor、ACL Model、Driver 调度仍待源码级展开 |
 | Runtime 内存 | KernelMemoryPool、SOMA、普通 device/Host memory 的关键路径已覆盖 | 全部 SoC/后端分支和设备侧完成语义待验证 |
+| Driver ordinary cache | V2/V3 用户态 cache 的主要结构、分配、释放和 shrink 已覆盖 | 当前构建产物、闭源内核/固件和物理页行为待验证 |
 | 入口覆盖 | 构建、主要 API、GE Session、Runtime API 门面、Driver HAL/SDK 已覆盖 | 具体设备产品分支待补 |
 | 流程覆盖 | 初始化、模型执行、设备调用、队列/HDC、内存生命周期概要 | 完整异常/清理链待继续追踪和实验 |
 | 符号覆盖 | 关键入口已有行号 | 全量符号映射未完成 |
@@ -63,6 +64,7 @@
 3. 需要继续从 Runtime `Api`、HAL 表和 SDK-driver 追踪具体功能的完整调用链。
 4. 需要继续补齐 GE Compiler/Executor、ACL Model/单算子和 Driver Queue/HDC/esched 的源码级链路。
 5. SOMA 重用策略、隐式 trim 契约、异步失败回滚和统计一致性需要专门测试确认。
+6. Driver V2/V3 的当前构建产物、cache 命中统计、BUSY recycle 完成时机和内核物理 backing 路径需要目标环境验证。
 
 ## 下一批起点
 

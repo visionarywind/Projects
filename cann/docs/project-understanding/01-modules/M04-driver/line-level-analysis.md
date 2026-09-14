@@ -20,6 +20,18 @@
 
 open 将 TGID 关联到 queue context，release 解除关联并释放；host init/uninit 负责 HDC kernel session 的连接和关闭 `[driver/src/sdk_driver/queue/host/queue_fops.c:62-147]`。
 
-## 复杂度
+## SVM cache 行级走读
 
-参数检查、状态判断和单个资源操作通常 O(1)；session/vector 数量相关的遍历为 O(n)。设备命令和 DMA 延迟取决于硬件与队列状态。
+### V2
+
+- `devmm_alloc_mem` 按 `heap->chunk_size` 对齐请求，在 `heap_rw_lock` 读锁和 `tree_lock` 内选择 node `[driver/src/ascend_hal/svm/v2/devmm/devmm_virt_com_heap.c:1095-1137]`。
+- 不超过 `need_cache_thres` 时先查 mapped cache；查找按 exact/upper-bound，未命中再查 idle size `[devmm_virt_com_heap.c:1036-1084]` `[devmm_rbtree.c:104-138]`。
+- mapped node 大于请求时切分并把剩余部分插回 mapped tree；unmapped node 命中则调用 map operation `[devmm_virt_com_heap.c:688-821,917-978]`。
+- free 合并相邻 mapped node；超过 shrink 条件时找完整 node，底层释放失败则恢复 tree 和统计 `[devmm_virt_com_heap.c:540-686,1151-1278]`。
+
+### V3
+
+- malloc manager 先依据 NUMA、flag、cache allocator、size 和 align 判定是否进 cache `[driver/src/ascend_hal/svm/v3/assign/malloc_mng/malloc_mng.c:394-399,492-517]`。
+- `gen_allocator` 的 `size_area_tree` 先 exact 再 upper-bound；命中后切分 area，free 时按地址找到邻居并合并 `[driver/src/ascend_hal/svm/v3/assign/gen_allocator/gen_allocator.c:163-177,219-295,600-668]`。
+- cache miss 通过 normal malloc 获取新 range，加入失败回滚；完整 idle range 才回收，底层 BUSY 时进入 recycle segment `[driver/src/ascend_hal/svm/v3/assign/cache_malloc/cache_malloc.c:192-252]`。
+

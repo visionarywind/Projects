@@ -13,3 +13,11 @@ cuda_test.nvmk
  → run_tests.py
  → DVS Pass/Failure/Waived aggregate
 ```
+
+## 结果语义与边界
+
+- **静态确认**：make rule 先检查 `TEST_BINARY`、case name 和 disposition，再生成 `cuda_test_list.cpp`；生成的 dispatcher 负责列 GPU 或运行测试，不能把生成列表当成测试已执行（[tests/cuda_test/cuda_test.nvmk:60-120,140-153]；[tests/cuda_test/dispatch_main.cpp:22-50]）。
+- **静态确认**：runner 并行消费 stdout/stderr，按每测试 timeout 处理子进程；没有可解析结果的测试会被视为 failure，`Waived` 与 Pass/Failure 分开聚合，零 Pass 或存在 failure 时返回非零（[tests/run_tests.py:8-73,85-132,171-189,191-245]）。
+- **未验证**：Linux 入口还可能调用 persistence mode、`nvidia-smi` 和 `cuda_test --listGpus --forceRun`，这些是运行环境动作，不是本知识库的验证结果。
+
+experiments 中的 cubin、SASS、日志和报告只能作为历史/边界线索；源码级证据与实际硬件结果必须分开记录。

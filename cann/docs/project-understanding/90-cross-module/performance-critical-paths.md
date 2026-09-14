@@ -23,7 +23,10 @@ GE 文档确认图优化、流分配、内存复用和 Sink/SuperKernel 能力 `
 - 编译 Pass、算子编译和模型加载时间。
 - DFX/profiling/dump 开销。
 
-## 测量原则
+## Driver ordinary cache 的测量边界
+
+应分别测量 V2/V3 的 cache hit、node/area split、cache miss 扩展、free merge、shrink 和 normal fallback；记录产品、flag、page type、size、align、NUMA、cache 统计和设备状态。源码只能说明潜在的 backing 复用，不能替代实际命中率、碎片率或性能基准。
+
 
 分别测量编译、Load、首轮执行、稳态执行、同步、数据传输、普通内存分配、SOMA create/alloc/free/trim 和卸载；同时记录 batch/shape、Stream 数、设备型号、频率、配置和 profiling 开销。没有真实 NPU 时只能做静态复杂度和代码路径分析。
 

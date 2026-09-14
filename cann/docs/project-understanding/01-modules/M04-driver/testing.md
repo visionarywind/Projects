@@ -10,7 +10,14 @@
 - 设备集成：HAL、SDK-driver、内核模块、设备节点、固件和 NPU。
 - 故障注入：连接失败、DMA map/unmap 失败、设备 reset、超时和热插拔（若平台支持）。
 
-## 回归重点
+## SVM cache 专项
+
+- V2：mapped/unmapped 命中、exact/upper-bound、node split/merge、cache/nocache、threshold shrink 和底层释放失败回滚。
+- V3：cache 条件 bypass、多个 range、area split/merge、expand 失败回滚、完整 idle range、`DRV_ERROR_BUSY` 延迟 recycle。
+- 产品矩阵：至少分别构建/验证 `ascend910B`（V2）与 `ascend950`（V3），不能将一套产物的结果外推到另一套。
+
+这些是待执行回归项；本环境未运行构建、Driver UT、NPU、固件或性能测试。
+
 
 1. 活动 session 时必须拒绝 HDC client 销毁。
 2. file release 后 `private_data` 必须清空且 context 不再使用。

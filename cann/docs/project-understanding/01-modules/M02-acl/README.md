@@ -10,7 +10,7 @@ ACL 是面向应用的 C/C++ AI 计算接口层，封装设备、Context、Strea
 - `aclrtSetDeviceImpl`：ACL 设备选择包装 `[acl/runtime/device.cpp:47-59]`。
 - `aclrtResetDeviceImpl`、`aclrtGetDeviceImpl`、`aclrtSynchronizeDeviceImpl`：设备生命周期和同步 `[acl/runtime/device.cpp:80-169]`。
 - `aclrtGetDeviceUtilizationRateImpl`：设备资源查询 `[acl/runtime/device.cpp:210-225]`。
-- Runtime 仓的 `aclrt.cpp`：公开 ACL Runtime 符号映射、Hook 和 callback 注册 `[runtime/src/acl/aclrt.cpp:17-104]`。
+- Runtime 仓的 `acl_rt.cpp`：公开 ACL Runtime 符号映射、Hook 和 callback 注册 `[runtime/src/acl/aclrt/acl_rt.cpp:17-104]`。
 
 ## 子域
 

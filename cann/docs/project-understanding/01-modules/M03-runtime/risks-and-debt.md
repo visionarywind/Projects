@@ -17,9 +17,10 @@
 - Context teardown 失败时会恢复 owner Stream 以便重试；Stream、Model、SOMA callback 和设备 pending task 的组合状态尚未有完整故障矩阵 `[runtime/src/runtime/core/src/context/context.cc:759-785,813-927]`。
 - 普通 `rtMalloc` 的 run mode、huge/normal/P2P/1G huge flags 和 SoC feature 分支多，跨产品实际行为尚未由设备矩阵覆盖 `[runtime/src/runtime/driver/npu_driver_mem.cc:1026-1114,1302-1326]`。
 
-## 待补
+## 内存实现状态边界
 
-- 完成 Runtime HAL→SDK-driver→ioctl→内核/固件的逐请求调用图。
-- 为 KernelMemoryPool、SOMA、普通内存分别建立 ASAN/TSAN、压力、故障注入和统计一致性测试。
-- 验证 SOMA Stream/Event 重用策略是否应恢复，以及隐式 trim 的预期契约和失败回滚。
-- 建立错误码和日志字段的跨层关联表，并覆盖 Context/Stream/Memory/Driver 失败组合。
+- 已确认：KernelMemoryPool 为 Runtime 内部 2 MiB/First-Fit；SOMA FREE Segment 为按大小 Best-Fit；ordinary `rtMalloc` 可能进入 Driver V2/V3 cache。
+- 源码显示未启用：SOMA `TryToReuse`；当前隐式 trim 仅返回成功。
+- 未验证：Driver 实际产品选择、设备侧完成、物理 backing 算法、cache 命中率和性能收益。
+- 技术债：为三条路径分别建立故障注入、统计一致性和跨 Context/Stream 测试，避免用一个“memory pool”指标覆盖不同实现。
+

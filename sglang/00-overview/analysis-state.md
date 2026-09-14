@@ -54,7 +54,7 @@
 
 ## 仍待复核的文档证据
 
-- M06 的代表 loader、权重映射、`get_model_loader` 优先级和 `ModelConfig.from_server_args` 代表字段投影已补证；M07 的标准 group 拓扑、collective 和 alias 清理已补证；M08 的 request row、token/page allocator、eviction policy 和 ownership 代表路径已补证；M09 的 backend registry、Hybrid/Native 代表实现、metadata 和 capture/fallback 已补证；M10 的 sampler backend、grammar cache/future/同步/失败传播已补证；专用变体仍需逐一覆盖。
+- M06 的代表 loader、权重映射、`get_model_loader` 优先级和 `ModelConfig.from_server_args` 代表字段投影已补证；并进一步补充 ShardedState、Presharded、BitsAndBytes、GGUF、Remote/RemoteInstance、ModelOpt 和 Run:ai Streamer 的专用边界；M07 的标准 group 拓扑、collective 和 alias 清理已补证；M08 的 request row、token/page allocator、eviction policy 和 ownership 代表路径已补证；M09 的 backend registry、Hybrid/Native 代表实现、metadata 和 capture/fallback 已补证；M10 的 sampler backend、grammar cache/future/同步/失败传播已补证；其他专用变体仍需逐一覆盖。
 
 ## 下一批工作
 

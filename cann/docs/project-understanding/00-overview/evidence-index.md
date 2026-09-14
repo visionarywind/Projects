@@ -4,7 +4,7 @@
 - 适用范围：当前已分析路径
 - 对应源码版本：见 `analysis-state.md`
 - 证据状态：已确认静态证据；未做运行时验证
-- 最后更新：2026-09-10
+- 最后更新：2026-09-14
 - 前置阅读：project-overview.md
 - 后续阅读：对应模块 source-map
 
@@ -34,7 +34,9 @@
 | Ordinary memory | `DevMalloc` 解析 HBM/huge/P2P/module/alignment policy，再进入 `NpuDriver::DevMemAlloc` 和 HAL | `[runtime/src/runtime/api/impl/api_impl_memory.cc:765-842]` `[runtime/src/runtime/driver/npu_driver_mem.cc:1026-1114,1302-1326]` |
 | `rtFreeWithDevSync` | 同步释放先执行 `rtDeviceSynchronize`，与普通 free 的异步契约不同 | `[runtime/src/runtime/api/api_c_memory.cc:173-192]` |
 | `rtSetDevice` side effects | `ApiImpl::SetDevice` retain Primary Context、写 TLS current reference、设置 SatMode 并通知设备状态 callback | `[runtime/src/runtime/api/impl/api_impl.cc:2914-2940]` |
-| Driver 分层 | DCMI、HAL、SDK-driver 三部分 | `[driver/README.md:9-16]` |
+| Driver ordinary cache | 普通 `rtMalloc` 进入 Driver 后可能使用 ordinary cache；V2/V3 具体实现按产品编译选择 | `[driver/src/ascend_hal/svm/CMakeLists.txt:11-15]` `[driver/build.sh:46-65]` `[../01-modules/M04-driver/driver-memory-pool-analysis.md]` |
+| Driver V2 cache | heap + alloced/idle VA/idle size/idle mapped 多树；小请求先 mapped cache，按大小 exact/upper-bound，split/merge/shrink | `[driver/src/ascend_hal/svm/v2/devmm/devmm_virt_com_heap.c:1036-1137,1151-1391]` `[driver/src/ascend_hal/svm/v2/devmm/devmm_rbtree/devmm_rbtree.c:104-179]` |
+| Driver V3 cache | cache_allocator + ga_range/ga_area；size tree exact/upper-bound，normal backing 扩展，完整 idle range 回收，BUSY 延迟 recycle | `[driver/src/ascend_hal/svm/v3/assign/cache_malloc/cache_malloc.c:133-275]` `[driver/src/ascend_hal/svm/v3/assign/gen_allocator/gen_allocator.c:163-177,388-422,600-668]` |
 | Driver 构建 | HAL 和 SDK-driver 按组件/产品分支加入构建 | `[driver/src/CMakeLists.txt:9-30]` |
 | Driver Queue | 设备表、open/release context、HDC 初始化和 IOCTL 参数检查 | `[driver/src/sdk_driver/queue/host/queue_fops.c:35-143,149-175]` |
 | Driver HAL | `halGetSocVersion` 校验参数、查询设备信息并复制 SoC 版本 | `[driver/src/ascend_hal/dms/dc/devdrv_manager_adapter.c:16-52]` |

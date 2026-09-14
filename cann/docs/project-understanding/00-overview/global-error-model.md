@@ -13,7 +13,10 @@
 
 Runtime C API 使用统一宏验证句柄和返回错误 `[runtime/src/runtime/api/api_c.cc:118-153]`。ACL 设备包装在 Runtime 失败时使用 `ACL_GET_ERRCODE_RTS` 进行映射 `[acl/runtime/device.cpp:47-59]`。GE 异步回调在失败时记录错误并把 GERT Tensor 转为 GE Tensor `[ge/api/session/client/ge_api.cc:87-101]`。
 
-## 错误类别
+## 内存 cache 错误边界
+
+Driver ordinary cache 的 miss 不一定是设备物理内存耗尽：V3 首次 `svm_ga_alloc` 的 `DRV_ERROR_OUT_OF_MEMORY` 可先表示已有 cache range 没有适配 area，随后尝试扩展；V2 则可能寻找其他 heap 或建立 mapping。扩展、映射、free 和 shrink 失败都必须保留设备、VA、size、flag、heap/range 和原始 Driver 错误上下文。[../01-modules/M04-driver/driver-memory-pool-analysis.md](../01-modules/M04-driver/driver-memory-pool-analysis.md)
+
 
 | 类别 | 示例 | 调用方动作 |
 |---|---|---|

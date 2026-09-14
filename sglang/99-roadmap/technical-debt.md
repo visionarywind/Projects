@@ -13,7 +13,7 @@
 - M09 backend selection、metadata lifetime、capture 和 fallback 已完成代表路径补证；FlashInfer/MLA、Hybrid/Native 代表实现已记录，各稀疏、压缩和 linear attention kernel 的 layout 仍需逐一展开；
 - M10 SamplingBatchInfo、grammar mask、sampler 分支、batch filter、grammar cache/future 和编译失败传播已完成代表路径补证；全部 fused sampler kernel、Outlines/LLGuidance 差异仍需逐一展开；
 - M07 标准 group 创建、collective、attention TP/DP、logits all-to-all、MoE gather 和 alias 清理已补证；各专用 group 在所有 forward 路径的消费点仍需继续核对；
-- M06 ModelConfig、loader 抽象、`get_model_loader` 优先级、PP/filter、权重映射和 barrier 已补证；全部专用 loader 优先级和量化后处理仍需逐一核对。
+- M06 ModelConfig、loader 抽象、`get_model_loader` 优先级、PP/filter、权重映射和 barrier 已补证；ShardedState、Presharded、BitsAndBytes、GGUF、Remote/RemoteInstance、ModelOpt、Run:ai Streamer 的专用边界也已完成代表路径补证，但真实依赖、传输和权重加载仍未验证；全部专用 loader 优先级、复杂模型映射和量化后处理仍需逐一核对。
 
 ## 验证债务
 

@@ -20,4 +20,11 @@
 
 ## 修改后
 
-先跑无设备 UT，再在匹配 Toolkit/Driver/Firmware/NPU 上跑集成和压力测试；记录版本、配置、设备和失败底层错误码。对内存变更至少覆盖重复 free、越界、异步提前释放、trim 失败、Context/Stream 销毁失败以及普通 free 与同步 free 的差异。
+先跑无设备 UT，再在匹配 Toolkit/Driver/Firmware/NPU 上跑集成和压力测试；记录版本、配置、设备和测试结果。对内存变更至少覆盖重复 free、越界、异步提前释放、trim 失败、Context/Stream 销毁失败以及普通 free 与同步 free 的差异。
+
+## 内存改动的判定清单
+
+- 先判断请求属于 KernelMemoryPool、SOMA 还是 ordinary `rtMalloc`；不要复用另一条路径的 Fit、锁或 free 假设。
+- 修改 SOMA 时同时核对 `SegmentManager`、`PoolRegistry`、AICPU 参数和 Driver VMM；明确 `TryToReuse`/implicit trim 是当前 no-op 还是目标行为。
+- 修改普通内存 flags、align 或 policy 时，继续追踪 `NpuDriver` 到 Driver V2/V3；产品 `ascend910B`/`ascend910_93` 与 `ascend950` 的实现不同。
+- 修改 free/trim 时分别验证本地 metadata、Driver backing、异步任务完成和错误回滚。

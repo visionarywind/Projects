@@ -23,7 +23,9 @@ flowchart TB
 | Runtime | scheduler、DFX、platform、runtime、ACL runtime、TDT、tprt | `[runtime/src/CMakeLists.txt:13-32]` |
 | Driver | ascend_hal、sdk_driver、可选 custom | `[driver/src/CMakeLists.txt:9-30]` |
 
-## ABI 边界
+## 内存后端边界
+
+普通 `rtMalloc` 的 Runtime policy 最终进入 Driver HAL；满足属性条件时，Driver 再进入产品对应的 ordinary cache：`ascend910B`/`ascend910_93` 为 V2，`ascend950` 为 V3。该 cache 与 Runtime KernelMemoryPool、SOMA 是不同对象和 API 家族；当前产物和设备侧物理行为未验证。
 
 公共头文件、导出符号、错误码、CMake `find_*` 模块、共享库和安装包共同构成跨仓契约。具体符号版本、符号可见性、SONAME 和包文件清单尚未逐项盘点，标记为未知。
 

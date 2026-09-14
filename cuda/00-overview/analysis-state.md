@@ -3,7 +3,7 @@
 - **更新时间**：2026-09-11
 - **源码根**：`/home/mtuser/workspace/cuda`
 - **文档根**：`/home/mtuser/workspace/Projects/cuda`
-- **总体状态**：M01–M10 模块文档骨架已建立；核心 API→CUI→资源→HAL/提交主线已静态追踪；M04–M07 的 UVM/GPFIFO/marker/module/syscall 深层生命周期已补证，外部后端与生成工具边界仍有明确缺口。
+- **总体状态**：M01–M10 模块文档骨架已建立；核心 API→CUI→资源→HAL/提交主线已静态追踪；M04–M07 的 UVM/GPFIFO/marker/module/syscall 深层生命周期以及 M08–M10 的工具、OpenCL 对象/interop、测试聚合语义已补证，外部后端与生成工具边界仍有明确缺口。
 
 ## 版本与仓库证据
 
@@ -25,9 +25,9 @@
 | M05 Stream/Submit | 深 | stream pool、QMD、channel 初始化、push、GPFIFO/pushbuffer、tracking marker 和 completion reclaim | 各 DMAL backend 的 doorbell/RM 末端、设备消费 |
 | M06 Module/Launch | 深 | launch 分支、参数、tracking、setup、ELF/module/JIT、shared ELF、syscall resource、graph instantiate/launch/unload | 架构具体 ABI/QMD 字段、compiler/gpgpucomp 内部 |
 | M07 Kernel/Syscall | 中→深 | syscall init/load/destroy、imports/refcount、resource aggregation、launch callback、trap/timeout/reason buffer；trampoline PC binding、per-arch generated cubin chain | 各 syscall 子实现、CNP queue、compiler/asm/cubin 生成链的设备侧细节 |
-| M08 Tools/Debug | 中 | callbacks、skip/blocking、debugger checks、memcheck、profiler | 注册/dispatch 全链、attach protocol、后端细节 |
-| M09 OpenCL/Interop | 中 | ICD vendor/platform、固定 dispatch、OpenCL globals | enqueue→CUI、对象生命周期、GL/D3D/external interop |
-| M10 Tests/Experiments | 中 | nvmake case/binary、dispatcher、DVS runner、sanity/test map | 全量注册、MODS/package/CI、实际执行 |
+| M08 Tools/Debug | 中→深（host-side） | callbacks、skip/blocking、debugger checks/shared state、memcheck device table、profiler mode/perfmon | 外部 attach protocol、helper/backend、DRS/runtime client |
+| M09 OpenCL/Interop | 中→深（host-side） | ICD/vendor、固定 dispatch、public/internal object tree、context destroy、event marker aggregation、GL registration、external memobj | enqueue worker 全链、GL/D3D fence/RM、handle close、运行验证 |
+| M10 Tests/Experiments | 中→深（构建/聚合） | binary/case registration、device-link、dispatcher、runner pipe/timeout/no-result/failure/waived、DVS package | 全量 case、MODS/CI、硬件执行 |
 
 ## 证据质量规则
 
@@ -79,5 +79,5 @@ cuLaunchKernel
 
 ## 下一阶段（非运行时）
 
-补齐 M08/M09/M10 的注册、销毁、interop、MODS/CI，并核对跨模块索引；不得把 DMAL/RM/firmware、compiler/gpgpucomp 或 nvcc 生成物写成当前树已验证行为。
+M08–M10 的 host-side 生命周期和测试聚合语义已补齐；下一步是回读模块注册表、跨模块页面和总入口，检查链接/证据等级一致性，再决定是否补充 MODS/CI 源码。不得把 DMAL/RM/firmware、compiler/gpgpucomp 或 nvcc 生成物写成当前树已验证行为。
 

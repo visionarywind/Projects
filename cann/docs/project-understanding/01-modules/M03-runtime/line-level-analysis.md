@@ -19,3 +19,9 @@
 ## 资源限制
 
 `rtsSetDeviceResLimit`、`rtsResetDeviceResLimit` 和 `rtsGetDeviceResLimit` 对设备资源限制提供 C API 门面 `[runtime/src/runtime/api/api_c_device.cc:165-205]`；策略和硬件实现需查内部类。
+
+## 内存池相关行级核对
+
+- KernelMemoryPool 的 `MemoryList::GetBlock` 是链表首个适配块；不要因名称 `pool` 推断 Best-Fit `[runtime/src/runtime/core/src/pool/memory_list.cc:14-122]`。
+- SOMA `SegmentAlloc` 先尝试 `TryToReuse`，当前实现返回空指针，随后从 `freeSegs_` 按序查找并切分；隐式 trim 入口当前直接成功 `[runtime/src/runtime/feature/soma/stream_mem_pool.cc:140-195,345-361]` `[runtime/src/runtime/feature/soma/soma.cc:328-333]`。
+- 普通 `DevMalloc` 完成对齐和策略映射后进入 Driver；是否进入 Driver cache 不能在 Runtime 入口处单独确定 `[runtime/src/runtime/api/impl/api_impl_memory.cc:765-842]` `[runtime/src/runtime/driver/npu_driver_mem.cc:1026-1114,1302-1326]`。

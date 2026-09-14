@@ -19,7 +19,20 @@ flowchart LR
 
 GE 架构文档确认前端、Compiler、Executor 和 AscendIR 的职责 `[ge/docs/zh/design/architecture.md:11-74]`；GE V2 在执行阶段将用户 Tensor 和 stream 资源写入执行数据 `[ge/runtime/v2/core/model_v2_executor.cc:260-305]`。
 
-## 直接 Runtime 路径
+## 内存数据流
+
+```text
+rtMalloc
+  -> Runtime policy/alignment
+  -> halMemAlloc
+  -> Driver ordinary cache (V2 heap 或 V3 range/area)
+       -> hit: split/reuse
+       -> miss: normal backing/heap 扩展
+  -> free: cache 保留或 threshold shrink
+```
+
+这条 ordinary cache 路径不经过 Runtime SOMA `SegmentManager`；是否命中取决于 flag、size、align、NUMA、产品和当前 cache 状态。[`docs/project-understanding/01-modules/M04-driver/driver-memory-pool-analysis.md`](../01-modules/M04-driver/driver-memory-pool-analysis.md)
+
 
 ```text
 aclrtSetDevice

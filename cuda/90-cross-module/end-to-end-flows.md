@@ -22,4 +22,29 @@ cuInit → globals/TLS/managers → context
 - 工具可 skip launch，debugger/profiler 可改变等待策略。
 - 异步 stream destroy 分叉为 detached 或 marker 完成后的 free。
 
-所有硬件效果和测试结果未验证。
+## OpenCL/Interop 分支
+
+```text
+ICD vendor/platform
+ → CLIobjectData public/internal refs
+ → OpenCL context/queue/event
+ → submitted event
+ → per-device ctxMarker aggregation
+ → flush/wait or GPU-complete pinned cleanup
+ → worker/task/context destroy
+```
+
+GL/external memory 分支在 host 侧为外部资源建立 registration 或 `CUmemobj`/semaphore backing；它与普通 CUDA memobj 共享 memory manager，但外部 fence、handle close 和实际跨 API 完成语义未验证（[src/cl/clevent.c:106-217]；[src/cl/clgl.c:93-204]；[src/cui/cuiextinterop.c:21-171]）。
+
+## 工具/调试分支
+
+```text
+launch begin
+ → tools callback / debugger blocking-or-skip
+ → memcheck table + profiler/perfmon
+ → push/marker completion
+ → launch end / context teardown
+```
+
+callback end 不代表 GPU 完成；工具的额外 device-visible allocation 必须跟随 context/launch 销毁顺序（[src/cui/cuilaunch.c:468-503,635-710,779-817]；[src/devtools/memcheck/memcheck.c:120-256]）。
+

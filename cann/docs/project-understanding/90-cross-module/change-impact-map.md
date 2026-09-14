@@ -4,6 +4,7 @@
 
 | 变更 | 直接模块 | 必查模块/风险 |
 |---|---|---|
+| Driver ordinary cache V2/V3、threshold 或 flag | Runtime memory policy / Driver SVM | `halMemAlloc`、产品 CMake、V2 heap trees/V3 range-area、free/shrink 回滚、SoC 矩阵和性能测试 |
 | GE Graph/shape/模型格式 | GE | ACL 模型 API、Runtime Execute、算子包、Driver 设备能力 |
 | GE Executor stream/event 资源 | GE | Runtime 生命周期、Driver queue/esched、异步测试 |
 | ACL 公共 API/错误码 | ACL | Runtime 导出表、GE 调用者、应用 ABI、文档/测试 |

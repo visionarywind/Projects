@@ -17,7 +17,10 @@
 
 GE 图对象职责由架构文档确认 `[ge/docs/zh/design/architecture.md:76-93]`；Runtime 句柄经验证/解包宏跨 C ABI `[runtime/src/runtime/api/api_c.cc:118-153]`；SOMA 的本地 segment 和 AICPU 参数由 Runtime 源码确认；Driver ioctl ABI 见 `esched_ioctl.h`，但 SDK-driver→内核→固件的完整映射仍未确认。
 
-## 资源状态不变量
+## Driver ordinary cache 类型边界
+
+普通内存 flags 从 Runtime 传入 HAL/SVM 后，V2 由 `devmm_node_data` 的 `va/size/total/flag/advise` 和多棵树承接，V3 由 cache flag、`ga_range`/`ga_area` 和地址/大小索引承接。修改 page type、P2P、Huge Page、align 或 module ID 时，必须同步核对 Runtime policy、HAL flag 转换、V2/V3 cache 分类及 shrink 语义；不能将这些字段映射成 SOMA Segment 属性。
+
 
 - SOMA `allocedMap_` 只记录 BUSY 基地址；`cachedSegs_` 和 `freeSegs_` 必须与 Segment 双向链保持一致；`busySize_` 与 `reserveSize_` 分别反映 BUSY 和 BUSY+CACHED 大小 `[runtime/src/runtime/feature/soma/stream_mem_pool.hpp:107-171]`。
 - 普通 device pointer 不应被当成 SOMA pool 地址；非 SOMA `rtMemPoolFreeAsync` 走 HostFunc 和普通 Driver free 路径 `[runtime/src/runtime/api/impl/api_impl_soma.cc:111-195]`。

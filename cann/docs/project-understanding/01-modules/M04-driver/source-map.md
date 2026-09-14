@@ -14,6 +14,13 @@
 | `test/` | Driver 测试 | `driver/CMakeLists.txt:12-14` |
 | `examples/`、`docs/` | 示例与设计资料 | `driver/README.md:32-115` |
 
-## 组件集合
+| `src/ascend_hal/svm/CMakeLists.txt` | 按 `PRODUCT` 选择 V2/V3 SVM 实现 | `[11-15]` |
+| `src/ascend_hal/svm/v2/devmm/devmm_virt_com_heap.c` | V2 heap、mapped/unmapped node、split/merge/shrink | `[540-1391]` |
+| `src/ascend_hal/svm/v2/devmm/devmm_rbtree/devmm_rbtree.c` | V2 VA/size/mapped 多树索引和 exact/upper-bound 查询 | `[104-179,188-316]` |
+| `src/ascend_hal/svm/v3/assign/malloc_mng/malloc_mng.c` | V3 cache/normal 分流和 `is_from_cache` 生命周期 | `[394-527]` |
+| `src/ascend_hal/svm/v3/assign/cache_malloc/cache_malloc.c` | V3 cache 条件、range 扩展、free、shrink、BUSY recycle | `[133-355]` |
+| `src/ascend_hal/svm/v3/assign/gen_allocator/gen_allocator.c` | V3 range/area、地址/大小索引、split/merge/recycle | `[19-668]` |
+| `src/ascend_hal/svm/v3/assign/normal_malloc/normal_malloc.c` | V3 normal VA allocate/populate/depopulate/free | `[127-167]` |
+
 
 HAL 包含 build、bbox、esched、hdc、queue、buff、dmc、pbl、dms、svm、dpa、mmpa、trs、comm 等；Ascend910B 额外包含 RoCE。SDK-driver 还包含 vmng、vnic、vpc、kernel_adapt、fms、vascend、ts_agent 等。

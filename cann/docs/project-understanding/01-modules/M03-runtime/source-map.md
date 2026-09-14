@@ -6,7 +6,10 @@
 |---|---|---|
 | `src/runtime/api/api_c_device.cc` | Device C API 门面 | `[49-119,165-215]` |
 | `src/runtime/api/api_c.cc` | 通用 C API、句柄验证、错误处理 | `[118-153]` |
-| `src/runtime/` | Runtime 内部对象、任务和资源 | `src/CMakeLists.txt` |
+| `src/runtime/core/src/pool/` | KernelMemoryPool、MemoryList、固定槽位 BufferAllocator | `[memory_pool*.{hpp,cc}]` |
+| `src/runtime/feature/soma/` | SOMA SegmentManager、PoolRegistry、异步内存池语义 | `[stream_mem_pool.{hpp,cc}]` `[soma.{hpp,cc}]` |
+| `src/runtime/api/impl/api_impl_soma.cc` | SOMA C++ API 到 HAL/AICPU 配置 | `[64-267]` |
+| `src/runtime/api/impl/api_impl_memory.cc` | 普通内存 policy、对齐和 Driver 委托 | `[765-842]` |
 | `src/acl/aclrt.cpp` | ACL Runtime 符号映射、Hook、Dump callback | `[17-104]` |
 | `src/acl/aclrt_impl/acl_rt_impl_base.cpp` | 初始化、SoC 和平台缓存 | `[25-199]` |
 | `src/dfx/` | log、trace、error manager、msprof、adump | `[runtime/src/CMakeLists.txt:13-32]` |

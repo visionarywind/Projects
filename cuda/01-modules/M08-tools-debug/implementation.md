@@ -19,3 +19,11 @@ memcheck 为 error entry 分配 pinned host/device 可见内存；全局 allocat
 ## Profiler
 
 全局 profiler mode 由 mutex 保护；profile mode 允许“同模式或 none”兼容，初始化可读取 `CUPTI_PROFILE_MODE`（静态确认：[src/profiler/profiler_common.c:21-56,85-96]）。launch 中的 perfmon begin/end、wait-for-idle、PM trigger 和 counter start/stop 位于 HAL push 期间（静态确认：[src/cui/cuilaunch.c:635-710]）。
+
+## 资源回滚与销毁
+
+工具资源不是独立于 context 的日志缓存。memcheck 为 error entry 和 allocation table 建立 host/device 对，先在 host 填充，再通过 inline HtoD copy 同步 device 镜像；任一阶段失败都要释放已建立的 entry/table 并返回对应内存错误（静态确认：[src/devtools/memcheck/memcheck.c:120-180,206-256]）。因此 context destroy、allocation teardown 和 launch failure 必须检查工具侧仍持有的 device-visible 资源。
+
+debugger 的 shared control variables 连接 attach/session 与 launch blocking 等协议状态；API check 通过 TLS callback inactive 条件防止 callback 重入。静态源码能确认状态闸门和字段用途，但不能确认另一进程何时更新这些变量、RPC/IPC 如何完成握手（静态确认：[src/devtools/debugger/cudbgapi.c:401-557]；[src/devtools/debugger/cudbgdriver.c:103-210]）。
+
+profiler 的全局模式与 launch 内 perfmon 操作由不同层次管理：前者决定是否接受 profile client，后者插入具体提交窗口。故 callback end 或 host API 返回不等价于 counter 已停止，最终完成仍依赖 stream/marker 路径；这部分设备端时序未知。

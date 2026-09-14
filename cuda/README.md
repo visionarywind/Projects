@@ -3,7 +3,7 @@
 - 文档目的：帮助未参与过该项目的开发者理解 `/home/mtuser/workspace/cuda` 中 NVIDIA CUDA Driver 组件的架构、实现、构建、测试与修改影响。
 - 适用范围：源码快照、构建规则、测试和实验；不把标准 CUDA Toolkit 文档或外部 driver 树当成本仓库源码。
 - 对应源码版本：源码推断为 CUDA Driver API 10.2（`CUDA_VERSION=10020`）；具体提交未知。
-- 证据状态：核心初始化、上下文、内存、流、Kernel launch、UVM/GPFIFO/marker、module/ELF/JIT/graph、syscall host 侧生命周期和测试入口已静态追踪；外部后端与设备执行未验证。
+- 证据状态：核心初始化、上下文、内存、流、Kernel launch、UVM/GPFIFO/marker、module/ELF/JIT/graph、syscall host 侧生命周期、工具旁路、OpenCL 对象/interop host-side 生命周期和测试聚合入口已静态追踪；外部后端与设备执行未验证。
 - 最后更新：2026-09-11
 - 前置阅读：无
 - 后续阅读：[项目定位](00-overview/project-overview.md) → [总体架构](00-overview/architecture.md) → [模块注册表](01-modules/module-registry.md) → [主 Demo](80-demos/D01-cuda-test-memory-stream/README.md)
@@ -28,6 +28,7 @@
 
 - **已确认**：`inc/cuda.h:209-211` 定义 `CUDA_VERSION 10020`；`common/version.h:16-28` 定义旧内部版本字段与 `NVCUDA_VER_MAJOR=10/NVCUDA_VER_MINOR=2/NVCUDA_VER_BUILD=0`。
 - **已确认**：`cuda.nvmk` 将 `src/api`、`src/cui`、架构 HAL、工具和 kernel/syscall 对象组合成 `libcuda`；Linux 目标约在 `cuda.nvmk:1715-1817` 定义。
+- **已确认**：M08 launch callback 可 skip/blocking，memcheck/profiler 会插入额外控制或 device-visible 资源；M09 的 ICD、`CLIobjectData` 引用树、event marker wait、GL registration 和 external memobj 创建均已有 host-side 源码证据。
 - **未知**：目录无 `.git`，无法确认提交、分支和完整外部依赖版本。
 - **不纳入核心实现**：`import/r384`、`r396`、`r400`、`r418` 是导入快照；`.cubins.c`、`.exe`、`.bin`、`tags` 和缓存/生成物只作为边界证据。
 

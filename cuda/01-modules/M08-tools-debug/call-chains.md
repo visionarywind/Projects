@@ -28,7 +28,21 @@ debugger client
  → device control/read/write/report
 ```
 
-## 数据结构
+## 失败与收尾链
+
+```text
+launch begin callback
+ → optional pSkipInternalLaunch / blocking decision
+ → memcheck table/error-entry preparation
+ → HAL push + profiler/perfmon window
+ → launch end callback
+ → marker/stream completion
+ → context destroy
+    → tool-owned device buffers/table teardown
+    → debugger session/control cleanup
+```
+
+其中 callback 的 begin/end 是 host-side 生命周期通知；GPU completion 仍由 marker 或同步路径给出。`pSkipInternalLaunch` 只改变是否进行内部提交，不取消工具资源与错误回滚（静态确认：[src/cui/cuilaunch.c:468-503,779-817]；[src/devtools/memcheck/memcheck.c:120-256]）。
 
 - `g_callbackEnabled[domain][cbid]`：callback 快速开关表。
 - `CUtoolsLaunchBegin` 等 callback 参数：携带 context、stream、module、function、grid id 和可修改控制字段。

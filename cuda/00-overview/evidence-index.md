@@ -58,11 +58,20 @@
 - `[src/devtools/debugger/cudbgapi.c:401-557]`：debugger context map 与 API 检查依赖闭包。
 - `[src/devtools/debugger/cudbgdriver.c:103-210]`：debugger IPC/RPC/launch blocking 等共享状态。
 - `[src/devtools/memcheck/memcheck.c:120-180,206-256]`：memcheck device 表分配、下载和错误路径。
-- `[src/profiler/profiler_common.c:21-56,85-96]`：profiler mode 锁和环境变量。
+- `[src/devtools/debugger/cudbgapi.c:401-557]`：debugger module/context/function/grid 状态检查和 TLS callback inactive 闸门。
+- `[src/devtools/debugger/cudbgdriver.c:103-210]`：debugger attach/session、launch blocking、integrated memcheck 和 preemption shared state。
+- `[src/profiler/profiler_common.c:21-56,85-96]`：profiler mode 锁、兼容检查和环境变量。
+- `[src/cui/cuilaunch.c:635-710]`：launch push 中 wait-for-idle、perfmon 和 counter trigger。
 - `[src/icd_rel/icd.c:43-227]`：ICD vendor 动态加载与 platform 注册。
 - `[src/icd_rel/icd_dispatch.c:43-247]`：ICD public entry validation/dispatch。
 - `[src/cl/cliglobals.c:12-139]`：OpenCL 全局配置、初始化和销毁。
 - `[src/cl/cliicd.c:6-14,24-144,146-235]`：固定 256-entry dispatch table。
+- `[src/cl/cliobject.h:98-169]`：public object 首字段、ICD dispatch、public/internal refcount、parent/children 树和 destroy contract。
+- `[src/cl/clcommandqueue.c:15-76,189-215]`：queue parent、CUI queue 创建失败回滚和 public retain/release。
+- `[src/cl/clicontext.c:467-545]`：worker/callback thread、task graph、pinned memory、CUctx 与 GL TLS 的 context destroy 顺序。
+- `[src/cl/clevent.c:106-217]`：event submitted 等待、按 device marker 聚合、flush/wait 和 pinned memcpy 清理。
+- `[src/cl/clgl.c:93-204]`：GL mem object/resource registration、image/size 查询和错误 unregister。
+- `[src/cui/cuiextinterop.c:21-171]`：external handle open、semaphore/buffer memobj backing 及错误 free。
 
 ## Tests、实验与聚合
 

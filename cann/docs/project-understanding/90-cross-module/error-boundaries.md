@@ -24,7 +24,10 @@ Runtime 统一错误门面 `[runtime/src/runtime/api/api_c.cc:118-153]`；ACL �
 | SOMA async free | 区间/分配查询和 stream 归属先校验 | Driver VMM/free ioctl 或 AICPU 提交失败 | Driver V3 free ioctl 失败明确不回滚；本地与设备侧状态可能暂时不对称 `[driver/src/ascend_hal/svm/v3/api/master/svm_soma.c:862-901]` |
 | SOMA trim/destroy | `CanDelete`、handle 和 pool state 先检查 | Driver trim/destroy 失败 | `MemPoolTrimImplicit` 当前直接成功返回，不能把调用点当成实际回收；设备侧 busy destroy 语义未验证 `[runtime/src/runtime/feature/soma/soma.cc:223-233,328-333]` |
 
-## 不同错误的责任
+## Driver ordinary cache 失败边界
+
+普通 cache 失败不是单一错误：V2 可能在 mapped cache、idle size 或新 heap 之间回退；V3 的 cache area 不足会先扩展 normal backing。V2 shrink 底层释放失败时源码有 node/tree/统计回滚；V3 底层返回 `DRV_ERROR_BUSY` 时进入 recycle segment。底层内核/固件最终物理资源状态仍未验证。[../01-modules/M04-driver/driver-memory-pool-analysis.md](../01-modules/M04-driver/driver-memory-pool-analysis.md)
+
 
 - 参数/句柄：当前层立即拒绝，并保留 API 和参数上下文。
 - 状态/生命周期：调用方修正顺序；避免对 busy/未初始化错误盲目重试。

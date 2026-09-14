@@ -18,6 +18,15 @@ rt*/rts* C API
 
 ACL Runtime 实现用互斥锁保护 SoC 缓存和初始化引用计数，另有配置字符串 `[runtime/src/acl/aclrt_impl/acl_rt_impl_base.cpp:25-32]`。`InitSocVersion` 在锁内调用 `rtGetSocVersion` 并缓存结果 `[120-135]`。这减少重复查询，但使初始化、Finalize、设备切换和多线程调用必须遵循统一状态协议。
 
-## 设计取舍
+## 内存路径的设计边界
 
-单例门面有利于统一 ABI、错误和资源调度，但隐藏了内部对象和动态依赖，调试时需从 C API、Api 实现、DFX 和 Driver 层逐级追踪。构建时将 DFX 与 runtime 组件拆分，有利于打包和可选能力；具体运行时装载策略待确认。
+Runtime 至少维护三种不同的内存策略：
+
+```text
+KernelMemoryPool：Runtime 内部固定 2 MiB backing，小块链表 First-Fit
+SOMA：公开 rtMemPool_t，Segment 状态机和 Stream-ordered AICPU 协议
+ordinary memory：DevMalloc → NpuDriver → HAL；Driver 可能使用 V2/V3 cache
+```
+
+SOMA 的本地 Segment 状态变化不等于设备侧异步操作完成；当前源码中 `TryToReuse` 直接返回空指针，`MemPoolTrimImplicit` 直接成功返回，故设计接口与当前实际控制流必须分开记录。普通 `rtMalloc` 的 Driver cache 详见 M04 专题。
+

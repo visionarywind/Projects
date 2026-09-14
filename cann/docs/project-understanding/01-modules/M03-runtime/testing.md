@@ -22,6 +22,10 @@
 6. SoC 缓存与多设备切换。
 7. 资源限制 API 的设置、重置、查询一致性。
 
-## 验证限制
+## 内存分层专项矩阵
 
-构建/测试依赖和命令见 Runtime 仓 `AGENTS.md` 与 README；本知识库当前未执行这些命令，不把文档命令写成已通过的结果。没有匹配 NPU、固件和 Toolkit 时，SOMA 设备侧完成、物理 trim、busy destroy 和性能收益均为“未验证”。
+- KernelMemoryPool：2 MiB 边界、First-Fit、read-only 分池、释放尾插、5 个空闲池阈值和碎片。
+- SOMA：FREE Best-Fit、`TryToReuse` no-op 回归、同/跨 Stream、Event sequence、AICPU launch 失败、显式 trim、隐式 trim no-op、destroy busy。
+- ordinary `rtMalloc`：V2 mapped/unmapped node 命中、V3 range/area split/merge、cache bypass、shrink、`DRV_ERROR_BUSY` 和产品构建映射。
+
+这些测试项是待执行矩阵，不代表当前已经通过；没有 NPU、匹配 Driver/Firmware 和 Toolkit 时，设备侧完成语义仍未验证。

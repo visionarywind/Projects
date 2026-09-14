@@ -62,7 +62,26 @@ ACL/GE stream-ordered allocation
 
 三类路径的 ownership、失败窗口和显式/隐式 trim 差异见 [memory-and-resource-lifecycle.md](memory-and-resource-lifecycle.md) 和 [../01-modules/M03-runtime/memory-pool-analysis.md](../01-modules/M03-runtime/memory-pool-analysis.md)。当前 `TryToReuse` 和隐式 trim 的源码状态不能由 API 名称推导。
 
-## 生命周期检查点
+## 4.1 普通 rtMalloc 的 Driver cache 分支
+
+```text
+rtMalloc
+  -> Runtime DevMalloc / policy + alignment
+  -> NpuDriver::DevMemAlloc
+  -> halMemAlloc
+  -> 产品选择的 Driver SVM
+       -> V2: heap / mapped tree / idle size tree
+       -> V3: cache_allocator / range / area
+       -> normal allocator（不满足 cache 条件）
+  -> 返回地址
+
+rtFree
+  -> cache free：合并并暂存 backing
+  -> shrink 条件满足：释放完整 node/range
+```
+
+V2/V3 ordinary cache 不等同于 SOMA；其命中还受 flag、size、align、NUMA、设备能力和产品构建影响。详细证据见 [M04 Driver cache 专题](../01-modules/M04-driver/driver-memory-pool-analysis.md)。
+
 
 - 初始化：GE/ACL/Runtime/Driver 必须按版本兼容组合启动。
 - 提交：检查状态、句柄、shape、地址、容量和 stream 归属。
