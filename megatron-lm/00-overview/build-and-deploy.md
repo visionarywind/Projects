@@ -2,7 +2,7 @@
 
 - 文档目的：提供来自仓库文档/技能/CI 的真实命令，并标明验证状态。
 - 适用范围：开发、测试和文档构建。
-- 对应源码版本：`8190837c2b6ce176a431bc2a6ffd3439507648a7`
+- 对应源码版本：`3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`
 - 证据状态：命令已由仓库文件确认，未在本机执行 GPU/容器命令
 - 最后更新：2026-09-10
 - 前置阅读：[依赖地图](dependency-map.md)
@@ -62,7 +62,7 @@ CI 使用 DockerExecutor/集群环境；SLURM/Pyxis 命令见 build skill 和 `m
 
 - [快速上手](../99-roadmap/quick-start.md)
 - [调试](../99-roadmap/debugging-guide.md)
-- [仓库技能](../../../skills/mcore-build-and-dependency/SKILL.md)
+- [仓库技能](../../source/megatron-lm/skills/mcore-build-and-dependency/SKILL.md)
 
 ## 源码证据摘要
 

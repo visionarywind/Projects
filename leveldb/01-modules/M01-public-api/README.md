@@ -28,20 +28,20 @@ M01 是应用与内部实现之间的稳定边界：它定义 DB 生命周期、
 
 | 符号 | 位置 | 作用 |
 |---|---|---|
-| `DB::Open` | [include/leveldb/db.h:45-53](../../../../include/leveldb/db.h#L45-L53) | 打开/创建 DB，返回堆对象。 |
-| `DB::Put/Delete/Write` | [include/leveldb/db.h:62-77](../../../../include/leveldb/db.h#L62-L77) | 单项或原子批量写。 |
-| `DB::Get/NewIterator` | [include/leveldb/db.h:79-95](../../../../include/leveldb/db.h#L79-L95) | 读取和遍历。 |
-| `DB::GetSnapshot/ReleaseSnapshot` | [include/leveldb/db.h:97-105](../../../../include/leveldb/db.h#L97-L105) | 一致性视图生命周期。 |
-| `WriteBatch` | [include/leveldb/write_batch.h:32-78](../../../../include/leveldb/write_batch.h#L32-L78) | 有序编辑集合。 |
-| `Options` | [include/leveldb/options.h:32-147](../../../../include/leveldb/options.h#L32-L147) | 行为、性能和格式相关配置。 |
+| `DB::Open` | [include/leveldb/db.h:45-53](../../../source/leveldb/include/leveldb/db.h#L45-L53) | 打开/创建 DB，返回堆对象。 |
+| `DB::Put/Delete/Write` | [include/leveldb/db.h:62-77](../../../source/leveldb/include/leveldb/db.h#L62-L77) | 单项或原子批量写。 |
+| `DB::Get/NewIterator` | [include/leveldb/db.h:79-95](../../../source/leveldb/include/leveldb/db.h#L79-L95) | 读取和遍历。 |
+| `DB::GetSnapshot/ReleaseSnapshot` | [include/leveldb/db.h:97-105](../../../source/leveldb/include/leveldb/db.h#L97-L105) | 一致性视图生命周期。 |
+| `WriteBatch` | [include/leveldb/write_batch.h:32-78](../../../source/leveldb/include/leveldb/write_batch.h#L32-L78) | 有序编辑集合。 |
+| `Options` | [include/leveldb/options.h:32-147](../../../source/leveldb/include/leveldb/options.h#L32-L147) | 行为、性能和格式相关配置。 |
 
 ## 最小示例
 
-真实示例见 [doc/index.md:11-25](../../../../doc/index.md#L11-L25)。核心步骤是设置 `create_if_missing`，调用 `DB::Open`，检查 `Status`，结束时 `delete db`。这是文档示例，尚未在本次环境执行。
+真实示例见 [doc/index.md:11-25](../../../source/leveldb/doc/index.md#L11-L25)。核心步骤是设置 `create_if_missing`，调用 `DB::Open`，检查 `Status`，结束时 `delete db`。这是文档示例，尚未在本次环境执行。
 
 ## 并发和所有权摘要
 
-`DB` 可被同一进程多个线程安全共享；Iterator 和 WriteBatch 的共享访问可能需要调用方同步（[doc/index.md:130-141](../../../../doc/index.md#L130-L141)）。DB/Iterator/Snapshot 均有显式释放规则；Slice 不拥有底层字节，必须保证被引用数据存活（[doc/index.md:201-229](../../../../doc/index.md#L201-L229)）。
+`DB` 可被同一进程多个线程安全共享；Iterator 和 WriteBatch 的共享访问可能需要调用方同步（[doc/index.md:130-141](../../../source/leveldb/doc/index.md#L130-L141)）。DB/Iterator/Snapshot 均有显式释放规则；Slice 不拥有底层字节，必须保证被引用数据存活（[doc/index.md:201-229](../../../source/leveldb/doc/index.md#L201-L229)）。
 
 ## 相关文档
 

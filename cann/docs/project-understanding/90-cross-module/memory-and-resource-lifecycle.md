@@ -1,6 +1,6 @@
 # 跨模块：内存与资源生命周期
 
-- 对应源码版本：GE `47020afc8`、ACL `d26308d3`、Runtime `dae460b78`、Driver `6e2914c`
+- 对应源码版本：GE `8ee1b040a`、ACL `50be4c922`、Runtime `50be4c922`、Driver `977336913`
 - 证据状态：Runtime 用户态分配、Context/Stream 生命周期和 SOMA HAL 边界已确认；GE/ACL 具体 allocator 实现、设备完成语义和真实硬件行为未验证
 
 ## 1. 总体模型

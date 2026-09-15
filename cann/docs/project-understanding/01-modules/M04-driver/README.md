@@ -1,6 +1,6 @@
 # M04 Driver：模块入口
 
-- 对应源码版本：`6e2914c`
+- 对应源码版本：`977336913`
 - 证据状态：主要目录、HAL/SDK-driver 分层和 HDC/Queue 入口已确认
 
 Driver 为用户态/内核态之间提供设备管理、通信、队列、内存和调度能力，仓库 README 将代码分为 DCMI、HAL 和 SDK-driver `[driver/README.md:9-16]`。

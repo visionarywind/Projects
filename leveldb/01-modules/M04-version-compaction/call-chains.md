@@ -18,7 +18,7 @@ VersionSet::Recover
   -> AppendVersion
 ```
 
-[db/version_set.cc:861-993](../../../../db/version_set.cc#L861-L993)
+[db/version_set.cc:861-993](../../../source/leveldb/db/version_set.cc#L861-L993)
 
 ## 提交
 
@@ -41,7 +41,7 @@ VersionSet::PickCompaction
     -> boundary/grandparent inputs
 ```
 
-[db/version_set.cc:1252-1446](../../../../db/version_set.cc#L1252-L1446)
+[db/version_set.cc:1252-1446](../../../source/leveldb/db/version_set.cc#L1252-L1446)
 
 ## 相关文档
 

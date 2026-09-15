@@ -4,7 +4,7 @@
 - 适用范围：当前已分析路径
 - 对应源码版本：见 `analysis-state.md`
 - 证据状态：已确认静态证据；未做运行时验证
-- 最后更新：2026-09-14
+- 最后更新：2026-09-15
 - 前置阅读：project-overview.md
 - 后续阅读：对应模块 source-map
 
@@ -41,6 +41,15 @@
 | Driver Queue | 设备表、open/release context、HDC 初始化和 IOCTL 参数检查 | `[driver/src/sdk_driver/queue/host/queue_fops.c:35-143,149-175]` |
 | Driver HAL | `halGetSocVersion` 校验参数、查询设备信息并复制 SoC 版本 | `[driver/src/ascend_hal/dms/dc/devdrv_manager_adapter.c:16-52]` |
 | Driver HDC | Client 创建分配 session 数组，Destroy 检查活动 session 后释放 | `[driver/src/ascend_hal/hdc/common/hdc_client.c:20-111,130-179]` |
+| Runtime 固定 MemoryPool/MemoryList | 2 MiB backing、first-fit 分割和析构释放 | `[source/cann/runtime/src/runtime/core/src/pool/memory_pool.cc:16-105]` `[source/cann/runtime/src/runtime/core/src/pool/memory_list.cc:29-104]` |
+| Runtime BufferAllocator 固定 ID 池 | Bitmap item id 与 LINEAR/EXPONENTIAL 扩容 | `[source/cann/runtime/src/runtime/core/src/pool/buffer_allocator.hpp:23-125]` |
+| SOMA Segment 状态/分配/释放/trim | FREE/CACHED/BUSY、stream 依赖和 trim | `[source/cann/runtime/src/runtime/feature/soma/stream_mem_pool.hpp:38-170]` `[source/cann/runtime/src/runtime/feature/soma/stream_mem_pool.cc:140-435]` |
+| Driver V3 cache allocator 与生命周期 | device+flag allocator、threshold、shrink/destroy | `[source/cann/driver/src/ascend_hal/svm/v3/assign/cache_malloc/cache_allocator.c:24-173]` `[source/cann/driver/src/ascend_hal/svm/v3/assign/cache_malloc/cache_init.c:24-153]` |
+| Driver V3 GA range/area 与 recycle segment | size/address 红黑树、slice、异步回收 | `[source/cann/driver/src/ascend_hal/svm/v3/assign/gen_allocator/gen_allocator.c:19-253]` `[source/cann/driver/src/ascend_hal/svm/v3/assign/cache_malloc/cache_recycle_seg.c:20-181]` |
+| GE graph memory/offset reuse | graph offset、buffer pool 和 stream/ref 分析 | `[source/cann/ge/compiler/graph/build/memory/memory_assigner.cc:25-63]` `[source/cann/ge/compiler/graph/build/memory/buffer_pool_mem_assigner.cc:29-238]` `[source/cann/ge/compiler/graph/build/memory/mem_reuse_strategy.cc:28-312]` |
+| GE graph/runtime pool boundary | GE only produces offset/size/reuse constraints; Runtime/Driver owns execution backing | `[source/cann/ge/compiler/graph/build/memory/memory_assigner.cc:25-63]` `[source/cann/runtime/src/runtime/core/src/pool/memory_pool.cc:16-105]` |
+| SHMEM MemSegment/VMM slice | per-PE VA、MemSlice、export/map/unmap/release | `[source/cann/shmem/src/host/mem/heap/hybm_mem_segment.h:26-127]` `[source/cann/shmem/src/host/mem/heap/hybm_vmm_based_segment.cpp:109-235]` |
+| SHMEM heap init/remove/release | P2P/RDMA/SDMA heap 指针与 entity 生命周期 | `[source/cann/shmem/src/host/init/backends/shmem_init_backend.cpp:735-908]` |
 
 ## 相关文档
 

@@ -1,9 +1,9 @@
 # 源码证据索引
 
 - 文档目的：集中登记总览和跨文档反复使用的最小证据。
-- 适用范围：目标提交 `8190837c2b6ce176a431bc2a6ffd3439507648a7`。
+- 适用范围：目标提交 `3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`。
 - 证据状态：已确认（行号按当前工作树源码核对）；动态行为未验证。
-- 最后更新：2026-09-11
+- 最后更新：2026-09-15
 
 | 结论 | 证据 | 支持文档 |
 |---|---|---|
@@ -34,6 +34,14 @@
 | unit test 使用 distributed runner | [skills/mcore-testing/SKILL.md:117-155] | M03, testing-recipes |
 | format script 运行 black/isort/pylint/ruff/mypy | [tools/autoformat.sh:37-42] | build-and-deploy |
 | docs 使用 Sphinx | [docs/documentation.md:21-60] | build-and-deploy |
+| 参数/梯度 contiguous bucket buffer | `source/megatron-lm/megatron/core/distributed/param_and_grad_buffer.py:1051-1270,1630-1701` | param/grad storage、bucket view、offload/reload |
+| DDP buffer reset/offload | `source/megatron-lm/megatron/core/distributed/distributed_data_parallel.py:697-775` | overlap buffer、grad buffer 生命周期 |
+| 推理 KV block pool | `source/megatron-lm/megatron/core/inference/contexts/kv_block_allocator.py:17-258` | block id、prefix ref/LRU、释放与淘汰 |
+| 动态上下文释放 | `source/megatron-lm/megatron/core/inference/contexts/dynamic_context.py:3717-3745,4213-4237` | request/KV/Mamba 状态清理 |
+| 细粒度 activation offload | `source/megatron-lm/megatron/core/pipeline_parallel/fine_grained_activation_offload.py:60-1138` | CPU pinned storage、stream/event 和 group 生命周期 |
+| full-iteration/optimizer Graph pool | `source/megatron-lm/megatron/core/full_cuda_graph.py:14-267`; `source/megatron-lm/megatron/core/optimizer/optimizer_cuda_graph.py:14-68` | shared pool/stream、static input buffers、capture/replay/reset |
+| module CUDA Graph buffer ownership | `source/megatron-lm/megatron/core/transformer/cuda_graphs.py:280-347,613-808,1157-1327,1739-1807` | global graph mempool、reuse metadata、saved-for-backward、argument matching、delete |
+| NCCL pluggable MemPool | `source/megatron-lm/megatron/core/nccl_allocator.py:111-364` | allocator creation、pool snapshot、group register/deregister、multi-group context |
 
 ## 引用规则
 

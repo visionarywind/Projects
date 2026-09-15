@@ -37,7 +37,7 @@
 
 ## 资源/崩溃
 
-优先使用 Debug + ASan/TSan（如环境支持）检查 Slice、Snapshot、Iterator cleanup、Cache handle、Arena 和后台关闭顺序。Cache 析构时仍有 unreleased handle 会触发断言，这是线索而非可忽略的噪声。[util/cache.cc:205-215](../../../util/cache.cc#L205-L215)
+优先使用 Debug + ASan/TSan（如环境支持）检查 Slice、Snapshot、Iterator cleanup、Cache handle、Arena 和后台关闭顺序。Cache 析构时仍有 unreleased handle 会触发断言，这是线索而非可忽略的噪声。[util/cache.cc:205-215](../../source/leveldb/util/cache.cc#L205-L215)
 
 ## 常用验证
 

@@ -24,7 +24,7 @@ ctest --test-dir build --output-on-failure
 cmake --install build --prefix build/install
 ```
 
-CMake 默认选项：`LEVELDB_BUILD_TESTS=ON`、`LEVELDB_BUILD_BENCHMARKS=ON`、`LEVELDB_INSTALL=ON`（[CMakeLists.txt:32-34](../../../CMakeLists.txt#L32-L34)）。可选库由 feature detection 决定（[CMakeLists.txt:39-53](../../../CMakeLists.txt#L39-L53)）。
+CMake 默认选项：`LEVELDB_BUILD_TESTS=ON`、`LEVELDB_BUILD_BENCHMARKS=ON`、`LEVELDB_INSTALL=ON`（[CMakeLists.txt:32-34](../../source/leveldb/CMakeLists.txt#L32-L34)）。可选库由 feature detection 决定（[CMakeLists.txt:39-53](../../source/leveldb/CMakeLists.txt#L39-L53)）。
 
 ## 本机验证结果
 
@@ -155,11 +155,11 @@ cmake --install build --prefix build/install
 
 ## CI 事实
 
-CI checkout 子模块，Linux 安装 Snappy/SQLite/KyotoCabinet，调用 CMake configure/build、`ctest --verbose`、benchmark 和 install（[.github/workflows/build.yml:61-102](../../../.github/workflows/build.yml#L61-L102)）。本地没有这些库时，部分 benchmark 能力或压缩路径可能不同；这不是核心库构建失败。
+CI checkout 子模块，Linux 安装 Snappy/SQLite/KyotoCabinet，调用 CMake configure/build、`ctest --verbose`、benchmark 和 install（[.github/workflows/build.yml:61-102](../../source/leveldb/.github/workflows/build.yml#L61-L102)）。本地没有这些库时，部分 benchmark 能力或压缩路径可能不同；这不是核心库构建失败。
 
 ## 部署边界
 
-LevelDB 是库而非服务；“部署”通常是安装库和头文件到应用构建环境。安装规则在 [CMakeLists.txt:471-519](../../../CMakeLists.txt#L471-L519)。数据库目录应由应用管理备份、权限、磁盘容量和恢复策略。
+LevelDB 是库而非服务；“部署”通常是安装库和头文件到应用构建环境。安装规则在 [CMakeLists.txt:471-519](../../source/leveldb/CMakeLists.txt#L471-L519)。数据库目录应由应用管理备份、权限、磁盘容量和恢复策略。
 
 本轮 install 只写入仓库内 `build/install`，不是系统级安装；如果要安装到 `/usr/local` 或打包发布，应另行确认 prefix、权限和清理策略。
 
@@ -168,14 +168,14 @@ LevelDB 是库而非服务；“部署”通常是安装库和头文件到应用
 - [快速上手](../99-roadmap/quick-start.md)
 - [测试配方](../99-roadmap/testing-recipes.md)
 - [性能指南](../99-roadmap/performance-guide.md)
-- [CI 工作流](../../../.github/workflows/build.yml)
+- [CI 工作流](../../source/leveldb/.github/workflows/build.yml)
 
 ## 源码证据摘要
 
-- [CMake 选项](../../../CMakeLists.txt#L32-L53)
-- [测试和 benchmark 注册](../../../CMakeLists.txt#L292-L469)
-- [安装规则](../../../CMakeLists.txt#L471-L519)
-- [CI 命令](../../../.github/workflows/build.yml#L61-L102)
+- [CMake 选项](../../source/leveldb/CMakeLists.txt#L32-L53)
+- [测试和 benchmark 注册](../../source/leveldb/CMakeLists.txt#L292-L469)
+- [安装规则](../../source/leveldb/CMakeLists.txt#L471-L519)
+- [CI 命令](../../source/leveldb/.github/workflows/build.yml#L61-L102)
 
 ## 未解决问题
 

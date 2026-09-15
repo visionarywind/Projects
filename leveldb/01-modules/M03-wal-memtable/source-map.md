@@ -29,7 +29,7 @@
 
 ## 源码证据摘要
 
-核心源码由 [CMakeLists.txt:135-152](../../../../CMakeLists.txt#L135-L152) 纳入库。
+核心源码由 [CMakeLists.txt:135-152](../../../source/leveldb/CMakeLists.txt#L135-L152) 纳入库。
 
 ## 未解决问题
 

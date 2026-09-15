@@ -7,5 +7,6 @@
 - 证据/状态：[证据索引](evidence-index.md)、[分析状态](analysis-state.md)
 - 模块入口：[模块注册表](../01-modules/module-registry.md)
 - 端到端：[D01](../80-demos/D01-cuda-test-memory-stream/README.md)、[跨模块串联](../90-cross-module/system-wiring.md)
+- 资源专题：[GPU 显存池化](../01-modules/M04-memory-uvm/gpu-memory-pooling.md)、[Graph 资源生命周期](../01-modules/M06-module-launch/graph-resource-lifecycle.md)
 
 推荐路径：M01→M02→M04→M05→M06→M03/M07；外围工具读 M08，OpenCL 读 M09，构建验证读 M10。

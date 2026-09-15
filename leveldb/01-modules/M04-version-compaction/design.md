@@ -13,11 +13,11 @@ Version 是不可变的逻辑视图；VersionEdit 描述新增/删除文件和�
 
 ## 分层规则
 
-Level-0 文件可能重叠；高层文件通常范围不重叠。`PickCompaction` 优先 size score，其次 seek score；Level-0 收集全部重叠输入，随后选择下一层和 grandparents。[db/version_set.cc:1252-1303](../../../../db/version_set.cc#L1252-L1303)、[doc/impl.md:76-105](../../../../doc/impl.md#L76-L105)
+Level-0 文件可能重叠；高层文件通常范围不重叠。`PickCompaction` 优先 size score，其次 seek score；Level-0 收集全部重叠输入，随后选择下一层和 grandparents。[db/version_set.cc:1252-1303](../../../source/leveldb/db/version_set.cc#L1252-L1303)、[doc/impl.md:76-105](../../../source/leveldb/doc/impl.md#L76-L105)
 
 ## MANIFEST 原子性
 
-`LogAndApply` 写 VersionEdit 并 Sync，首次建立 descriptor 后更新 CURRENT；成功才 `AppendVersion`，失败删除临时 manifest 并保留旧状态。[db/version_set.cc:800-858](../../../../db/version_set.cc#L800-L858)
+`LogAndApply` 写 VersionEdit 并 Sync，首次建立 descriptor 后更新 CURRENT；成功才 `AppendVersion`，失败删除临时 manifest 并保留旧状态。[db/version_set.cc:800-858](../../../source/leveldb/db/version_set.cc#L800-L858)
 
 ## 取舍
 

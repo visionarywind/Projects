@@ -1,7 +1,7 @@
 # 统一运行轨迹
 
 - 文档目的：用一个可回到源码的时间顺序连接启动和一次普通生成请求。
-- 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
+- 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
 
@@ -72,10 +72,10 @@ Engine.generate
 
 ## 源码证据摘要
 
-- [`python/sglang/srt/entrypoints/engine.py:383-491`](../../python/sglang/srt/entrypoints/engine.py)
-- [`python/sglang/srt/managers/scheduler.py:1839-1925`](../../python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/scheduler.py:4199-4209`](../../python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/tp_worker.py:593-704`](../../python/sglang/srt/managers/tp_worker.py)
+- [`python/sglang/srt/entrypoints/engine.py:383-491`](../../source/sglang/python/sglang/srt/entrypoints/engine.py)
+- [`python/sglang/srt/managers/scheduler.py:1839-1925`](../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/scheduler.py:4199-4209`](../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/tp_worker.py:593-704`](../../source/sglang/python/sglang/srt/managers/tp_worker.py)
 
 ## 未解决问题
 

@@ -4,10 +4,10 @@
 
 ## 版本快照（已确认）
 
-- 日期：2026-09-10
+- 日期：2026-09-15
 - 分支：`master`
-- HEAD：`311d4211bf1611ff7ca6b67035a4a07c79766efc`
-- describe：`b10887-2-g311d4211b-dirty`
+- HEAD：`093a2f86c3e37c54fa3e1f9efb17b304f3433abd`
+- describe：`093a2f86c3`（当前浅克隆）
 - 工作树：仅根 `CLAUDE.md` 有未提交修改；知识库文件为本次新增。
 - CMake：`LLAMA_VERSION_BASE=0.4.0`，默认 `LLAMA_BUILD_IS_DEV=ON`，所以版本为 `0.4.0-dev`。[CMakeLists.txt:5-23]
 
@@ -32,9 +32,10 @@
 
 - 模型：公开 load -> loader -> architecture dispatch -> hparams/vocab/tensors：已确认。
 - Context：参数检查 -> `new llama_context`：已确认。
-- Compute：`llama_decode` wrapper -> context decode -> async backend scheduler：入口和 scheduler 已确认，中间 graph builder 需继续细化。
+- Compute：`llama_decode` wrapper -> context decode -> graph builder -> async backend scheduler：graph reserve/reset、ggml bump/dynamic allocator 和异步提交边界已补证，backend 设备执行仍未验证。
 - Server：HTTP handler -> task -> queue -> `llama_decode` -> response reader：README 和实现已确认。
 - Streaming：producer/ring/consumer 生命周期：README-dev 已确认，具体所有分支未逐行审计。
+- 池化与资源管理：已按当前 checkout 复核 KV/backend buffer、recurrent/hybrid memory、ggml bump/dynamic allocator、scheduler reserve/reset、server slot/queue、prompt cache 和 unified KV 清理语义；新增 graph/allocator 证据见 `90-cross-module/pooling-and-resource-management.md`。
 
 ## Demo 状态
 
@@ -55,6 +56,7 @@ M01 ggml/backend；M02 llama/runtime；M03 common；M04 server；M05 CLI/app；M
 2. 后端矩阵很大，M01 仅覆盖统一接口和调度边界，不覆盖所有 kernel。
 3. server 的 router、MCP、文件能力、sleep、resumable stream 需要专项审计。
 4. 性能数字没有测量，文档只描述路径，不给未经运行的吞吐结论。
+5. 当前源码版本已从 `311d4211b` 更新为 `093a2f86c`；旧模块文档行号需按新版本增量复核。
 5. UI 的 route/store/service 只依据 package 和 server README，缺少源码逐文件追踪。
 
 ## 下一批起点

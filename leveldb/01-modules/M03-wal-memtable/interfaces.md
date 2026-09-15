@@ -9,15 +9,15 @@
 
 ## WriteBatch 协议
 
-`rep_` 的前 12 字节是 sequence/count，随后是 `kTypeValue` 的 key/value 或 `kTypeDeletion` 的 key。`Iterate` 会验证 header、tag、长度和 count；非法输入返回 Corruption。[db/write_batch.cc:41-79](../../../../db/write_batch.cc#L41-L79)
+`rep_` 的前 12 字节是 sequence/count，随后是 `kTypeValue` 的 key/value 或 `kTypeDeletion` 的 key。`Iterate` 会验证 header、tag、长度和 count；非法输入返回 Corruption。[db/write_batch.cc:41-79](../../../source/leveldb/db/write_batch.cc#L41-L79)
 
 ## WAL 协议
 
-Writer 接受一个逻辑 Slice，按 32KiB block 分片，每个物理片段写 7 字节 header、payload，并 Flush；Reader 负责 CRC、片段顺序和逻辑记录组装。[db/log_writer.cc:33-107](../../../../db/log_writer.cc#L33-L107)、[db/log_reader.cc:90-170](../../../../db/log_reader.cc#L90-L170)
+Writer 接受一个逻辑 Slice，按 32KiB block 分片，每个物理片段写 7 字节 header、payload，并 Flush；Reader 负责 CRC、片段顺序和逻辑记录组装。[db/log_writer.cc:33-107](../../../source/leveldb/db/log_writer.cc#L33-L107)、[db/log_reader.cc:90-170](../../../source/leveldb/db/log_reader.cc#L90-L170)
 
 ## MemTable 协议
 
-`Add(seq,type,key,value)` 要求 key/value Slice 在调用期间有效；`Get` 在 `LookupKey` 的 sequence 上限下返回 value、NotFound 或 false。Iterator 使用时底层 MemTable 必须保持 live。[db/memtable.h:40-62](../../../../db/memtable.h#L40-L62)
+`Add(seq,type,key,value)` 要求 key/value Slice 在调用期间有效；`Get` 在 `LookupKey` 的 sequence 上限下返回 value、NotFound 或 false。Iterator 使用时底层 MemTable 必须保持 live。[db/memtable.h:40-62](../../../source/leveldb/db/memtable.h#L40-L62)
 
 ## 兼容性
 

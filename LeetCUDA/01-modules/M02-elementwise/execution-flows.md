@@ -1,7 +1,7 @@
 # M02 执行流程
 
 - 文档目的：按源码步骤追踪 elementwise 代表实现的初始化、调用、同步和失败边界。
-- 对应源码版本：`main` / `0983c65`。
+- 对应源码版本：`main` / `4513b31`。
 - 证据状态：elementwise add 代表路径已确认；GPU 实际运行未验证。
 - 最后更新：2026-09-10
 - 前置阅读：[implementation.md](implementation.md)

@@ -2,9 +2,9 @@
 
 - 文档目的：记录知识库批次、版本、覆盖范围和断点
 - 适用范围：整个工作区
-- 对应源码版本：GE `47020afc8`；ACL `d26308d3`；Runtime `dae460b78`；Driver `6e2914c`
+- 对应源码版本：GE `8ee1b040a`；ACL（Runtime 仓库内 ACL API）随 Runtime `50be4c922`；Runtime `50be4c922`；Driver `9773369137`；SHMEM `ea981bd`
 - 证据状态：已确认（Git 状态与静态盘点）；细节覆盖部分完成
-- 最后更新：2026-09-14
+- 最后更新：2026-09-15
 - 前置阅读：项目根 README
 - 后续阅读：`90-cross-module/end-to-end-flows.md` → `99-roadmap/next-steps.md`
 
@@ -31,15 +31,16 @@
 - `90-cross-module/memory-and-resource-lifecycle.md`
 - `90-cross-module/*`
 - `99-roadmap/*`
+- `90-cross-module/pooling-and-resource-management.md`：按当前四仓提交复核 Runtime MemoryPool/SOMA、Driver V3 cache、GE graph memory reuse 和 SHMEM MemSegment/heap。
 
 ## 版本证据
 
 | 仓库 | 分支 | HEAD | 工作树 |
 |---|---|---|---|
-| GE | master | `47020afc8` | clean，跟踪 origin/master |
-| ACL | master | `d26308d3` | clean，跟踪 origin/master |
-| Runtime | master | `dae460b78` | clean，跟踪 origin/master |
-| Driver | master | `6e2914c` | clean，跟踪 origin/master |
+| GE | master | `8ee1b040a` | clean，跟踪 origin/master |
+| ACL | master | `50be4c922` | clean，跟踪 origin/master |
+| Runtime | master | `50be4c922` | clean，跟踪 origin/master |
+| Driver | master | `977336913` | clean，跟踪 origin/master |
 
 ## 覆盖情况
 
@@ -49,6 +50,7 @@
 | 模块覆盖 | 4 个稳定模块均有入口文档 | GE Compiler/Executor、ACL Model、Driver 调度仍待源码级展开 |
 | Runtime 内存 | KernelMemoryPool、SOMA、普通 device/Host memory 的关键路径已覆盖 | 全部 SoC/后端分支和设备侧完成语义待验证 |
 | Driver ordinary cache | V2/V3 用户态 cache 的主要结构、分配、释放和 shrink 已覆盖 | 当前构建产物、闭源内核/固件和物理页行为待验证 |
+| 四仓池化与资源管理 | Runtime 固定池/SOMA、Driver cache、GE offset reuse、SHMEM VA/slice 已形成统一专题；补充 first-fit/编译期 offset 与运行期 backing 的边界 | 产品宏、异步设备行为、GE executor→Runtime 地址闭环、跨节点和 CRIU 仍待验证 |
 | 入口覆盖 | 构建、主要 API、GE Session、Runtime API 门面、Driver HAL/SDK 已覆盖 | 具体设备产品分支待补 |
 | 流程覆盖 | 初始化、模型执行、设备调用、队列/HDC、内存生命周期概要 | 完整异常/清理链待继续追踪和实验 |
 | 符号覆盖 | 关键入口已有行号 | 全量符号映射未完成 |
@@ -65,6 +67,7 @@
 4. 需要继续补齐 GE Compiler/Executor、ACL Model/单算子和 Driver Queue/HDC/esched 的源码级链路。
 5. SOMA 重用策略、隐式 trim 契约、异步失败回滚和统计一致性需要专门测试确认。
 6. Driver V2/V3 的当前构建产物、cache 命中统计、BUSY recycle 完成时机和内核物理 backing 路径需要目标环境验证。
+7. 当前四仓 checkout 已更新为 Runtime `50be4c922`、Driver `9773369137`、GE `8ee1b040a`、SHMEM `ea981bd`；旧模块文档中的版本和行号需按证据索引增量复核。
 
 ## 下一批起点
 

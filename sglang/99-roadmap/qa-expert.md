@@ -1,7 +1,7 @@
 # 专家级面试题：SGLang
 - 题数：100
 - 适用对象：能够设计系统级修改、验证不变量和定位复杂分布式/GPU 问题的读者
-- 证据锚点：当前知识库记录的 checkout `f1a512c51c73ab660cf41e1af3110c7c11e3b600`。
+- 证据锚点：当前知识库记录的 checkout `78be4b50af88e9ea72d75b4c3a3e42b7297d2501`。
 - 作答要求：每题包含参考答案、小白解释、技术分析和拓展分析；涉及 GPU/多卡/性能的结论必须区分静态源码理解与实际运行验证。
 - 项目一句话：SGLang Runtime 面向大模型推理服务，把请求规范化、tokenization、IPC、scheduler、KV cache、ModelRunner、采样和输出组织成连续批处理系统。
 - 主要证据：README、00-overview、01/02 请求流程、M03-M10、90-cross-module 和现有 QA/实践文档。

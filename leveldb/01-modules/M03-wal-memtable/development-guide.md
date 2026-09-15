@@ -19,10 +19,10 @@
 
 | 风险 | 证据 | 后果 | 建议 |
 |---|---|---|---|
-| 改变 ValueType 值 | [db/dbformat.h:50-53](../../../../db/dbformat.h#L50-L53) | 旧表/WAL 误解析 | 禁止重排，补兼容测试 |
-| Writer/Reader 分片不对称 | [db/log_writer.cc:37-77](../../../../db/log_writer.cc#L37-L77) | 恢复丢批次或报损坏 | 边界长度测试 |
-| Slice 指向 Arena | [db/memtable.h:44-50](../../../../db/memtable.h#L44-L50) | UAF | 明确引用生命周期 |
-| 忽略 batch corruption | [db/write_batch.cc:41-79](../../../../db/write_batch.cc#L41-L79) | 恢复错误数据 | Status 必须传播 |
+| 改变 ValueType 值 | [db/dbformat.h:50-53](../../../source/leveldb/db/dbformat.h#L50-L53) | 旧表/WAL 误解析 | 禁止重排，补兼容测试 |
+| Writer/Reader 分片不对称 | [db/log_writer.cc:37-77](../../../source/leveldb/db/log_writer.cc#L37-L77) | 恢复丢批次或报损坏 | 边界长度测试 |
+| Slice 指向 Arena | [db/memtable.h:44-50](../../../source/leveldb/db/memtable.h#L44-L50) | UAF | 明确引用生命周期 |
+| 忽略 batch corruption | [db/write_batch.cc:41-79](../../../source/leveldb/db/write_batch.cc#L41-L79) | 恢复错误数据 | Status 必须传播 |
 
 ## 相关文档
 

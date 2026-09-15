@@ -1,10 +1,10 @@
 # llama.cpp 项目理解知识库
 
 > 状态：已确认（基于工作区当前源码）  
-> 源码版本：`master` / `311d4211bf1611ff7ca6b67035a4a07c79766efc`  
+> 源码版本：`master` / `093a2f86c3e37c54fa3e1f9efb17b304f3433abd`
 > 版本字符串：`0.4.0-dev`（CMake 默认开发构建）  
 > 文档语言：中文  
-> 输出路径：`docs/project-understanding`（根据用户给定示例推断，仓库原先不存在该目录）
+> 输出路径：当前知识库仓库根目录（`00-overview/`、`01-modules/`、`80-demos/`、`90-cross-module/`、`99-roadmap/`）
 
 本知识库按“总览 -> 模块 -> Demo -> 跨模块 -> 实践”组织。源码引用使用 `[相对路径:起始行-结束行]`；“已确认/推断/未知”表示证据等级。所有命令的“来源已确认”不等于“本工作区已执行”：本批仅执行了版本、目录和静态盘点，没有执行完整构建、测试或模型 Demo。
 
@@ -48,6 +48,8 @@
 - [跨模块调用链](90-cross-module/call-chains.md)
 - [线程、队列与资源生命周期](90-cross-module/thread-queue-resource.md)
 - [数据与配置边界](90-cross-module/data-and-configuration.md)
+- [池化与资源管理专题](90-cross-module/pooling-and-resource-management.md)
+- 专题补充：ggml allocator 与 graph reserve/reset 已纳入上述资源专题。
 - [快速开始](99-roadmap/quick-start.md)
 - [阅读路线](99-roadmap/reading-guide.md)
 - [调试指南](99-roadmap/debugging-guide.md)

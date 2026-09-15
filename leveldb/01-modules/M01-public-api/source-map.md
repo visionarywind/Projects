@@ -26,7 +26,7 @@
 
 ## 源码证据摘要
 
-[CMakeLists.txt:193-210](../../../../CMakeLists.txt#L193-L210) 列出安装的公开头文件。
+[CMakeLists.txt:193-210](../../../source/leveldb/CMakeLists.txt#L193-L210) 列出安装的公开头文件。
 
 ## 未解决问题
 

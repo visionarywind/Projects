@@ -38,7 +38,7 @@ sequenceDiagram
 
 ## 源码证据摘要
 
-[CMakeLists.txt:337-340](../../../../CMakeLists.txt#L337-L340)。
+[CMakeLists.txt:337-340](../../../source/leveldb/CMakeLists.txt#L337-L340)。
 
 ## 未解决问题
 

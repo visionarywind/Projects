@@ -2,7 +2,7 @@
 
 - 文档目的：说明标量/向量化 elementwise 与激活算子的通用模式。
 - 适用范围：`kernels/elementwise/` 及 ReLU/GELU/ELU/Swish/Hard* 目录。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：elementwise 完整代表分析；其他激活按同一模式归纳。
 - 最后更新：2026-09-10
 - 前置阅读：[架构](../../00-overview/architecture.md)

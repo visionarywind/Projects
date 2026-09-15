@@ -26,6 +26,10 @@ registry 为空时模型加载失败；设备参数为空或 tensor split 无设
 
 改变 op、backend placement、allocator 或 scheduler 后，应构建 `test-backend-ops`；还需按实际硬件跑对应 backend test。CTest 注册和 target 关系见 [M08](../M08-build-tests-ci/README.md)。
 
+## 资源专题补充
+
+`ggml_tallocr` 是单 buffer bump allocator，`ggml_dyn_tallocr` 是最多 16 chunk、最多 256 free blocks 的动态复用器；`llama_context::sched_reserve` 通过 graph reserve 固定 backend buffer 预期大小，并在 graph/memory 变化时 reset/re-reserve。详见[池化与资源管理专题](../../90-cross-module/pooling-and-resource-management.md)。
+
 ## 未覆盖
 
 各平台 kernel、动态 backend ABI、具体 graph op 支持矩阵、设备间 copy 性能均未在本首版逐行确认。

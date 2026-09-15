@@ -1,6 +1,6 @@
 # M04 Driver：普通内存池化实现——V2/V3 源码分析
 
-- 对应源码版本：Driver `6e2914c`；Runtime `dae460b78`
+- 对应源码版本：Driver `977336913`；Runtime `50be4c922`
 - 分析范围：普通 `rtMalloc/rtFree` 下沉到 Driver 后的 V2/V3 cache；不包含 Runtime KernelMemoryPool 和 SOMA 的完整实现
 - 证据状态：用户态源码静态分析已确认；未执行构建、硬件运行和性能测试
 

@@ -1,9 +1,9 @@
 # 源码证据索引
 
 - 文档目的：集中索引支撑关键结论的源码位置。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：已确认索引；行号需随源码变更维护。
-- 最后更新：2026-09-10
+- 最后更新：2026-09-15
 
 | 主题 | 证据 | 支撑结论 |
 |---|---|---|
@@ -36,8 +36,12 @@
 | M07 tiling-QKV layout/state | `kernels/flash-attn/mma/basic/flash_attn_mma_tiling_qkv.cu:50-200` | Br/Bc, `[B,H,N,D]`, Q/K/V SMEM alias, register state |
 | M07 QK/softmax/PV/store | `kernels/flash-attn/mma/basic/flash_attn_mma_tiling_qkv.cu:201-797` | staged QK, online softmax, P@V, O normalization/store |
 | M07 dispatch/boundary | `kernels/flash-attn/mma/basic/flash_attn_mma_tiling_qkv.cu:799-946` | D list, stage mapping, sequence full-tile assert |
-| D01 NMS Demo | `docs/project-understanding/80-demos/D01-nms-python/` | Python load, mask/resolve, state and failure trace |
-| D02 Interview Demo | `docs/project-understanding/80-demos/D02-interview-binary/` | arch build, explicit allocation, HGEMM/FA benchmark trace |
+| D01 NMS Demo | `80-demos/D01-nms-python/` | Python load, mask/resolve, state and failure trace |
+| D02 Interview Demo | `80-demos/D02-interview-binary/` | arch build, explicit allocation, HGEMM/FA benchmark trace |
+| Python tensor/extension allocation | `source/LeetCUDA/kernels/sgemm/sgemm.py:10-30,127-145` | PyTorch extension loading and benchmark tensor reuse |
+| Interview SGEMM resource lifecycle | `source/LeetCUDA/kernels/interview/bench_sgemm.cu:14-22,41-72,108-210` | host/device allocation, events, handle and cleanup |
+| Interview attention workspace/TMA | `source/LeetCUDA/kernels/interview/bench_attn.cu:100-137,620-710`; `source/LeetCUDA/kernels/interview/common.cuh:734-771` | cuDNN workspace, stream/event and TMA descriptor ownership |
+| Graph/CPU pool boundary | `source/LeetCUDA/kernels/interview/bench_attn.cu:100-137`; `source/LeetCUDA/kernels/sgemm/sgemm.py:10-30,127-145` | 单次 benchmark/workspace 资源；无统一 graph 或 CPU pool 证据 |
 
 
 每新增一条重要结论，优先在本表加入证据，再在具体文档附近引用；不要只引用 README 的性能数字来证明源码行为。

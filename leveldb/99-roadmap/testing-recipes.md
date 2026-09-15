@@ -37,7 +37,7 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-CI 还会运行 benchmark 和 install；修改性能或公共安装接口时纳入同等步骤。[.github/workflows/build.yml:80-102](../../../.github/workflows/build.yml#L80-L102)
+CI 还会运行 benchmark 和 install；修改性能或公共安装接口时纳入同等步骤。[.github/workflows/build.yml:80-102](../../source/leveldb/.github/workflows/build.yml#L80-L102)
 
 ## 报告格式
 

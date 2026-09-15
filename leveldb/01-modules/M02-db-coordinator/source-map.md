@@ -27,7 +27,7 @@
 
 ## 源码证据摘要
 
-CMake 将 DBImpl 相关源文件纳入 `leveldb` 目标（[CMakeLists.txt:119-152](../../../../CMakeLists.txt#L119-L152)）。
+CMake 将 DBImpl 相关源文件纳入 `leveldb` 目标（[CMakeLists.txt:119-152](../../../source/leveldb/CMakeLists.txt#L119-L152)）。
 
 ## 未解决问题
 

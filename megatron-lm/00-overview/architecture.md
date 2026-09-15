@@ -2,9 +2,9 @@
 
 - 文档目的：建立从入口到设备/输出的分层模型。
 - 适用范围：训练主路径及其 Core 组件。
-- 对应源码版本：`8190837c2b6ce176a431bc2a6ffd3439507648a7`
+- 对应源码版本：`3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`
 - 证据状态：已确认 + 部分推断
-- 最后更新：2026-09-10
+- 最后更新：2026-09-15
 - 前置阅读：[项目定位](project-overview.md)
 - 后续阅读：[运行时模型](runtime-model.md)
 
@@ -33,6 +33,8 @@ flowchart TB
     TE[Transformer Engine / optional kernels]
     GPU[CUDA GPU / NCCL]
     FS[文件系统 / checkpoint]
+    GP[CUDA Graph pool/static buffers]
+    NP[NCCL MemPool/group registration]
   end
   E --> T
   E --> C
@@ -49,6 +51,9 @@ flowchart TB
   M --> PT
   M --> TE
   PT --> GPU
+  T --> GP
+  OPT --> GP
+  PS --> NP
   CK --> FS
 ```
 

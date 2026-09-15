@@ -2,7 +2,7 @@
 
 - 文档目的：解释 SGLang 如何把 Engine/API 输入变成可跨进程传输的 tokenized request，并把批量输出重新关联到调用者。
 - 适用范围：`TokenizerManager`、`ReqState`、请求输入/输出结构、tokenize、scheduler dispatch 和响应汇聚。
-- 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
+- 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
 - 前置阅读：[请求进入与分发](../../02-request-flow/02-请求进入与分发.md)、[多进程与 IPC](../../02-request-flow/06-多进程与IPC.md)
@@ -272,16 +272,16 @@ D01 是普通纯文本，因此静态上会落到第 3 步；实际 tokenizer �
 
 ## 源码证据摘要
 
-- [`python/sglang/srt/managers/tokenizer_manager.py:776-845`](../../../python/sglang/srt/managers/tokenizer_manager.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:970-1138`](../../../python/sglang/srt/managers/tokenizer_manager.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:1356-1470`](../../../python/sglang/srt/managers/tokenizer_manager.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:1577-1650`](../../../python/sglang/srt/managers/tokenizer_manager.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:1740-1852`](../../../python/sglang/srt/managers/tokenizer_manager.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:2225-2549`](../../../python/sglang/srt/managers/tokenizer_manager.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:3463-3528`](../../../python/sglang/srt/managers/tokenizer_manager.py)
-- [`python/sglang/srt/managers/io_struct.py:173-224`](../../../python/sglang/srt/managers/io_struct.py)
-- [`python/sglang/srt/managers/io_struct.py:972-1034`](../../../python/sglang/srt/managers/io_struct.py)
-- [`python/sglang/srt/managers/io_struct.py:1531-1594`](../../../python/sglang/srt/managers/io_struct.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:776-845`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:970-1138`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:1356-1470`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:1577-1650`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:1740-1852`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:2225-2549`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:3463-3528`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/io_struct.py:173-224`](../../../source/sglang/python/sglang/srt/managers/io_struct.py)
+- [`python/sglang/srt/managers/io_struct.py:972-1034`](../../../source/sglang/python/sglang/srt/managers/io_struct.py)
+- [`python/sglang/srt/managers/io_struct.py:1531-1594`](../../../source/sglang/python/sglang/srt/managers/io_struct.py)
 
 ## 未解决问题
 

@@ -100,7 +100,7 @@ flowchart LR
     K --> H[外部 RM/NVRM/硬件]
 ```
 
-箭头代表源码调用或运行时资源/控制传递；M03、M07 的最终设备效果依赖本目录之外的 RM、common 和 compiler 树，当前只能静态追踪到边界。\
+箭头代表源码调用或运行时资源/控制传递；M03、M07 的最终设备效果依赖本目录之外的 RM、common 和 compiler 树，当前只能静态追踪到边界。
 
 ## 三条关键端到端流程
 
@@ -110,7 +110,7 @@ flowchart LR
 
 ## 文档状态
 
-本知识库优先完成核心实现和真实测试静态轨迹；由于源码快照缺少 Git 元数据、外部 NVIDIA 构建树、GPU 和 nvmake 环境，构建、运行、硬件结果均不得写成已验证。详见 [分析状态](00-overview/analysis-state.md)。
+本知识库优先完成核心实现和真实测试静态轨迹；M04 已补充 memblock suballocator 的 best-fit/split/coalesce 和 DMAL backing 边界，M06 已补充 Graph capture/instantiate/launch/update/destroy 的执行资源生命周期。由于源码快照缺少 Git 元数据、外部 NVIDIA 构建树、GPU 和 nvmake 环境，构建、运行、硬件结果以及两条 Graph 失败路径疑点均不得写成已验证。详见 [分析状态](00-overview/analysis-state.md)。
 
 ## 相关文档
 
@@ -123,6 +123,8 @@ flowchart LR
 - `[src/api/apiinit.c:18-47]` 初始化入口；`[src/cui/cuiinit.c:3060-3208]` 初始化实现与回滚。
 - `[src/api/apimem.c:51-117]` 内存分配包装；`[src/cui/cuimem.c:66-186]` memobj 分配/释放。
 - `[src/api/apilaunch.c:211-299]` launch 分派；`[src/cui/cuilaunch.c:229-319]` setup/HAL 检查。
+- `[src/cui/suballocator.c:163-220,343-405]` memblock 内 best-fit、split/coalesce；`[src/cui/memblock.c:471-562,682-740]` DMAL backing 边界。
+- `[src/cui/cuigraph.c:1835-1933,4056-4162,1035-1205]` Graph exec 资源实例化、异步 launch 与 reverse teardown。
 
 ## 未解决问题
 

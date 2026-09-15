@@ -29,4 +29,4 @@
 
 ## 调试变量
 
-关注 `TableBuilder::Rep::offset`、`pending_index_entry`、`BlockHandle` 的 offset/size、`BlockContents` 的 ownership flags、cache handle 生命周期，以及 iterator `status()`。[table/table_builder.cc:20-62](../../../../table/table_builder.cc#L20-L62)
+关注 `TableBuilder::Rep::offset`、`pending_index_entry`、`BlockHandle` 的 offset/size、`BlockContents` 的 ownership flags、cache handle 生命周期，以及 iterator `status()`。[table/table_builder.cc:20-62](../../../source/leveldb/table/table_builder.cc#L20-L62)

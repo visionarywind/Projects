@@ -19,7 +19,7 @@ Caller
     -> DBImpl::Get()
 ```
 
-公共虚接口声明在 [include/leveldb/db.h:45-146](../../../../include/leveldb/db.h#L45-L146)，实现入口在 [db/db_impl.cc:1121-1206](../../../../db/db_impl.cc#L1121-L1206)。
+公共虚接口声明在 [include/leveldb/db.h:45-146](../../../source/leveldb/include/leveldb/db.h#L45-L146)，实现入口在 [db/db_impl.cc:1121-1206](../../../source/leveldb/db/db_impl.cc#L1121-L1206)。
 
 ## 图示
 

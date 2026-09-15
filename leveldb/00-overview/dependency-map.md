@@ -32,8 +32,8 @@ flowchart TD
 
 - `include/leveldb` 是公共方向的根；内部实现 include 它，但应用不应反向依赖 `db/`/`table/` 私有头。
 - `db` 依赖 `table` 和 `util`；`table` 依赖 `util`/`port`；平台实现通过 `Env` 进入操作系统。
-- `helpers/memenv` 实现 Env 替身并进入测试/库目标，但不是公共接口（[CMakeLists.txt:226-231](../../../CMakeLists.txt#L226-L231)）。
-- 测试目标链接 `leveldb`、gmock、gtest；benchmark 目标链接 leveldb、benchmark 和可选对比库（[CMakeLists.txt:313-391](../../../CMakeLists.txt#L313-L391)、[CMakeLists.txt:407-468](../../../CMakeLists.txt#L407-L468)）。
+- `helpers/memenv` 实现 Env 替身并进入测试/库目标，但不是公共接口（[CMakeLists.txt:226-231](../../source/leveldb/CMakeLists.txt#L226-L231)）。
+- 测试目标链接 `leveldb`、gmock、gtest；benchmark 目标链接 leveldb、benchmark 和可选对比库（[CMakeLists.txt:313-391](../../source/leveldb/CMakeLists.txt#L313-L391)、[CMakeLists.txt:407-468](../../source/leveldb/CMakeLists.txt#L407-L468)）。
 
 ## 外部依赖
 
@@ -46,7 +46,7 @@ flowchart TD
 | crc32c/Snappy/Zstd/tcmalloc | 可选 | CMake 探测后链接并启用能力。 |
 | SQLite/KyotoCabinet | 可选 benchmark | 仅生成对应对比基准。 |
 
-证据：[CMakeLists.txt:39-53](../../../CMakeLists.txt#L39-L53)、[CMakeLists.txt:270-285](../../../CMakeLists.txt#L270-L285)。
+证据：[CMakeLists.txt:39-53](../../source/leveldb/CMakeLists.txt#L39-L53)、[CMakeLists.txt:270-285](../../source/leveldb/CMakeLists.txt#L270-L285)。
 
 ## 依赖风险
 

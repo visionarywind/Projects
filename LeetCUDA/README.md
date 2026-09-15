@@ -1,6 +1,6 @@
 # LeetCUDA 项目理解知识库
 
-- 生成范围：以当前仓库 `main` 分支提交 `0983c65` 为目标版本。
+- 生成范围：以当前源码 checkout `main` 分支提交 `4513b3114de21140c846171042515e17bb907e8a` 为目标版本。
 - 项目名称：LeetCUDA
 - 文档语言：中文
 - 证据规则：正文中的源码引用均使用 `[相对路径:起始行-结束行]`；行号以目标提交为准。
@@ -21,7 +21,7 @@ LeetCUDA 是一个以 CUDA C++ 和 PyTorch 为载体的学习/实验仓库：每
 
 ## 源码版本与证据边界
 
-- 已确认版本：`main` / `0983c65`（`Fix kernels/nms: race on keep[], uninitialized read, wrong index semantics (#519)`）。
+- 已确认版本：`main` / `4513b31`（`notes: add SGEMM TF32 (WMMA m16n16k8) kernel and bench (#520)`）。
 - 远端仓库信息：README 声明项目地址为 <https://github.com/xlite-dev/LeetCUDA>。
 - 目标平台：Linux + NVIDIA CUDA GPU + CUDA Toolkit；不同模块的最低版本不同，不能把单一版本要求视为全仓库契约。
 - 本环境未执行 GPU 构建、安装依赖或 benchmark；所有运行结果均标为仓库文档中的历史示例，不能视为本机验证。
@@ -30,7 +30,7 @@ LeetCUDA 是一个以 CUDA C++ 和 PyTorch 为载体的学习/实验仓库：每
 ## 知识库目录
 
 ```text
-docs/project-understanding/
+LeetCUDA/
 ├── README.md
 ├── 00-overview/
 ├── 01-modules/
@@ -53,6 +53,7 @@ docs/project-understanding/
 - [源码证据索引](00-overview/evidence-index.md)
 - [决策与冲突记录](00-overview/decision-log.md)
 - [分析状态与覆盖范围](00-overview/analysis-state.md)
+- [池化与资源管理专题](90-cross-module/pooling-and-resource-management.md)
 
 ## 真实 Demo 层
 

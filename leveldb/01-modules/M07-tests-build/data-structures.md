@@ -22,8 +22,8 @@ CMake configure
 
 ## CTest 注册
 
-`leveldb_tests` 作为一个 CTest；`leveldb_test()` 为每个独立源文件创建 executable 和 test name。[CMakeLists.txt:364-391](../../../../CMakeLists.txt#L364-L391) 因而失败输出可能来自聚合测试内部，也可能来自独立目标，排查时先看 CTest 名称。
+`leveldb_tests` 作为一个 CTest；`leveldb_test()` 为每个独立源文件创建 executable 和 test name。[CMakeLists.txt:364-391](../../../source/leveldb/CMakeLists.txt#L364-L391) 因而失败输出可能来自聚合测试内部，也可能来自独立目标，排查时先看 CTest 名称。
 
 ## 配置状态
 
-`port_config.h` 记录 include/library/symbol 探测结果；`HAVE_CRC32C`、`HAVE_SNAPPY`、`HAVE_ZSTD`、`HAVE_TCMALLOC` 会影响链接和代码分支。[CMakeLists.txt:39-53](../../../../CMakeLists.txt#L39-L53)
+`port_config.h` 记录 include/library/symbol 探测结果；`HAVE_CRC32C`、`HAVE_SNAPPY`、`HAVE_ZSTD`、`HAVE_TCMALLOC` 会影响链接和代码分支。[CMakeLists.txt:39-53](../../../source/leveldb/CMakeLists.txt#L39-L53)

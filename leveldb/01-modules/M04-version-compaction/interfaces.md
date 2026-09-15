@@ -9,11 +9,11 @@
 
 ## VersionEdit
 
-可设置 comparator、log/prev-log、next-file、last-sequence、compact pointer，添加或删除 `(level,file)`；`EncodeTo/DecodeFrom` 是 MANIFEST/WAL 风格记录边界。[db/version_edit.h:28-100](../../../../db/version_edit.h#L28-L100)
+可设置 comparator、log/prev-log、next-file、last-sequence、compact pointer，添加或删除 `(level,file)`；`EncodeTo/DecodeFrom` 是 MANIFEST/WAL 风格记录边界。[db/version_edit.h:28-100](../../../source/leveldb/db/version_edit.h#L28-L100)
 
 ## VersionSet
 
-`LogAndApply` 要求调用者持有 mutex 且不允许并发调用；`Recover` 从 CURRENT 指向的 descriptor 重建 current；`PickCompaction` 返回堆分配 Compaction，调用者负责释放。[db/version_set.h:175-184](../../../../db/version_set.h#L175-L184)、[db/version_set.h:229-249](../../../../db/version_set.h#L229-L249)
+`LogAndApply` 要求调用者持有 mutex 且不允许并发调用；`Recover` 从 CURRENT 指向的 descriptor 重建 current；`PickCompaction` 返回堆分配 Compaction，调用者负责释放。[db/version_set.h:175-184](../../../source/leveldb/db/version_set.h#L175-L184)、[db/version_set.h:229-249](../../../source/leveldb/db/version_set.h#L229-L249)
 
 ## Compaction
 
@@ -21,7 +21,7 @@
 
 ## 兼容性
 
-MANIFEST 中 comparator name 必须匹配当前 comparator，否则 Recover 返回 InvalidArgument（[db/version_set.cc:909-920](../../../../db/version_set.cc#L909-L920)）。
+MANIFEST 中 comparator name 必须匹配当前 comparator，否则 Recover 返回 InvalidArgument（[db/version_set.cc:909-920](../../../source/leveldb/db/version_set.cc#L909-L920)）。
 
 ## 相关文档
 

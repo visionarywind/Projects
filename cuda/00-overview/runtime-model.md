@@ -4,7 +4,7 @@
 - 适用范围：CUDA Driver API 主路径。
 - 对应源码版本：CUDA 10.2 API 字段；提交未知。
 - 证据状态：初始化和对象清理已确认；进程退出行为部分未知。
-- 最后更新：2026-09-11
+- 最后更新：2026-09-14
 - 前置阅读：[总体架构](architecture.md)
 - 后续阅读：[全局数据流](global-data-flow.md)
 
@@ -34,7 +34,7 @@ sequenceDiagram
 
 ## 运行与异步
 
-一次 API 调用通常在宿主线程执行参数校验并持有 context lock；资源提交到 stream/channel 后，GPU 异步执行。Kernel launch 还可能进入 stream capture：`cuapiLaunchKernelCommon` 在 `src/api/apilaunch.c:251-285` 创建 graph node，而非立即提交；普通路径在 `:287-298` 调用 `cuiLaunchKernel_nonreentrant`。这一区分改变的是数据结构（graph node vs push/launch），不是简单的错误分支。
+一次 API 调用通常在宿主线程执行参数校验并持有 context lock；资源提交到 stream/channel 后，GPU 异步执行。Kernel launch 还可能进入 stream capture：`cuapiLaunchKernelCommon` 在 `src/api/apilaunch.c:251-285` 创建 graph node，而非立即提交；普通路径在 `:287-298` 调用 `cuiLaunchKernel_nonreentrant`。这一区分改变的是数据结构（graph node vs push/launch），不是简单的错误分支。Graph instantiate 随后为 node 建立 per-context QMD/constant-bank/internal stream/marker 和可选 scheduler backing，destroy 按异步完成边界反向释放（[src/cui/cuigraph.c:1835-1933,1035-1205]）。
 
 ## 关闭和回收
 

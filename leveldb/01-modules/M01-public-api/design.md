@@ -18,7 +18,7 @@ M01 以抽象类和轻量值类型隐藏存储实现，同时把必须由调用�
 - Snapshot 给出稳定视图，但长期持有增加旧版本保留压力。
 - Env 把平台能力注入 Options，便于测试和平台移植，但接口契约必须长期维护。
 
-证据：[include/leveldb/env.h:4-10](../../../../include/leveldb/env.h#L4-L10)、[include/leveldb/slice.h](../../../../include/leveldb/slice.h)。
+证据：[include/leveldb/env.h:4-10](../../../source/leveldb/include/leveldb/env.h#L4-L10)、[include/leveldb/slice.h](../../../source/leveldb/include/leveldb/slice.h)。
 
 ## 相关文档
 

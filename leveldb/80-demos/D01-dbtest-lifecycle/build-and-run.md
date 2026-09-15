@@ -2,7 +2,7 @@
 
 ## 1. 构建目标来源
 
-`CMakeLists.txt` 把 `db/db_test.cc` 和恢复、日志、版本、表等测试源加入同一个 `leveldb_tests` 可执行文件；CTest 注册同名测试目标。[`CMakeLists.txt:313-365`](../../../../CMakeLists.txt#L313-L365)
+`CMakeLists.txt` 把 `db/db_test.cc` 和恢复、日志、版本、表等测试源加入同一个 `leveldb_tests` 可执行文件；CTest 注册同名测试目标。[`CMakeLists.txt:313-365`](../../../source/leveldb/CMakeLists.txt#L313-L365)
 
 因此 D01 的“运行对象”是既有测试二进制，不是新增源文件：
 
@@ -67,9 +67,9 @@ ctest --test-dir build --output-on-failure
 
 ## 5. 运行时目录与清理
 
-`DBTest` 使用 `testing::TempDir() + "db_test"`，构造时先 `DestroyDB`，析构时删除 DB、测试 Env 和 Bloom filter。不要把生产数据库路径传给这些测试，也不要在测试运行中手动删除目录。[`db/db_test.cc:260-281`](../../../../db/db_test.cc#L260-L281)
+`DBTest` 使用 `testing::TempDir() + "db_test"`，构造时先 `DestroyDB`，析构时删除 DB、测试 Env 和 Bloom filter。不要把生产数据库路径传给这些测试，也不要在测试运行中手动删除目录。[`db/db_test.cc:260-281`](../../../source/leveldb/db/db_test.cc#L260-L281)
 
-`SpecialEnv` 包装 `Env::Default()`，可模拟错误而不修改源码；每个测试应在结束前恢复原子开关，fixture 析构会删除 DB。[`db/db_test.cc:83-258`](../../../../db/db_test.cc#L83-L258)
+`SpecialEnv` 包装 `Env::Default()`，可模拟错误而不修改源码；每个测试应在结束前恢复原子开关，fixture 析构会删除 DB。[`db/db_test.cc:83-258`](../../../source/leveldb/db/db_test.cc#L83-L258)
 
 ## 6. 执行记录格式
 
@@ -91,5 +91,5 @@ not observed: 未检查的后台时序、断电语义或性能
 
 - [M07 构建总览](../../01-modules/M07-tests-build/README.md)
 - [测试配方](../../99-roadmap/testing-recipes.md)
-- [`DBTest` fixture](../../../../db/db_test.cc#L260-L365)
-- [`leveldb_tests` 注册](../../../../CMakeLists.txt#L313-L365)
+- [`DBTest` fixture](../../../source/leveldb/db/db_test.cc#L260-L365)
+- [`leveldb_tests` 注册](../../../source/leveldb/CMakeLists.txt#L313-L365)

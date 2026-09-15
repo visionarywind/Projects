@@ -10,9 +10,9 @@
 
 ## 结论摘要
 
-M06 通过虚接口把操作系统效果隔离出来，但不替上层承担所有权：`Env` 创建的文件对象通常以裸指针返回，调用者负责 `delete`；`RandomAccessFile` 允许并发读，`SequentialFile`/`WritableFile` 要求外部同步；`Schedule` 只承诺安排执行，不承诺线程或串行顺序。[`Env`](../../../../include/leveldb/env.h#L50-L217)
+M06 通过虚接口把操作系统效果隔离出来，但不替上层承担所有权：`Env` 创建的文件对象通常以裸指针返回，调用者负责 `delete`；`RandomAccessFile` 允许并发读，`SequentialFile`/`WritableFile` 要求外部同步；`Schedule` 只承诺安排执行，不承诺线程或串行顺序。[`Env`](../../../source/leveldb/include/leveldb/env.h#L50-L217)
 
-POSIX 实现中，资源限制会改变真实落地路径：常驻 fd 不足时随机读对象改成每次 `open`/`pread`/`close`；mmap 读取则返回指向映射区的借用 Slice，析构时 `munmap`。可写文件先将小 Append 放进 64 KiB buffer，`Sync` 对 MANIFEST 先同步目录、再刷新文件 buffer、最后同步文件 fd。[`PosixRandomAccessFile`](../../../../util/env_posix.cc#L171-L230)、[`PosixMmapReadableFile`](../../../../util/env_posix.cc#L238-L275)、[`PosixWritableFile`](../../../../util/env_posix.cc#L277-L418)
+POSIX 实现中，资源限制会改变真实落地路径：常驻 fd 不足时随机读对象改成每次 `open`/`pread`/`close`；mmap 读取则返回指向映射区的借用 Slice，析构时 `munmap`。可写文件先将小 Append 放进 64 KiB buffer，`Sync` 对 MANIFEST 先同步目录、再刷新文件 buffer、最后同步文件 fd。[`PosixRandomAccessFile`](../../../source/leveldb/util/env_posix.cc#L171-L230)、[`PosixMmapReadableFile`](../../../source/leveldb/util/env_posix.cc#L238-L275)、[`PosixWritableFile`](../../../source/leveldb/util/env_posix.cc#L277-L418)
 
 ## 实现组件卡片
 
@@ -32,15 +32,15 @@ POSIX 实现中，资源限制会改变真实落地路径：常驻 fd 不足时�
 对应测试：util/env_test.cc、helpers/memenv/memenv_test.cc
 ```
 
-`EnvWrapper` 的每个方法默认转发到 `target_`，这样测试或调用者只覆写一个操作即可注入行为。新增虚方法时必须同步更新具体 Env、Wrapper 和测试替身，否则会产生 ABI/行为不一致。[`EnvWrapper`](../../../../include/leveldb/env.h#L331-L402)
+`EnvWrapper` 的每个方法默认转发到 `target_`，这样测试或调用者只覆写一个操作即可注入行为。新增虚方法时必须同步更新具体 Env、Wrapper 和测试替身，否则会产生 ABI/行为不一致。[`EnvWrapper`](../../../source/leveldb/include/leveldb/env.h#L331-L402)
 
 ### `PosixRandomAccessFile`
 
-构造函数拿走 fd 的所有权，并通过 `Limiter::Acquire` 决定是否保留 fd；析构关闭常驻 fd 并释放 limiter 配额。`Read` 使用 `pread`，不改变共享文件偏移，符合多线程并发读契约；降级模式每次读独立打开和关闭 fd。[`PosixRandomAccessFile`](../../../../util/env_posix.cc#L171-L230)
+构造函数拿走 fd 的所有权，并通过 `Limiter::Acquire` 决定是否保留 fd；析构关闭常驻 fd 并释放 limiter 配额。`Read` 使用 `pread`，不改变共享文件偏移，符合多线程并发读契约；降级模式每次读独立打开和关闭 fd。[`PosixRandomAccessFile`](../../../source/leveldb/util/env_posix.cc#L171-L230)
 
 ### `PosixWritableFile`
 
-`Append` 维护用户态 buffer；buffer 满或数据很大时进入 `WriteUnbuffered`，对 EINTR 循环重试。`Close` 先刷 buffer 后 close，并将 fd 置为 -1；析构只对仍打开的 fd 做 best-effort Close。`Sync` 是显式 durable 边界，错误必须由调用者接收。[`PosixWritableFile::Append/Close/Sync`](../../../../util/env_posix.cc#L293-L351)
+`Append` 维护用户态 buffer；buffer 满或数据很大时进入 `WriteUnbuffered`，对 EINTR 循环重试。`Close` 先刷 buffer 后 close，并将 fd 置为 -1；析构只对仍打开的 fd 做 best-effort Close。`Sync` 是显式 durable 边界，错误必须由调用者接收。[`PosixWritableFile::Append/Close/Sync`](../../../source/leveldb/util/env_posix.cc#L293-L351)
 
 ### `FileState` / `InMemoryEnv`
 
@@ -55,7 +55,7 @@ POSIX 实现中，资源限制会改变真实落地路径：常驻 fd 不足时�
 释放：map 删除或 InMemoryEnv 析构时 Unref；最后引用释放 FileState
 ```
 
-`FileState::Read` 在锁下将 block 内容复制到调用者 scratch，并返回 `Slice(scratch, n)`；FileState 可在 map 删除后因打开文件仍存活，模拟“删除名称不立即销毁打开对象”的部分语义。[`FileState`](../../../../helpers/memenv/memenv.cc#L23-L150)、[`InMemoryEnv::RemoveFile`](../../../../helpers/memenv/memenv.cc#L311-L329)
+`FileState::Read` 在锁下将 block 内容复制到调用者 scratch，并返回 `Slice(scratch, n)`；FileState 可在 map 删除后因打开文件仍存活，模拟“删除名称不立即销毁打开对象”的部分语义。[`FileState`](../../../source/leveldb/helpers/memenv/memenv.cc#L23-L150)、[`InMemoryEnv::RemoveFile`](../../../source/leveldb/helpers/memenv/memenv.cc#L311-L329)
 
 ## 公开入口到副作用的三条链
 
@@ -71,7 +71,7 @@ TableCache::FindTable
                  -> Slice + Status
 ```
 
-M06 的最后一个有实际副作用的节点是 `open`/`pread` 或 mmap 地址计算；TableCache 随后才把结果交给 `Table::Open`。`RandomAccessFile::Read` 的 Slice 可能指向 scratch 或 mmap，调用者必须在对应 buffer/文件对象仍存活时使用。[`Env::NewRandomAccessFile/RandomAccessFile::Read`](../../../../include/leveldb/env.h#L76-L85)、[`PosixRandomAccessFile::Read`](../../../../util/env_posix.cc#L199-L223)、[`PosixMmapReadableFile::Read`](../../../../util/env_posix.cc#L259-L267)
+M06 的最后一个有实际副作用的节点是 `open`/`pread` 或 mmap 地址计算；TableCache 随后才把结果交给 `Table::Open`。`RandomAccessFile::Read` 的 Slice 可能指向 scratch 或 mmap，调用者必须在对应 buffer/文件对象仍存活时使用。[`Env::NewRandomAccessFile/RandomAccessFile::Read`](../../../source/leveldb/include/leveldb/env.h#L76-L85)、[`PosixRandomAccessFile::Read`](../../../source/leveldb/util/env_posix.cc#L199-L223)、[`PosixMmapReadableFile::Read`](../../../source/leveldb/util/env_posix.cc#L259-L267)
 
 ### MANIFEST 写入
 
@@ -88,7 +88,7 @@ VersionSet::LogAndApply
   -> VersionSet::AppendVersion
 ```
 
-`VersionSet::AppendVersion` 位于 M04；M06 只提供字节写入和同步语义，不决定版本是否可见。任何 Sync/Append 错误都以 Status 返回到 VersionSet，由上层决定不安装 Version、保存后台错误和清理输出。[`PosixWritableFile::Sync`](../../../../util/env_posix.cc#L334-L351)、[`VersionSet::LogAndApply`](../../../../db/version_set.cc#L792-L858)
+`VersionSet::AppendVersion` 位于 M04；M06 只提供字节写入和同步语义，不决定版本是否可见。任何 Sync/Append 错误都以 Status 返回到 VersionSet，由上层决定不安装 Version、保存后台错误和清理输出。[`PosixWritableFile::Sync`](../../../source/leveldb/util/env_posix.cc#L334-L351)、[`VersionSet::LogAndApply`](../../../source/leveldb/db/version_set.cc#L792-L858)
 
 ### 后台调度
 
@@ -100,7 +100,7 @@ DBImpl::MaybeScheduleCompaction
            -> DBImpl::BackgroundCall
 ```
 
-接口明确同一 Env 上的任务可能并发执行，所以 `DBImpl` 自己通过 mutex、scheduled 标志和条件变量维护状态；M06 不保证固定线程数、FIFO 或任务串行。[`Env::Schedule`](../../../../include/leveldb/env.h#L191-L201)、[`DBImpl::MaybeScheduleCompaction`](../../../../db/db_impl.cc#L668-L687)
+接口明确同一 Env 上的任务可能并发执行，所以 `DBImpl` 自己通过 mutex、scheduled 标志和条件变量维护状态；M06 不保证固定线程数、FIFO 或任务串行。[`Env::Schedule`](../../../source/leveldb/include/leveldb/env.h#L191-L201)、[`DBImpl::MaybeScheduleCompaction`](../../../source/leveldb/db/db_impl.cc#L668-L687)
 
 ## 配置/编译到实现选择
 
@@ -113,7 +113,7 @@ DBImpl::MaybeScheduleCompaction
 | `Options::env` | DBImpl 保存的 Env 指针 | Default、MemEnv 或 EnvWrapper |
 | `filter_policy`/`block_cache` | M05 Table 路径 | M06 资源接口被不同上层对象使用 |
 
-这些宏由 CMake/平台配置决定；本页不将某一台 Linux 主机的探测结果推广成所有构建的保证。[`Limiter`](../../../../util/env_posix.cc#L43-L129)、[`PosixWritableFile::SyncFd`](../../../../util/env_posix.cc#L391-L418)
+这些宏由 CMake/平台配置决定；本页不将某一台 Linux 主机的探测结果推广成所有构建的保证。[`Limiter`](../../../source/leveldb/util/env_posix.cc#L43-L129)、[`PosixWritableFile::SyncFd`](../../../source/leveldb/util/env_posix.cc#L391-L418)
 
 ## 关键不变量和复杂度
 
@@ -155,12 +155,12 @@ DBImpl::MaybeScheduleCompaction
 
 ## 源码证据摘要
 
-- [`Env` 与文件线程契约](../../../../include/leveldb/env.h#L50-L289)
-- [`EnvWrapper`](../../../../include/leveldb/env.h#L331-L402)
-- [`Limiter` 与 POSIX 文件实现](../../../../util/env_posix.cc#L43-L275)
-- [`PosixWritableFile`](../../../../util/env_posix.cc#L277-L418)
-- [`MemEnv/FileState`](../../../../helpers/memenv/memenv.cc#L23-L150)
-- [`InMemoryEnv`](../../../../helpers/memenv/memenv.cc#L221-L388)
+- [`Env` 与文件线程契约](../../../source/leveldb/include/leveldb/env.h#L50-L289)
+- [`EnvWrapper`](../../../source/leveldb/include/leveldb/env.h#L331-L402)
+- [`Limiter` 与 POSIX 文件实现](../../../source/leveldb/util/env_posix.cc#L43-L275)
+- [`PosixWritableFile`](../../../source/leveldb/util/env_posix.cc#L277-L418)
+- [`MemEnv/FileState`](../../../source/leveldb/helpers/memenv/memenv.cc#L23-L150)
+- [`InMemoryEnv`](../../../source/leveldb/helpers/memenv/memenv.cc#L221-L388)
 
 ## 未解决问题
 

@@ -13,10 +13,10 @@
 
 ## 设计约束
 
-1. WriteBatch header 固定为 8 字节 sequence + 4 字节 count；记录带 tag 和 length-prefixed bytes。[db/write_batch.cc:4-26](../../../../db/write_batch.cc#L4-L26)
-2. WAL 物理块固定 32768 字节，header 为 CRC(4)+length(2)+type(1)，大记录用 First/Middle/Last 分片。[db/log_format.h:13-29](../../../../db/log_format.h#L13-L29)
-3. InternalKey 的 `ValueType` 枚举值嵌入持久化结构，不能重排；序列号按降序比较。[db/dbformat.h:50-116](../../../../db/dbformat.h#L50-L116)
-4. MemTable 的 Arena 负责条目存储，SkipList 负责有序索引；引用计数由调用者管理。[db/memtable.h:19-82](../../../../db/memtable.h#L19-L82)
+1. WriteBatch header 固定为 8 字节 sequence + 4 字节 count；记录带 tag 和 length-prefixed bytes。[db/write_batch.cc:4-26](../../../source/leveldb/db/write_batch.cc#L4-L26)
+2. WAL 物理块固定 32768 字节，header 为 CRC(4)+length(2)+type(1)，大记录用 First/Middle/Last 分片。[db/log_format.h:13-29](../../../source/leveldb/db/log_format.h#L13-L29)
+3. InternalKey 的 `ValueType` 枚举值嵌入持久化结构，不能重排；序列号按降序比较。[db/dbformat.h:50-116](../../../source/leveldb/db/dbformat.h#L50-L116)
+4. MemTable 的 Arena 负责条目存储，SkipList 负责有序索引；引用计数由调用者管理。[db/memtable.h:19-82](../../../source/leveldb/db/memtable.h#L19-L82)
 
 ## 取舍
 

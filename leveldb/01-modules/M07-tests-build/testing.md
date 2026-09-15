@@ -22,7 +22,7 @@
 | 故障/持久化 | `db/fault_injection_test.cc`（当前 CMake 中注释，需单独评估） |
 | 性能 | `benchmarks/db_bench.cc` |
 
-CMake 当前将 fault injection 和若干 issues 测试以注释形式排除，同时把核心测试加入 `leveldb_tests`。[CMakeLists.txt:312-350](../../../../CMakeLists.txt#L312-L350)
+CMake 当前将 fault injection 和若干 issues 测试以注释形式排除，同时把核心测试加入 `leveldb_tests`。[CMakeLists.txt:312-350](../../../source/leveldb/CMakeLists.txt#L312-L350)
 
 ## 回归层级
 

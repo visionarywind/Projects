@@ -1,6 +1,6 @@
 # M03 Runtime：内存池源码级分析
 
-- 对应源码版本：Runtime `dae460b78`
+- 对应源码版本：Runtime `50be4c922`
 - 证据状态：关键用户态路径已确认；设备侧完成语义和未执行测试为“未验证”
 - 范围：KernelMemoryPool、SOMA stream-ordered memory pool、普通设备/Host 内存三条路径
 

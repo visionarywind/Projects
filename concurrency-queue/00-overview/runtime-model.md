@@ -43,7 +43,7 @@ stateDiagram-v2
 
 1. 先由单线程构造 queue 和 token；通过外部线程启动同步让工作线程看到构造结果。
 2. 工作线程调用 enqueue/dequeue；库只负责内部原子同步，不负责业务 shutdown 协议。
-3. 阻塞调用方必须有明确的终止条件，避免永远 wait；README 的 blocking caveat 说明销毁等待队列是未定义行为。[../../../README.md:166-180](../../../README.md#L166-L180)
+3. 阻塞调用方必须有明确的终止条件，避免永远 wait；README 的 blocking caveat 说明销毁等待队列是未定义行为。[../../../README.md:166-180](../../source/concurrency-queue/README.md#L166-L180)
 4. 所有 producer/consumer join 后再销毁 queue；析构遍历剩余元素并回收块。
 
 ## 相关文档
@@ -54,7 +54,7 @@ stateDiagram-v2
 
 ## 源码证据摘要
 
-[../../../concurrentqueue.h:875-919](../../../concurrentqueue.h#L875-L919) 明确析构非线程安全并释放 producer/hash/free list/initial pool；[../../../concurrentqueue.h:715-721](../../../concurrentqueue.h#L715-L721) 说明 token 析构对 producer 的 inactive 标记。
+[../../../concurrentqueue.h:875-919](../../source/concurrency-queue/concurrentqueue.h#L875-L919) 明确析构非线程安全并释放 producer/hash/free list/initial pool；[../../../concurrentqueue.h:715-721](../../source/concurrency-queue/concurrentqueue.h#L715-L721) 说明 token 析构对 producer 的 inactive 标记。
 
 ## 未解决问题
 

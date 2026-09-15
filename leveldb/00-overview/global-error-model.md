@@ -26,14 +26,14 @@ flowchart TD
 
 ## 关键规则
 
-- 公共 API 的 `Put/Delete/Write/Get` 返回非 OK 表示失败；NotFound 是 Get 的正常语义之一（[include/leveldb/db.h:62-87](../../../include/leveldb/db.h#L62-L87)）。
-- `MaybeIgnoreError` 在非 paranoid 模式下记录并清除可忽略错误，在 paranoid 模式保留错误（[db/db_impl.cc:215-221](../../../db/db_impl.cc#L215-L221)）。
-- 日志 Reader 对文件尾不完整记录可视为 writer 崩溃并返回 EOF，而 CRC/记录类型问题报告 corruption（[db/log_reader.cc:143-170](../../../db/log_reader.cc#L143-L170)）。
-- 后台错误时 `RemoveObsoleteFiles` 不安全执行垃圾回收，因为可能无法判断新版本是否已提交（[db/db_impl.cc:224-231](../../../db/db_impl.cc#L224-L231)）。
+- 公共 API 的 `Put/Delete/Write/Get` 返回非 OK 表示失败；NotFound 是 Get 的正常语义之一（[include/leveldb/db.h:62-87](../../source/leveldb/include/leveldb/db.h#L62-L87)）。
+- `MaybeIgnoreError` 在非 paranoid 模式下记录并清除可忽略错误，在 paranoid 模式保留错误（[db/db_impl.cc:215-221](../../source/leveldb/db/db_impl.cc#L215-L221)）。
+- 日志 Reader 对文件尾不完整记录可视为 writer 崩溃并返回 EOF，而 CRC/记录类型问题报告 corruption（[db/log_reader.cc:143-170](../../source/leveldb/db/log_reader.cc#L143-L170)）。
+- 后台错误时 `RemoveObsoleteFiles` 不安全执行垃圾回收，因为可能无法判断新版本是否已提交（[db/db_impl.cc:224-231](../../source/leveldb/db/db_impl.cc#L224-L231)）。
 
 ## 调试提示
 
-先保存 `Status::ToString()`、info log 和数据库目录文件清单；区分 NotFound、IO error、Corruption、InvalidArgument 和后台错误。不要用 DestroyDB/RepairDB 替代备份，RepairDB 明确可能丢数据（[include/leveldb/db.h:149-162](../../../include/leveldb/db.h#L149-L162)）。
+先保存 `Status::ToString()`、info log 和数据库目录文件清单；区分 NotFound、IO error、Corruption、InvalidArgument 和后台错误。不要用 DestroyDB/RepairDB 替代备份，RepairDB 明确可能丢数据（[include/leveldb/db.h:149-162](../../source/leveldb/include/leveldb/db.h#L149-L162)）。
 
 ## 相关文档
 

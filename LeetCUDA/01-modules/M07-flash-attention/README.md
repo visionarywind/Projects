@@ -2,7 +2,7 @@
 
 - 文档目的：说明 FlashAttention MMA/CuTe 变体的输入布局、构建和性能路径。
 - 适用范围：`kernels/flash-attn/`。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：Python/构建入口和代表 tiling-QKV 的 QK→online softmax→PV→store 路径已完成深度分析；其他变体和真实 GPU 运行仍部分覆盖。
 - 最后更新：2026-09-10
 - 前置阅读：[M03](../M03-reduction-normalization/README.md)、[M06](../M06-hgemm-tensorcore/README.md)

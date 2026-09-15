@@ -68,13 +68,13 @@ ServerArgs
 5. 再按 `SHARDED_STATE`、`PRESHARDED`、`BITSANDBYTES`、`GGUF`、`EXPERT_PACK`、`LAYERED`、`FLASH_RL`、`REMOTE`、`REMOTE_INSTANCE`、`PRIVATE`、`RUNAI_STREAMER` 和 `IPC_CACHE` 分派；
 6. 其余情况回退到 `DefaultModelLoader`。
 
-因此同一个量化名称可能因“已量化/在线量化”“是否请求 ModelOpt workflow”以及 load format 而进入不同 loader；排查时应同时打印 `LoadConfig.load_format`、`ModelConfig.quantization` 和 ModelOpt workflow 字段。[`python/sglang/srt/model_loader/loader.py:4282-4416`](../../../python/sglang/srt/model_loader/loader.py)
+因此同一个量化名称可能因“已量化/在线量化”“是否请求 ModelOpt workflow”以及 load format 而进入不同 loader；排查时应同时打印 `LoadConfig.load_format`、`ModelConfig.quantization` 和 ModelOpt workflow 字段。[`python/sglang/srt/model_loader/loader.py:4282-4416`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
 ## 3.2 `ModelConfig.from_server_args` 的配置投影
 
-`from_server_args` 先通过 `resolving_view(server_args)` 读取已经解析的配置，而不是重新读取 raw argparse。普通模型与 draft 模型分别选择 quantization 和 decrypted override 文件；随后将 model path/revision、context length、dtype、multimodal、embedding、encoder-only、language-only、draft、speculative algorithm 等字段投影到 `ModelConfig`。[`python/sglang/srt/configs/model_config.py:692-739`](../../../python/sglang/srt/configs/model_config.py)
+`from_server_args` 先通过 `resolving_view(server_args)` 读取已经解析的配置，而不是重新读取 raw argparse。普通模型与 draft 模型分别选择 quantization 和 decrypted override 文件；随后将 model path/revision、context length、dtype、multimodal、embedding、encoder-only、language-only、draft、speculative algorithm 等字段投影到 `ModelConfig`。[`python/sglang/srt/configs/model_config.py:692-739`](../../../source/sglang/python/sglang/srt/configs/model_config.py)
 
-draft 配置随后可能按架构和 speculative algorithm 改写 architecture，例如 DeepSeek、Glm、Dots3 等 NextN/DSpark 变体；所以“同一个 model path”并不保证 target 和 draft 实例化为同一个 model class。[`python/sglang/srt/configs/model_config.py:741-809`](../../../python/sglang/srt/configs/model_config.py)
+draft 配置随后可能按架构和 speculative algorithm 改写 architecture，例如 DeepSeek、Glm、Dots3 等 NextN/DSpark 变体；所以“同一个 model path”并不保证 target 和 draft 实例化为同一个 model class。[`python/sglang/srt/configs/model_config.py:741-809`](../../../source/sglang/python/sglang/srt/configs/model_config.py)
 
 排查配置不一致时应在 `from_server_args`、`ModelConfig.__init__` 和 `_config_draft_model` 分别记录：resolved view、HF architecture、quantization、`is_draft_model`、override 文件和最终 architecture。
 
@@ -82,7 +82,7 @@ draft 配置随后可能按架构和 speculative algorithm 改写 architecture�
 
 `auto_loader.py:62-226` 把通用路由拆成三个步骤：`filter_pp_weights` 丢弃不属于当前 PP layer range 的 checkpoint 项；`WeightsMapper`/remap registry 规范架构特定名称；`StackedParamsDispatch` 把 q/k/v 或 gate/up 映射到 fused 参数和 shard id。最后由 `AutoWeightsLoader` walker 定位 module/parameter，并调用参数自己的 `weight_loader`。[`python/sglang/srt/model_loader/auto_loader.py:62-109`][`python/sglang/srt/model_loader/auto_loader.py:156-226`]
 
-`AutoWeightsLoader` 位于 `models/utils.py:125-281`。它先按权重名的第一个组件分组，再递归进入 child module；若子模块提供自己的 `load_weights` 就把该组委托给子模块，否则定位 parameter/buffer，调用其 `weight_loader`，并对未知或嵌套名称按 skip/ignore 规则报错。[`python/sglang/srt/models/utils.py:125-281`](../../../python/sglang/srt/models/utils.py)
+`AutoWeightsLoader` 位于 `models/utils.py:125-281`。它先按权重名的第一个组件分组，再递归进入 child module；若子模块提供自己的 `load_weights` 就把该组委托给子模块，否则定位 parameter/buffer，调用其 `weight_loader`，并对未知或嵌套名称按 skip/ignore 规则报错。[`python/sglang/srt/models/utils.py:125-281`](../../../source/sglang/python/sglang/srt/models/utils.py)
 
 ```text
 checkpoint name
@@ -137,49 +137,49 @@ checkpoint iterator
 
 ### ShardedState：每个 TP rank 只读取自己的 state
 
-`ShardedStateLoader.load_model` 先在目标 device/meta 上实例化模型，并对每个带 `quant_method` 的 module 执行 `process_weights_after_loading`；随后根据当前 `get_parallel().tp_rank` 拼出 `model-rank-{rank}-part-*` 文件模式，只打开本 rank 的 safetensors 分片。[`python/sglang/srt/model_loader/loader.py:1738-1773`](../../../python/sglang/srt/model_loader/loader.py)
+`ShardedStateLoader.load_model` 先在目标 device/meta 上实例化模型，并对每个带 `quant_method` 的 module 执行 `process_weights_after_loading`；随后根据当前 `get_parallel().tp_rank` 拼出 `model-rank-{rank}-part-*` 文件模式，只打开本 rank 的 safetensors 分片。[`python/sglang/srt/model_loader/loader.py:1738-1773`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
-加载时将 checkpoint tensor copy 到模型 `state_dict` 的对应参数；若 LoRA padding 使模型参数更宽，则对目标参数逐维 `narrow` 后再 copy，并在所有文件处理结束后以剩余 key 检查缺失权重。`_filter_subtensors` 会按 storage pointer 去重共享 storage/subtensor；非 contiguous tensor 不使用 flat-view 推断范围，而是保留到写出阶段再 contiguous 化。[`python/sglang/srt/model_loader/loader.py:1677-1720,1774-1799`](../../../python/sglang/srt/model_loader/loader.py)
+加载时将 checkpoint tensor copy 到模型 `state_dict` 的对应参数；若 LoRA padding 使模型参数更宽，则对目标参数逐维 `narrow` 后再 copy，并在所有文件处理结束后以剩余 key 检查缺失权重。`_filter_subtensors` 会按 storage pointer 去重共享 storage/subtensor；非 contiguous tensor 不使用 flat-view 推断范围，而是保留到写出阶段再 contiguous 化。[`python/sglang/srt/model_loader/loader.py:1677-1720,1774-1799`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
 因此该格式的关键不变量是“文件命名的 rank 必须与当前 TP rank 对齐，且每个 rank 的 state 覆盖完整”。未找到 rank 分片时不会悄悄回退到普通未分片 checkpoint，而是明确报错；当前实现也明确标注未支持 un-sharded checkpoint。
 
 ### Presharded：带配置指纹的 post-process cache
 
-`PreshardedModelLoader` 并非直接假设目录可用。它根据 TP/DP/EP/PP、MoE dense/DP、LM head、dtype、quantization、EPLB 和初始 expert location 收集 `shard_config`，再将排序后的配置哈希成子目录名；target 和 draft 还可使用不同的 root override。[`python/sglang/srt/model_loader/loader.py:1838-1918,1920-1947`](../../../python/sglang/srt/model_loader/loader.py)
+`PreshardedModelLoader` 并非直接假设目录可用。它根据 TP/DP/EP/PP、MoE dense/DP、LM head、dtype、quantization、EPLB 和初始 expert location 收集 `shard_config`，再将排序后的配置哈希成子目录名；target 和 draft 还可使用不同的 root override。[`python/sglang/srt/model_loader/loader.py:1838-1918,1920-1947`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
-`load_model` 只有同时存在 `READY` 文件且 `checksum.json` 中保存的 shard config 完全匹配时才走 `_load_from_presharded`；否则进入首次普通加载、post-load 处理和分 rank dump。加载计划包含版本号和 `rank_to_reads`，当前 rank 按计划读取文件、恢复 tensor，再可选验证 hash；版本不匹配或参数缺失会失败，而不是把旧 cache 当作兼容格式继续用。[`python/sglang/srt/model_loader/loader.py:1872-1898,2589-2649`](../../../python/sglang/srt/model_loader/loader.py)
+`load_model` 只有同时存在 `READY` 文件且 `checksum.json` 中保存的 shard config 完全匹配时才走 `_load_from_presharded`；否则进入首次普通加载、post-load 处理和分 rank dump。加载计划包含版本号和 `rank_to_reads`，当前 rank 按计划读取文件、恢复 tensor，再可选验证 hash；版本不匹配或参数缺失会失败，而不是把旧 cache 当作兼容格式继续用。[`python/sglang/srt/model_loader/loader.py:1872-1898,2589-2649`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
 这条路径要求 dump 目录在各 rank/节点之间共享。`READY` 是完成标记，配置指纹是兼容性标记，二者都不能被简化成“目录存在就命中”；并行拓扑、量化或 expert placement 改变都可能使同一模型路径产生新的 presharded 子目录。
 
 ### BitsAndBytes：pre-quant 与在线 quant 的 TP 语义不同
 
-`BitsAndBytesModelLoader` 首先根据 QLoRA adapter 的 `adapter_config.json` 读取 target modules；没有 adapter 配置时使用默认的 attention/MLP module 列表。权重可来自 safetensors、bin 或 pt；pre-quantized 路径先收集 4-bit quant state 或 8-bit `.scb`，再把 quant state 绑定到目标参数。[`python/sglang/srt/model_loader/loader.py:2695-2739,2774-2793,2871-2937`](../../../python/sglang/srt/model_loader/loader.py)
+`BitsAndBytesModelLoader` 首先根据 QLoRA adapter 的 `adapter_config.json` 读取 target modules；没有 adapter 配置时使用默认的 attention/MLP module 列表。权重可来自 safetensors、bin 或 pt；pre-quantized 路径先收集 4-bit quant state 或 8-bit `.scb`，再把 quant state 绑定到目标参数。[`python/sglang/srt/model_loader/loader.py:2695-2739,2774-2793,2871-2937`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
-未量化权重则在 iterator 中把目标 `.weight` 改为 `.qweight`，依据 column-parallel 或 row-parallel 方向按 TP rank 切片，再在 GPU 上执行 NF4 `quantize_4bit`。相反，源码明确拒绝 pre-quantized BitsAndBytes 与 TP>1 的组合，因为 pre-quant 的 quant state 不能安全用于拆分后的 weight tensor；该场景应改用 PP 或其他受支持布局。[`python/sglang/srt/model_loader/loader.py:2939-2990,3022-3048`](../../../python/sglang/srt/model_loader/loader.py)
+未量化权重则在 iterator 中把目标 `.weight` 改为 `.qweight`，依据 column-parallel 或 row-parallel 方向按 TP rank 切片，再在 GPU 上执行 NF4 `quantize_4bit`。相反，源码明确拒绝 pre-quantized BitsAndBytes 与 TP>1 的组合，因为 pre-quant 的 quant state 不能安全用于拆分后的 weight tensor；该场景应改用 PP 或其他受支持布局。[`python/sglang/srt/model_loader/loader.py:2939-2990,3022-3048`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
-完成 `model.load_weights` 后，loader 将不同模型的 stacked parameter 名称归一化，写入 `bnb_quant_state`、`bnb_shard_offsets`，8-bit 时另设 `matmul_state`。所以 BitsAndBytes 的正确性不仅取决于 qweight 数值，还取决于 stacked mapping、pack factor 和 offsets 是否与 kernel 预期一致。[`python/sglang/srt/model_loader/loader.py:3050-3121`](../../../python/sglang/srt/model_loader/loader.py)
+完成 `model.load_weights` 后，loader 将不同模型的 stacked parameter 名称归一化，写入 `bnb_quant_state`、`bnb_shard_offsets`，8-bit 时另设 `matmul_state`。所以 BitsAndBytes 的正确性不仅取决于 qweight 数值，还取决于 stacked mapping、pack factor 和 offsets 是否与 kernel 预期一致。[`python/sglang/srt/model_loader/loader.py:3050-3121`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
 ### GGUF：外部命名映射后进入模型自己的 weight loader
 
-`GGUFModelLoader` 要求 `model_path` 是单个文件，并在需要时懒加载 `gguf` 包；它优先使用 SGLang 注册的 model-specific name-map builder，否则依据 GGUF architecture 和 hidden layers 生成 `blk.N.BB` 到 HF/SGLang parameter 名称的映射。为建立映射，源码会在 meta device 上实例化一个 dummy model 并遍历其 state dict。[`python/sglang/srt/model_loader/loader.py:3153-3218`](../../../python/sglang/srt/model_loader/loader.py)
+`GGUFModelLoader` 要求 `model_path` 是单个文件，并在需要时懒加载 `gguf` 包；它优先使用 SGLang 注册的 model-specific name-map builder，否则依据 GGUF architecture 和 hidden layers 生成 `blk.N.BB` 到 HF/SGLang parameter 名称的映射。为建立映射，源码会在 meta device 上实例化一个 dummy model 并遍历其 state dict。[`python/sglang/srt/model_loader/loader.py:3153-3218`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
-正式加载前会检查映射后的额外 tensor 是否含 `lm_head.weight`，据此修正 `tie_word_embeddings`；随后通过 `gguf_quant_weights_iterator` 调用模型 `load_weights`，最后在 target device 上执行各量化 module 的 post-load 处理。[`python/sglang/srt/model_loader/loader.py:3220-3257`](../../../python/sglang/srt/model_loader/loader.py)
+正式加载前会检查映射后的额外 tensor 是否含 `lm_head.weight`，据此修正 `tie_word_embeddings`；随后通过 `gguf_quant_weights_iterator` 调用模型 `load_weights`，最后在 target device 上执行各量化 module 的 post-load 处理。[`python/sglang/srt/model_loader/loader.py:3220-3257`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
 该路径的失败点包括 gguf 依赖缺失、model type 无法映射、路径不是文件以及模型参数命名不兼容；它不接受 `model_loader_extra_config`，也不能被理解为普通 safetensors loader 的别名。
 
 ### Remote 与 RemoteInstance：传输层替代本地 checkpoint
 
-`RemoteModelLoader` 根据 connector 类型在 KV 和 FS 两条路径之间选择：KV connector 按 TP rank 取远端 weight iterator，并复用 state-dict copy、LoRA padding narrow 和 `_post_load_weights`；FS connector 则把远端 iterator 交给模型 `load_weights`，并在 quant post-process 时用 `device_loading_context` 临时把参数放到 target device。[`python/sglang/srt/model_loader/loader.py:3495-3510,3542-3591`](../../../python/sglang/srt/model_loader/loader.py)
+`RemoteModelLoader` 根据 connector 类型在 KV 和 FS 两条路径之间选择：KV connector 按 TP rank 取远端 weight iterator，并复用 state-dict copy、LoRA padding narrow 和 `_post_load_weights`；FS connector 则把远端 iterator 交给模型 `load_weights`，并在 quant post-process 时用 `device_loading_context` 临时把参数放到 target device。[`python/sglang/srt/model_loader/loader.py:3495-3510,3542-3591`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
-`RemoteInstanceModelLoader` 先在本地 target device/meta 上创建空模型，再按 backend 分派：NCCL 建立 model-update group，由源实例广播每个 parameter，完成后销毁该 group；Transfer Engine 先注册模型 memory regions，再按 seed instance 的 session/metadata 传输；ModelExpress 则委托外部 `MxModelLoader`，缺少 `modelexpress` 依赖会立即报错。[`python/sglang/srt/model_loader/loader.py:3292-3378,3380-3427`](../../../python/sglang/srt/model_loader/loader.py)
+`RemoteInstanceModelLoader` 先在本地 target device/meta 上创建空模型，再按 backend 分派：NCCL 建立 model-update group，由源实例广播每个 parameter，完成后销毁该 group；Transfer Engine 先注册模型 memory regions，再按 seed instance 的 session/metadata 传输；ModelExpress 则委托外部 `MxModelLoader`，缺少 `modelexpress` 依赖会立即报错。[`python/sglang/srt/model_loader/loader.py:3292-3378,3380-3427`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
 这些 loader 的 `download_model` 不是普通本地下载语义：RemoteInstance 明确抛出 `NotImplementedError`，Remote 由 connector 自己提供数据；因此启动排障时应分别记录 connector type、source instance、TP rank、传输 session 和 post-load 是否执行，而不能只记录 model path。
 
 ### ModelOpt 与 Run:ai Streamer：workflow/streaming 的额外生命周期
 
-`ModelOptModelLoader.load_model` 对已经量化的模型直接复用父类加载；未量化时进入 standard workflow，先加载 base model，再解析 `modelopt_quant` 或 unified quantization 名称，取得 `mtq` 配置，最后由 `_setup_modelopt_quantization` 执行 restore、calibration、checkpoint save 和可选 HF export。当前 calibration 使用 ModelOpt dataset utility 创建 `cnn_dailymail` dataloader（batch size 36、512 samples）；ModelOpt 不可用、配置无效或 workflow 出错均是显式依赖/配置边界。[`python/sglang/srt/model_loader/loader.py:3772-3877,3942-4038`](../../../python/sglang/srt/model_loader/loader.py)
+`ModelOptModelLoader.load_model` 对已经量化的模型直接复用父类加载；未量化时进入 standard workflow，先加载 base model，再解析 `modelopt_quant` 或 unified quantization 名称，取得 `mtq` 配置，最后由 `_setup_modelopt_quantization` 执行 restore、calibration、checkpoint save 和可选 HF export。当前 calibration 使用 ModelOpt dataset utility 创建 `cnn_dailymail` dataloader（batch size 36、512 samples）；ModelOpt 不可用、配置无效或 workflow 出错均是显式依赖/配置边界。[`python/sglang/srt/model_loader/loader.py:3772-3877,3942-4038`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
-`RunaiModelStreamerLoader` 将本地目录、Run:ai object-storage URI 或 HF 下载目录解析成 safetensors 文件集合，过滤 index 中未使用的重复 consolidated/sharded 文件；iterator 支持 distributed streaming、对象存储并发/内存配置，并在 draft worker 中只保留指定 MTP layer、重写为 layer 0。正式加载只接受 CUDA/CPU，通过 `DefaultModelLoader.load_weights_and_postprocess` 消费 primary 和 model 声明的 secondary sources；当前源码明确拒绝 ModelOpt quantization。[`python/sglang/srt/model_loader/loader.py:4041-4054,4088-4110,4112-4219,4221-4279`](../../../python/sglang/srt/model_loader/loader.py)
+`RunaiModelStreamerLoader` 将本地目录、Run:ai object-storage URI 或 HF 下载目录解析成 safetensors 文件集合，过滤 index 中未使用的重复 consolidated/sharded 文件；iterator 支持 distributed streaming、对象存储并发/内存配置，并在 draft worker 中只保留指定 MTP layer、重写为 layer 0。正式加载只接受 CUDA/CPU，通过 `DefaultModelLoader.load_weights_and_postprocess` 消费 primary 和 model 声明的 secondary sources；当前源码明确拒绝 ModelOpt quantization。[`python/sglang/srt/model_loader/loader.py:4041-4054,4088-4110,4112-4219,4221-4279`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
 ## 7. quantization 与 post-load
 

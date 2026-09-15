@@ -1,6 +1,6 @@
 # M06 推理与工具
 
-- 对应源码版本：`8190837c2b6ce176a431bc2a6ffd3439507648a7`
+- 对应源码版本：`3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`
 - 证据状态：静态源码分析；未启动推理服务。
 
 ## 组成
@@ -32,4 +32,4 @@ server/CLI
 
 ## 未验证
 
-KV cache 命中率、CUDA graph、sampling backend、跨 rank 服务行为、KV handoff 和网络部署都需硬件/依赖实测。
+KV cache 命中率、跨 rank 服务行为、KV handoff 和网络部署都需硬件/依赖实测。CUDA Graph 的 graph pool、static input、capture/replay 和 reset 语义见 [CUDA Graph 与显存池生命周期](../../90-cross-module/cuda-graph-resource-lifecycle.md)，同样尚未 GPU 实测。

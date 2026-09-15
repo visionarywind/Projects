@@ -4,7 +4,7 @@
 
 | ID | 模块 | 主要目录/目标 | 输入/输出 | 关键依赖 | 证据状态 |
 |---|---|---|---|---|---|
-| M01 | ggml 张量与后端 | `ggml/`、`ggml/src` | tensor/graph -> backend buffer/device 结果 | C11/C++17、平台 SDK | 已确认 |
+| M01 | ggml 张量与后端 | `ggml/`、`ggml/src` | tensor/graph -> backend buffer/device 结果；allocator/scheduler reserve | C11/C++17、平台 SDK | 已确认（allocator/graph 资源专题补证） |
 | M02 | llama Runtime 与模型 | `include/llama.h`、`src/`、`src/models/` | GGUF -> model/context/logits/state | M01 | 已确认 |
 | M03 | common 应用基础设施 | `common/` | 参数/模板/grammar/cache -> typed params/text | M02、vendor | 已确认 |
 | M04 | llama-server | `tools/server/` | HTTP JSON/SSE -> task/result | M02、M03、M06 | 已确认 |
@@ -16,7 +16,7 @@
 
 ## 修改影响速查
 
-- 改 tensor op/backend：M01 -> M02 graph 使用者 -> `test-backend-ops`/质量测试（M08）。
+- 改 tensor op/backend/allocator/scheduler：M01 -> M02 graph 使用者 -> `test-backend-ops`/质量测试（M08）；同时核对 `ggml_tallocr`/`ggml_dyn_tallocr` 和 `sched_reserve`。
 - 改模型架构：M02 -> M07 converter、M08 dummy/model tests，可能影响 M04/M05。
 - 改 chat template/schema：M03 -> M04 HTTP 行为和 M09 UI；不要放入 M02。
 - 改 server task/slot：M04 -> HTTP tests、streaming、UI；必须先读 server development 文档。

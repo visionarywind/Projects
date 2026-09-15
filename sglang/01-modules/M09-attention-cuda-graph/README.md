@@ -2,9 +2,9 @@
 
 - 文档目的：解释 model runner 如何选择 attention backend、准备 forward metadata，并在 eager、prefill graph 和 decode graph 之间选择执行路径。
 - 适用范围：`AttentionBackend` 合约、backend registry、`build_attention_backends`、`ModelRunner._forward_raw`、decode/prefill graph eligibility。
-- 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
+- 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
-- 最后更新：2026-09-10
+- 最后更新：2026-09-15
 - 前置阅读：[M05 模型执行](../M05-model-execution/README.md)、[M08 KV Cache 与 Radix Cache](../M08-kv-cache/README.md)
 - 后续阅读：[M07 分布式并行](../M07-分布式并行.md)、[性能关键路径](../../90-cross-module/performance-critical-paths.md)
 
@@ -43,11 +43,11 @@ backend registry 使用装饰器把名字映射到创建函数；例如 `flashin
 
 ### 3.1 代表 backend 的能力边界
 
-registry 当前同时覆盖普通 full-attention、MLA、稀疏 attention、hybrid/linear attention 和 CPU/框架 fallback；这里不应把所有实现压缩成同一套 KV layout。`flashinfer` 在非 MLA 时实例化 `FlashInferAttnBackend`，并根据 quantized KV access、sliding-window 或 encoder-decoder 可能维护多个 wrapper；MLA 则转到独立 `FlashInferMLAAttnBackend`。`trtllm_mla`、`tokenspeed_mla`、`cutedsl_mla` 在创建时强制要求 MLA，且 TRT-LLM MLA 在 DCP+speculative 的特定组合下直接拒绝，因为该实现不能提供跨 rank merge 所需的 metadata。[`python/sglang/srt/layers/attention/attention_registry.py:51-113`](../../../python/sglang/srt/layers/attention/attention_registry.py)[`python/sglang/srt/layers/attention/flashinfer_backend.py:291-391`](../../../python/sglang/srt/layers/attention/flashinfer_backend.py)
+registry 当前同时覆盖普通 full-attention、MLA、稀疏 attention、hybrid/linear attention 和 CPU/框架 fallback；这里不应把所有实现压缩成同一套 KV layout。`flashinfer` 在非 MLA 时实例化 `FlashInferAttnBackend`，并根据 quantized KV access、sliding-window 或 encoder-decoder 可能维护多个 wrapper；MLA 则转到独立 `FlashInferMLAAttnBackend`。`trtllm_mla`、`tokenspeed_mla`、`cutedsl_mla` 在创建时强制要求 MLA，且 TRT-LLM MLA 在 DCP+speculative 的特定组合下直接拒绝，因为该实现不能提供跨 rank merge 所需的 metadata。[`python/sglang/srt/layers/attention/attention_registry.py:51-113`](../../../source/sglang/python/sglang/srt/layers/attention/attention_registry.py)[`python/sglang/srt/layers/attention/flashinfer_backend.py:291-391`](../../../source/sglang/python/sglang/srt/layers/attention/flashinfer_backend.py)
 
-`HybridAttnBackend` 是一个协议适配器而非 kernel：EXTEND 通常交给 prefill backend，decode/idle 交给 decode backend，TARGET_VERIFY 根据 speculative attention mode 选择其中之一，并把 `needs_cpu_seq_lens`、ragged verify 和 CUDA graph state 的能力向外汇总。[`python/sglang/srt/layers/attention/hybrid_attn_backend.py:24-127`](../../../python/sglang/srt/layers/attention/hybrid_attn_backend.py)
+`HybridAttnBackend` 是一个协议适配器而非 kernel：EXTEND 通常交给 prefill backend，decode/idle 交给 decode backend，TARGET_VERIFY 根据 speculative attention mode 选择其中之一，并把 `needs_cpu_seq_lens`、ragged verify 和 CUDA graph state 的能力向外汇总。[`python/sglang/srt/layers/attention/hybrid_attn_backend.py:24-127`](../../../source/sglang/python/sglang/srt/layers/attention/hybrid_attn_backend.py)
 
-`TorchNativeAttnBackend` 是明确的正确性 fallback：它从 runner 保存 request/KV pool 引用，初始化时在需要 sliding-window 时把 full pool 的 output location 翻译为 SWA location，再使用 PyTorch SDPA；它的逐请求 Python 循环与 fused backend 的性能语义不同，但说明 metadata 契约仍必须提供 request row、sequence length 和 cache location。[`python/sglang/srt/layers/attention/torch_native_backend.py:19-79`](../../../python/sglang/srt/layers/attention/torch_native_backend.py)
+`TorchNativeAttnBackend` 是明确的正确性 fallback：它从 runner 保存 request/KV pool 引用，初始化时在需要 sliding-window 时把 full pool 的 output location 翻译为 SWA location，再使用 PyTorch SDPA；它的逐请求 Python 循环与 fused backend 的性能语义不同，但说明 metadata 契约仍必须提供 request row、sequence length 和 cache location。[`python/sglang/srt/layers/attention/torch_native_backend.py:19-79`](../../../source/sglang/python/sglang/srt/layers/attention/torch_native_backend.py)
 
 DSA、DSv4、QSA、NSA、Mamba/linear 等专用 backend 还会额外维护 indexer metadata、压缩/稀疏 page table 或 recurrent state；它们不是普通 FlashAttention 的换名实现。分析某一模型时必须同时记录 backend 名称、ForwardMode、KV pool 类型、page size、DCP/TP 和是否 speculative，不能仅凭 `--attention-backend` 推断 kernel layout。
 
@@ -151,15 +151,15 @@ Prefill graph 有自己独立的 bucket 和生命周期。`can_run_graph` 除了
 
 ## 11. 源码证据摘要
 
-- [`python/sglang/srt/layers/attention/base_attn_backend.py:22-159`](../../../python/sglang/srt/layers/attention/base_attn_backend.py)
-- [`python/sglang/srt/layers/attention/attention_registry.py:40-180`](../../../python/sglang/srt/layers/attention/attention_registry.py)
-- [`python/sglang/srt/layers/attention/flashinfer_backend.py:291-391`](../../../python/sglang/srt/layers/attention/flashinfer_backend.py)
-- [`python/sglang/srt/layers/attention/hybrid_attn_backend.py:24-147`](../../../python/sglang/srt/layers/attention/hybrid_attn_backend.py)
-- [`python/sglang/srt/layers/attention/torch_native_backend.py:19-79`](../../../python/sglang/srt/layers/attention/torch_native_backend.py)
-- [`python/sglang/srt/model_executor/model_runner_components/attention_backend_setup.py:69-178`](../../../python/sglang/srt/model_executor/model_runner_components/attention_backend_setup.py)
-- [`python/sglang/srt/model_executor/model_runner.py:1763-1854`](../../../python/sglang/srt/model_executor/model_runner.py)
-- [`python/sglang/srt/model_executor/runner/decode_cuda_graph_runner.py:664-718`](../../../python/sglang/srt/model_executor/runner/decode_cuda_graph_runner.py)
-- [`python/sglang/srt/model_executor/runner/prefill_cuda_graph_runner.py:1178-1669`](../../../python/sglang/srt/model_executor/runner/prefill_cuda_graph_runner.py)
+- [`python/sglang/srt/layers/attention/base_attn_backend.py:22-159`](../../../source/sglang/python/sglang/srt/layers/attention/base_attn_backend.py)
+- [`python/sglang/srt/layers/attention/attention_registry.py:40-180`](../../../source/sglang/python/sglang/srt/layers/attention/attention_registry.py)
+- [`python/sglang/srt/layers/attention/flashinfer_backend.py:291-391`](../../../source/sglang/python/sglang/srt/layers/attention/flashinfer_backend.py)
+- [`python/sglang/srt/layers/attention/hybrid_attn_backend.py:24-147`](../../../source/sglang/python/sglang/srt/layers/attention/hybrid_attn_backend.py)
+- [`python/sglang/srt/layers/attention/torch_native_backend.py:19-79`](../../../source/sglang/python/sglang/srt/layers/attention/torch_native_backend.py)
+- [`python/sglang/srt/model_executor/model_runner.py`](../../../source/sglang/python/sglang/srt/model_executor/model_runner.py)（当前 checkout 的 backend setup 逻辑）
+- [`python/sglang/srt/model_executor/model_runner.py:1763-1854`](../../../source/sglang/python/sglang/srt/model_executor/model_runner.py)
+- [`python/sglang/srt/model_executor/cuda_graph_runner.py`](../../../source/sglang/python/sglang/srt/model_executor/cuda_graph_runner.py)
+- [`python/sglang/srt/model_executor/piecewise_cuda_graph_runner.py`](../../../source/sglang/python/sglang/srt/model_executor/piecewise_cuda_graph_runner.py)
 
 ## 12. 深度审计
 
@@ -174,3 +174,7 @@ Prefill graph 有自己独立的 bucket 和生命周期。`can_run_graph` 除了
 - 各 attention kernel 的 KV layout 和模型专用 backend 尚未逐一分析；
 - capture 失败后的内存预算、回收和降级路径尚未完整展开；
 - 真实 graph capture、replay、fallback 和性能未验证。
+
+## 14. 资源池边界
+
+`CudaGraphRunner` 为 capture batch 创建固定的 `DecodeInputBuffers`，按 `global_graph_memory_pool` 复用 graph allocation；KV cache 则可能在 custom memory pool context 中创建物理 tensor。graph static buffers、KV slot/page allocator、Radix ownership 和 flush/reset 必须分别回收，不能仅凭 graph 对象或 `torch.cuda.empty_cache()` 判断 backing 已释放（[source/sglang/python/sglang/srt/model_executor/cuda_graph_runner.py:547-721]；[source/sglang/python/sglang/srt/mem_cache/memory_pool.py:703-742]）。

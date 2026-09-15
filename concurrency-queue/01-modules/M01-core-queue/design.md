@@ -8,11 +8,11 @@
 
 ## Producer 分片
 
-每个 producer 有自己的 head/tail 和 block 链。入队通常不需要和其他 producer 争夺同一个元素槽位；consumer 通过 producer list 找工作。这牺牲了独立 producer 之间的全局顺序，README 明确说明该语义边界。[../../../../README.md:65-85](../../../../README.md#L65-L85)
+每个 producer 有自己的 head/tail 和 block 链。入队通常不需要和其他 producer 争夺同一个元素槽位；consumer 通过 producer list 找工作。这牺牲了独立 producer 之间的全局顺序，README 明确说明该语义边界。[../../../../README.md:65-85](../../../source/concurrency-queue/README.md#L65-L85)
 
 ## Block 与索引
 
-连续 block 减少每个元素一次分配，并使 block 可回收；BlockIndex 将逻辑 index 与具体 block 分离，使 producer 可以跨 block 增长。代价是 index 扩展、回收和空状态协议复杂。[`concurrentqueue.h:1466-1714`](../../../../concurrentqueue.h#L1466-L1714)
+连续 block 减少每个元素一次分配，并使 block 可回收；BlockIndex 将逻辑 index 与具体 block 分离，使 producer 可以跨 block 增长。代价是 index 扩展、回收和空状态协议复杂。[`concurrentqueue.h:1466-1714`](../../../source/concurrency-queue/concurrentqueue.h#L1466-L1714)
 
 ## Token
 

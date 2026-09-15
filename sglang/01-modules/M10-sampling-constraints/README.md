@@ -2,7 +2,7 @@
 
 - 文档目的：解释 logits 如何经过 penalty、logit bias、grammar mask 和 sampler，形成 `next_token_ids`，以及这些状态如何随 batch 合并、过滤和完成而变化。
 - 适用范围：`SamplingParams`、`SamplingBatchInfo`、grammar backend 接口、`ModelRunner.sample`、logprob/top-k/top-p 和 custom logit processor。
-- 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
+- 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
 - 前置阅读：[M05 模型执行](../M05-model-execution/README.md)、[M04 Scheduler 与连续批处理](../M04-scheduler-batching/README.md)
@@ -92,15 +92,15 @@ grammar backend 的具体编译实现可替换，但必须保持 batch 行、dev
 
 ### 6.1 编译缓存、异步等待和失败传播
 
-`BaseGrammarBackend` 在初始化时创建 `ThreadPoolExecutor` 和按 `(key_type, key_string)` 索引的 cache。请求首次到达时，`get_cached_or_future_value` 不同步阻塞编译，而是提交 `_init_value_dispatch` future；命中缓存时返回 `value.copy()`，让每个请求拥有独立 matcher 状态，同时把 `GrammarStats.is_cache_hit` 标记为 true。[`python/sglang/srt/constrained/base_grammar_backend.py:201-206`](../../../python/sglang/srt/constrained/base_grammar_backend.py)[`python/sglang/srt/constrained/base_grammar_backend.py:258-298`](../../../python/sglang/srt/constrained/base_grammar_backend.py)
+`BaseGrammarBackend` 在初始化时创建 `ThreadPoolExecutor` 和按 `(key_type, key_string)` 索引的 cache。请求首次到达时，`get_cached_or_future_value` 不同步阻塞编译，而是提交 `_init_value_dispatch` future；命中缓存时返回 `value.copy()`，让每个请求拥有独立 matcher 状态，同时把 `GrammarStats.is_cache_hit` 标记为 true。[`python/sglang/srt/constrained/base_grammar_backend.py:201-206`](../../../source/sglang/python/sglang/srt/constrained/base_grammar_backend.py)[`python/sglang/srt/constrained/base_grammar_backend.py:258-298`](../../../source/sglang/python/sglang/srt/constrained/base_grammar_backend.py)
 
-`GrammarManager.process_req_with_grammar` 把 future 放入 `grammar_queue`；PP0 周期性轮询 `Future.done()`，超过 `SGLANG_GRAMMAR_MAX_POLL_ITERATIONS` 的请求进入 failed 集合，再在 DP/TP 组内取 ready 的交集、failed 的并集，并通过 PP group 向后续 stage 传播。这样只有所有相关 rank 都准备好的 grammar 才能进入 waiting queue，而某一 rank 编译失败不会让其他 rank 单独继续。[`python/sglang/srt/constrained/grammar_manager.py:145-196`](../../../python/sglang/srt/constrained/grammar_manager.py)[`python/sglang/srt/constrained/grammar_manager.py:198-304`](../../../python/sglang/srt/constrained/grammar_manager.py)
+`GrammarManager.process_req_with_grammar` 把 future 放入 `grammar_queue`；PP0 周期性轮询 `Future.done()`，超过 `SGLANG_GRAMMAR_MAX_POLL_ITERATIONS` 的请求进入 failed 集合，再在 DP/TP 组内取 ready 的交集、failed 的并集，并通过 PP group 向后续 stage 传播。这样只有所有相关 rank 都准备好的 grammar 才能进入 waiting queue，而某一 rank 编译失败不会让其他 rank 单独继续。[`python/sglang/srt/constrained/grammar_manager.py:145-196`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)[`python/sglang/srt/constrained/grammar_manager.py:198-304`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)
 
-完成 future 的 `.result()` 若抛异常，会被包装成 `InvalidGrammarObject`，并写入 backend cache；缓存命中的无效对象和本轮编译得到的无效对象都会调用 `req.set_finish_with_abort`，把编译错误转成请求级失败，而不是把异常留在 sampler 内部。[`python/sglang/srt/constrained/grammar_manager.py:283-304`](../../../python/sglang/srt/constrained/grammar_manager.py)
+完成 future 的 `.result()` 若抛异常，会被包装成 `InvalidGrammarObject`，并写入 backend cache；缓存命中的无效对象和本轮编译得到的无效对象都会调用 `req.set_finish_with_abort`，把编译错误转成请求级失败，而不是把异常留在 sampler 内部。[`python/sglang/srt/constrained/grammar_manager.py:283-304`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)
 
-XGrammar 的 dispatch 分别调用 builtin/JSON schema、EBNF、regex 和 structural-tag compiler；编译异常转成 `InvalidGrammarObject`，结构化 tag 还会先兼容 legacy 格式并把缺失 schema 规范化为空 schema。backend reset 同时清空 SGLang cache 和 xgrammar compiler cache。[`python/sglang/srt/constrained/xgrammar_backend.py:336-402`](../../../python/sglang/srt/constrained/xgrammar_backend.py)
+XGrammar 的 dispatch 分别调用 builtin/JSON schema、EBNF、regex 和 structural-tag compiler；编译异常转成 `InvalidGrammarObject`，结构化 tag 还会先兼容 legacy 格式并把缺失 schema 规范化为空 schema。backend reset 同时清空 SGLang cache 和 xgrammar compiler cache。[`python/sglang/srt/constrained/xgrammar_backend.py:336-402`](../../../source/sglang/python/sglang/srt/constrained/xgrammar_backend.py)
 
-NUL 字节在进入 backend dispatch 前由基类递归检查 JSON/structural-tag 内容并直接拒绝，这是对上游 regex converter 崩溃风险的输入防护；它与普通 schema 语法错误一样最终表现为 `InvalidGrammarObject`，但错误来源不同，排查时应先看 key 类型和原始请求。[`python/sglang/srt/constrained/base_grammar_backend.py:161-187`](../../../python/sglang/srt/constrained/base_grammar_backend.py)
+NUL 字节在进入 backend dispatch 前由基类递归检查 JSON/structural-tag 内容并直接拒绝，这是对上游 regex converter 崩溃风险的输入防护；它与普通 schema 语法错误一样最终表现为 `InvalidGrammarObject`，但错误来源不同，排查时应先看 key 类型和原始请求。[`python/sglang/srt/constrained/base_grammar_backend.py:161-187`](../../../source/sglang/python/sglang/srt/constrained/base_grammar_backend.py)
 
 ## 7. sampler backend、数值路径与 TP 同步
 
@@ -170,17 +170,17 @@ sampler 只产生 token id。是否遇到 EOS、stop token、stop string、最�
 
 ## 13. 源码证据摘要
 
-- [`python/sglang/srt/sampling/sampling_params.py:114-130`](../../../python/sglang/srt/sampling/sampling_params.py)
-- [`python/sglang/srt/sampling/sampling_batch_info.py:30-129`](../../../python/sglang/srt/sampling/sampling_batch_info.py)
-- [`python/sglang/srt/model_executor/model_runner.py:1856-1938`](../../../python/sglang/srt/model_executor/model_runner.py)
-- [`python/sglang/srt/constrained/xgrammar_backend.py:320-402`](../../../python/sglang/srt/constrained/xgrammar_backend.py)
-- [`python/sglang/srt/constrained/grammar_manager.py:145-304`](../../../python/sglang/srt/constrained/grammar_manager.py)
-- [`python/sglang/srt/constrained/base_grammar_backend.py:161-298`](../../../python/sglang/srt/constrained/base_grammar_backend.py)
-- [`python/sglang/srt/managers/scheduler.py:4537-4546`](../../../python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/layers/sampler.py:96-297`](../../../python/sglang/srt/layers/sampler.py)
-- [`python/sglang/srt/layers/sampler.py:299-458`](../../../python/sglang/srt/layers/sampler.py)
-- [`python/sglang/srt/layers/sampler.py:460-474`](../../../python/sglang/srt/layers/sampler.py)
-- [`python/sglang/srt/layers/sampler.py:746-920`](../../../python/sglang/srt/layers/sampler.py)
+- [`python/sglang/srt/sampling/sampling_params.py:114-130`](../../../source/sglang/python/sglang/srt/sampling/sampling_params.py)
+- [`python/sglang/srt/sampling/sampling_batch_info.py:30-129`](../../../source/sglang/python/sglang/srt/sampling/sampling_batch_info.py)
+- [`python/sglang/srt/model_executor/model_runner.py:1856-1938`](../../../source/sglang/python/sglang/srt/model_executor/model_runner.py)
+- [`python/sglang/srt/constrained/xgrammar_backend.py:320-402`](../../../source/sglang/python/sglang/srt/constrained/xgrammar_backend.py)
+- [`python/sglang/srt/constrained/grammar_manager.py:145-304`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)
+- [`python/sglang/srt/constrained/base_grammar_backend.py:161-298`](../../../source/sglang/python/sglang/srt/constrained/base_grammar_backend.py)
+- [`python/sglang/srt/managers/scheduler.py:4537-4546`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/layers/sampler.py:96-297`](../../../source/sglang/python/sglang/srt/layers/sampler.py)
+- [`python/sglang/srt/layers/sampler.py:299-458`](../../../source/sglang/python/sglang/srt/layers/sampler.py)
+- [`python/sglang/srt/layers/sampler.py:460-474`](../../../source/sglang/python/sglang/srt/layers/sampler.py)
+- [`python/sglang/srt/layers/sampler.py:746-920`](../../../source/sglang/python/sglang/srt/layers/sampler.py)
 
 ## 14. 深度审计
 

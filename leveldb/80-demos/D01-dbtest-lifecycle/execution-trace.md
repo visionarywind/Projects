@@ -6,7 +6,7 @@
 
 ### 测试代码
 
-`DBTest` 构造函数建立 `SpecialEnv`，把数据库名设为 GoogleTest 临时目录下的 `db_test`，先调用 `DestroyDB`，再调用 `Reopen`。`TryReopen` 复制当前 Options，打开 `create_if_missing=true`，最后调用公共 `DB::Open` 并把结果存入 `db_`。[`DBTest` 构造/`TryReopen`](../../../../db/db_test.cc#L260-L345)
+`DBTest` 构造函数建立 `SpecialEnv`，把数据库名设为 GoogleTest 临时目录下的 `db_test`，先调用 `DestroyDB`，再调用 `Reopen`。`TryReopen` 复制当前 Options，打开 `create_if_missing=true`，最后调用公共 `DB::Open` 并把结果存入 `db_`。[`DBTest` 构造/`TryReopen`](../../../source/leveldb/db/db_test.cc#L260-L345)
 
 ### 生产路径
 
@@ -27,7 +27,7 @@ DBTest::Reopen
         -> RemoveObsoleteFiles / MaybeScheduleCompaction
 ```
 
-`DB::Open` 在失败前把 `*dbptr` 置空；成功才交出 `DBImpl*`，失败则删除半初始化对象。[`DB::Open`](../../../../db/db_impl.cc#L1503-L1543)
+`DB::Open` 在失败前把 `*dbptr` 置空；成功才交出 `DBImpl*`，失败则删除半初始化对象。[`DB::Open`](../../../source/leveldb/db/db_impl.cc#L1503-L1543)
 
 ### 锁和资源
 
@@ -40,7 +40,7 @@ DBTest::Reopen
 
 ### 测试代码
 
-`PutDeleteGet` 依次写 `foo=v1`、`foo=v2`、删除 `foo`，每次调用 helper `Get` 把 `NotFound` 转成测试字符串 `NOT_FOUND`。[`PutDeleteGet`](../../../../db/db_test.cc#L609-L618)、[`DBTest::Put/Get`](../../../../db/db_test.cc#L348-L365)
+`PutDeleteGet` 依次写 `foo=v1`、`foo=v2`、删除 `foo`，每次调用 helper `Get` 把 `NotFound` 转成测试字符串 `NOT_FOUND`。[`PutDeleteGet`](../../../source/leveldb/db/db_test.cc#L609-L618)、[`DBTest::Put/Get`](../../../source/leveldb/db/db_test.cc#L348-L365)
 
 ### 生产路径
 
@@ -60,23 +60,23 @@ DBTest::Put / DB::Put
                  -> Arena::Allocate + SkipList::Insert
 ```
 
-`WriteBatch` 的前 12 字节是 sequence/count，记录带 value/deletion tag；同一批 bytes 先进入 WAL，成功后由 `InsertInto` 解释为 MemTable 条目。[`WriteBatch` 布局和插入](../../../../db/write_batch.cc#L5-L14)、[`InsertInto`](../../../../db/write_batch.cc#L115-L137)
+`WriteBatch` 的前 12 字节是 sequence/count，记录带 value/deletion tag；同一批 bytes 先进入 WAL，成功后由 `InsertInto` 解释为 MemTable 条目。[`WriteBatch` 布局和插入](../../../source/leveldb/db/write_batch.cc#L5-L14)、[`InsertInto`](../../../source/leveldb/db/write_batch.cc#L115-L137)
 
 ### 重要分支
 
 - WAL `AddRecord` 失败：当前 batch 不进入 MemTable，`Status` 返回给测试。
-- `WriteOptions::sync=true`：在 MemTable 插入前调用 `WritableFile::Sync`；失败时记录 `bg_error_`，后续写会失败。[`DBImpl::Write`](../../../../db/db_impl.cc#L1230-L1257)
-- MemTable 接近阈值：`MakeRoomForWrite` 可能等待 `imm_`、等待 L0，或切换 WAL/MemTable 后调度后台 flush。[`MakeRoomForWrite`](../../../../db/db_impl.cc#L1331-L1405)
+- `WriteOptions::sync=true`：在 MemTable 插入前调用 `WritableFile::Sync`；失败时记录 `bg_error_`，后续写会失败。[`DBImpl::Write`](../../../source/leveldb/db/db_impl.cc#L1230-L1257)
+- MemTable 接近阈值：`MakeRoomForWrite` 可能等待 `imm_`、等待 L0，或切换 WAL/MemTable 后调度后台 flush。[`MakeRoomForWrite`](../../../source/leveldb/db/db_impl.cc#L1331-L1405)
 
 ## 阶段 3：先从内存读，再进入版本
 
-`Get` 测试 helper 先建立 `ReadOptions`，可选携带 Snapshot，然后调用 `db_->Get`。DBImpl 在锁下读取 snapshot sequence，Ref `mem_`/`imm_`/current Version，解锁后按 mem → imm → Version 顺序访问，最后重新加锁更新 seek 统计并 Unref。[`DBImpl::Get`](../../../../db/db_impl.cc#L1121-L1166)
+`Get` 测试 helper 先建立 `ReadOptions`，可选携带 Snapshot，然后调用 `db_->Get`。DBImpl 在锁下读取 snapshot sequence，Ref `mem_`/`imm_`/current Version，解锁后按 mem → imm → Version 顺序访问，最后重新加锁更新 seek 统计并 Unref。[`DBImpl::Get`](../../../source/leveldb/db/db_impl.cc#L1121-L1166)
 
-当数据还在 MemTable，测试无需等待 SSTable；当 `TEST_CompactMemTable` 已完成，Version/TableCache/Table/Block 路径仍返回相同 user value。`GetFromVersions` 正是用一次强制 flush 验证这两个读层次。[`GetFromVersions`](../../../../db/db_test.cc#L640-L646)
+当数据还在 MemTable，测试无需等待 SSTable；当 `TEST_CompactMemTable` 已完成，Version/TableCache/Table/Block 路径仍返回相同 user value。`GetFromVersions` 正是用一次强制 flush 验证这两个读层次。[`GetFromVersions`](../../../source/leveldb/db/db_test.cc#L640-L646)
 
 ## 阶段 4：Snapshot 固定可见序列
 
-`GetSnapshot` 在 mutex 下调用 `snapshots_.New(versions_->LastSequence())`，只保存 sequence，不复制每个 key/value。[`DBImpl::GetSnapshot`](../../../../db/db_impl.cc#L1187-L1195)
+`GetSnapshot` 在 mutex 下调用 `snapshots_.New(versions_->LastSequence())`，只保存 sequence，不复制每个 key/value。[`DBImpl::GetSnapshot`](../../../source/leveldb/db/db_impl.cc#L1187-L1195)
 
 `GetSnapshot` 测试的真实步骤：
 
@@ -91,19 +91,19 @@ Get(key, S1)       -> 仍为 v1
 ReleaseSnapshot(S1)
 ```
 
-测试同时使用短 key 和 200 字节 key，验证的是 sequence/编码路径而不是某个固定 key 长度。[`GetSnapshot`](../../../../db/db_test.cc#L659-L675)
+测试同时使用短 key 和 200 字节 key，验证的是 sequence/编码路径而不是某个固定 key 长度。[`GetSnapshot`](../../../source/leveldb/db/db_test.cc#L659-L675)
 
-`Snapshot` 测试创建 S1/S2/S3 后继续写 v4，并分别断言 v1/v2/v3/v4；释放顺序说明 Snapshot 句柄独立于 DB 当前值，但必须由同一个 DB 显式释放。[`Snapshot`](../../../../db/db_test.cc#L1351-L1377)
+`Snapshot` 测试创建 S1/S2/S3 后继续写 v4，并分别断言 v1/v2/v3/v4；释放顺序说明 Snapshot 句柄独立于 DB 当前值，但必须由同一个 DB 显式释放。[`Snapshot`](../../../source/leveldb/db/db_test.cc#L1351-L1377)
 
 ## 阶段 5：Iterator 和引用生命周期
 
-`IterMulti` 先写 a/b/c，创建 Iterator，执行 Seek、Next、Prev；随后在 Iterator 已存在时写入新版本和删除 b，再次遍历仍看到创建时的 a/b/c 视图。这验证 `NewInternalIterator` 对 mem/imm/current Version 的引用保护以及 DB iterator 的 snapshot sequence。[`IterMulti`](../../../../db/db_test.cc#L859-L940)
+`IterMulti` 先写 a/b/c，创建 Iterator，执行 Seek、Next、Prev；随后在 Iterator 已存在时写入新版本和删除 b，再次遍历仍看到创建时的 a/b/c 视图。这验证 `NewInternalIterator` 对 mem/imm/current Version 的引用保护以及 DB iterator 的 snapshot sequence。[`IterMulti`](../../../source/leveldb/db/db_test.cc#L859-L940)
 
-`IteratorPinsRef` 更明确地在创建 iterator 后写入大量 100 KiB value，迫使后台 compaction 工作，再检查 iterator 仍返回旧 `foo=hello`。Iterator cleanup 最终释放捕获的 MemTable/Version 引用；调用方必须先删 Iterator，再删 DB。[`IteratorPinsRef`](../../../../db/db_test.cc#L1328-L1349)、[`NewInternalIterator/CleanupIteratorState`](../../../../db/db_impl.cc#L1059-L1107)
+`IteratorPinsRef` 更明确地在创建 iterator 后写入大量 100 KiB value，迫使后台 compaction 工作，再检查 iterator 仍返回旧 `foo=hello`。Iterator cleanup 最终释放捕获的 MemTable/Version 引用；调用方必须先删 Iterator，再删 DB。[`IteratorPinsRef`](../../../source/leveldb/db/db_test.cc#L1328-L1349)、[`NewInternalIterator/CleanupIteratorState`](../../../source/leveldb/db/db_impl.cc#L1059-L1107)
 
 ## 阶段 6：写满、immutable flush 与 Level-0
 
-`GetFromImmutableLayer` 使用 `write_buffer_size=100000`，让两个大 value 填满 MemTable；通过 `SpecialEnv::delay_data_sync_` 阻塞数据文件 Sync，在后台 flush 未完成时仍读取 `foo=v1`。[`GetFromImmutableLayer`](../../../../db/db_test.cc#L620-L638)
+`GetFromImmutableLayer` 使用 `write_buffer_size=100000`，让两个大 value 填满 MemTable；通过 `SpecialEnv::delay_data_sync_` 阻塞数据文件 Sync，在后台 flush 未完成时仍读取 `foo=v1`。[`GetFromImmutableLayer`](../../../source/leveldb/db/db_test.cc#L620-L638)
 
 状态转换：
 
@@ -120,11 +120,11 @@ mem_ = M1, WAL = L1
   -> imm_->Unref(), imm_ = nullptr
 ```
 
-`WriteLevel0Table` 把输出 file number 放入 `pending_outputs_`，锁外构建表，重新加锁后才从 pending 集合移除并把 metadata 加入 VersionEdit；因此尚未安装的文件不会被 obsolete GC 误删。[`WriteLevel0Table`](../../../../db/db_impl.cc#L505-L546)
+`WriteLevel0Table` 把输出 file number 放入 `pending_outputs_`，锁外构建表，重新加锁后才从 pending 集合移除并把 metadata 加入 VersionEdit；因此尚未安装的文件不会被 obsolete GC 误删。[`WriteLevel0Table`](../../../source/leveldb/db/db_impl.cc#L505-L546)
 
 ## 阶段 7：关闭、重开与 WAL 恢复
 
-`Recover` 测试写入 foo/baz，`Reopen`，再写 bar/foo，第二次 `Reopen` 后验证最新值。fixture 的 `Reopen` 先 `delete db_`，这会等待后台工作、释放 LOCK，然后再次调用 `DB::Open`。[`Recover`](../../../../db/db_test.cc#L1017-L1037)、[`DBTest::Reopen`](../../../../db/db_test.cc#L317-L346)
+`Recover` 测试写入 foo/baz，`Reopen`，再写 bar/foo，第二次 `Reopen` 后验证最新值。fixture 的 `Reopen` 先 `delete db_`，这会等待后台工作、释放 LOCK，然后再次调用 `DB::Open`。[`Recover`](../../../source/leveldb/db/db_test.cc#L1017-L1037)、[`DBTest::Reopen`](../../../source/leveldb/db/db_test.cc#L317-L346)
 
 重开控制流：
 
@@ -143,17 +143,17 @@ DB::Open -> Recover
   -> 更新 LastSequence
 ```
 
-若最后一个 WAL 可以复用且没有中途 compaction，`reuse_logs` 分支可重新打开 appendable file；否则临时 MemTable 被写为 L0 表。[`RecoverLogFile`](../../../../db/db_impl.cc#L385-L503)
+若最后一个 WAL 可以复用且没有中途 compaction，`reuse_logs` 分支可重新打开 appendable file；否则临时 MemTable 被写为 L0 表。[`RecoverLogFile`](../../../source/leveldb/db/db_impl.cc#L385-L503)
 
-`RecoverDuringMemtableCompaction` 故意在长 flush 期间写入新 WAL，然后 Reopen，验证 foo、bar 和两个大 value 都恢复。这不是对断电的完整模拟，而是对“旧 imm 正在落盘、新 WAL 已接收写入”状态边界的测试。[`RecoverDuringMemtableCompaction`](../../../../db/db_test.cc#L1051-L1074)
+`RecoverDuringMemtableCompaction` 故意在长 flush 期间写入新 WAL，然后 Reopen，验证 foo、bar 和两个大 value 都恢复。这不是对断电的完整模拟，而是对“旧 imm 正在落盘、新 WAL 已接收写入”状态边界的测试。[`RecoverDuringMemtableCompaction`](../../../source/leveldb/db/db_test.cc#L1051-L1074)
 
 ## 阶段 8：错误注入和可见结果
 
-`SpecialEnv` 将 `.log`/`.ldb` 包装成 `DataFile`，将 MANIFEST 包装成 `ManifestFile`；原子开关控制 Append、Sync、Close 和新文件创建的错误。[`SpecialEnv::NewWritableFile`](../../../../db/db_test.cc#L155-L232)
+`SpecialEnv` 将 `.log`/`.ldb` 包装成 `DataFile`，将 MANIFEST 包装成 `ManifestFile`；原子开关控制 Append、Sync、Close 和新文件创建的错误。[`SpecialEnv::NewWritableFile`](../../../source/leveldb/db/db_test.cc#L155-L232)
 
-- `WriteSyncError`：非 sync 写入可进入内存；sync 写 `k2` 失败且不出现在 MemTable；之后即使关闭故障开关，`bg_error_` 仍使 `k3` 写入失败。[`WriteSyncError`](../../../../db/db_test.cc#L1818-L1847)
-- `ManifestWriteError`：生成表后 MANIFEST 写或 Sync 失败，重开仍能读 `foo=bar`；测试防止 GC 删除仍被旧 Version 需要的文件。[`ManifestWriteError`](../../../../db/db_test.cc#L1849-L1887)
-- `MissingSSTFile`：关闭后删除表文件，以 paranoid checks 重开应失败；`StillReadSST` 把 `.ldb` 改名为旧 `.sst` 后验证兼容读取。[`MissingSSTFile/StillReadSST`](../../../../db/db_test.cc#L1889-L1920)
+- `WriteSyncError`：非 sync 写入可进入内存；sync 写 `k2` 失败且不出现在 MemTable；之后即使关闭故障开关，`bg_error_` 仍使 `k3` 写入失败。[`WriteSyncError`](../../../source/leveldb/db/db_test.cc#L1818-L1847)
+- `ManifestWriteError`：生成表后 MANIFEST 写或 Sync 失败，重开仍能读 `foo=bar`；测试防止 GC 删除仍被旧 Version 需要的文件。[`ManifestWriteError`](../../../source/leveldb/db/db_test.cc#L1849-L1887)
+- `MissingSSTFile`：关闭后删除表文件，以 paranoid checks 重开应失败；`StillReadSST` 把 `.ldb` 改名为旧 `.sst` 后验证兼容读取。[`MissingSSTFile/StillReadSST`](../../../source/leveldb/db/db_test.cc#L1889-L1920)
 
 ## 轨迹总结
 
@@ -172,8 +172,8 @@ D01 的核心不变量不是“每次 Put 立刻生成 SSTable”，而是：
 
 ## 相关源码
 
-- [`DB::Open`](../../../../db/db_impl.cc#L1503-L1543)
-- [`DBImpl::Write/Get`](../../../../db/db_impl.cc#L1121-L1277)
-- [`DBImpl::Recover/RecoverLogFile`](../../../../db/db_impl.cc#L292-L503)
-- [`DBTest` fixture helpers](../../../../db/db_test.cc#L260-L492)
-- [`WriteBatch` 编码](../../../../db/write_batch.cc#L5-L148)
+- [`DB::Open`](../../../source/leveldb/db/db_impl.cc#L1503-L1543)
+- [`DBImpl::Write/Get`](../../../source/leveldb/db/db_impl.cc#L1121-L1277)
+- [`DBImpl::Recover/RecoverLogFile`](../../../source/leveldb/db/db_impl.cc#L292-L503)
+- [`DBTest` fixture helpers](../../../source/leveldb/db/db_test.cc#L260-L492)
+- [`WriteBatch` 编码](../../../source/leveldb/db/write_batch.cc#L5-L148)

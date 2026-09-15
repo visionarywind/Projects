@@ -35,7 +35,7 @@ leveldb::VersionSet::Recover
 - 无 `CURRENT` 时进入 `NewDB`；
 - 返回前 `mem_`、`logfile_`、`log_` 非空。
 
-不要把 `new DBImpl` 当成 Open 完成点；`Recover`、初始 WAL 和必要的 VersionEdit 都成功后才把指针交给测试。[`DB::Open`](../../../../db/db_impl.cc#L1503-L1543)
+不要把 `new DBImpl` 当成 Open 完成点；`Recover`、初始 WAL 和必要的 VersionEdit 都成功后才把指针交给测试。[`DB::Open`](../../../source/leveldb/db/db_impl.cc#L1503-L1543)
 
 ## 3. 断点组 B：写入、WAL 和 MemTable
 
@@ -85,7 +85,7 @@ MutexLock l(&mutex_)
   -> UpdateStats + Unref
 ```
 
-在断点中分别打印 snapshot sequence、`mem`/`imm`/`current` 地址，以及 `LookupKey::internal_key()`。如果 mem 命中，`Version::Get` 不会被调用；先执行 `TEST_CompactMemTable` 再 Get 才能走表读取路径。[`DBImpl::Get`](../../../../db/db_impl.cc#L1121-L1166)
+在断点中分别打印 snapshot sequence、`mem`/`imm`/`current` 地址，以及 `LookupKey::internal_key()`。如果 mem 命中，`Version::Get` 不会被调用；先执行 `TEST_CompactMemTable` 再 Get 才能走表读取路径。[`DBImpl::Get`](../../../source/leveldb/db/db_impl.cc#L1121-L1166)
 
 ## 5. 断点组 D：写满切换和恢复
 
@@ -120,7 +120,7 @@ mem_ != nullptr, imm_ == nullptr
   -> imm_ Unref
 ```
 
-`GetFromImmutableLayer` 用 `delay_data_sync_` 阻塞输出文件 Sync；阻塞时可看到后台任务存在但新 Get 仍可以从 mem/imm 找到值。`Env::Schedule` 不承诺具体线程，断点时间顺序可能与一次运行不同。[`SpecialEnv::DataFile::Sync`](../../../../db/db_test.cc#L184-L191)
+`GetFromImmutableLayer` 用 `delay_data_sync_` 阻塞输出文件 Sync；阻塞时可看到后台任务存在但新 Get 仍可以从 mem/imm 找到值。`Env::Schedule` 不承诺具体线程，断点时间顺序可能与一次运行不同。[`SpecialEnv::DataFile::Sync`](../../../source/leveldb/db/db_test.cc#L184-L191)
 
 ## 6. 断点组 E：MANIFEST 提交
 
@@ -141,7 +141,7 @@ leveldb::VersionSet::AppendVersion
 - Sync 成功后 `AppendVersion` 安装新 Version；
 - `pending_outputs_` 在 BuildTable 到安装前保护新 file number。
 
-如果使用 `ManifestWriteError`，可在 `SpecialEnv::ManifestFile::Append/Sync` 断点观察错误返回，再确认 `RecordBackgroundError` 和重开时旧 Version 的恢复。[`SpecialEnv::ManifestFile`](../../../../db/db_test.cc#L194-L218)、[`ManifestWriteError`](../../../../db/db_test.cc#L1849-L1887)
+如果使用 `ManifestWriteError`，可在 `SpecialEnv::ManifestFile::Append/Sync` 断点观察错误返回，再确认 `RecordBackgroundError` 和重开时旧 Version 的恢复。[`SpecialEnv::ManifestFile`](../../../source/leveldb/db/db_test.cc#L194-L218)、[`ManifestWriteError`](../../../source/leveldb/db/db_test.cc#L1849-L1887)
 
 ## 7. 断点组 F：Iterator cleanup
 
@@ -154,7 +154,7 @@ leveldb::Iterator::~Iterator
 leveldb::DBImpl::~DBImpl
 ```
 
-创建 Iterator 后记录 `mem`、`imm`、`Version` 的引用状态；写入/compaction 改变 DB 当前指针后，Iterator 仍使用捕获对象。删除 Iterator 时 cleanup 重新取得 DB mutex 并 Unref。调用方应先 `delete iter`，再 `delete db`，否则 cleanup 访问的 DB 状态可能已经销毁。[`DBImpl::NewInternalIterator/CleanupIteratorState`](../../../../db/db_impl.cc#L1059-L1107)、[`db.h` Iterator 规则](../../../../include/leveldb/db.h#L90-L96)
+创建 Iterator 后记录 `mem`、`imm`、`Version` 的引用状态；写入/compaction 改变 DB 当前指针后，Iterator 仍使用捕获对象。删除 Iterator 时 cleanup 重新取得 DB mutex 并 Unref。调用方应先 `delete iter`，再 `delete db`，否则 cleanup 访问的 DB 状态可能已经销毁。[`DBImpl::NewInternalIterator/CleanupIteratorState`](../../../source/leveldb/db/db_impl.cc#L1059-L1107)、[`db.h` Iterator 规则](../../../source/leveldb/include/leveldb/db.h#L90-L96)
 
 ## 8. 调试器中容易误读的现象
 

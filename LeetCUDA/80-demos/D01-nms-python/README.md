@@ -4,7 +4,7 @@
 
 用一个最小但真实的 Python 入口追踪：动态 CUDA extension 加载 → 输入检查 → stable score sort → warp-per-box IoU mask → single-block ordered resolve → 原始索引恢复 → int64 CUDA 输出。该 Demo 对应最近的 NMS 修复提交，适合先理解 M08 扩展边界和 M10 算法路径。
 
-- 目标版本：`main` / `0983c65`。
+- 目标版本：`main` / `4513b31`。
 - 当前状态：源码路径和控制流已确认；构建、运行、输出和性能均**未验证**。
 - 相关模块：[M08](../../01-modules/M08-pytorch-extension/README.md)、[M10](../../01-modules/M10-nms/README.md)。
 

@@ -20,7 +20,7 @@ DBImpl::Write
           -> SkipList::Insert
 ```
 
-证据：[db/write_batch.cc:114-136](../../../../db/write_batch.cc#L114-L136)、[db/db_impl.cc:1227-1246](../../../../db/db_impl.cc#L1227-L1246)。
+证据：[db/write_batch.cc:114-136](../../../source/leveldb/db/write_batch.cc#L114-L136)、[db/db_impl.cc:1227-1246](../../../source/leveldb/db/db_impl.cc#L1227-L1246)。
 
 ## 恢复链
 
@@ -32,7 +32,7 @@ DBImpl::RecoverLogFile
   -> maybe BuildTable/WriteLevel0Table
 ```
 
-证据：[db/db_impl.cc:385-504](../../../../db/db_impl.cc#L385-L504)。
+证据：[db/db_impl.cc:385-504](../../../source/leveldb/db/db_impl.cc#L385-L504)。
 
 ## 查询链
 

@@ -22,7 +22,7 @@ TableBuilder 顺序写、压缩 CPU、MANIFEST Sync、compaction 输入输出和
 
 ## 基准方法
 
-`db_bench` 提供 fillseq/fillrandom/fillsync/readrandom/readseq/readreverse/compact 和压缩场景。[benchmarks/db_bench.cc:23-64](../../../benchmarks/db_bench.cc#L23-L64) 修改后固定数据量、value size、线程数、compression、block/write buffer 参数，重复运行并记录硬件/构建配置。
+`db_bench` 提供 fillseq/fillrandom/fillsync/readrandom/readseq/readreverse/compact 和压缩场景。[benchmarks/db_bench.cc:23-64](../../source/leveldb/benchmarks/db_bench.cc#L23-L64) 修改后固定数据量、value size、线程数、compression、block/write buffer 参数，重复运行并记录硬件/构建配置。
 
 ## 不可直接断言
 

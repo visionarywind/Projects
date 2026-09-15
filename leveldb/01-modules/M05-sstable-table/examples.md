@@ -37,7 +37,7 @@ DBImpl::Get
   -> return value or Status
 ```
 
-对应入口：[`Version::Get`](../../../../db/version_set.cc#L324-L400)、[`TableCache::FindTable/Get`](../../../../db/table_cache.cc#L40-L111)、[`Table::Open/InternalGet`](../../../../table/table.cc#L37-L240)。
+对应入口：[`Version::Get`](../../../source/leveldb/db/version_set.cc#L324-L400)、[`TableCache::FindTable/Get`](../../../source/leveldb/db/table_cache.cc#L40-L111)、[`Table::Open/InternalGet`](../../../source/leveldb/table/table.cc#L37-L240)。
 
 ## 逐阶段状态
 
@@ -54,7 +54,7 @@ DBImpl::Get
 
 ## 为什么 cache handle 不能提前释放
 
-`TableCache::Get` 在 `FindTable` 成功后从 handle 取得 Table，调用 `InternalGet`，直到调用结束才 `cache_->Release(handle)`。如果在 `InternalGet` 前释放，cache eviction 可能删除 `TableAndFile`，Table 和 file 指针立即悬空。Iterator 路径不同：`TableCache::NewIterator` 把 Release 注册到 iterator cleanup，因此 iterator 活着时 cache entry 继续活着。[`TableCache::NewIterator/Get`](../../../../db/table_cache.cc#L77-L111)、[`DeleteEntry`](../../../../db/table_cache.cc#L13-L29)
+`TableCache::Get` 在 `FindTable` 成功后从 handle 取得 Table，调用 `InternalGet`，直到调用结束才 `cache_->Release(handle)`。如果在 `InternalGet` 前释放，cache eviction 可能删除 `TableAndFile`，Table 和 file 指针立即悬空。Iterator 路径不同：`TableCache::NewIterator` 把 Release 注册到 iterator cleanup，因此 iterator 活着时 cache entry 继续活着。[`TableCache::NewIterator/Get`](../../../source/leveldb/db/table_cache.cc#L77-L111)、[`DeleteEntry`](../../../source/leveldb/db/table_cache.cc#L13-L29)
 
 ## 最小构造/读取示例
 
@@ -69,7 +69,7 @@ leveldb::Status s = builder.Finish();
 // 真实 DB 路径还需要 Table::Open 的 file size、RandomAccessFile 和 TableCache。
 ```
 
-Builder 的 `Add` 在 block 达到阈值时 Flush，Finish 会写 metaindex、index 和 footer；数据的读写格式必须由同一个 comparator 和对应的 format reader 解码。[`TableBuilder::Add/Finish`](../../../../table/table_builder.cc#L93-L277)、[`BlockBuilder`](../../../../table/block_builder.cc#L39-L104)、[`Footer/ReadBlock`](../../../../table/format.cc#L15-L161)
+Builder 的 `Add` 在 block 达到阈值时 Flush，Finish 会写 metaindex、index 和 footer；数据的读写格式必须由同一个 comparator 和对应的 format reader 解码。[`TableBuilder::Add/Finish`](../../../source/leveldb/table/table_builder.cc#L93-L277)、[`BlockBuilder`](../../../source/leveldb/table/block_builder.cc#L39-L104)、[`Footer/ReadBlock`](../../../source/leveldb/table/format.cc#L15-L161)
 
 ## 三个边界测试
 
@@ -87,10 +87,10 @@ Builder 的 `Add` 在 block 达到阈值时 Flush，Finish 会写 metaindex、in
 
 ## 源码证据摘要
 
-- [`TableCache`](../../../../db/table_cache.cc#L13-L117)
-- [`Table::InternalGet`](../../../../table/table.cc#L152-L240)
-- [`TableBuilder`](../../../../table/table_builder.cc#L93-L277)
-- [`BlockBuilder`](../../../../table/block_builder.cc#L39-L104)
+- [`TableCache`](../../../source/leveldb/db/table_cache.cc#L13-L117)
+- [`Table::InternalGet`](../../../source/leveldb/table/table.cc#L152-L240)
+- [`TableBuilder`](../../../source/leveldb/table/table_builder.cc#L93-L277)
+- [`BlockBuilder`](../../../source/leveldb/table/block_builder.cc#L39-L104)
 
 ## 未解决问题
 

@@ -22,7 +22,7 @@
 1. 保持 comparator 递增和 restart 不变量。
 2. 同时修改 `BlockBuilder` 和 `Block::Iter`。
 3. 覆盖长 varint、共享前缀、restart 边界、Prev/Seek。
-4. 注意 `Slice` 指向 builder/block 内存，不能跨 Reset 或析构使用。[table/block_builder.h:26-37](../../../../table/block_builder.h#L26-L37)
+4. 注意 `Slice` 指向 builder/block 内存，不能跨 Reset 或析构使用。[table/block_builder.h:26-37](../../../source/leveldb/table/block_builder.h#L26-L37)
 
 ### 修改压缩或过滤
 

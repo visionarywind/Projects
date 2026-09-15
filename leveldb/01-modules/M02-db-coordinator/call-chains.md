@@ -52,7 +52,7 @@ MaybeScheduleCompaction (668)
         -> InstallCompactionResults (880)
 ```
 
-每个 `->` 表示直接调用或明确调度；`Schedule` 后线程上下文可能变化。[db/db_impl.cc:668-708](../../../../db/db_impl.cc#L668-L708)
+每个 `->` 表示直接调用或明确调度；`Schedule` 后线程上下文可能变化。[db/db_impl.cc:668-708](../../../source/leveldb/db/db_impl.cc#L668-L708)
 
 ## 相关文档
 

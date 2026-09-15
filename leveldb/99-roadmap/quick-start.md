@@ -13,7 +13,7 @@
 git clone --recurse-submodules https://github.com/google/leveldb.git
 ```
 
-来源：[README.md:33-37](../../../README.md#L33-L37)。本知识库目标版本是当前工作树已确认的 `7ee830d02b623e8ffe0b95d59a74db1e58da04c5`，不是自动假设的最新提交。
+来源：[README.md:33-37](../../source/leveldb/README.md#L33-L37)。本知识库目标版本是当前工作树已确认的 `7ee830d02b623e8ffe0b95d59a74db1e58da04c5`，不是自动假设的最新提交。
 
 若已有仓库但子模块未初始化，执行：
 
@@ -32,7 +32,7 @@ mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
 ```
 
-来源：[README.md:39-50](../../../README.md#L39-L50)。本知识库已验证的 Debug 命令为：
+来源：[README.md:39-50](../../source/leveldb/README.md#L39-L50)。本知识库已验证的 Debug 命令为：
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
@@ -56,7 +56,7 @@ Test #3: env_posix_test  Passed    2.16 sec
 - `-DLEVELDB_INSTALL=ON|OFF`
 - `-DBUILD_SHARED_LIBS=ON|OFF`
 
-默认值见 [CMakeLists.txt:32-34](../../../CMakeLists.txt#L32-L34)。可选 crc32c/Snappy/Zstd/tcmalloc 由配置探测决定。[CMakeLists.txt:36-53](../../../CMakeLists.txt#L36-L53)
+默认值见 [CMakeLists.txt:32-34](../../source/leveldb/CMakeLists.txt#L32-L34)。可选 crc32c/Snappy/Zstd/tcmalloc 由配置探测决定。[CMakeLists.txt:36-53](../../source/leveldb/CMakeLists.txt#L36-L53)
 
 ## 测试、benchmark 和本地安装
 
@@ -90,9 +90,9 @@ readrandom : 1.199 micros/op; (10000 of 10000 found)
 
 ## 源码证据摘要
 
-- [README 构建命令](../../../README.md#L33-L50)
-- [CMake 默认选项](../../../CMakeLists.txt#L32-L53)
-- [测试与 benchmark 注册](../../../CMakeLists.txt#L292-L469)
+- [README 构建命令](../../source/leveldb/README.md#L33-L50)
+- [CMake 默认选项](../../source/leveldb/CMakeLists.txt#L32-L53)
+- [测试与 benchmark 注册](../../source/leveldb/CMakeLists.txt#L292-L469)
 
 ## 未解决问题
 

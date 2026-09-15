@@ -48,9 +48,9 @@ BuildTable / compaction iterator
      -> footer.EncodeTo + file Append
 ```
 
-`TableBuilder::Add` 只接受按 comparator 排序的输入；重复/逆序输入会破坏 builder 的前置条件。每次数据 block flush 后保存 pending handle，下一条 key 到来时才可生成对应 index entry，因为 index value 必须包含已写 block 的 offset/size。[`TableBuilder::Add/Flush`](../../../../table/table_builder.cc#L93-L185)、[`BlockBuilder::Add`](../../../../table/block_builder.cc#L39-L104)
+`TableBuilder::Add` 只接受按 comparator 排序的输入；重复/逆序输入会破坏 builder 的前置条件。每次数据 block flush 后保存 pending handle，下一条 key 到来时才可生成对应 index entry，因为 index value 必须包含已写 block 的 offset/size。[`TableBuilder::Add/Flush`](../../../source/leveldb/table/table_builder.cc#L93-L185)、[`BlockBuilder::Add`](../../../source/leveldb/table/block_builder.cc#L39-L104)
 
-`Finish` 先结束最后的数据 block，再写 filter/metaindex/index，最后编码 footer；因此 footer 是读者找到前面元数据的固定入口。Finish 后 builder 不应再 Add，调用者仍需处理文件 Sync/Close。[`TableBuilder::Finish`](../../../../table/table_builder.cc#L212-L277)、[`Footer::EncodeTo`](../../../../table/format.cc#L15-L89)
+`Finish` 先结束最后的数据 block，再写 filter/metaindex/index，最后编码 footer；因此 footer 是读者找到前面元数据的固定入口。Finish 后 builder 不应再 Add，调用者仍需处理文件 Sync/Close。[`TableBuilder::Finish`](../../../source/leveldb/table/table_builder.cc#L212-L277)、[`Footer::EncodeTo`](../../../source/leveldb/table/format.cc#L15-L89)
 
 ### 2. 打开链：footer 到 Table 对象
 
@@ -66,7 +66,7 @@ TableCache::FindTable
      -> new Table(index, filter metadata, file)
 ```
 
-`Table::Open` 的输出 `Table*` 只拥有/借用它被设计持有的 index/filter 资源，文件对象由 `TableCache::TableAndFile` 一起保存；打开失败必须 delete 已分配对象并返回 Status，TableCache 不缓存失败结果。[`Table::Open`](../../../../table/table.cc#L37-L78)、[`ReadFooter/ReadBlock`](../../../../table/format.cc#L90-L161)、[`TableCache::FindTable`](../../../../db/table_cache.cc#L40-L75)
+`Table::Open` 的输出 `Table*` 只拥有/借用它被设计持有的 index/filter 资源，文件对象由 `TableCache::TableAndFile` 一起保存；打开失败必须 delete 已分配对象并返回 Status，TableCache 不缓存失败结果。[`Table::Open`](../../../source/leveldb/table/table.cc#L37-L78)、[`ReadFooter/ReadBlock`](../../../source/leveldb/table/format.cc#L90-L161)、[`TableCache::FindTable`](../../../source/leveldb/db/table_cache.cc#L40-L75)
 
 ### 3. 查询链：index → filter → data block → callback
 
@@ -83,7 +83,7 @@ Version::Get
      -> delete iterator / Release cache handle
 ```
 
-index iterator 首先把查询映射到一个候选 data block；filter 返回 false 时可以避免读取数据块，但 filter 缺失、未知格式或读取异常不能制造 false negative，读取路径应继续按可能命中处理。data block iterator 的 `status()` 必须在清理前由上层检查。[`Table::InternalGet`](../../../../table/table.cc#L152-L240)、[`FilterBlockReader::KeyMayMatch`](../../../../table/filter_block.cc#L50-L103)、[`TableCache::Get`](../../../../db/table_cache.cc#L99-L111)
+index iterator 首先把查询映射到一个候选 data block；filter 返回 false 时可以避免读取数据块，但 filter 缺失、未知格式或读取异常不能制造 false negative，读取路径应继续按可能命中处理。data block iterator 的 `status()` 必须在清理前由上层检查。[`Table::InternalGet`](../../../source/leveldb/table/table.cc#L152-L240)、[`FilterBlockReader::KeyMayMatch`](../../../source/leveldb/table/filter_block.cc#L50-L103)、[`TableCache::Get`](../../../source/leveldb/db/table_cache.cc#L99-L111)
 
 ## 核心算法伪代码
 
@@ -100,7 +100,7 @@ if filter: add key to filter builder
 remember key as previous_key
 ```
 
-实际代码还处理 `block_restart_interval`、分隔 key、压缩类型和 pending handle；伪代码只保留控制不变量。[`TableBuilder::Add`](../../../../table/table_builder.cc#L93-L122)
+实际代码还处理 `block_restart_interval`、分隔 key、压缩类型和 pending handle；伪代码只保留控制不变量。[`TableBuilder::Add`](../../../source/leveldb/table/table_builder.cc#L93-L122)
 
 ### `Table::InternalGet`
 
@@ -115,7 +115,7 @@ if block_iter.Valid(): callback(user_key, block_iter.key(), block_iter.value())
 return block_iter.status()
 ```
 
-复杂度取决于 block 数、index iterator 和 block 内 restart 数；源码没有为当前配置给出固定性能数字。读取数据块的内存和缓存占用由 `ReadBlock`、block cache 和 iterator cleanup 共同决定。[`Table::InternalGet`](../../../../table/table.cc#L152-L240)、[`BlockIter`](../../../../table/block.cc#L24-L218)
+复杂度取决于 block 数、index iterator 和 block 内 restart 数；源码没有为当前配置给出固定性能数字。读取数据块的内存和缓存占用由 `ReadBlock`、block cache 和 iterator cleanup 共同决定。[`Table::InternalGet`](../../../source/leveldb/table/table.cc#L152-L240)、[`BlockIter`](../../../source/leveldb/table/block.cc#L24-L218)
 
 ## 状态和所有权表
 
@@ -177,11 +177,11 @@ return block_iter.status()
 
 ## 源码证据摘要
 
-- [`TableBuilder::Add/Finish`](../../../../table/table_builder.cc#L93-L277)
-- [`BlockBuilder::Add`](../../../../table/block_builder.cc#L39-L104)
-- [`Table::Open/InternalGet`](../../../../table/table.cc#L37-L240)
-- [`ReadFooter/ReadBlock`](../../../../table/format.cc#L90-L161)
-- [`TableCache::FindTable/Get`](../../../../db/table_cache.cc#L40-L111)
+- [`TableBuilder::Add/Finish`](../../../source/leveldb/table/table_builder.cc#L93-L277)
+- [`BlockBuilder::Add`](../../../source/leveldb/table/block_builder.cc#L39-L104)
+- [`Table::Open/InternalGet`](../../../source/leveldb/table/table.cc#L37-L240)
+- [`ReadFooter/ReadBlock`](../../../source/leveldb/table/format.cc#L90-L161)
+- [`TableCache::FindTable/Get`](../../../source/leveldb/db/table_cache.cc#L40-L111)
 
 ## 未解决问题
 

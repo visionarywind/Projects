@@ -2,7 +2,7 @@
 
 - 文档目的：为没有参与过项目的开发者提供可追溯的架构、实现、运行、调试和扩展地图。
 - 适用范围：当前工作树中的 Megatron-LM 与 Megatron Core 源码。
-- 对应源码版本：`main`，提交 `8190837c2b6ce176a431bc2a6ffd3439507648a7`（本知识库生成时工作树含文档变更）。
+- 对应源码版本：`main`，提交 `3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`。
 - 证据状态：总览已完成；M01-M06、Demo 和跨模块文档已完成首版静态分析，动态验证仍待完成，详见 [分析状态](00-overview/analysis-state.md)。
 - 最后更新：2026-09-11
 
@@ -75,6 +75,8 @@ flowchart LR
 - [错误边界](90-cross-module/error-boundaries.md)
 - [修改影响图](90-cross-module/change-impact-map.md)
 - [性能关键路径](90-cross-module/performance-critical-paths.md)
+- [池化与资源管理专题](90-cross-module/pooling-and-resource-management.md)
+- [CUDA Graph 与显存池生命周期](90-cross-module/cuda-graph-resource-lifecycle.md)
 
 ### 分级面试题库
 
@@ -163,7 +165,7 @@ BASE_REF=main CHECK_ONLY=true SKIP_DOCS=false bash tools/autoformat.sh
 
 ## 相关文档
 
-- 仓库 [README.md](../../README.md)
+- 仓库 [README.md](../source/megatron-lm/README.md)
 - [Megatron Core 官方文档](https://docs.nvidia.com/megatron-core/developer-guide/latest/)
 
 ## 源码证据摘要

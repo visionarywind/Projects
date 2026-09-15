@@ -8,7 +8,7 @@
 
 ## 构造与销毁
 
-`ConcurrentQueue` 构造函数初始化 producer/hash/free-list 相关成员，建立 implicit producer hash 和初始 block pool。析构函数遍历 producer、使 token 失效、释放 hash、free list 和 pool；它要求调用方先停止所有访问。[`concurrentqueue.h:833-919`](../../../../concurrentqueue.h#L833-L919)
+`ConcurrentQueue` 构造函数初始化 producer/hash/free-list 相关成员，建立 implicit producer hash 和初始 block pool。析构函数遍历 producer、使 token 失效、释放 hash、free list 和 pool；它要求调用方先停止所有访问。[`concurrentqueue.h:833-919`](../../../source/concurrency-queue/concurrentqueue.h#L833-L919)
 
 ## 入队实际路径
 

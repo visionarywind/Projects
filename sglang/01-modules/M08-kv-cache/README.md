@@ -2,9 +2,9 @@
 
 - 文档目的：解释 scheduler 如何为请求分配 request row 和 KV slots，并如何通过 Radix Cache 复用前缀、缓存未完成请求和回收完成请求。
 - 适用范围：`ReqToTokenPool`、token-to-KV allocator、`RadixCache`、prefix matching、page alignment、finished/unfinished cache。
-- 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
+- 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
-- 最后更新：2026-09-10
+- 最后更新：2026-09-15
 - 前置阅读：[M04 Scheduler 与连续批处理](../M04-scheduler-batching/README.md)、[Transformer 与 KV Cache](../../01-concepts/02-Transformer与KV-Cache.md)
 - 后续阅读：[M05 模型执行](../M05-model-execution/README.md)、[系统 wiring](../../90-cross-module/system-wiring.md)
 
@@ -77,21 +77,23 @@ M04 在 decode 前调用 allocator capacity 检查；不足时 `ScheduleBatch.re
 
 只释放 GPU tensor 而不更新 row、prefix node 或 request metadata，会使下一轮读到悬挂映射。
 
+CUDA Graph 还要求 `DecodeInputBuffers` 的固定 shape/address 与 KV slot view 在 replay 期间保持有效；`CudaGraphRunner` 的 capture batch、global graph pool、LoRA/stream variant 不属于 Radix allocator 本身。详见[池化与资源管理专题](../../90-cross-module/pooling-and-resource-management.md)。
+
 ## 8. allocator、eviction 和 ownership 细节
 
 ### 8.1 request row 与 token slot 是两种 allocator
 
 `ReqToTokenPool.alloc_rows` 只取得 request row，并为每个 row 增加 `req_generation`；它不分配 KV token slot。`alloc(reqs)` 会复用已经 `holds_kv` 的 chunked request row，只为没有 row 的请求调用 `alloc_rows`，最后把 row 写回 `req.kv.req_pool_idx`。[`python/sglang/srt/mem_cache/memory_pool.py:297-330`]
 
-`TokenToKVPoolAllocator` 是 token 粒度实现：初始化时把 slot 0 留给 padded dummy output，`free_pages` 从 1 到 `size`；`need_sort=False` 立即把释放的 indices 拼回 free list，`need_sort=True` 则先放到 `release_pages`，只有分配不足时才合并并排序。因而 `available_size()` 会同时计入 free 和 deferred release，但“可立即按当前顺序取出的连续页”还取决于 `merge_and_sort_free()`。[`python/sglang/srt/mem_cache/allocator/token.py:28-79`](../../../python/sglang/srt/mem_cache/allocator/token.py)
+`TokenToKVPoolAllocator` 是 token 粒度实现：初始化时把 slot 0 留给 padded dummy output，`free_pages` 从 1 到 `size`；`need_sort=False` 立即把释放的 indices 拼回 free list，`need_sort=True` 则先放到 `release_pages`，只有分配不足时才合并并排序。因而 `available_size()` 会同时计入 free 和 deferred release，但“可立即按当前顺序取出的连续页”还取决于 `merge_and_sort_free()`。[`python/sglang/srt/mem_cache/allocator.py:28-79`](../../../source/sglang/python/sglang/srt/mem_cache/allocator.py)
 
-`PagedTokenToKVPoolAllocator` 把 `size` 解释为 token 总数、把 `num_pages = size // page_size` 作为真正的页数；`alloc()` 只接受 page-aligned 的需求，并把页 id 展开为连续 token indices。`alloc_extend()`/`alloc_decode()` 使用 page-aware kernel 根据 prefix、sequence length 和 last location 生成写入位置，然后按 CPU 侧 `get_num_new_pages()` 消耗 free pages；debug 模式还检查 page 对齐和输出 indices 不重复。[`python/sglang/srt/mem_cache/allocator/paged.py:116-181`](../../../python/sglang/srt/mem_cache/allocator/paged.py)[`python/sglang/srt/mem_cache/allocator/paged.py:183-268`](../../../python/sglang/srt/mem_cache/allocator/paged.py)
+`PagedTokenToKVPoolAllocator` 把 `size` 解释为 token 总数、把 `num_pages = size // page_size` 作为真正的页数；`alloc()` 只接受 page-aligned 的需求，并把页 id 展开为连续 token indices。`alloc_extend()`/`alloc_decode()` 使用 page-aware kernel 根据 prefix、sequence length 和 last location 生成写入位置，然后按 CPU 侧 `get_num_new_pages()` 消耗 free pages；debug 模式还检查 page 对齐和输出 indices 不重复。[`python/sglang/srt/mem_cache/allocator.py:116-181`](../../../source/sglang/python/sglang/srt/mem_cache/allocator.py)[`python/sglang/srt/mem_cache/allocator.py:183-268`](../../../source/sglang/python/sglang/srt/mem_cache/allocator.py)
 
-paged allocator 的 `free()` 必须把 token indices 去重到 page id；`free_segment()` 利用“起点 page-aligned、每页固定 `page_size` 个 token”的契约，只取 `free_index[::page_size]`，避免再次执行 device-side `unique`。批量释放用 `free_group_begin/end` 延迟合并，并在 debug 模式检查 double-free。基类的 `free_segments()` 还会验证相邻 segment 不共享 page，因此 partial tail 释放的是完整的最后一页而不是半页。[`python/sglang/srt/mem_cache/allocator/base.py:112-124`](../../../python/sglang/srt/mem_cache/allocator/base.py)[`python/sglang/srt/mem_cache/allocator/base.py:174-222`](../../../python/sglang/srt/mem_cache/allocator/base.py)[`python/sglang/srt/mem_cache/allocator/paged.py:270-335`](../../../python/sglang/srt/mem_cache/allocator/paged.py)
+paged allocator 的 `free()` 必须把 token indices 去重到 page id；`free_segment()` 利用“起点 page-aligned、每页固定 `page_size` 个 token”的契约，只取 `free_index[::page_size]`，避免再次执行 device-side `unique`。批量释放用 `free_group_begin/end` 延迟合并，并在 debug 模式检查 double-free。基类的 `free_segments()` 还会验证相邻 segment 不共享 page，因此 partial tail 释放的是完整的最后一页而不是半页。[`python/sglang/srt/mem_cache/allocator.py:112-124`](../../../source/sglang/python/sglang/srt/mem_cache/allocator.py)[`python/sglang/srt/mem_cache/allocator.py:174-222`](../../../source/sglang/python/sglang/srt/mem_cache/allocator.py)[`python/sglang/srt/mem_cache/allocator.py:270-335`](../../../source/sglang/python/sglang/srt/mem_cache/allocator.py)
 
-HiCache/host pool 不是 GPU allocator 的简单镜像：`LogicalHostPool` 只维护 page-aligned 的逻辑 anchor，不持有 KV backing tensor；实际 host pool 会按 `slot_page_size` 管理 host pages，并要求 alloc/free 的长度满足 page 对齐。这样 device index、host index 和传输页 id 必须由 transfer 层显式转换，不能假设 host slot 与 GPU token slot 的数值天然相同。[`python/sglang/srt/mem_cache/memory_pool_host.py:52-139`](../../../python/sglang/srt/mem_cache/memory_pool_host.py)[`python/sglang/srt/mem_cache/memory_pool_host.py:174-230`](../../../python/sglang/srt/mem_cache/memory_pool_host.py)
+HiCache/host pool 不是 GPU allocator 的简单镜像：`LogicalHostPool` 只维护 page-aligned 的逻辑 anchor，不持有 KV backing tensor；实际 host pool 会按 `slot_page_size` 管理 host pages，并要求 alloc/free 的长度满足 page 对齐。这样 device index、host index 和传输页 id 必须由 transfer 层显式转换，不能假设 host slot 与 GPU token slot 的数值天然相同。[`python/sglang/srt/mem_cache/memory_pool_host.py:52-139`](../../../source/sglang/python/sglang/srt/mem_cache/memory_pool_host.py)[`python/sglang/srt/mem_cache/memory_pool_host.py:174-230`](../../../source/sglang/python/sglang/srt/mem_cache/memory_pool_host.py)
 
-这一区分很重要：row 不足和 KV token slot 不足是不同失败原因。`free_rows` 还会同步释放 row 关联的 auxiliary cache，`schedulable_token_capacity` 在存在 auxiliary cache 时返回其 dense capacity，而不是直接返回物理 KV capacity。[`python/sglang/srt/mem_cache/memory_pool.py:332-377`](../../../python/sglang/srt/mem_cache/memory_pool.py)。
+这一区分很重要：row 不足和 KV token slot 不足是不同失败原因。`free_rows` 还会同步释放 row 关联的 auxiliary cache，`schedulable_token_capacity` 在存在 auxiliary cache 时返回其 dense capacity，而不是直接返回物理 KV capacity。[`python/sglang/srt/mem_cache/memory_pool.py:332-377`](../../../source/sglang/python/sglang/srt/mem_cache/memory_pool.py)。
 
 
 ### 8.2 Radix node 的可驱逐状态
@@ -122,7 +124,7 @@ evict request
 
 ### 8.5 eviction policy 不是固定的 LRU
 
-`EvictionStrategy` 只要求为 node 返回可比较的 priority；当前 checkout 提供 LRU（`last_access_time`）、LFU（`hit_count` 后按访问时间）、FIFO（`creation_time`）、MRU/FILO（对时间取负）、priority-aware（请求 priority 后按访问时间）和 SLRU（按 hit threshold 分 probationary/protected，再按访问时间）策略。[`python/sglang/srt/mem_cache/evict_policy.py:9-65`](../../../python/sglang/srt/mem_cache/evict_policy.py)
+`EvictionStrategy` 只要求为 node 返回可比较的 priority；当前 checkout 提供 LRU（`last_access_time`）、LFU（`hit_count` 后按访问时间）、FIFO（`creation_time`）、MRU/FILO（对时间取负）、priority-aware（请求 priority 后按访问时间）和 SLRU（按 hit threshold 分 probationary/protected，再按访问时间）策略。[`python/sglang/srt/mem_cache/evict_policy.py:9-65`](../../../source/sglang/python/sglang/srt/mem_cache/evict_policy.py)
 
 这些策略只决定 heap 中的选择顺序，不绕过 `lock_ref`、page ownership 或 `free_segment` 的约束。尤其 priority-aware eviction 中，较小的请求 priority 会先被驱逐；SLRU 的 protected 是策略分段，不等同于 Radix node 的 device lock protection，排查时不能混为同一个状态。
 
@@ -157,16 +159,16 @@ evict request
 
 ## 13. 源码证据摘要
 
-- [`python/sglang/srt/mem_cache/memory_pool.py:258-377`](../../../python/sglang/srt/mem_cache/memory_pool.py)
-- [`python/sglang/srt/mem_cache/allocator/base.py:41-222`](../../../python/sglang/srt/mem_cache/allocator/base.py)
-- [`python/sglang/srt/mem_cache/allocator/token.py:28-97`](../../../python/sglang/srt/mem_cache/allocator/token.py)
-- [`python/sglang/srt/mem_cache/allocator/paged.py:116-363`](../../../python/sglang/srt/mem_cache/allocator/paged.py)
-- [`python/sglang/srt/mem_cache/memory_pool_host.py:52-230`](../../../python/sglang/srt/mem_cache/memory_pool_host.py)
-- [`python/sglang/srt/mem_cache/evict_policy.py:9-65`](../../../python/sglang/srt/mem_cache/evict_policy.py)
-- [`python/sglang/srt/mem_cache/radix_cache.py:460-599`](../../../python/sglang/srt/mem_cache/radix_cache.py)
-- [`python/sglang/srt/managers/schedule_batch.py:2559-2605`](../../../python/sglang/srt/managers/schedule_batch.py)
-- [`python/sglang/srt/managers/schedule_batch.py:3076-3159`](../../../python/sglang/srt/managers/schedule_batch.py)
-- [`python/sglang/srt/managers/schedule_policy.py:1266-1359`](../../../python/sglang/srt/managers/schedule_policy.py)
+- [`python/sglang/srt/mem_cache/memory_pool.py:258-377`](../../../source/sglang/python/sglang/srt/mem_cache/memory_pool.py)
+- [`python/sglang/srt/mem_cache/allocator.py:41-222`](../../../source/sglang/python/sglang/srt/mem_cache/allocator.py)
+- [`python/sglang/srt/mem_cache/allocator.py:28-97`](../../../source/sglang/python/sglang/srt/mem_cache/allocator.py)
+- [`python/sglang/srt/mem_cache/allocator.py:116-363`](../../../source/sglang/python/sglang/srt/mem_cache/allocator.py)
+- [`python/sglang/srt/mem_cache/memory_pool_host.py:52-230`](../../../source/sglang/python/sglang/srt/mem_cache/memory_pool_host.py)
+- [`python/sglang/srt/mem_cache/evict_policy.py:9-65`](../../../source/sglang/python/sglang/srt/mem_cache/evict_policy.py)
+- [`python/sglang/srt/mem_cache/radix_cache.py:460-599`](../../../source/sglang/python/sglang/srt/mem_cache/radix_cache.py)
+- [`python/sglang/srt/managers/schedule_batch.py:2559-2605`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
+- [`python/sglang/srt/managers/schedule_batch.py:3076-3159`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
+- [`python/sglang/srt/managers/schedule_policy.py:1266-1359`](../../../source/sglang/python/sglang/srt/managers/schedule_policy.py)
 
 ## 14. 深度审计
 

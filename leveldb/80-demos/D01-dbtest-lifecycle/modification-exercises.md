@@ -6,7 +6,7 @@
 
 **任务**：在 `DBTest` 中使用 `WriteBatch` 同时写两个 key，设置 `WriteOptions::sync=true`，重开后验证两项都存在。
 
-**先读**：`DBImpl::Write`、`BuildBatchGroup`、`WriteBatch::Iterate`、`RecoverLogFile`。[`DBImpl::Write`](../../../../db/db_impl.cc#L1206-L1277)、[`WriteBatch`](../../../../db/write_batch.cc#L42-L79)
+**先读**：`DBImpl::Write`、`BuildBatchGroup`、`WriteBatch::Iterate`、`RecoverLogFile`。[`DBImpl::Write`](../../../source/leveldb/db/db_impl.cc#L1206-L1277)、[`WriteBatch`](../../../source/leveldb/db/write_batch.cc#L42-L79)
 
 **必须考虑**：
 
@@ -21,7 +21,7 @@
 
 **任务**：为单键读取增加统计或临时缓存，但不改变 Snapshot 语义。
 
-**先读**：`DBImpl::Get` 的 Ref/Unlock/Lock/Unref 顺序、`Version::Get`、`TableCache::Get`。[`DBImpl::Get`](../../../../db/db_impl.cc#L1121-L1166)
+**先读**：`DBImpl::Get` 的 Ref/Unlock/Lock/Unref 顺序、`Version::Get`、`TableCache::Get`。[`DBImpl::Get`](../../../source/leveldb/db/db_impl.cc#L1121-L1166)
 
 **必须保持**：
 
@@ -36,7 +36,7 @@
 
 **任务**：改变默认或测试 Options 的 `write_buffer_size`，观察 imm 切换和恢复成本。
 
-**先读**：`MakeRoomForWrite`、`WriteLevel0Table`、`CompactMemTable`、`RecoverLogFile`。[`MakeRoomForWrite`](../../../../db/db_impl.cc#L1331-L1405)
+**先读**：`MakeRoomForWrite`、`WriteLevel0Table`、`CompactMemTable`、`RecoverLogFile`。[`MakeRoomForWrite`](../../../source/leveldb/db/db_impl.cc#L1331-L1405)
 
 **必须评估**：
 
@@ -66,7 +66,7 @@
 
 **任务**：在 `SpecialEnv` 中加入一种只让某类文件 `Close` 或 `Sync` 失败的开关。
 
-**先读**：`Env` 文件线程契约、`EnvWrapper` 转发、POSIX WritableFile、`RecordBackgroundError`。[`Env`](../../../../include/leveldb/env.h#L50-L217)、[`EnvWrapper`](../../../../include/leveldb/env.h#L331-L402)
+**先读**：`Env` 文件线程契约、`EnvWrapper` 转发、POSIX WritableFile、`RecordBackgroundError`。[`Env`](../../../source/leveldb/include/leveldb/env.h#L50-L217)、[`EnvWrapper`](../../../source/leveldb/include/leveldb/env.h#L331-L402)
 
 **必须记录**：
 
@@ -94,7 +94,7 @@
 
 **任务**：改变旧版本或 deletion marker 的保留判断。
 
-**先读**：`DoCompactionWork` 的 smallest snapshot/base-level 条件和 VersionSet 输入扩展。[`DoCompactionWork`](../../../../db/db_impl.cc#L898-L1057)、[`SetupOtherInputs`](../../../../db/version_set.cc#L1385-L1446)
+**先读**：`DoCompactionWork` 的 smallest snapshot/base-level 条件和 VersionSet 输入扩展。[`DoCompactionWork`](../../../source/leveldb/db/db_impl.cc#L898-L1057)、[`SetupOtherInputs`](../../../source/leveldb/db/version_set.cc#L1385-L1446)
 
 **必须证明**：
 

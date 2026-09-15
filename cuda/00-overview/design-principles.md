@@ -4,7 +4,7 @@
 - 适用范围：核心 Driver runtime。
 - 对应源码版本：CUDA 10.2 API 字段；提交未知。
 - 证据状态：部分已确认，设计意图多为推断。
-- 最后更新：2026-09-11
+- 最后更新：2026-09-14
 - 前置阅读：[总体架构](architecture.md)
 - 后续阅读：[模块实现](../01-modules/M04-memory-uvm/implementation.md)
 
@@ -34,7 +34,7 @@
 ## 相关文档
 
 - [全局错误模型](global-error-model.md)
-- [配置影响](../90-cross-module/configuration-impact-map.md)
+- [修改影响图](../90-cross-module/change-impact-map.md)
 
 ## 源码证据摘要
 

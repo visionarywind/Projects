@@ -4,7 +4,7 @@
 
 D02 以仓库真实的 `build.sh` 和 `notes-v2.cu` 为入口，展示 standalone CUDA 程序从架构选择、编译/链接、CLI phase 到 host/device buffer、kernel、同步、D2H、误差和释放的完整路径。它同时连接 interview 内的 SGEMM/HGEMM/FlashAttention 章节，但不把单文件整合入口误读成统一生产 runtime。
 
-- 目标版本：`main` / `0983c65`。
+- 目标版本：`main` / `4513b31`。
 - 当前状态：静态源码追踪已完成代表路径；编译、运行和 benchmark **未验证**。
 - 相关模块：[M01](../../01-modules/M01-foundation/README.md)、[M05](../../01-modules/M05-gemv-sgemm/README.md)、[M06](../../01-modules/M06-hgemm-tensorcore/README.md)、[M07](../../01-modules/M07-flash-attention/README.md)、[M09](../../01-modules/M09-interview-benchmark/README.md)。
 

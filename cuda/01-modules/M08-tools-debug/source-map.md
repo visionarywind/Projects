@@ -19,7 +19,7 @@
 4. memcheck：验证 error entry、allocation table HtoD copy 和 launch failure cleanup。
 5. profiler：分别验证 profile mode 兼容、blocking/concurrency 和 PM trigger。
 
-当前没有执行 GPU、debugger client、memcheck 或 profiler 验证。DRS 生成依赖外部 `nvGenerateRules.nvmk`（静态确认：[src/drs/makefile.nvmk:1-9]）。
+当前没有执行 GPU、debugger client、memcheck 或 profiler 验证。DRS 生成依赖外部 `nvGenerateRules.nvmk`（静态确认：[src/drs/makefile.nvmk:1-8]）。
 
 ## 修改配方
 

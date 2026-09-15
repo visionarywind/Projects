@@ -26,7 +26,7 @@
 
 ## 源码证据摘要
 
-[CMakeLists.txt:145-152](../../../../CMakeLists.txt#L145-L152) 列出主要源文件。
+[CMakeLists.txt:145-152](../../../source/leveldb/CMakeLists.txt#L145-L152) 列出主要源文件。
 
 ## 未解决问题
 

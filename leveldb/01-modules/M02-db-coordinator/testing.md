@@ -29,7 +29,7 @@
 
 ## 源码证据摘要
 
-[CMakeLists.txt:313-352](../../../../CMakeLists.txt#L313-L352)。
+[CMakeLists.txt:313-352](../../../source/leveldb/CMakeLists.txt#L313-L352)。
 
 ## 未解决问题
 

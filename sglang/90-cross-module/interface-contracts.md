@@ -2,7 +2,7 @@
 
 - 文档目的：说明请求、配置、批次、模型执行和输出在模块边界上的输入/输出保证。
 - 适用范围：M01-M18 的普通请求主线，以及 speculative、multimodal、disaggregation、MoE/LoRA、设备和 Rust/router 变体。
-- 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
+- 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
 
@@ -41,10 +41,10 @@ SGLang 的跨模块契约不仅是函数签名，还包括 `rid` 对齐、字段
 
 ## 源码证据摘要
 
-- [`python/sglang/srt/managers/io_struct.py:173-224`](../../python/sglang/srt/managers/io_struct.py)
-- [`python/sglang/srt/managers/io_struct.py:972-1034`](../../python/sglang/srt/managers/io_struct.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:1577-1650`](../../python/sglang/srt/managers/tokenizer_manager.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:2240-2538`](../../python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/io_struct.py:173-224`](../../source/sglang/python/sglang/srt/managers/io_struct.py)
+- [`python/sglang/srt/managers/io_struct.py:972-1034`](../../source/sglang/python/sglang/srt/managers/io_struct.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:1577-1650`](../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:2240-2538`](../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
 
 ## 未解决问题
 

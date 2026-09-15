@@ -19,11 +19,11 @@
 
 ## 异常安全
 
-入队先在 block 槽位构造对象，成功后发布 tail；构造失败时回滚 block index 状态。出队将内部元素 move-assign 到调用方对象，并通过局部 Guard 确保即使赋值抛出，内部对象仍析构、槽位仍被标记为空。[`concurrentqueue.h:1877-2081`](../../../concurrentqueue.h#L1877-L2081)
+入队先在 block 槽位构造对象，成功后发布 tail；构造失败时回滚 block index 状态。出队将内部元素 move-assign 到调用方对象，并通过局部 Guard 确保即使赋值抛出，内部对象仍析构、槽位仍被标记为空。[`concurrentqueue.h:1877-2081`](../../source/concurrency-queue/concurrentqueue.h#L1877-L2081)
 
 ## 阻塞边界
 
-信号量 count 和平台 semaphore 必须在超时/唤醒失败路径保持一致；`LightweightSemaphore::waitWithPartialSpinning` 和 `waitManyWithPartialSpinning` 会在必要时恢复计数。阻塞 queue 的销毁不允许与等待者并发。[`lightweightsemaphore.h:290-360`](../../../lightweightsemaphore.h#L290-L360)、[../../../README.md:166-180](../../../README.md#L166-L180)
+信号量 count 和平台 semaphore 必须在超时/唤醒失败路径保持一致；`LightweightSemaphore::waitWithPartialSpinning` 和 `waitManyWithPartialSpinning` 会在必要时恢复计数。阻塞 queue 的销毁不允许与等待者并发。[`lightweightsemaphore.h:290-360`](../../source/concurrency-queue/lightweightsemaphore.h#L290-L360)、[../../../README.md:166-180](../../source/concurrency-queue/README.md#L166-L180)
 
 ## C ABI 未决项
 

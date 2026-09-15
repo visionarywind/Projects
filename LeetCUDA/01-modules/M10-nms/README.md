@@ -2,7 +2,7 @@
 
 - 文档目的：解释当前 GPU NMS 的算法、输入契约、修复背景和测试。
 - 适用范围：`kernels/nms/nms.cu`, `nms.cc`, `nms.py`。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：核心实现已逐行分析，benchmark 未在本机执行。
 - 最后更新：2026-09-10
 - 前置阅读：[M08](../M08-pytorch-extension/README.md)

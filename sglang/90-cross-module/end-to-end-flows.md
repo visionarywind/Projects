@@ -1,7 +1,7 @@
 # 端到端流程
 
 - 文档目的：记录最重要的启动、离线生成和 HTTP 生成流程，并链接真实 Demo 与源码。
-- 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
+- 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
 
@@ -105,9 +105,9 @@ client
 
 ## 源码证据摘要
 
-- [`examples/runtime/engine/offline_batch_inference.py:6-43`](../../examples/runtime/engine/offline_batch_inference.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:776-845`](../../python/sglang/srt/managers/tokenizer_manager.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:1740-1852`](../../python/sglang/srt/managers/tokenizer_manager.py)
+- [`examples/runtime/engine/offline_batch_inference.py:6-43`](../../source/sglang/examples/runtime/engine/offline_batch_inference.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:776-845`](../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:1740-1852`](../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
 
 ## 未解决问题
 

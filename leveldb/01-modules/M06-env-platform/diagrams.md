@@ -44,7 +44,7 @@ stateDiagram-v2
   InUse --> Freed: Erase + final Release
 ```
 
-`LRUCache` 明确维护 in-use 与 LRU 两条链，避免活跃客户端持有的对象被提前释放。[util/cache.cc:21-38](../../../../util/cache.cc#L21-L38)
+`LRUCache` 明确维护 in-use 与 LRU 两条链，避免活跃客户端持有的对象被提前释放。[util/cache.cc:21-38](../../../source/leveldb/util/cache.cc#L21-L38)
 
 ## 锁边界
 

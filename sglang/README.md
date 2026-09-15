@@ -49,16 +49,17 @@
 28. [M06 模型加载与权重](01-modules/M06-model-loading/README.md)：ModelConfig、loader、PP filter、weight mapping、量化和 barrier。
 29. [M07 分布式并行](01-modules/M07-分布式并行.md)：WORLD、TP/PP、attention/MoE 拓扑、GroupCoordinator、collective 与清理。
 30. [M08 KV Cache 与 Radix Cache](01-modules/M08-kv-cache/README.md)：request row、KV slot、prefix match、Radix 插入、回收与 retraction。
-31. [M09 Attention 与 CUDA Graph](01-modules/M09-attention-cuda-graph/README.md)：backend metadata、eager/graph 选择、capture eligibility 与 overlap 边界。
-32. [M10 采样与约束输出](01-modules/M10-sampling-constraints/README.md)：SamplingBatchInfo、penalty、grammar mask、sampler 和输出边界。
-33. [M11 Speculative decoding](01-modules/M11-speculative-decoding/README.md)：draft/target、accept/reject、bonus token、KV 回滚和算法变体。
-34. [M12 多模态 Runtime](01-modules/M12-multimodal-runtime/README.md)：media preprocess、placeholder、feature cache、M-RoPE 和 rank 分片。
-35. [M13 分离部署与 HiCache](01-modules/M13-disaggregation-hicache/README.md)：KV transfer、bootstrap、staging、prefetch/restore 和失败状态。
-36. [M14 MoE、量化与 LoRA](01-modules/M14-moe-quantization-lora/README.md)：quant method、expert location/EPLB 和 adapter 生命周期。
-37. [M15 多进程与 IPC](01-modules/M15-ipc-control-plane/README.md)：scheduler/detokenizer 子进程、ZMQ、startup pipe、序列化和 cleanup。
-38. [M16 Kernel 与设备后端](01-modules/M16-kernel-device-backend/README.md)：platform resolver、AOT/JIT/fallback 和设备能力边界。
-39. [M17 Rust、Router 与 Gateway](01-modules/M17-rust-router-gateway/README.md)：PyO3/gRPC、KV-aware router、service discovery 和可靠性。
-40. [M18 测试、Benchmark 与 CI](01-modules/M18-testing-benchmark-ci/README.md)：suite 发现、过滤、分片、registered/manual、benchmark 和验证证据。
+31. [池化与资源管理专题](90-cross-module/pooling-and-resource-management.md)：request row、slot/page allocator、物理 KV/Mamba buffer、Radix ownership 与 flush。
+32. [M09 Attention 与 CUDA Graph](01-modules/M09-attention-cuda-graph/README.md)：backend metadata、eager/graph 选择、capture eligibility 与 overlap 边界。
+33. [M10 采样与约束输出](01-modules/M10-sampling-constraints/README.md)：SamplingBatchInfo、penalty、grammar mask、sampler 和输出边界。
+34. [M11 Speculative decoding](01-modules/M11-speculative-decoding/README.md)：draft/target、accept/reject、bonus token、KV 回滚和算法变体。
+35. [M12 多模态 Runtime](01-modules/M12-multimodal-runtime/README.md)：media preprocess、placeholder、feature cache、M-RoPE 和 rank 分片。
+36. [M13 分离部署与 HiCache](01-modules/M13-disaggregation-hicache/README.md)：KV transfer、bootstrap、staging、prefetch/restore 和失败状态。
+37. [M14 MoE、量化与 LoRA](01-modules/M14-moe-quantization-lora/README.md)：quant method、expert location/EPLB 和 adapter 生命周期。
+38. [M15 多进程与 IPC](01-modules/M15-ipc-control-plane/README.md)：scheduler/detokenizer 子进程、ZMQ、startup pipe、序列化和 cleanup。
+39. [M16 Kernel 与设备后端](01-modules/M16-kernel-device-backend/README.md)：platform resolver、AOT/JIT/fallback 和设备能力边界。
+40. [M17 Rust、Router 与 Gateway](01-modules/M17-rust-router-gateway/README.md)：PyO3/gRPC、KV-aware router、service discovery 和可靠性。
+41. [M18 测试、Benchmark 与 CI](01-modules/M18-testing-benchmark-ci/README.md)：suite 发现、过滤、分片、registered/manual、benchmark 和验证证据。
 
 > `03-model-loading/` 是模型加载专题目录；实现层的模块文章位于 `01-modules/M06-model-loading/`。两者分别承担启动主链和独立实现细节。
 

@@ -32,7 +32,7 @@ CMake LEVELDB_BUILD_TESTS=ON
   -> ctest
 ```
 
-证据：[CMakeLists.txt:292-404](../../../../CMakeLists.txt#L292-L404)。
+证据：[CMakeLists.txt:292-404](../../../source/leveldb/CMakeLists.txt#L292-L404)。
 
 ## CI
 
@@ -47,7 +47,7 @@ checkout --submodules
   -> install target
 ```
 
-证据：[.github/workflows/build.yml:61-102](../../../../.github/workflows/build.yml#L61-L102)。
+证据：[.github/workflows/build.yml:61-102](../../../source/leveldb/.github/workflows/build.yml#L61-L102)。
 
 ## 修改到反馈
 

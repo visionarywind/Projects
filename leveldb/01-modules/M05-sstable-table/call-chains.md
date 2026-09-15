@@ -26,7 +26,7 @@ DBImpl::WriteLevel0Table / builder::BuildTable
      -> footer
 ```
 
-`BuildTable` 负责迭代输入、Finish、Sync、Close 和失败删除；M05 负责 builder 内部格式。[db/builder.cc:16-79](../../../../db/builder.cc#L16-L79)
+`BuildTable` 负责迭代输入、Finish、Sync、Close 和失败删除；M05 负责 builder 内部格式。[db/builder.cc:16-79](../../../source/leveldb/db/builder.cc#L16-L79)
 
 ## TableCache 打开
 
@@ -42,7 +42,7 @@ TableCache::FindTable
   -> cache.Insert(TableAndFile)
 ```
 
-证据：[db/table_cache.cc:40-74](../../../../db/table_cache.cc#L40-L74)、[table/table.cc:37-107](../../../../table/table.cc#L37-L107)。
+证据：[db/table_cache.cc:40-74](../../../source/leveldb/db/table_cache.cc#L40-L74)、[table/table.cc:37-107](../../../source/leveldb/table/table.cc#L37-L107)。
 
 ## 单键读取
 
@@ -58,7 +58,7 @@ Version::Get
         -> handle_result
 ```
 
-过滤器只在能证明“不可能命中”时短路；否则仍读取 block。[table/table.cc:213-240](../../../../table/table.cc#L213-L240)
+过滤器只在能证明“不可能命中”时短路；否则仍读取 block。[table/table.cc:213-240](../../../source/leveldb/table/table.cc#L213-L240)
 
 ## Table 迭代器
 
@@ -71,8 +71,8 @@ Table::NewIterator
      -> SkipEmptyDataBlocksForward/Backward
 ```
 
-两级迭代器在 index block 和 data block 之间切换，并将 data iterator 的 status 汇总到外层。[table/two_level_iterator.cc:81-159](../../../../table/two_level_iterator.cc#L81-L159)
+两级迭代器在 index block 和 data block 之间切换，并将 data iterator 的 status 汇总到外层。[table/two_level_iterator.cc:81-159](../../../source/leveldb/table/two_level_iterator.cc#L81-L159)
 
 ## 多表归并
 
-Version 为多个文件构造子迭代器后，`NewMergingIterator` 逐个比较当前 child；实现使用简单数组而不是 heap，源码说明预期 child 数量较少。[table/merger.cc:13-20](../../../../table/merger.cc#L13-L20)、[table/merger.cc:134-175](../../../../table/merger.cc#L134-L175)
+Version 为多个文件构造子迭代器后，`NewMergingIterator` 逐个比较当前 child；实现使用简单数组而不是 heap，源码说明预期 child 数量较少。[table/merger.cc:13-20](../../../source/leveldb/table/merger.cc#L13-L20)、[table/merger.cc:134-175](../../../source/leveldb/table/merger.cc#L134-L175)

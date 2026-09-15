@@ -25,9 +25,9 @@ flowchart LR
 
 ## 控制流
 
-- 普通入队选择 implicit producer；token 入队绕过 thread-id hash，直接使用 explicit producer。[`concurrentqueue.h:1395-1418`](../../../concurrentqueue.h#L1395-L1418)
-- 普通出队扫描 producer 链表，以近似 size 选择候选并失败回退；该启发式不改变元素所属 producer。[`concurrentqueue.h:1149-1185`](../../../concurrentqueue.h#L1149-L1185)
-- blocking 出队先消费 semaphore permit，再尝试核心队列；permit 与元素数量由 blocking wrapper 的成功入队路径配对。[`blockingconcurrentqueue.h:117-203`](../../../blockingconcurrentqueue.h#L117-L203)
+- 普通入队选择 implicit producer；token 入队绕过 thread-id hash，直接使用 explicit producer。[`concurrentqueue.h:1395-1418`](../../source/concurrency-queue/concurrentqueue.h#L1395-L1418)
+- 普通出队扫描 producer 链表，以近似 size 选择候选并失败回退；该启发式不改变元素所属 producer。[`concurrentqueue.h:1149-1185`](../../source/concurrency-queue/concurrentqueue.h#L1149-L1185)
+- blocking 出队先消费 semaphore permit，再尝试核心队列；permit 与元素数量由 blocking wrapper 的成功入队路径配对。[`blockingconcurrentqueue.h:117-203`](../../source/concurrency-queue/blockingconcurrentqueue.h#L117-L203)
 
 ## 错误流
 
@@ -45,7 +45,7 @@ flowchart TD
 
 ## 资源流
 
-初始 block pool → producer 使用 → block 完全为空 → parent free list → 新 producer/block 再请求；producer list 和 hash table 的节点由 queue 持有，直到 queue 析构或 producer 被回收。queue 析构必须在所有访问者退出后执行。[`concurrentqueue.h:875-919`](../../../concurrentqueue.h#L875-L919)、[`concurrentqueue.h:3068-3143`](../../../concurrentqueue.h#L3068-L3143)
+初始 block pool → producer 使用 → block 完全为空 → parent free list → 新 producer/block 再请求；producer list 和 hash table 的节点由 queue 持有，直到 queue 析构或 producer 被回收。queue 析构必须在所有访问者退出后执行。[`concurrentqueue.h:875-919`](../../source/concurrency-queue/concurrentqueue.h#L875-L919)、[`concurrentqueue.h:3068-3143`](../../source/concurrency-queue/concurrentqueue.h#L3068-L3143)
 
 ## 未解决问题
 

@@ -40,6 +40,7 @@ flowchart LR
 - [M02-ACL](01-modules/M02-acl/README.md)
 - [M03-Runtime](01-modules/M03-runtime/README.md)
 - [M04-Driver](01-modules/M04-driver/README.md)，以及 [Driver ordinary memory V2/V3 cache 深度分析](01-modules/M04-driver/driver-memory-pool-analysis.md)
+- [池化与资源管理专题](90-cross-module/pooling-and-resource-management.md)：Runtime/SOMA、Driver cache、GE 图内存复用和 SHMEM heap 的跨仓闭环。
 
 ## 三条最重要的端到端流程
 
@@ -89,6 +90,7 @@ flowchart LR
 - [错误边界](90-cross-module/error-boundaries.md)
 - [变更影响](90-cross-module/change-impact-map.md)
 - [性能关键路径](90-cross-module/performance-critical-paths.md)
+- [池化与资源管理](90-cross-module/pooling-and-resource-management.md)
 
 ## 实践层
 
@@ -104,10 +106,10 @@ flowchart LR
 
 ## 相关文档
 
-- [GE 官方仓库 README](../../ge/README.md)
-- [ACL 官方仓库 README](../../acl/README.md)
-- [Runtime 官方仓库 README](../../runtime/README.md)
-- [Driver 官方仓库 README](../../driver/README.md)
+- [GE 官方仓库 README](../../../source/cann/ge/README.md)
+- [ACL API（位于 Runtime 仓库）](../../../source/cann/runtime/README.md)
+- [Runtime 官方仓库 README](../../../source/cann/runtime/README.md)
+- [Driver 官方仓库 README](../../../source/cann/driver/README.md)
 
 ## 源码证据摘要
 

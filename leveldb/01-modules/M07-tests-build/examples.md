@@ -17,7 +17,7 @@ mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
 ```
 
-证据：[README.md:39-50](../../../../README.md#L39-L50)。
+证据：[README.md:39-50](../../../source/leveldb/README.md#L39-L50)。
 
 ## CI 等价配置
 
@@ -32,8 +32,8 @@ ctest --test-dir build -C Debug --verbose
 cmake --build build --target install
 ```
 
-本机已验证等价的 Debug configure/build/CTest 流程；CTest 3/3 通过。此前已执行本地 prefix install（目标为 `build/install`）。上面的 `/tmp/leveldb-install` 路径不是本轮实际安装路径，若重新执行需单独记录结果。[.github/workflows/build.yml:74-102](../../../../.github/workflows/build.yml#L74-L102)
+本机已验证等价的 Debug configure/build/CTest 流程；CTest 3/3 通过。此前已执行本地 prefix install（目标为 `build/install`）。上面的 `/tmp/leveldb-install` 路径不是本轮实际安装路径，若重新执行需单独记录结果。[.github/workflows/build.yml:74-102](../../../source/leveldb/.github/workflows/build.yml#L74-L102)
 
 ## Benchmark 场景
 
-`db_bench` 默认包含 `fillseq`、`fillsync`、`fillrandom`、`readrandom`、`readseq`、`readreverse`、`compact`、CRC 和压缩场景。[benchmarks/db_bench.cc:23-64](../../../../benchmarks/db_bench.cc#L23-L64) 修改性能相关模块时优先固定 `--benchmarks`、数据量、线程数和 block/write buffer 参数。
+`db_bench` 默认包含 `fillseq`、`fillsync`、`fillrandom`、`readrandom`、`readseq`、`readreverse`、`compact`、CRC 和压缩场景。[benchmarks/db_bench.cc:23-64](../../../source/leveldb/benchmarks/db_bench.cc#L23-L64) 修改性能相关模块时优先固定 `--benchmarks`、数据量、线程数和 block/write buffer 参数。

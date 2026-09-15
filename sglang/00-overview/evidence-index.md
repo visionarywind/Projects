@@ -58,8 +58,16 @@
 - `[python/sglang/srt/models/llama.py:742-778]`、`[python/sglang/srt/models/qwen2.py:692-736]`：Llama/Qwen2 v2 权重入口。
 - `[python/sglang/srt/configs/model_config.py:692-809]`：`from_server_args` 字段投影和 draft architecture 改写。
 
-- `[python/sglang/srt/mem_cache/allocator/base.py:41-223]`、`[python/sglang/srt/mem_cache/allocator/token.py:27-96]`、`[python/sglang/srt/mem_cache/allocator/paged.py:116-337]`：allocator 抽象、普通 token allocator 和 paged allocation/free。
+- `[python/sglang/srt/mem_cache/allocator.py:41-223]`、`[python/sglang/srt/mem_cache/allocator.py:27-96]`、`[python/sglang/srt/mem_cache/allocator.py:116-337]`：allocator 抽象、普通 token allocator 和 paged allocation/free。
 - `[python/sglang/srt/mem_cache/evict_policy.py:9-65]`、`[python/sglang/srt/mem_cache/radix_cache.py:616-680]`：eviction strategy、heap eviction 和 lock/protected accounting。
+- `[python/sglang/srt/mem_cache/memory_pool.py:129-194]`：`ReqToTokenPool` request row 分配、复用和清空。
+- `[python/sglang/srt/mem_cache/allocator.py:35-170,362-430]`：普通/paged token allocator、free group、release/sort 和 page-aligned indices。
+- `[python/sglang/srt/mem_cache/memory_pool.py:196-384,703-930,1517-1600]`：Mamba、KVCache、MHA/MLA/NSA 物理 buffer 和 tensor lifecycle。
+- `[python/sglang/srt/mem_cache/radix_cache.py:269-318,438-630]`：RadixCache 初始化、finished/unfinished ownership、lock_ref 和 eviction。
+- `[python/sglang/srt/model_executor/model_runner_kv_cache_mixin.py:199-270,614-720,751-840]`：memory pool 配置、容量投影和 allocator/backend 选择。
+- `[python/sglang/srt/managers/scheduler.py:785-870,2577-2735,2869-2920,3402-3420]`：scheduler wiring、admission/retraction、KV 差值观测和 flush。
+- `[python/sglang/srt/model_executor/cuda_graph_runner.py:547-721,757-760]`：capture batch、固定 `DecodeInputBuffers`、global graph pool 和 eager fallback。
+- `[python/sglang/srt/mem_cache/memory_pool.py:703-742]`、`[python/sglang/srt/mem_cache/utils.py:332-358]`：KV physical buffer 与 Mooncake/custom memory pool 初始化边界。
 
 ## 多模态、分离部署与扩展
 

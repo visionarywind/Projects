@@ -18,7 +18,7 @@
 | filter block | `table/filter_block_test.cc` |
 | block cache / DB 集成 | `db/db_test.cc`、`db/table_cache.cc` 使用路径 |
 
-`table/table_test.cc` 的构造器把相同的有序 map 输入分别送入 Block 和 Table 实现，再通过 Iterator 比较结果，适合发现编码/解码不对称。[table/table_test.cc:135-199](../../../../table/table_test.cc#L135-L199)
+`table/table_test.cc` 的构造器把相同的有序 map 输入分别送入 Block 和 Table 实现，再通过 Iterator 比较结果，适合发现编码/解码不对称。[table/table_test.cc:135-199](../../../source/leveldb/table/table_test.cc#L135-L199)
 
 ## 必测矩阵
 

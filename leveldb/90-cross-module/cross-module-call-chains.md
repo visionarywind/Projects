@@ -27,7 +27,7 @@ DB::Open
                       └─ WriteLevel0Table（超出内存阈值时）
 ```
 
-`DB::Open` 成功才把 `DBImpl*` 写回调用方；失败路径 delete impl。Recover 期间 `mutex_` 持有，文件读取/写入虽是同步调用，版本恢复失败立即返回，不把半恢复状态暴露给 API。[`DB::Open`](../../../db/db_impl.cc#L1503-L1543)、[`DBImpl::Recover`](../../../db/db_impl.cc#L292-L383)、[`VersionSet::Recover`](../../../db/version_set.cc#L861-L991)
+`DB::Open` 成功才把 `DBImpl*` 写回调用方；失败路径 delete impl。Recover 期间 `mutex_` 持有，文件读取/写入虽是同步调用，版本恢复失败立即返回，不把半恢复状态暴露给 API。[`DB::Open`](../../source/leveldb/db/db_impl.cc#L1503-L1543)、[`DBImpl::Recover`](../../source/leveldb/db/db_impl.cc#L292-L383)、[`VersionSet::Recover`](../../source/leveldb/db/version_set.cc#L861-L991)
 
 ## 2. Put → WriteBatch → writer queue → WAL → MemTable
 
@@ -47,7 +47,7 @@ DB::Put
           └─ 加锁：更新 last sequence、完成并唤醒 writers_
 ```
 
-WAL 和 MemTable 写入之间的顺序是源码明确的持久化边界。`WriteBatchInternal::InsertInto` 使用同一批次的 sequence/type 生成 InternalKey；`tmp_batch_` 只用于合并多个 writer，不能让首个调用者的 batch 被悄悄改写。[`DB::Put`](../../../db/db_impl.cc#L1487-L1493)、[`DBImpl::Write`](../../../db/db_impl.cc#L1206-L1276)、[`DBImpl::BuildBatchGroup`](../../../db/db_impl.cc#L1279-L1327)
+WAL 和 MemTable 写入之间的顺序是源码明确的持久化边界。`WriteBatchInternal::InsertInto` 使用同一批次的 sequence/type 生成 InternalKey；`tmp_batch_` 只用于合并多个 writer，不能让首个调用者的 batch 被悄悄改写。[`DB::Put`](../../source/leveldb/db/db_impl.cc#L1487-L1493)、[`DBImpl::Write`](../../source/leveldb/db/db_impl.cc#L1206-L1276)、[`DBImpl::BuildBatchGroup`](../../source/leveldb/db/db_impl.cc#L1279-L1327)
 
 ## 3. Write → MakeRoom → immutable flush
 
@@ -65,7 +65,7 @@ Write
                   └─ VersionSet::LogAndApply
 ```
 
-切换时 `has_imm_` 使用 release store，长时间 BuildTable 在锁外执行；旧 MemTable、新 MemTable 和 output file 分别由引用计数、DBImpl 字段和 `pending_outputs_` 保护。写线程等待的是状态条件，不是固定时间。[`DBImpl::MakeRoomForWrite`](../../../db/db_impl.cc#L1331-L1405)、[`DBImpl::CompactMemTable`](../../../db/db_impl.cc#L549-L580)
+切换时 `has_imm_` 使用 release store，长时间 BuildTable 在锁外执行；旧 MemTable、新 MemTable 和 output file 分别由引用计数、DBImpl 字段和 `pending_outputs_` 保护。写线程等待的是状态条件，不是固定时间。[`DBImpl::MakeRoomForWrite`](../../source/leveldb/db/db_impl.cc#L1331-L1405)、[`DBImpl::CompactMemTable`](../../source/leveldb/db/db_impl.cc#L549-L580)
 
 ## 4. Get → LookupKey → MemTable → Version → TableCache
 
@@ -86,7 +86,7 @@ DBImpl::Get
   └─ Unref mem_/imm_/Version
 ```
 
-引用先于解锁取得；因此读取期间 MemTable/Version 可在 DB 状态字段中切换，但本次读取持有的对象仍有效。Get 命中 MemTable 时不会打开 SSTable；只有前两层 miss 才进入 Version。[`DBImpl::Get`](../../../db/db_impl.cc#L1121-L1165)、[`Version::Get`](../../../db/version_set.cc#L324-L400)、[`TableCache::Get`](../../../db/table_cache.cc#L99-L111)
+引用先于解锁取得；因此读取期间 MemTable/Version 可在 DB 状态字段中切换，但本次读取持有的对象仍有效。Get 命中 MemTable 时不会打开 SSTable；只有前两层 miss 才进入 Version。[`DBImpl::Get`](../../source/leveldb/db/db_impl.cc#L1121-L1165)、[`Version::Get`](../../source/leveldb/db/version_set.cc#L324-L400)、[`TableCache::Get`](../../source/leveldb/db/table_cache.cc#L99-L111)
 
 ## 5. NewIterator → child iterators → merge → cleanup
 
@@ -105,7 +105,7 @@ DBImpl::NewIterator
               └─ delete -> cleanup lock -> Unref all captured state
 ```
 
-Table child iterator 的 cache handle 也在 iterator cleanup 中 Release。迭代器返回的 key/value 是 `Slice` 借用，不是自动拥有的 string；调用方必须遵守下一次移动和 owner 的生命周期。[`DBImpl::NewInternalIterator`](../../../db/db_impl.cc#L1083-L1107)、[`CleanupIteratorState`](../../../db/db_impl.cc#L1071-L1079)、[`TableCache::NewIterator`](../../../db/table_cache.cc#L77-L97)
+Table child iterator 的 cache handle 也在 iterator cleanup 中 Release。迭代器返回的 key/value 是 `Slice` 借用，不是自动拥有的 string；调用方必须遵守下一次移动和 owner 的生命周期。[`DBImpl::NewInternalIterator`](../../source/leveldb/db/db_impl.cc#L1083-L1107)、[`CleanupIteratorState`](../../source/leveldb/db/db_impl.cc#L1071-L1079)、[`TableCache::NewIterator`](../../source/leveldb/db/table_cache.cc#L77-L97)
 
 ## 6. Automatic compaction → input merge → output Version
 
@@ -124,7 +124,7 @@ MaybeScheduleCompaction
                   └─ lock mutex_ -> InstallCompactionResults -> LogAndApply
 ```
 
-`LogAndApply` 在 MANIFEST record 和 Sync 期间也释放传入 mutex，成功后才 AppendVersion；因此“文件已写完”与“新文件对读取可见”是两个阶段。[`DBImpl::BackgroundCompaction`](../../../db/db_impl.cc#L708-L787)、[`DBImpl::DoCompactionWork`](../../../db/db_impl.cc#L898-L1057)、[`VersionSet::LogAndApply`](../../../db/version_set.cc#L777-L858)
+`LogAndApply` 在 MANIFEST record 和 Sync 期间也释放传入 mutex，成功后才 AppendVersion；因此“文件已写完”与“新文件对读取可见”是两个阶段。[`DBImpl::BackgroundCompaction`](../../source/leveldb/db/db_impl.cc#L708-L787)、[`DBImpl::DoCompactionWork`](../../source/leveldb/db/db_impl.cc#L898-L1057)、[`VersionSet::LogAndApply`](../../source/leveldb/db/version_set.cc#L777-L858)
 
 ## 7. Version::Get → TableCache → Table → Block
 
@@ -144,7 +144,7 @@ Version::Get
               └─ data iterator Seek + handle_result
 ```
 
-TableCache cache miss 的 `TableAndFile` 同时拥有 RandomAccessFile 和 Table；cache handle 在直接 Get 返回后 Release，在 iterator 上注册 cleanup。打开失败不缓存，避免 transient error 永久污染。[`TableCache::FindTable`](../../../db/table_cache.cc#L40-L75)、[`Table::InternalGet`](../../../table/table.cc#L152-L240)
+TableCache cache miss 的 `TableAndFile` 同时拥有 RandomAccessFile 和 Table；cache handle 在直接 Get 返回后 Release，在 iterator 上注册 cleanup。打开失败不缓存，避免 transient error 永久污染。[`TableCache::FindTable`](../../source/leveldb/db/table_cache.cc#L40-L75)、[`Table::InternalGet`](../../source/leveldb/table/table.cc#L152-L240)
 
 ## 8. MANIFEST edit → durable metadata → current Version
 
@@ -160,14 +160,14 @@ VersionSet::LogAndApply
   └─ success -> AppendVersion / log numbers update
 ```
 
-失败时不安装 `v`；若刚创建新 MANIFEST，还关闭/删除 descriptor objects 和临时 manifest。新 SSTable 先通过 `pending_outputs_` 保持存活，只有 edit 提交后才进入 Version 的 live file 集合。[`VersionSet::LogAndApply`](../../../db/version_set.cc#L792-L858)、[`DBImpl::RemoveObsoleteFiles`](../../../db/db_impl.cc#L225-L290)
+失败时不安装 `v`；若刚创建新 MANIFEST，还关闭/删除 descriptor objects 和临时 manifest。新 SSTable 先通过 `pending_outputs_` 保持存活，只有 edit 提交后才进入 Version 的 live file 集合。[`VersionSet::LogAndApply`](../../source/leveldb/db/version_set.cc#L792-L858)、[`DBImpl::RemoveObsoleteFiles`](../../source/leveldb/db/db_impl.cc#L225-L290)
 
 ## 9. 错误和关闭出口
 
-- Open：Recover/NewDB/初始 WAL/LogAndApply 任一失败，解锁后 delete impl，`*dbptr` 保持 null。[`DB::Open`](../../../db/db_impl.cc#L1503-L1543)
-- Write：AddRecord 或 Sync 失败不插入 MemTable；Sync 错误额外写入 `bg_error_`，未来 writer 在 MakeRoom 起点失败。[`DBImpl::Write`](../../../db/db_impl.cc#L1235-L1257)、[`DBImpl::MakeRoomForWrite`](../../../db/db_impl.cc#L1331-L1341)
-- Background：compaction 错误由 `RecordBackgroundError` 保留；CleanupCompaction 放弃 builder、删除 outfile、移除 pending output。[`DBImpl::CleanupCompaction`](../../../db/db_impl.cc#L789-L804)
-- Shutdown：析构 release-store `shutting_down_` 并等待 scheduled 标志归零，再释放 DB 共享对象。[`DBImpl::~DBImpl`](../../../db/db_impl.cc#L152-L178)
+- Open：Recover/NewDB/初始 WAL/LogAndApply 任一失败，解锁后 delete impl，`*dbptr` 保持 null。[`DB::Open`](../../source/leveldb/db/db_impl.cc#L1503-L1543)
+- Write：AddRecord 或 Sync 失败不插入 MemTable；Sync 错误额外写入 `bg_error_`，未来 writer 在 MakeRoom 起点失败。[`DBImpl::Write`](../../source/leveldb/db/db_impl.cc#L1235-L1257)、[`DBImpl::MakeRoomForWrite`](../../source/leveldb/db/db_impl.cc#L1331-L1341)
+- Background：compaction 错误由 `RecordBackgroundError` 保留；CleanupCompaction 放弃 builder、删除 outfile、移除 pending output。[`DBImpl::CleanupCompaction`](../../source/leveldb/db/db_impl.cc#L789-L804)
+- Shutdown：析构 release-store `shutting_down_` 并等待 scheduled 标志归零，再释放 DB 共享对象。[`DBImpl::~DBImpl`](../../source/leveldb/db/db_impl.cc#L152-L178)
 
 ## 跨链数据与锁摘要
 

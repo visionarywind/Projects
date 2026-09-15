@@ -2,7 +2,7 @@
 
 - 文档目的：定位非主线示例、第三方模板和性能分析资料的边界。
 - 适用范围：`kernels/openai-triton/`, `kernels/cutlass/`, `kernels/nvidia-nsight/`, `third-party/`。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：目录和用途已确认；示例逐个行为未验证。
 - 最后更新：2026-09-10
 - 前置阅读：[dependency-map](../../00-overview/dependency-map.md)

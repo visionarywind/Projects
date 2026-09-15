@@ -14,12 +14,12 @@
 
 ## 关键入口
 
-- 版本和语言：[CMakeLists.txt:4-22](../../../../CMakeLists.txt#L4-L22)
-- 核心库源文件：[CMakeLists.txt:119-231](../../../../CMakeLists.txt#L119-L231)
-- 测试注册：[CMakeLists.txt:292-404](../../../../CMakeLists.txt#L292-L404)
-- benchmark：[CMakeLists.txt:406-468](../../../../CMakeLists.txt#L406-L468)
-- 安装：[CMakeLists.txt:470-518](../../../../CMakeLists.txt#L470-L518)
-- CI：[.github/workflows/build.yml:10-102](../../../../.github/workflows/build.yml#L10-L102)
+- 版本和语言：[CMakeLists.txt:4-22](../../../source/leveldb/CMakeLists.txt#L4-L22)
+- 核心库源文件：[CMakeLists.txt:119-231](../../../source/leveldb/CMakeLists.txt#L119-L231)
+- 测试注册：[CMakeLists.txt:292-404](../../../source/leveldb/CMakeLists.txt#L292-L404)
+- benchmark：[CMakeLists.txt:406-468](../../../source/leveldb/CMakeLists.txt#L406-L468)
+- 安装：[CMakeLists.txt:470-518](../../../source/leveldb/CMakeLists.txt#L470-L518)
+- CI：[.github/workflows/build.yml:10-102](../../../source/leveldb/.github/workflows/build.yml#L10-L102)
 
 ## 相关文档
 

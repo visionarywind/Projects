@@ -41,6 +41,6 @@
 
 ## 相关源码证据
 
-- [公开 Table 契约](../../../../include/leveldb/table.h#L22-L76)
-- [表格式定义](../../../../table/format.h#L20-L89)
-- [两级迭代器接口](../../../../table/two_level_iterator.h#L13-L26)
+- [公开 Table 契约](../../../source/leveldb/include/leveldb/table.h#L22-L76)
+- [表格式定义](../../../source/leveldb/table/format.h#L20-L89)
+- [两级迭代器接口](../../../source/leveldb/table/two_level_iterator.h#L13-L26)

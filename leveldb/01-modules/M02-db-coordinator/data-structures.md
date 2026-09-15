@@ -33,7 +33,7 @@ classDiagram
 | `pending_outputs_` | 防止后台生成中的表被垃圾回收。 |
 | `versions_` | 管理当前和旧 Version。 |
 
-证据：[db/db_impl.h:172-204](../../../../db/db_impl.h#L172-L204)。
+证据：[db/db_impl.h:172-204](../../../source/leveldb/db/db_impl.h#L172-L204)。
 
 ## 生命周期图
 

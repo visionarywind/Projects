@@ -2,7 +2,7 @@
 
 - 文档目的：说明从朴素矩阵/向量乘到 tiling、vectorization、double buffer 的实现梯度。
 - 适用范围：`sgemv/`, `hgemv/`, `sgemm/`。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：SGEMM 代表 kernel 已逐逻辑块确认；GEMV 归纳。
 - 最后更新：2026-09-10
 - 前置阅读：[M03](../M03-reduction-normalization/README.md)

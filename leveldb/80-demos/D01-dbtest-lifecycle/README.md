@@ -9,7 +9,7 @@
 
 ## 为什么选择这个“Demo”
 
-仓库没有独立的 `demo/` 程序，但 `DBTest` 是真实的 GoogleTest fixture，直接调用公开 `DB` API，并通过测试专用 `DBImpl` 方法观察内部状态。它比虚构一个示例程序更适合学习：fixture 的 `Reopen`、`Put`、`Get`、`Contents` 和 `MakeTables` 复用生产入口；`SpecialEnv` 又能在不修改 LevelDB 源码的情况下阻塞 Sync、制造写入/同步/Manifest 错误。[`DBTest` fixture](../../../../db/db_test.cc#L260-L352)、[`SpecialEnv`](../../../../db/db_test.cc#L83-L258)
+仓库没有独立的 `demo/` 程序，但 `DBTest` 是真实的 GoogleTest fixture，直接调用公开 `DB` API，并通过测试专用 `DBImpl` 方法观察内部状态。它比虚构一个示例程序更适合学习：fixture 的 `Reopen`、`Put`、`Get`、`Contents` 和 `MakeTables` 复用生产入口；`SpecialEnv` 又能在不修改 LevelDB 源码的情况下阻塞 Sync、制造写入/同步/Manifest 错误。[`DBTest` fixture](../../../source/leveldb/db/db_test.cc#L260-L352)、[`SpecialEnv`](../../../source/leveldb/db/db_test.cc#L83-L258)
 
 ## 场景覆盖
 

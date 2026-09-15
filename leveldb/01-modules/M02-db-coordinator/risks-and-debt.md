@@ -9,11 +9,11 @@
 
 | 风险 | 源码证据 | 影响 | 触发 | 验证/建议 |
 |---|---|---|---|---|
-| 后台任务与析构交错 | [db/db_impl.cc:151-158](../../../../db/db_impl.cc#L151-L158) | 死锁或 UAF | 关闭时有 compaction | TSan、反复 close |
-| 锁外删除文件 | [db/db_impl.cc:281-289](../../../../db/db_impl.cc#L281-L289) | 文件状态竞态 | 并发读/写 | 故障注入 |
-| bg_error 阻塞回收 | [db/db_impl.cc:224-231](../../../../db/db_impl.cc#L224-L231) | 磁盘空间增长 | 后台 IO 错误 | 长压/磁盘满测试 |
-| writer 队列等待 | [db/db_impl.cc:41-51](../../../../db/db_impl.cc#L41-L51) | 延迟尖峰 | 写入受限/compaction | 并发基准 |
-| 裸指针和引用计数 | [db/db_impl.h:176-204](../../../../db/db_impl.h#L176-L204) | 生命周期错误 | 异常路径 | ASan/代码审查 |
+| 后台任务与析构交错 | [db/db_impl.cc:151-158](../../../source/leveldb/db/db_impl.cc#L151-L158) | 死锁或 UAF | 关闭时有 compaction | TSan、反复 close |
+| 锁外删除文件 | [db/db_impl.cc:281-289](../../../source/leveldb/db/db_impl.cc#L281-L289) | 文件状态竞态 | 并发读/写 | 故障注入 |
+| bg_error 阻塞回收 | [db/db_impl.cc:224-231](../../../source/leveldb/db/db_impl.cc#L224-L231) | 磁盘空间增长 | 后台 IO 错误 | 长压/磁盘满测试 |
+| writer 队列等待 | [db/db_impl.cc:41-51](../../../source/leveldb/db/db_impl.cc#L41-L51) | 延迟尖峰 | 写入受限/compaction | 并发基准 |
+| 裸指针和引用计数 | [db/db_impl.h:176-204](../../../source/leveldb/db/db_impl.h#L176-L204) | 生命周期错误 | 异常路径 | ASan/代码审查 |
 
 ## 相关文档
 

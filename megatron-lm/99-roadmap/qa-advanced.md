@@ -1,7 +1,7 @@
 # 高级面试题：Megatron-LM
 - 题数：100
 - 适用对象：能够跨模块分析架构、性能和故障的读者
-- 证据锚点：当前知识库记录的 checkout `8190837c2b6ce176a431bc2a6ffd3439507648a7`。
+- 证据锚点：当前知识库记录的 checkout `3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`。
 - 作答要求：每题包含参考答案、小白解释、技术分析和拓展分析；涉及 GPU/多卡/性能的结论必须区分静态源码理解与实际运行验证。
 - 项目一句话：Megatron-LM/Megatron Core 面向大规模 Transformer 训练，把模型装配、并行拓扑、pipeline 调度、数据、优化器和分布式 checkpoint 组合成训练作业。
 - 主要证据：README、00-overview、01-modules/M01-core-models、module-registry、D01 最小训练 Demo 和构建/运行文档。

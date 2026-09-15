@@ -2,7 +2,7 @@
 
 - 文档目的：记录静态可见的错误检测、传播、重试和恢复边界。
 - 适用范围：初始化、并行、数据、训练和 checkpoint 主路径。
-- 对应源码版本：`8190837c2b6ce176a431bc2a6ffd3439507648a7`
+- 对应源码版本：`3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`
 - 证据状态：已确认（代码路径）；运行时故障结果未验证
 - 最后更新：2026-09-10
 - 前置阅读：[运行时模型](runtime-model.md)
@@ -45,7 +45,7 @@ flowchart LR
 ## 相关文档
 
 - [错误边界](../90-cross-module/error-boundaries.md)
-- [D01 失败路径](../80-demos/D01-simple-mcore-training/failure-paths.md)
+- [D01 失败路径](../80-demos/D01-simple-mcore-training/debugging-and-failures.md)
 
 ## 源码证据摘要
 

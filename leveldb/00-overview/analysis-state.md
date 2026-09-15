@@ -3,7 +3,7 @@
 - 文档目的：支持分批续作，记录已完成范围、证据和下一批起点。
 - 适用范围：LevelDB `main` / `7ee830d`。
 - 证据状态：总览、模块层、端到端关联层和实践层文档已生成；本机 Linux Debug configure、build、CTest 和有限 benchmark 已完成，未验证边界单独列出。
-- 最后更新：2026-09-10
+- 最后更新：2026-09-15
 - 前置阅读：[知识库入口](../README.md)
 - 后续阅读：[端到端深度链路](../90-cross-module/end-to-end-traces.md)
 
@@ -27,6 +27,7 @@
 - 端到端深度补强：新增 [end-to-end-traces.md](../90-cross-module/end-to-end-traces.md)，逐阶段展开八条链：首次创建、重开恢复、并发写、单键 Get、Iterator/Snapshot、immutable flush、分层 compaction、错误/关闭/资源生命周期；每条链均包含源码证据、关键分支、所有权说明和概念示例。
 - M02/M03/M04 示例已补齐；M05 示例已核对并关联端到端单键读取链；M06 示例已扩展为 Env 文件读写、MANIFEST Sync、Schedule、MemEnv、EnvWrapper、Cache Handle 和 Arena 的端到端场景。
 - 在获得授权后初始化 `third_party/googletest` 与 `third_party/benchmark`，完成 Debug configure/build、CTest、小规模 `db_bench` 和本地 prefix install。
+- 新增池化与资源管理专题，集中复核 Arena、LRU handle、TableCache/BlockCache、MemTable/Version 引用和 pending outputs 的资源闭环。
 
 ## 深度审计
 
@@ -57,7 +58,7 @@
 - `DBImpl` 管理 mutex、MemTable、日志、writer 队列、snapshots、pending outputs、后台调度和 VersionSet。
 - WAL 是 32KiB 物理块并支持 fragmented record；TableBuilder 产出 data/meta/index/footer。
 - VersionSet 用 VersionEdit 记录版本变化；CMake 通过 GoogleTest/CTest 测试。
-- `Env` 的公共契约明确 RandomAccessFile 可并发读、SequentialFile/WritableFile 由调用方提供外部同步、Schedule 不保证任务串行。[`include/leveldb/env.h:66-109,170-201`](../../../include/leveldb/env.h#L66-L109)
+- `Env` 的公共契约明确 RandomAccessFile 可并发读、SequentialFile/WritableFile 由调用方提供外部同步、Schedule 不保证任务串行。[`include/leveldb/env.h:66-109,170-201`](../../source/leveldb/include/leveldb/env.h#L66-L109)
 - TableCache 直接 Get 和 iterator 对 cache handle 采用不同释放路径；DBImpl 的 Get/Iterator 在解锁前取得对象引用。
 
 ## 推断与未知
@@ -84,6 +85,7 @@
 | 证据覆盖 | 总览、模块、关联层关键结论有源码链接 | 行号随提交漂移；需持续复核 |
 | 图示覆盖 | 总体、模块和跨模块图已生成 | 可继续补异常时序 |
 | 开发场景覆盖 | 构建、调试、测试、功能修改、性能配方已生成 | 需结合执行结果校准 |
+| 池化/资源管理 | Arena、两级 cache、引用计数、文件与后台输出已形成统一专题；已明确核心无 GPU/CUDA Graph runtime | 动态峰值、故障注入和跨平台行为待验证 |
 
 ## 下一批起点
 

@@ -2,9 +2,9 @@
 
 - 文档目的：说明 `notes-v2.cu` 学习/测试/benchmark 二进制的组织方式。
 - 适用范围：`kernels/interview/`。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：目录、构建脚本、主入口和资源检查已确认。
-- 最后更新：2026-09-10
+- 最后更新：2026-09-15
 - 前置阅读：[M01](../M01-foundation/README.md)
 - 后续阅读：[M06](../M06-hgemm-tensorcore/README.md)、[M07](../M07-flash-attention/README.md)
 
@@ -46,3 +46,5 @@ common.cuh -> base.cuh -> sgemv.cuh/sgemm.cuh/hgemm.cuh/flash_attn.cuh
 ## 未解决问题
 
 完整 CLI 参数表和每个 phase 的 test/bench 选择关系需继续从文件后半段整理。
+
+资源边界：M09 是单进程 benchmark，不提供跨 kernel 的显存池或 Graph replay 管理器；host/device buffer、workspace、event、stream 和 library handle 均由各测试函数显式创建/销毁。`CUDA_CHECK` 直接退出时，异常路径可能跳过清理；不可将该行为推广为生产级资源管理。

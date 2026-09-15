@@ -23,11 +23,11 @@ classDiagram
 
 ## 内存表条目
 
-`MemTable::Add` 分配一块连续内存，布局是 varint internal_key_size、InternalKey 字节、varint value_size、value 字节；InternalKey tag 为 `(sequence << 8) | type`。[db/memtable.cc:75-99](../../../../db/memtable.cc#L75-L99)
+`MemTable::Add` 分配一块连续内存，布局是 varint internal_key_size、InternalKey 字节、varint value_size、value 字节；InternalKey tag 为 `(sequence << 8) | type`。[db/memtable.cc:75-99](../../../source/leveldb/db/memtable.cc#L75-L99)
 
 ## 可见性
 
-MemTable comparator 先比较内部 key；同一 user key 的高 sequence 在前。`LookupKey` 同时生成 memtable key、internal key 和 user key，Get seek 到不超过 snapshot 的候选。[db/dbformat.h:183-219](../../../../db/dbformat.h#L183-L219)
+MemTable comparator 先比较内部 key；同一 user key 的高 sequence 在前。`LookupKey` 同时生成 memtable key、internal key 和 user key，Get seek 到不超过 snapshot 的候选。[db/dbformat.h:183-219](../../../source/leveldb/db/dbformat.h#L183-L219)
 
 ## 生命周期
 

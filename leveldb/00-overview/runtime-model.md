@@ -26,19 +26,19 @@ stateDiagram-v2
 
 ## 启动与恢复
 
-- 新库由 `NewDB` 写初始 MANIFEST、Sync/Close，再更新 CURRENT（[db/db_impl.cc:180-212](../../../db/db_impl.cc#L180-L212)）。
-- `Recover` 创建目录、获取 `LOCK`，判断 create/error-if-exists，调用 `versions_->Recover`，再扫描并重放日志（[db/db_impl.cc:291-383](../../../db/db_impl.cc#L291-L383)）。
-- `RecoverLogFile` 使用 `log::Reader::ReadRecord` 读取完整 WriteBatch，插入 MemTable；必要时写出 Level-0 表（[db/db_impl.cc:385-504](../../../db/db_impl.cc#L385-L504)）。
+- 新库由 `NewDB` 写初始 MANIFEST、Sync/Close，再更新 CURRENT（[db/db_impl.cc:180-212](../../source/leveldb/db/db_impl.cc#L180-L212)）。
+- `Recover` 创建目录、获取 `LOCK`，判断 create/error-if-exists，调用 `versions_->Recover`，再扫描并重放日志（[db/db_impl.cc:291-383](../../source/leveldb/db/db_impl.cc#L291-L383)）。
+- `RecoverLogFile` 使用 `log::Reader::ReadRecord` 读取完整 WriteBatch，插入 MemTable；必要时写出 Level-0 表（[db/db_impl.cc:385-504](../../source/leveldb/db/db_impl.cc#L385-L504)）。
 
 ## 运行与后台
 
-- 写入者按队列分组，批量共享一次日志写入；每个 writer 通过条件变量等待完成（`DBImpl::Writer`，[db/db_impl.cc:41-51](../../../db/db_impl.cc#L41-L51)）。
-- MemTable 达到 `write_buffer_size` 后切换到 `imm_`；`MaybeScheduleCompaction` 通过 `Env::Schedule` 安排工作（[db/db_impl.cc:668-685](../../../db/db_impl.cc#L668-L685)）。
-- `BackgroundCall` 获取锁执行后台压缩/flush，结束后更新调度状态并通知等待者（[db/db_impl.cc:689-707](../../../db/db_impl.cc#L689-L707)）。
+- 写入者按队列分组，批量共享一次日志写入；每个 writer 通过条件变量等待完成（`DBImpl::Writer`，[db/db_impl.cc:41-51](../../source/leveldb/db/db_impl.cc#L41-L51)）。
+- MemTable 达到 `write_buffer_size` 后切换到 `imm_`；`MaybeScheduleCompaction` 通过 `Env::Schedule` 安排工作（[db/db_impl.cc:668-685](../../source/leveldb/db/db_impl.cc#L668-L685)）。
+- `BackgroundCall` 获取锁执行后台压缩/flush，结束后更新调度状态并通知等待者（[db/db_impl.cc:689-707](../../source/leveldb/db/db_impl.cc#L689-L707)）。
 
 ## 关闭
 
-析构把 `shutting_down_` 置为 true，等待 `background_compaction_scheduled_` 清零，然后解锁数据库、删除版本/内存表/日志/缓存，并释放由 DB 自己创建的 info log/block cache（[db/db_impl.cc:151-178](../../../db/db_impl.cc#L151-L178)）。调用者必须先删除 Iterator，再删除 DB（[include/leveldb/db.h:89-95](../../../include/leveldb/db.h#L89-L95)）。
+析构把 `shutting_down_` 置为 true，等待 `background_compaction_scheduled_` 清零，然后解锁数据库、删除版本/内存表/日志/缓存，并释放由 DB 自己创建的 info log/block cache（[db/db_impl.cc:151-178](../../source/leveldb/db/db_impl.cc#L151-L178)）。调用者必须先删除 Iterator，再删除 DB（[include/leveldb/db.h:89-95](../../source/leveldb/include/leveldb/db.h#L89-L95)）。
 
 ## 相关文档
 

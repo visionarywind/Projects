@@ -12,9 +12,9 @@
 
 - `LEVELDB_BUILD_TESTS` 默认 ON。
 - `LEVELDB_BUILD_BENCHMARKS` 默认 ON。
-- `LEVELDB_INSTALL` 默认 ON。[CMakeLists.txt:32-34](../../../../CMakeLists.txt#L32-L34)
+- `LEVELDB_INSTALL` 默认 ON。[CMakeLists.txt:32-34](../../../source/leveldb/CMakeLists.txt#L32-L34)
 
-CMake 要求 C++17；C 可降级到 C89/C11 配置；非 MSVC 默认禁用 exceptions 和 RTTI。[CMakeLists.txt:8-22](../../../../CMakeLists.txt#L8-L22)、[CMakeLists.txt:55-77](../../../../CMakeLists.txt#L55-L77)
+CMake 要求 C++17；C 可降级到 C89/C11 配置；非 MSVC 默认禁用 exceptions 和 RTTI。[CMakeLists.txt:8-22](../../../source/leveldb/CMakeLists.txt#L8-L22)、[CMakeLists.txt:55-77](../../../source/leveldb/CMakeLists.txt#L55-L77)
 
 ## 目标
 
@@ -22,8 +22,8 @@ CMake 要求 C++17；C 可降级到 C89/C11 配置；非 MSVC 默认禁用 excep
 - `leveldbutil`：工具程序。
 - `leveldb_tests`：主要聚合单元测试。
 - `c_test`、`env_posix_test`/`env_windows_test`：独立 CTest 目标。
-- `db_bench` 及可选 SQLite/KyotoCabinet benchmark。[CMakeLists.txt:287-291](../../../../CMakeLists.txt#L287-L291)、[CMakeLists.txt:312-403](../../../../CMakeLists.txt#L312-L403)、[CMakeLists.txt:412-467](../../../../CMakeLists.txt#L412-L467)
+- `db_bench` 及可选 SQLite/KyotoCabinet benchmark。[CMakeLists.txt:287-291](../../../source/leveldb/CMakeLists.txt#L287-L291)、[CMakeLists.txt:312-403](../../../source/leveldb/CMakeLists.txt#L312-L403)、[CMakeLists.txt:412-467](../../../source/leveldb/CMakeLists.txt#L412-L467)
 
 ## 贡献契约
 
-README 要求稳定 API、测试平台、伴随测试/充分解释，并遵循 Google C++ Style。[README.md:89-109](../../../../README.md#L89-L109)
+README 要求稳定 API、测试平台、伴随测试/充分解释，并遵循 Google C++ Style。[README.md:89-109](../../../source/leveldb/README.md#L89-L109)

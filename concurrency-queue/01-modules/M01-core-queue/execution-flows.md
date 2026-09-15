@@ -50,4 +50,4 @@ block 只有在其槽位全部为空后才可从 producer 的 index 中移除并
 
 ## shutdown
 
-库没有 start/stop API。应用必须停止生产消费线程、解除等待并 join，然后才允许析构 queue；阻塞等待者仍存在时析构是未定义边界。[../../../../README.md:122-180](../../../../README.md#L122-L180)
+库没有 start/stop API。应用必须停止生产消费线程、解除等待并 join，然后才允许析构 queue；阻塞等待者仍存在时析构是未定义边界。[../../../../README.md:122-180](../../../source/concurrency-queue/README.md#L122-L180)

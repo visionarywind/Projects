@@ -15,7 +15,7 @@
 3. **平台分支维护**：POSIX/Windows/MemEnv/port/可选依赖必须保持接口同步。
 4. **构建配置集中**：顶层 CMake 同时负责 feature detection、源文件、测试、benchmark 和 install。
 5. **测试粒度混合**：聚合 `leveldb_tests` 与独立 CTest 目标并存，部分故障/issue 测试在当前 CMake 中注释。
-6. **有限维护政策**：README 只承诺有限类型变更，新功能的长期支持和评审资源受限。[README.md:2-6](../../../README.md#L2-L6)
+6. **有限维护政策**：README 只承诺有限类型变更，新功能的长期支持和评审资源受限。[README.md:2-6](../../source/leveldb/README.md#L2-L6)
 7. **性能结论缺少当前基线**：README 的历史数字不能代替当前硬件 benchmark。
 8. **行号证据会漂移**：知识库必须绑定提交并在源码更新后重核。
 

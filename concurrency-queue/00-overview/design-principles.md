@@ -25,7 +25,7 @@
 
 ## 稳定契约与实现细节
 
-**稳定契约（已确认）**：C++11 API 形状、单 producer 内顺序、blocking wait 接口、`try_enqueue` 可能失败、对象构造/销毁同步责任。[../../../README.md:112-137](../../../README.md#L112-L137)
+**稳定契约（已确认）**：C++11 API 形状、单 producer 内顺序、blocking wait 接口、`try_enqueue` 可能失败、对象构造/销毁同步责任。[../../../README.md:112-137](../../source/concurrency-queue/README.md#L112-L137)
 
 **实现细节（修改需谨慎）**：`BLOCK_SIZE` 默认值、producer 链表方向、hash 的 probing 和 block index 的历史链，除非 traits/API 明确暴露，不应让调用方依赖。
 
@@ -33,7 +33,7 @@
 
 - 全局锁队列：更容易推理，但违背项目的 lock-free 性能目标；未在当前实现中使用。
 - 单一 MPMC ring buffer：可能更直接，但所有 producer 共享槽位，且对象构造/容量扩展与本项目需求不同；这是架构推断，非仓库实验结论。
-- 只提供 SPSC：性能可更高，但不满足项目的多 producer/consumer 定位；README 也将 SPSC 作为另一个项目。[../../../README.md:4-5](../../../README.md#L4-L5)
+- 只提供 SPSC：性能可更高，但不满足项目的多 producer/consumer 定位；README 也将 SPSC 作为另一个项目。[../../../README.md:4-5](../../source/concurrency-queue/README.md#L4-L5)
 
 ## 相关文档
 
@@ -42,7 +42,7 @@
 
 ## 源码证据摘要
 
-块存储和 empty 状态在 [../../../concurrentqueue.h:1588-1714](../../../concurrentqueue.h#L1588-L1714)；optimistic dequeue 的原子协议在 [../../../concurrentqueue.h:1983-2081](../../../concurrentqueue.h#L1983-L2081)。
+块存储和 empty 状态在 [../../../concurrentqueue.h:1588-1714](../../source/concurrency-queue/concurrentqueue.h#L1588-L1714)；optimistic dequeue 的原子协议在 [../../../concurrentqueue.h:1983-2081](../../source/concurrency-queue/concurrentqueue.h#L1983-L2081)。
 
 ## 未解决问题
 

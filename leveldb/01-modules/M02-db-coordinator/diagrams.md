@@ -31,7 +31,7 @@ sequenceDiagram
 
 ## 测试
 
-重点：`db/db_test.cc`（正常行为）、`recovery_test.cc`（日志/重启）、`corruption_test.cc`（损坏）、`autocompact_test.cc`（后台压缩）、`fault_injection_test.cc`（默认 CMake 注释掉，需单独评估）。CMake 聚合配置见 [CMakeLists.txt:313-352](../../../../CMakeLists.txt#L313-L352)。
+重点：`db/db_test.cc`（正常行为）、`recovery_test.cc`（日志/重启）、`corruption_test.cc`（损坏）、`autocompact_test.cc`（后台压缩）、`fault_injection_test.cc`（默认 CMake 注释掉，需单独评估）。CMake 聚合配置见 [CMakeLists.txt:313-352](../../../source/leveldb/CMakeLists.txt#L313-L352)。
 
 ## 开发配方
 

@@ -2,7 +2,7 @@
 
 - 文档目的：把 elementwise 的 Python 入口、PyBind 导出、launcher 分支和实际 CUDA kernel 串起来。
 - 适用范围：`kernels/elementwise/elementwise.py`、`elementwise.cu`；其它激活目录只在共性处引用。
-- 对应源码版本：`main` / `0983c65`。
+- 对应源码版本：`main` / `4513b31`。
 - 证据状态：已确认（elementwise add 代表实现）；其它激活变体部分推断。
 - 最后更新：2026-09-10
 - 前置阅读：[M02 README](README.md)

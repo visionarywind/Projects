@@ -2,9 +2,9 @@
 
 - 文档目的：统一理解 Python、C++ binding、CUDA kernel 和 tensor 契约。
 - 适用范围：各模块 `.py`、`pybind/*.cc`、`setup.py`。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：代表模式已确认；具体模块校验不一致。
-- 最后更新：2026-09-10
+- 最后更新：2026-09-15
 - 前置阅读：[architecture](../../00-overview/architecture.md)
 - 后续阅读：[M10 NMS](../M10-nms/README.md)
 
@@ -46,3 +46,5 @@ Elementwise 只显示 dtype 检查和宏绑定；NMS 还检查 device、dim、�
 ## 未解决问题
 
 全仓库缺少统一的 device/stream/error/contiguous 检查规范。
+
+资源边界：binding 借用调用方 tensor 的 `data_ptr()`，不拥有 tensor 或其 allocator；异步 kernel 返回后调用方仍须保持 tensor 存活。项目没有自有 CPU arena、GPU memory pool 或统一 CUDA Graph runtime，PyTorch caching allocator、extension cache 和单个 benchmark 的 `cudaMalloc` 必须分别记录。

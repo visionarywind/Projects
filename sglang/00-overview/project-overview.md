@@ -15,7 +15,7 @@
 ## 2. 当前源码版本
 
 - 分支：`main`。
-- HEAD：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`。
+- HEAD：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`。
 - HEAD 提交：`[Config] msgspec.Struct for the config tier (#38753)`，提交时间为 `2026-09-09T19:41:19-07:00`。
 - HEAD 没有发现指向它的本地 tag；远程 `origin` 为 `https://github.com/sgl-project/sglang.git`。
 - 当前工作树包含未跟踪或新增的 `sglang/` 知识库目录；本知识库本身不是生产源码改动。

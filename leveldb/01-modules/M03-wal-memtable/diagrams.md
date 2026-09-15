@@ -24,7 +24,7 @@ sequenceDiagram
 
 ## 示例
 
-真实 API batch 示例：[doc/index.md:67-92](../../../../doc/index.md#L67-L92)。异常/边界示例来自 `db/log_test.cc` 和 `db/write_batch_test.cc`，应以测试源码为输入，不伪造输出。
+真实 API batch 示例：[doc/index.md:67-92](../../../source/leveldb/doc/index.md#L67-L92)。异常/边界示例来自 `db/log_test.cc` 和 `db/write_batch_test.cc`，应以测试源码为输入，不伪造输出。
 
 ## 测试
 
@@ -41,7 +41,7 @@ sequenceDiagram
 
 ## 源码证据摘要
 
-测试由 [CMakeLists.txt:333-341](../../../../CMakeLists.txt#L333-L341) 纳入主目标。
+测试由 [CMakeLists.txt:333-341](../../../source/leveldb/CMakeLists.txt#L333-L341) 纳入主目标。
 
 ## 未解决问题
 

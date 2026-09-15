@@ -19,10 +19,10 @@
 
 | 风险 | 证据 | 影响 | 建议验证 |
 |---|---|---|---|
-| 后台关闭竞态 | [db/db_impl.cc:151-158](../../../../db/db_impl.cc#L151-L158) | UAF/死锁 | 重复关闭、TSan |
-| 错误后删除活文件 | [db/db_impl.cc:224-231](../../../../db/db_impl.cc#L224-L231) | 数据损坏 | 故障注入 |
-| 手工 MemTable 引用 | [db/memtable.h:19-38](../../../../db/memtable.h#L19-L38) | 泄漏/UAF | ASan/引用断言 |
-| 改 writer 顺序 | [db/db_impl.cc:1206-1330](../../../../db/db_impl.cc#L1206-L1330) | 原子性/公平性变化 | 多线程回归 |
+| 后台关闭竞态 | [db/db_impl.cc:151-158](../../../source/leveldb/db/db_impl.cc#L151-L158) | UAF/死锁 | 重复关闭、TSan |
+| 错误后删除活文件 | [db/db_impl.cc:224-231](../../../source/leveldb/db/db_impl.cc#L224-L231) | 数据损坏 | 故障注入 |
+| 手工 MemTable 引用 | [db/memtable.h:19-38](../../../source/leveldb/db/memtable.h#L19-L38) | 泄漏/UAF | ASan/引用断言 |
+| 改 writer 顺序 | [db/db_impl.cc:1206-1330](../../../source/leveldb/db/db_impl.cc#L1206-L1330) | 原子性/公平性变化 | 多线程回归 |
 
 ## 相关文档
 

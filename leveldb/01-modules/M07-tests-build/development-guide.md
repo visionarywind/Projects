@@ -13,7 +13,7 @@
 1. 找到最小模块测试；先补回归，再修改实现。
 2. 若涉及公共头文件、ABI、持久化格式或平台接口，扩大到重开/安装/跨平台验证。
 3. 保持 C++17、无 exceptions/RTTI 和现有 clang-format 风格。
-4. 更新 CMake 目标只在确有必要时进行；项目 README 明确对构建配置变更持保守态度。[README.md:111-115](../../../../README.md#L111-L115)
+4. 更新 CMake 目标只在确有必要时进行；项目 README 明确对构建配置变更持保守态度。[README.md:111-115](../../../source/leveldb/README.md#L111-L115)
 
 ## 建议命令
 
@@ -23,11 +23,11 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-CI 使用 `ctest -C <config> --verbose`，Windows/多配置生成器应带 configuration。[.github/workflows/build.yml:80-87](../../../../.github/workflows/build.yml#L80-L87)
+CI 使用 `ctest -C <config> --verbose`，Windows/多配置生成器应带 configuration。[.github/workflows/build.yml:80-87](../../../source/leveldb/.github/workflows/build.yml#L80-L87)
 
 ## 性能变更
 
-固定 benchmark 参数和数据库规模，至少比较写入、随机读、顺序读、反向读、compact 和压缩；不要把 README 中 2011 年的性能数字当作当前硬件基线。[README.md:129-139](../../../../README.md#L129-L139)
+固定 benchmark 参数和数据库规模，至少比较写入、随机读、顺序读、反向读、compact 和压缩；不要把 README 中 2011 年的性能数字当作当前硬件基线。[README.md:129-139](../../../source/leveldb/README.md#L129-L139)
 
 ## 发布/安装
 

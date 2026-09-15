@@ -32,7 +32,7 @@ Options/Env -> DB::Open -> Put/Delete/Write -> WAL/MemTable
   -> SpecialEnv fault injection -> Status/bg_error_
 ```
 
-因此 D01 是“真实测试入口 + 源码端到端追踪”，而不是把一个未存在的 demo 文件假装成仓库产物。[`CMakeLists.txt:313-365`](../../../CMakeLists.txt#L313-L365)、[`DBTest` fixture](../../../db/db_test.cc#L260-L365)
+因此 D01 是“真实测试入口 + 源码端到端追踪”，而不是把一个未存在的 demo 文件假装成仓库产物。[`CMakeLists.txt:313-365`](../../source/leveldb/CMakeLists.txt#L313-L365)、[`DBTest` fixture](../../source/leveldb/db/db_test.cc#L260-L365)
 
 ## 覆盖矩阵
 
@@ -62,8 +62,8 @@ Options/Env -> DB::Open -> Put/Delete/Write -> WAL/MemTable
 
 ## 关键源码
 
-- [`db/db_test.cc`](../../../db/db_test.cc#L83-L365)
-- [`DBTest` 核心测试](../../../db/db_test.cc#L598-L725)
-- [`恢复测试](../../../db/db_test.cc#L1017-L1129)
-- [`错误注入测试`](../../../db/db_test.cc#L1818-L1920)
-- [`leveldb_tests` CMake 注册](../../../CMakeLists.txt#L313-L365)
+- [`db/db_test.cc`](../../source/leveldb/db/db_test.cc#L83-L365)
+- [`DBTest` 核心测试](../../source/leveldb/db/db_test.cc#L598-L725)
+- [`恢复测试](../../source/leveldb/db/db_test.cc#L1017-L1129)
+- [`错误注入测试`](../../source/leveldb/db/db_test.cc#L1818-L1920)
+- [`leveldb_tests` CMake 注册](../../source/leveldb/CMakeLists.txt#L313-L365)

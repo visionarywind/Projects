@@ -28,19 +28,19 @@ VersionEdit（文件增删、log/sequence、compact pointer）
 
 ## 1. `Slice`：借用视图，不是所有权
 
-`Slice` 只保存指针和长度，常见来源是调用者 string、WriteBatch 编码缓冲区、MemTable Arena、block 缓冲区或 iterator 临时 key。它在 API 调用期间便于避免拷贝，但不能脱离来源对象长期保存。公共 API 的 Iterator、Comparator、Env 等接口都以 Slice 传递字节；调用方若需要长期保存必须复制到 `std::string`。[`include/leveldb/slice.h`](../../../include/leveldb/slice.h#L15-L72)、[`include/leveldb/iterator.h`](../../../include/leveldb/iterator.h#L20-L66)
+`Slice` 只保存指针和长度，常见来源是调用者 string、WriteBatch 编码缓冲区、MemTable Arena、block 缓冲区或 iterator 临时 key。它在 API 调用期间便于避免拷贝，但不能脱离来源对象长期保存。公共 API 的 Iterator、Comparator、Env 等接口都以 Slice 传递字节；调用方若需要长期保存必须复制到 `std::string`。[`include/leveldb/slice.h`](../../source/leveldb/include/leveldb/slice.h#L15-L72)、[`include/leveldb/iterator.h`](../../source/leveldb/include/leveldb/iterator.h#L20-L66)
 
 贯穿链中的典型边界：`DBImpl::Get` 用用户 key 构造 `LookupKey`；`Version::Get` 的 `saver.user_key` 指向 LookupKey 的存储；Table data iterator 返回的 key/value 只在其 iterator/cache handle 生命周期内有效。任何把这些 Slice 放入异步任务的改动都必须复制数据或延长 owner。
 
 ## 2. `WriteBatch` bytes：API 原子批次到 WAL 的共同载荷
 
-WriteBatch 的 bytes 同时是 API 的批次状态和 WAL 的 record payload。`DBImpl::Write` 在设置首个 sequence 后调用 `WriteBatchInternal::Contents(write_batch)` 传给 log writer；日志成功后对同一 batch 调 `InsertInto`，而不是重新解析用户参数。[`DBImpl::Write`](../../../db/db_impl.cc#L1221-L1247)、[`db/write_batch.cc`](../../../db/write_batch.cc#L4-L147)
+WriteBatch 的 bytes 同时是 API 的批次状态和 WAL 的 record payload。`DBImpl::Write` 在设置首个 sequence 后调用 `WriteBatchInternal::Contents(write_batch)` 传给 log writer；日志成功后对同一 batch 调 `InsertInto`，而不是重新解析用户参数。[`DBImpl::Write`](../../source/leveldb/db/db_impl.cc#L1221-L1247)、[`db/write_batch.cc`](../../source/leveldb/db/write_batch.cc#L4-L147)
 
 这产生一个重要不变量：WAL 中成功持久化的 batch 与 MemTable 中应用的 batch 必须有相同的 count、sequence 和操作顺序。修改 WriteBatch 编码时必须同时更新 Writer/Reader、`InsertInto`、恢复测试和旧 bytes 兼容性测试；只改 WAL header 不会覆盖 WriteBatch payload 兼容性。
 
 ## 3. `SequenceNumber` 与 InternalKey：可见性契约
 
-内部 tag 把 sequence 和 `ValueType` 压进 64 位尾部；InternalKey comparator 先按 user comparator，再按 tag 逆序处理 sequence。Write 队列为一个 batch 分配连续 sequence，Snapshot 保存某个 last sequence，LookupKey 用该 sequence 构造上限；MemTable、Version 和 compaction 都依赖同一规则。[`db/dbformat.h`](../../../db/dbformat.h#L50-L219)、[`DBImpl::Write`](../../../db/db_impl.cc#L1221-L1228)、[`DBImpl::Get`](../../../db/db_impl.cc#L1121-L1148)
+内部 tag 把 sequence 和 `ValueType` 压进 64 位尾部；InternalKey comparator 先按 user comparator，再按 tag 逆序处理 sequence。Write 队列为一个 batch 分配连续 sequence，Snapshot 保存某个 last sequence，LookupKey 用该 sequence 构造上限；MemTable、Version 和 compaction 都依赖同一规则。[`db/dbformat.h`](../../source/leveldb/db/dbformat.h#L50-L219)、[`DBImpl::Write`](../../source/leveldb/db/db_impl.cc#L1221-L1228)、[`DBImpl::Get`](../../source/leveldb/db/db_impl.cc#L1121-L1148)
 
 | 阶段 | sequence 的意义 | 失败/生命周期注意 |
 |---|---|---|
@@ -53,7 +53,7 @@ WriteBatch 的 bytes 同时是 API 的批次状态和 WAL 的 record payload。`
 
 ## 4. MemTable entry、Arena 与 SkipList
 
-MemTable 把 internal key 和 value 编码为 entry，使用 Arena 分配连续内存，再把 entry 指针放进 SkipList。MemTable 的 owner 是 DBImpl（`mem_`/`imm_`）或恢复临时变量；读取或 iterator 在释放 DB mutex 前先 Ref，结束后 Unref。Arena 析构时批量释放 block，entry 指针不能被单独 `delete`。[`db/memtable.cc`](../../../db/memtable.cc#L20-L135)、[`db/memtable.h`](../../../db/memtable.h#L19-L82)、[`util/arena.h`](../../../util/arena.h#L15-L66)
+MemTable 把 internal key 和 value 编码为 entry，使用 Arena 分配连续内存，再把 entry 指针放进 SkipList。MemTable 的 owner 是 DBImpl（`mem_`/`imm_`）或恢复临时变量；读取或 iterator 在释放 DB mutex 前先 Ref，结束后 Unref。Arena 析构时批量释放 block，entry 指针不能被单独 `delete`。[`db/memtable.cc`](../../source/leveldb/db/memtable.cc#L20-L135)、[`db/memtable.h`](../../source/leveldb/db/memtable.h#L19-L82)、[`util/arena.h`](../../source/leveldb/util/arena.h#L15-L66)
 
 ```text
 DBImpl::mem_ Ref count
@@ -66,7 +66,7 @@ DBImpl::mem_ Ref count
 
 ## 5. `VersionEdit`、`FileMetaData` 与 `Version`
 
-`VersionEdit` 是增量：记录 added/deleted files、log number、prev log、next file、last sequence、comparator 和 compact pointer。`VersionSet::LogAndApply` 先用 Builder 把 edit 合并到 current Version，只有 MANIFEST record 写入并 Sync 成功后才 AppendVersion。`FileMetaData` 包含 file number、size、smallest/largest InternalKey 和 compaction seek 计数；新文件在 Builder 中建立引用，Version 链和 compaction 都可能继续持有它。[`db/version_edit.h`](../../../db/version_edit.h#L17-L101)、[`VersionSet::LogAndApply`](../../../db/version_set.cc#L777-L858)、[`VersionSet::Builder`](../../../db/version_set.cc#L566-L731)
+`VersionEdit` 是增量：记录 added/deleted files、log number、prev log、next file、last sequence、comparator 和 compact pointer。`VersionSet::LogAndApply` 先用 Builder 把 edit 合并到 current Version，只有 MANIFEST record 写入并 Sync 成功后才 AppendVersion。`FileMetaData` 包含 file number、size、smallest/largest InternalKey 和 compaction seek 计数；新文件在 Builder 中建立引用，Version 链和 compaction 都可能继续持有它。[`db/version_edit.h`](../../source/leveldb/db/version_edit.h#L17-L101)、[`VersionSet::LogAndApply`](../../source/leveldb/db/version_set.cc#L777-L858)、[`VersionSet::Builder`](../../source/leveldb/db/version_set.cc#L566-L731)
 
 | 对象 | 生产者 | 消费者 | owner/释放 |
 |---|---|---|---|
@@ -75,21 +75,21 @@ DBImpl::mem_ Ref count
 | `Version` | VersionSet/Builder | Get、Iterator、Compaction | current 和版本链 + 临时 Ref |
 | `pending_outputs_` number | DBImpl output 分配 | obsolete scan | 安装/失败清理时移除 |
 
-`RemoveObsoleteFiles` 把 `pending_outputs_` 与所有 Version 的 live files 合并；后台错误时直接停止垃圾回收，因为无法确定 MANIFEST 是否已经提交。[`DBImpl::RemoveObsoleteFiles`](../../../db/db_impl.cc#L225-L290)
+`RemoveObsoleteFiles` 把 `pending_outputs_` 与所有 Version 的 live files 合并；后台错误时直接停止垃圾回收，因为无法确定 MANIFEST 是否已经提交。[`DBImpl::RemoveObsoleteFiles`](../../source/leveldb/db/db_impl.cc#L225-L290)
 
 ## 6. Cache Handle、TableAndFile 与 Block
 
-TableCache 用 file number 的固定 64 位编码作为 cache key。cache entry 的 value 是 `TableAndFile`，同时拥有 `RandomAccessFile*` 和 `Table*`；cache deleter 删除二者。`FindTable` 返回外部 handle：直接 `Get` 在调用后 Release，iterator 将 Release 注册到 iterator cleanup。`Cache::Erase` 只删除映射，仍有外部 handle 时 value 不会立即被 deleter 释放。[`db/table_cache.cc`](../../../db/table_cache.cc#L13-L29)、[`db/table_cache.cc`](../../../db/table_cache.cc#L40-L117)、[`include/leveldb/cache.h`](../../../include/leveldb/cache.h#L33-L97)
+TableCache 用 file number 的固定 64 位编码作为 cache key。cache entry 的 value 是 `TableAndFile`，同时拥有 `RandomAccessFile*` 和 `Table*`；cache deleter 删除二者。`FindTable` 返回外部 handle：直接 `Get` 在调用后 Release，iterator 将 Release 注册到 iterator cleanup。`Cache::Erase` 只删除映射，仍有外部 handle 时 value 不会立即被 deleter 释放。[`db/table_cache.cc`](../../source/leveldb/db/table_cache.cc#L13-L29)、[`db/table_cache.cc`](../../source/leveldb/db/table_cache.cc#L40-L117)、[`include/leveldb/cache.h`](../../source/leveldb/include/leveldb/cache.h#L33-L97)
 
 Block iterator 还可能持有 block cache handle；因此返回的 Slice 不能越过 iterator/handle 规定的生命周期。读路径应先完成 `Table::InternalGet` 的 callback，再释放 TableCache handle；改变释放顺序可能导致 cache eviction 后访问悬空 block。
 
 ## 7. `Options` 和指针边界
 
-`Options` 从调用方进入 `DBImpl`，`SanitizeOptions` 生成内部副本。comparator、Env、filter policy、info log、block cache 等多数是调用方或共享设施的指针；DBImpl 只在明确标记 owns 的情况下析构 info log/cache。改变 Options 默认值可能同时影响 WAL durability、MemTable flush、Table format、cache 和线程行为。[`DBImpl::DBImpl`](../../../db/db_impl.cc#L126-L150)、[`DBImpl::~DBImpl`](../../../db/db_impl.cc#L161-L178)、[`include/leveldb/options.h`](../../../include/leveldb/options.h#L32-L184)
+`Options` 从调用方进入 `DBImpl`，`SanitizeOptions` 生成内部副本。comparator、Env、filter policy、info log、block cache 等多数是调用方或共享设施的指针；DBImpl 只在明确标记 owns 的情况下析构 info log/cache。改变 Options 默认值可能同时影响 WAL durability、MemTable flush、Table format、cache 和线程行为。[`DBImpl::DBImpl`](../../source/leveldb/db/db_impl.cc#L126-L150)、[`DBImpl::~DBImpl`](../../source/leveldb/db/db_impl.cc#L161-L178)、[`include/leveldb/options.h`](../../source/leveldb/include/leveldb/options.h#L32-L184)
 
 ## 8. `Status`：跨模块错误载荷
 
-Status 不依赖异常跨越边界。Env 将系统错误映射为 Status，log/table/parser 添加 corruption 或 IO 状态，DBImpl 在 Open 路径立即返回，在后台路径把首个错误保存到 `bg_error_`，下一次写入从 `MakeRoomForWrite` 读出。[`DBImpl::RecordBackgroundError`](../../../db/db_impl.cc#L660-L666)、[`DBImpl::MakeRoomForWrite`](../../../db/db_impl.cc#L1331-L1341)
+Status 不依赖异常跨越边界。Env 将系统错误映射为 Status，log/table/parser 添加 corruption 或 IO 状态，DBImpl 在 Open 路径立即返回，在后台路径把首个错误保存到 `bg_error_`，下一次写入从 `MakeRoomForWrite` 读出。[`DBImpl::RecordBackgroundError`](../../source/leveldb/db/db_impl.cc#L660-L666)、[`DBImpl::MakeRoomForWrite`](../../source/leveldb/db/db_impl.cc#L1331-L1341)
 
 错误对象本身通常按值返回；但 `Status` 中的消息可能引用/复制字符串，不能把“函数返回 OK”误解为后台任务已经完成。后台调度必须通过状态字段、条件变量或测试 fixture 观察。
 
@@ -127,11 +127,11 @@ Put("k","v1")
 
 ## 源码证据摘要
 
-- [InternalKey/LookupKey](../../../db/dbformat.h#L50-L219)
-- [WriteBatch 与 MemTable](../../../db/write_batch.cc#L4-L147)、[../../../db/memtable.cc#L20-L135)
-- [VersionEdit/Builder](../../../db/version_edit.h#L17-L101)、[../../../db/version_set.cc#L566-L731)
-- [TableCache ownership](../../../db/table_cache.cc#L13-L117)
-- [Cache contract](../../../include/leveldb/cache.h#L33-L97)
+- [InternalKey/LookupKey](../../source/leveldb/db/dbformat.h#L50-L219)
+- [WriteBatch 与 MemTable](../../source/leveldb/db/write_batch.cc#L4-L147)、[../../../db/memtable.cc#L20-L135)
+- [VersionEdit/Builder](../../source/leveldb/db/version_edit.h#L17-L101)、[../../../db/version_set.cc#L566-L731)
+- [TableCache ownership](../../source/leveldb/db/table_cache.cc#L13-L117)
+- [Cache contract](../../source/leveldb/include/leveldb/cache.h#L33-L97)
 
 ## 未解决问题
 

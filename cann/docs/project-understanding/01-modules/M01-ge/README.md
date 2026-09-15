@@ -2,7 +2,7 @@
 
 - 文档目的：帮助开发者理解 GE 图编译器与执行器
 - 适用范围：`ge/api`、`base`、`graph_metadef`、`compiler`、`parser`、`runtime`
-- 对应源码版本：`47020afc8`
+- 对应源码版本：`8ee1b040a`
 - 证据状态：已确认主要结构；完整子模块覆盖未完成
 - 最后更新：2026-09-10
 - 前置阅读：`00-overview/architecture.md`

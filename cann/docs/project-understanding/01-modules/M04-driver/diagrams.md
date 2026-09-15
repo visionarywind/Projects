@@ -31,6 +31,10 @@ flowchart LR
 
 图示表达用户态源码边界；底层物理页和设备完成时序仍未验证。
 
+## HDC/Queue 生命周期
+
+```mermaid
+stateDiagram-v2
   [*] --> NoClient
   NoClient --> ClientReady: drvHdcClientCreate
   ClientReady --> SessionActive: connect/create session

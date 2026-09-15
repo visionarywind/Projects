@@ -23,7 +23,7 @@ if (s.ok()) {
 }
 ```
 
-Open、Status 检查和 delete DB 的真实文档位置为 [doc/index.md:11-53](../../../../doc/index.md#L11-L53)。示例中的 `Slice`/string 必须满足调用期间的存活要求。
+Open、Status 检查和 delete DB 的真实文档位置为 [doc/index.md:11-53](../../../source/leveldb/doc/index.md#L11-L53)。示例中的 `Slice`/string 必须满足调用期间的存活要求。
 
 ## WriteBatch
 
@@ -48,4 +48,4 @@ delete it;
 db->ReleaseSnapshot(snap);
 ```
 
-Snapshot 和 Iterator 的生命周期示例见 [doc/index.md:143-199](../../../../doc/index.md#L143-L199)。
+Snapshot 和 Iterator 的生命周期示例见 [doc/index.md:143-199](../../../source/leveldb/doc/index.md#L143-L199)。

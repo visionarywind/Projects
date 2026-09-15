@@ -9,7 +9,7 @@
 
 ## 公共实现
 
-`Put` 和 `Delete` 构造临时 WriteBatch 后调用 `Write`（[db/db_impl.cc:1198-1204](../../../../db/db_impl.cc#L1198-L1204)）；`Write` 返回日志、MemTable 和后台错误的组合 Status。`Get`/Iterator 的 snapshot 必须在 DB 生命周期内有效。
+`Put` 和 `Delete` 构造临时 WriteBatch 后调用 `Write`（[db/db_impl.cc:1198-1204](../../../source/leveldb/db/db_impl.cc#L1198-L1204)）；`Write` 返回日志、MemTable 和后台错误的组合 Status。`Get`/Iterator 的 snapshot 必须在 DB 生命周期内有效。
 
 ## 内部协作
 
@@ -18,7 +18,7 @@
 - `MaybeScheduleCompaction` 只负责安排一次背景工作；`BackgroundCall` 执行并恢复标志。
 - `InstallCompactionResults` 安装新文件并删除旧文件的元数据。
 
-这些前置条件写在 [db/db_impl.h:107-151](../../../../db/db_impl.h#L107-L151)。
+这些前置条件写在 [db/db_impl.h:107-151](../../../source/leveldb/db/db_impl.h#L107-L151)。
 
 ## 错误语义
 

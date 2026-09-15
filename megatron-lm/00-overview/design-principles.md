@@ -2,7 +2,7 @@
 
 - 文档目的：从实现证据归纳架构原则，并区分事实和推断。
 - 适用范围：Core 与参考训练路径。
-- 对应源码版本：`8190837c2b6ce176a431bc2a6ffd3439507648a7`
+- 对应源码版本：`3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`
 - 证据状态：部分推断
 - 最后更新：2026-09-10
 - 前置阅读：[总体架构](architecture.md)
@@ -34,7 +34,7 @@
 
 - [M01 设计](../01-modules/M01-core-models/design.md)
 - [M02 设计](../01-modules/M02-parallelism/design.md)
-- [M05 设计](../01-modules/M05-optimizer-checkpointing/design.md)
+- [M05 设计](../01-modules/M05-optimizer-checkpointing/README.md)
 
 ## 源码证据摘要
 

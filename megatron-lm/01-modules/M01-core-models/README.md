@@ -2,7 +2,7 @@
 
 - 文档目的：解释配置、规格和 GPT 模型如何落地为可执行 Transformer。
 - 适用范围：`megatron/core/models/gpt` 与 `transformer`；Hybrid/Mamba 只做边界说明。
-- 对应源码版本：`main@8190837c2b6ce176a431bc2a6ffd3439507648a7`
+- 对应源码版本：`main@3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
 - 前置阅读：[总体架构](../../00-overview/architecture.md)

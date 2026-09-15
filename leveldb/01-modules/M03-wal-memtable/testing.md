@@ -28,7 +28,7 @@
 
 ## 源码证据摘要
 
-[CMakeLists.txt:333-341](../../../../CMakeLists.txt#L333-L341)。
+[CMakeLists.txt:333-341](../../../source/leveldb/CMakeLists.txt#L333-L341)。
 
 ## 未解决问题
 

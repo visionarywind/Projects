@@ -20,12 +20,12 @@ M03 把用户批次转换为带 sequence/type 的 InternalKey，WAL 以可校验
 
 | 符号 | 位置 | 作用 |
 |---|---|---|
-| `WriteBatch::Put/Delete/Iterate` | [db/write_batch.cc:34-108](../../../../db/write_batch.cc#L34-L108) | 编辑编码/解析。 |
-| `WriteBatchInternal::InsertInto` | [db/write_batch.cc:131-136](../../../../db/write_batch.cc#L131-L136) | 按序写 MemTable。 |
-| `log::Writer::AddRecord` | [db/log_writer.cc:33-79](../../../../db/log_writer.cc#L33-L79) | 记录分片。 |
-| `log::Reader::ReadRecord` | [db/log_reader.cc:55-173](../../../../db/log_reader.cc#L55-L173) | 组装/校验逻辑记录。 |
-| `MemTable::Add/Get` | [db/memtable.cc:75-135](../../../../db/memtable.cc#L75-L135) | 写入/按快照查找。 |
-| `LookupKey` | [db/dbformat.h:182-219](../../../../db/dbformat.h#L182-L219) | 构造 memtable/internal 查询键。 |
+| `WriteBatch::Put/Delete/Iterate` | [db/write_batch.cc:34-108](../../../source/leveldb/db/write_batch.cc#L34-L108) | 编辑编码/解析。 |
+| `WriteBatchInternal::InsertInto` | [db/write_batch.cc:131-136](../../../source/leveldb/db/write_batch.cc#L131-L136) | 按序写 MemTable。 |
+| `log::Writer::AddRecord` | [db/log_writer.cc:33-79](../../../source/leveldb/db/log_writer.cc#L33-L79) | 记录分片。 |
+| `log::Reader::ReadRecord` | [db/log_reader.cc:55-173](../../../source/leveldb/db/log_reader.cc#L55-L173) | 组装/校验逻辑记录。 |
+| `MemTable::Add/Get` | [db/memtable.cc:75-135](../../../source/leveldb/db/memtable.cc#L75-L135) | 写入/按快照查找。 |
+| `LookupKey` | [db/dbformat.h:182-219](../../../source/leveldb/db/dbformat.h#L182-L219) | 构造 memtable/internal 查询键。 |
 
 ## 相关文档
 

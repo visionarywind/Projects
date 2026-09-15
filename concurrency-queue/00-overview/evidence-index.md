@@ -1,7 +1,7 @@
 # 证据索引
 
 - 文档目的：集中列出最常引用的源码证据，便于行号校验和增量维护。
-- 最后更新：2026-09-10
+- 最后更新：2026-09-15
 
 | 主题 | 证据 |
 |---|---|
@@ -28,6 +28,13 @@
 | Make targets | `build/makefile:28-50` |
 | CI native/RISC-V | `.github/workflows/ci.yml` |
 | README contract | `README.md:47-180` |
+| allocator 与动态块回收策略 | `source/concurrency-queue/concurrentqueue.h:396-430` |
+| initial pool 构造与 queue 析构 | `source/concurrency-queue/concurrentqueue.h:823-919` |
+| block pool 请求/归还优先级 | `source/concurrency-queue/concurrentqueue.h:3068-3143` |
+| producer 复用与线程退出 | `source/concurrency-queue/concurrentqueue.h:3256-3306,3509-3599` |
+| block 分配/回收测试 | `source/concurrency-queue/tests/unittests/unittests.cpp:1010-1202` |
+| producer/free-list 测试 | `source/concurrency-queue/tests/unittests/unittests.cpp:1275-1460,4852-4925` |
+| Graph 边界 | `source/concurrency-queue/concurrentqueue.h:1-3`; `source/concurrency-queue/benchmarks/tbb/flow_graph.h` | 核心队列无 Graph runtime，benchmark 第三方 graph 不纳入资源模型 |
 
 ## 行号维护规则
 

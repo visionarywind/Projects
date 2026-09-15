@@ -19,7 +19,7 @@
 ## 修改 port
 
 1. 检查 `port/port.h` 的平台选择和配置宏。
-2. 可选库不可用时 wrapper 必须返回 false/不支持，而不是链接失败或产生未定义数据。[port/port_stdcxx.h:89-217](../../../../port/port_stdcxx.h#L89-L217)
+2. 可选库不可用时 wrapper 必须返回 false/不支持，而不是链接失败或产生未定义数据。[port/port_stdcxx.h:89-217](../../../source/leveldb/port/port_stdcxx.h#L89-L217)
 3. 保持 Mutex/CondVar 的锁注解和 adopt_lock 配对。
 
 ## 修改 Cache/Arena

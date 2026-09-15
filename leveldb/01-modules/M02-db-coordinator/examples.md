@@ -10,7 +10,7 @@
 
 ## Open/重开
 
-使用 `Options` 和 `DB::Open` 创建数据库，执行写入后 delete DB，再用相同 name/Options 重开，验证 WAL/MANIFEST 恢复后的可见值。对应实现入口为 [`DB::Open`](../../../../db/db_impl.cc#L1503-L1546) 和 [`DBImpl::Recover`](../../../../db/db_impl.cc#L292-L383)。
+使用 `Options` 和 `DB::Open` 创建数据库，执行写入后 delete DB，再用相同 name/Options 重开，验证 WAL/MANIFEST 恢复后的可见值。对应实现入口为 [`DB::Open`](../../../source/leveldb/db/db_impl.cc#L1503-L1546) 和 [`DBImpl::Recover`](../../../source/leveldb/db/db_impl.cc#L292-L383)。
 
 ## 后台 compaction
 
@@ -18,4 +18,4 @@
 
 ## 错误路径
 
-用 MemEnv 或 fault injection Env 注入写入、Sync、读取失败，检查公开 Status、`bg_error_`、文件清理和下次 Open 的行为。故障注入测试的 Env 设计见 [`fault_injection_test.cc`](../../../../db/fault_injection_test.cc#L4-L6)。
+用 MemEnv 或 fault injection Env 注入写入、Sync、读取失败，检查公开 Status、`bg_error_`、文件清理和下次 Open 的行为。故障注入测试的 Env 设计见 [`fault_injection_test.cc`](../../../source/leveldb/db/fault_injection_test.cc#L4-L6)。

@@ -13,7 +13,7 @@
 
 ## 项目解决的问题
 
-调用方需要在多个线程之间传递任意可移动/可析构 C++ 对象，同时尽量减少锁、分配和同步开销。核心 API 支持单项、bulk、显式 token、隐式 producer、预分配和近似大小；阻塞 API 为消费者提供等待和超时。README 明确列出 C++11、线程安全、bulk 操作和 exception safety 等能力。[../../../README.md:6-18](../../../README.md#L6-L18)
+调用方需要在多个线程之间传递任意可移动/可析构 C++ 对象，同时尽量减少锁、分配和同步开销。核心 API 支持单项、bulk、显式 token、隐式 producer、预分配和近似大小；阻塞 API 为消费者提供等待和超时。README 明确列出 C++11、线程安全、bulk 操作和 exception safety 等能力。[../../../README.md:6-18](../../source/concurrency-queue/README.md#L6-L18)
 
 ## 系统边界
 
@@ -34,8 +34,8 @@
 
 ## 事实、推断和未知
 
-- **已确认**：根 CMake 目标为 `INTERFACE`；测试由 legacy Makefile 构建。[../../../CMakeLists.txt:1-16](../../../CMakeLists.txt#L1-L16)、[../../../build/makefile:28-50](../../../build/makefile#L28-L50)
-- **已确认**：README 说明队列不是 linearizable/ sequentially consistent，并要求调用方处理生命周期。[../../../README.md:47-63](../../../README.md#L47-L63)、[../../../README.md:122-137](../../../README.md#L122-L137)
+- **已确认**：根 CMake 目标为 `INTERFACE`；测试由 legacy Makefile 构建。[../../../CMakeLists.txt:1-16](../../source/concurrency-queue/CMakeLists.txt#L1-L16)、[../../../build/makefile:28-50](../../source/concurrency-queue/build/makefile#L28-L50)
+- **已确认**：README 说明队列不是 linearizable/ sequentially consistent，并要求调用方处理生命周期。[../../../README.md:47-63](../../source/concurrency-queue/README.md#L47-L63)、[../../../README.md:122-137](../../source/concurrency-queue/README.md#L122-L137)
 - **推断**：按 M01–M07 划分主要是为了分别隔离算法、阻塞同步、ABI、验证和交付边界；源码没有显式 module system。
 - **未知**：不同编译器/架构的原子是否全部 lock-free，只能通过 `ConcurrentQueue::is_lock_free()` 或目标平台实验确认。
 
@@ -47,7 +47,7 @@
 
 ## 源码证据摘要
 
-[../../../README.md:65-85](../../../README.md#L65-L85) 解释每个 producer 子队列、块存储和跨 producer 无序语义；[../../../README.md:490-516](../../../README.md#L490-L516) 按源码顺序说明 free list、block、explicit/implicit producer 和 block pool。
+[../../../README.md:65-85](../../source/concurrency-queue/README.md#L65-L85) 解释每个 producer 子队列、块存储和跨 producer 无序语义；[../../../README.md:490-516](../../source/concurrency-queue/README.md#L490-L516) 按源码顺序说明 free list、block、explicit/implicit producer 和 block pool。
 
 ## 未解决问题
 

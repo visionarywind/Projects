@@ -32,7 +32,7 @@ wake next writer
 schedule background work
 ```
 
-真实实现：[db/db_impl.cc:1206-1330](../../../../db/db_impl.cc#L1206-L1330)。
+真实实现：[db/db_impl.cc:1206-1330](../../../source/leveldb/db/db_impl.cc#L1206-L1330)。
 
 ## 调试断点
 

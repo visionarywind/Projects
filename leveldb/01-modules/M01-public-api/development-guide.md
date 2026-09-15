@@ -13,8 +13,8 @@
 1. 明确 API 是新增、语义修正还是 ABI/默认值变化。
 2. 更新公开头文件和内部实现；如适用同步 C API (`include/leveldb/c.h`、`db/c.cc`)。
 3. 写成功、错误、并发、生命周期和重开测试。
-4. 检查 CMake 的公开安装文件清单；公共头文件必须仍能被安装使用。[CMakeLists.txt:193-210](../../../../CMakeLists.txt#L193-L210)
-5. 检查 README/doc 示例和稳定 API 要求。[README.md:89-109](../../../../README.md#L89-L109)
+4. 检查 CMake 的公开安装文件清单；公共头文件必须仍能被安装使用。[CMakeLists.txt:193-210](../../../source/leveldb/CMakeLists.txt#L193-L210)
+5. 检查 README/doc 示例和稳定 API 要求。[README.md:89-109](../../../source/leveldb/README.md#L89-L109)
 6. 追踪对 M02、M03、M04/M05 和 M06 的影响。
 
 ## 契约检查表

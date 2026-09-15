@@ -43,10 +43,10 @@ flowchart LR
 
 ## 关键架构关系
 
-1. `ConcurrentQueue` 自身拥有初始块池、free list、producer list 和 implicit hash。[../../../concurrentqueue.h:3678-3708](../../../concurrentqueue.h#L3678-L3708)
-2. `ProducerToken` 绑定 explicit producer；token 销毁仅将 producer 标记为 inactive，使其可以回收复用。[../../../concurrentqueue.h:671-733](../../../concurrentqueue.h#L671-L733)
-3. 普通 `enqueue` 通过当前线程 ID 查找 implicit producer；显式 token 路径直接进入 `ExplicitProducer`。[../../../concurrentqueue.h:1395-1418](../../../concurrentqueue.h#L1395-L1418)、[../../../concurrentqueue.h:3712-3719](../../../concurrentqueue.h#L3712-L3719)
-4. `BlockingConcurrentQueue` 把 inner queue 作为第一个成员，并在成功入队后 signal；等待接口最终依赖 semaphore 的计数和平台等待。[../../../blockingconcurrentqueue.h:23-70](../../../blockingconcurrentqueue.h#L23-L70)、[../../../blockingconcurrentqueue.h:117-203](../../../blockingconcurrentqueue.h#L117-L203)
+1. `ConcurrentQueue` 自身拥有初始块池、free list、producer list 和 implicit hash。[../../../concurrentqueue.h:3678-3708](../../source/concurrency-queue/concurrentqueue.h#L3678-L3708)
+2. `ProducerToken` 绑定 explicit producer；token 销毁仅将 producer 标记为 inactive，使其可以回收复用。[../../../concurrentqueue.h:671-733](../../source/concurrency-queue/concurrentqueue.h#L671-L733)
+3. 普通 `enqueue` 通过当前线程 ID 查找 implicit producer；显式 token 路径直接进入 `ExplicitProducer`。[../../../concurrentqueue.h:1395-1418](../../source/concurrency-queue/concurrentqueue.h#L1395-L1418)、[../../../concurrentqueue.h:3712-3719](../../source/concurrency-queue/concurrentqueue.h#L3712-L3719)
+4. `BlockingConcurrentQueue` 把 inner queue 作为第一个成员，并在成功入队后 signal；等待接口最终依赖 semaphore 的计数和平台等待。[../../../blockingconcurrentqueue.h:23-70](../../source/concurrency-queue/blockingconcurrentqueue.h#L23-L70)、[../../../blockingconcurrentqueue.h:117-203](../../source/concurrency-queue/blockingconcurrentqueue.h#L117-L203)
 
 ## 设计取舍
 
@@ -62,7 +62,7 @@ flowchart LR
 
 ## 源码证据摘要
 
-`ConcurrentQueue::try_dequeue` 的 producer 选择和回退路径见 [../../../concurrentqueue.h:1149-1185](../../../concurrentqueue.h#L1149-L1185)；子队列 dispatch 见 [../../../concurrentqueue.h:1742-1761](../../../concurrentqueue.h#L1742-L1761)。
+`ConcurrentQueue::try_dequeue` 的 producer 选择和回退路径见 [../../../concurrentqueue.h:1149-1185](../../source/concurrency-queue/concurrentqueue.h#L1149-L1185)；子队列 dispatch 见 [../../../concurrentqueue.h:1742-1761](../../source/concurrency-queue/concurrentqueue.h#L1742-L1761)。
 
 ## 未解决问题
 

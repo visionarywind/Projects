@@ -24,7 +24,7 @@ sequenceDiagram
   A->>D: delete DB / ReleaseSnapshot
 ```
 
-`DB::Open` 的返回对象由调用方 delete，Snapshot 必须通过 `ReleaseSnapshot` 归还；公共头文件将这些生命周期写进接口注释。[include/leveldb/db.h:42-105](../../../../include/leveldb/db.h#L42-L105)
+`DB::Open` 的返回对象由调用方 delete，Snapshot 必须通过 `ReleaseSnapshot` 归还；公共头文件将这些生命周期写进接口注释。[include/leveldb/db.h:42-105](../../../source/leveldb/include/leveldb/db.h#L42-L105)
 
 ## 所有权边界
 
@@ -50,6 +50,6 @@ flowchart TD
 
 ## 相关源码
 
-- [DB 接口](../../../../include/leveldb/db.h#L42-L162)
-- [WriteBatch 契约](../../../../include/leveldb/write_batch.h#L4-L78)
-- [Slice 契约](../../../../include/leveldb/slice.h#L1-L100)
+- [DB 接口](../../../source/leveldb/include/leveldb/db.h#L42-L162)
+- [WriteBatch 契约](../../../source/leveldb/include/leveldb/write_batch.h#L4-L78)
+- [Slice 契约](../../../source/leveldb/include/leveldb/slice.h#L1-L100)

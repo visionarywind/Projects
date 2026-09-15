@@ -1,9 +1,9 @@
 # M03 训练运行时
 
 - 文档目的：追踪从 `pretrain` 到单次迭代、优化器更新、日志和退出的控制流。
-- 对应源码版本：`8190837c2b6ce176a431bc2a6ffd3439507648a7`
+- 对应源码版本：`3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`
 - 证据状态：静态源码分析；未运行 GPU 训练。
-- 最后更新：2026-09-11
+- 最后更新：2026-09-15
 
 ## 边界
 
@@ -45,4 +45,4 @@ pretrain
 
 ## 当前限制
 
-异步 checkpoint finalize、fault injection、CUDA graph、FSDP 和 RL 扩展仅有静态入口证据；实际互斥条件和清理顺序尚未通过运行验证。
+异步 checkpoint finalize、fault injection、FSDP 和 RL 扩展仅有静态入口证据；CUDA Graph 的 shared pool/static buffer/reset、optimizer replay、NCCL MemPool 注册和实际互斥条件仍未通过运行验证。详见 [CUDA Graph 与显存池生命周期](../../90-cross-module/cuda-graph-resource-lifecycle.md)。

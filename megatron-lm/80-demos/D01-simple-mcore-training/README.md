@@ -1,7 +1,7 @@
 # D01 最小 Core GPT 训练
 
 - 文档目的：记录 `examples/run_simple_mcore_train_loop.py` 的端到端静态轨迹。
-- 对应源码版本：`8190837c2b6ce176a431bc2a6ffd3439507648a7`
+- 对应源码版本：`3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`
 - 状态：已完成静态阅读，未运行。
 
 ## 一句话

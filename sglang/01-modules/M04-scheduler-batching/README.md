@@ -2,7 +2,7 @@
 
 - 文档目的：解释 scheduler 如何接收 tokenized request、维护 waiting/running 状态、进行 prefix/KV admission、构造 `ScheduleBatch`、调用 worker 并处理结果。
 - 适用范围：`Scheduler`、`ScheduleBatch`、`Req`、`PrefillAdder`、普通/overlap event loop，以及 decode 内存不足时的 retraction。
-- 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
+- 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
 - 前置阅读：[M03 Tokenizer 与请求状态](../M03-tokenizer-request-state/README.md)、[调度器与连续批处理（基础文章）](../../02-request-flow/03-调度器与连续批处理.md)
@@ -259,16 +259,16 @@ decode batch
 
 ## 源码证据摘要
 
-- [`python/sglang/srt/managers/scheduler.py:1893-1925`](../../../python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/scheduler.py:2050-2105`](../../../python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/scheduler.py:3499-3644`](../../../python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/scheduler.py:4199-4382`](../../../python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/scheduler.py:4548-4589`](../../../python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/schedule_batch.py:926-1018`](../../../python/sglang/srt/managers/schedule_batch.py)
-- [`python/sglang/srt/managers/schedule_batch.py:2184-2417`](../../../python/sglang/srt/managers/schedule_batch.py)
-- [`python/sglang/srt/managers/schedule_batch.py:2559-2605`](../../../python/sglang/srt/managers/schedule_batch.py)
-- [`python/sglang/srt/managers/schedule_batch.py:3076-3159`](../../../python/sglang/srt/managers/schedule_batch.py)
-- [`python/sglang/srt/managers/schedule_policy.py:1266-1359`](../../../python/sglang/srt/managers/schedule_policy.py)
+- [`python/sglang/srt/managers/scheduler.py:1893-1925`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/scheduler.py:2050-2105`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/scheduler.py:3499-3644`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/scheduler.py:4199-4382`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/scheduler.py:4548-4589`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/schedule_batch.py:926-1018`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
+- [`python/sglang/srt/managers/schedule_batch.py:2184-2417`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
+- [`python/sglang/srt/managers/schedule_batch.py:2559-2605`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
+- [`python/sglang/srt/managers/schedule_batch.py:3076-3159`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
+- [`python/sglang/srt/managers/schedule_policy.py:1266-1359`](../../../source/sglang/python/sglang/srt/managers/schedule_policy.py)
 
 ## 未解决问题
 

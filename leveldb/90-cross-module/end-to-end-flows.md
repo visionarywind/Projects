@@ -44,23 +44,23 @@
 
 ### 打开/恢复
 
-`DB::Open` 在 `DBImpl::Recover` 中获得目录锁，读取 CURRENT/MANIFEST 重建 Version，再扫描较新的 WAL；WAL 中的 WriteBatch 重放到 MemTable，必要时生成 Level-0 表，最后以 VersionEdit 更新 MANIFEST。[`DB::Open`](../../../db/db_impl.cc#L1503-L1544)、[`DBImpl::Recover`](../../../db/db_impl.cc#L292-L383)、[`VersionSet::Recover`](../../../db/version_set.cc#L861-L991)
+`DB::Open` 在 `DBImpl::Recover` 中获得目录锁，读取 CURRENT/MANIFEST 重建 Version，再扫描较新的 WAL；WAL 中的 WriteBatch 重放到 MemTable，必要时生成 Level-0 表，最后以 VersionEdit 更新 MANIFEST。[`DB::Open`](../../source/leveldb/db/db_impl.cc#L1503-L1544)、[`DBImpl::Recover`](../../source/leveldb/db/db_impl.cc#L292-L383)、[`VersionSet::Recover`](../../source/leveldb/db/version_set.cc#L861-L991)
 
 ### 写入
 
-`DBImpl::Write` 通过 `writers_` 串行化队首 writer；`MakeRoomForWrite` 负责等待或切换内存表；写入阶段先 `log_->AddRecord`，sync 写再 Sync，成功后才插入 MemTable。[`DBImpl::Write`](../../../db/db_impl.cc#L1206-L1276)、[`DBImpl::MakeRoomForWrite`](../../../db/db_impl.cc#L1331-L1405)
+`DBImpl::Write` 通过 `writers_` 串行化队首 writer；`MakeRoomForWrite` 负责等待或切换内存表；写入阶段先 `log_->AddRecord`，sync 写再 Sync，成功后才插入 MemTable。[`DBImpl::Write`](../../source/leveldb/db/db_impl.cc#L1206-L1276)、[`DBImpl::MakeRoomForWrite`](../../source/leveldb/db/db_impl.cc#L1331-L1405)
 
 ### 读取
 
-`DBImpl::Get` 固定 snapshot sequence 并暂时 Ref 住 mem/imm/current，解锁后按 mem → imm → Version 顺序读取；Version 通过 TableCache 访问表，Table 再访问 index/filter/data block。[`DBImpl::Get`](../../../db/db_impl.cc#L1121-L1165)、[`Version::Get`](../../../db/version_set.cc#L324-L400)、[`TableCache`](../../../db/table_cache.cc#L40-L111)
+`DBImpl::Get` 固定 snapshot sequence 并暂时 Ref 住 mem/imm/current，解锁后按 mem → imm → Version 顺序读取；Version 通过 TableCache 访问表，Table 再访问 index/filter/data block。[`DBImpl::Get`](../../source/leveldb/db/db_impl.cc#L1121-L1165)、[`Version::Get`](../../source/leveldb/db/version_set.cc#L324-L400)、[`TableCache`](../../source/leveldb/db/table_cache.cc#L40-L111)
 
 ### 后台 flush/compaction
 
-调度入口只排队 `BGWork`，不保证立即执行。后台优先 flush imm；普通 compaction 由 score 或 seek 触发，完成 SSTable 后把输入删除和输出添加封装进一次 MANIFEST edit。[`DBImpl::MaybeScheduleCompaction`](../../../db/db_impl.cc#L668-L706)、[`DBImpl::DoCompactionWork`](../../../db/db_impl.cc#L898-L1057)
+调度入口只排队 `BGWork`，不保证立即执行。后台优先 flush imm；普通 compaction 由 score 或 seek 触发，完成 SSTable 后把输入删除和输出添加封装进一次 MANIFEST edit。[`DBImpl::MaybeScheduleCompaction`](../../source/leveldb/db/db_impl.cc#L668-L706)、[`DBImpl::DoCompactionWork`](../../source/leveldb/db/db_impl.cc#L898-L1057)
 
 ### 关闭
 
-析构先发布 shutdown 标志并等待 scheduled 后台工作归零，再解锁 DB、释放 Version/MemTable/日志/TableCache。调用方必须先释放 Iterator、Snapshot 等公共对象。[`DBImpl::~DBImpl`](../../../db/db_impl.cc#L152-L178)
+析构先发布 shutdown 标志并等待 scheduled 后台工作归零，再解锁 DB、释放 Version/MemTable/日志/TableCache。调用方必须先释放 Iterator、Snapshot 等公共对象。[`DBImpl::~DBImpl`](../../source/leveldb/db/db_impl.cc#L152-L178)
 
 ## 证据和边界
 
@@ -77,11 +77,11 @@
 
 ## 源码证据摘要
 
-- [`DBImpl`](../../../db/db_impl.cc#L126-L178)
-- [`DBImpl::Recover`](../../../db/db_impl.cc#L292-L503)
-- [`DBImpl::Write`](../../../db/db_impl.cc#L1206-L1405)
-- [`VersionSet::LogAndApply`](../../../db/version_set.cc#L777-L858)
-- [`VersionSet::PickCompaction`](../../../db/version_set.cc#L1252-L1446)
+- [`DBImpl`](../../source/leveldb/db/db_impl.cc#L126-L178)
+- [`DBImpl::Recover`](../../source/leveldb/db/db_impl.cc#L292-L503)
+- [`DBImpl::Write`](../../source/leveldb/db/db_impl.cc#L1206-L1405)
+- [`VersionSet::LogAndApply`](../../source/leveldb/db/version_set.cc#L777-L858)
+- [`VersionSet::PickCompaction`](../../source/leveldb/db/version_set.cc#L1252-L1446)
 
 ## 未解决问题
 

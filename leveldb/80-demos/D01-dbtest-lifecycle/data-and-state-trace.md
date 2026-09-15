@@ -26,7 +26,7 @@ rep_
     └── kTypeDeletion + varstring key
 ```
 
-`DBImpl::Write` 先给整个合并 batch 分配起始 sequence；`MemTableInserter` 每处理一个 record 就递增 sequence。`MemTable::Add` 再把 user key 和 `(sequence << 8) | ValueType` 编入 InternalKey。[`WriteBatch`](../../../../db/write_batch.cc#L5-L14)、[`DBImpl::Write`](../../../../db/db_impl.cc#L1221-L1228)、[`MemTable::Add`](../../../../db/memtable.cc#L76-L100)
+`DBImpl::Write` 先给整个合并 batch 分配起始 sequence；`MemTableInserter` 每处理一个 record 就递增 sequence。`MemTable::Add` 再把 user key 和 `(sequence << 8) | ValueType` 编入 InternalKey。[`WriteBatch`](../../../source/leveldb/db/write_batch.cc#L5-L14)、[`DBImpl::Write`](../../../source/leveldb/db/db_impl.cc#L1221-L1228)、[`MemTable::Add`](../../../source/leveldb/db/memtable.cc#L76-L100)
 
 这解释了以下观察：同一 key 多次更新不会覆盖掉旧 bytes，而是形成按 sequence 排序的多个 InternalKey；读路径选择对 snapshot 可见的第一条；compaction 在确定旧版本和 deletion 安全后才裁剪。
 
@@ -39,13 +39,13 @@ kFullType                 一块内完整记录
 kFirstType + kMiddleType* + kLastType   跨块记录
 ```
 
-header 保存 masked CRC、payload 长度和 type；每个 fragment Append 后 Flush。Reader 遇到 FIRST/MIDDLE/LAST 才组合成一个逻辑 `Slice`，尾部未完成的记录按 writer 在中途退出处理并忽略；CRC 错误通过 Reporter 记录。[`Writer::AddRecord`](../../../../db/log_writer.cc#L34-L79)、[`Reader::ReadRecord`](../../../../db/log_reader.cc#L56-L173)
+header 保存 masked CRC、payload 长度和 type；每个 fragment Append 后 Flush。Reader 遇到 FIRST/MIDDLE/LAST 才组合成一个逻辑 `Slice`，尾部未完成的记录按 writer 在中途退出处理并忽略；CRC 错误通过 Reporter 记录。[`Writer::AddRecord`](../../../source/leveldb/db/log_writer.cc#L34-L79)、[`Reader::ReadRecord`](../../../source/leveldb/db/log_reader.cc#L56-L173)
 
 因此“大 value 跨物理块”不会改变 WriteBatch 语义，只增加 Reader 重组阶段。D01 未把某个固定 value 大小作为已运行的 WAL 碎片实验结果；源码能确认分片规则。
 
 ## 4. MemTable 与 Arena
 
-MemTable 构造 `Arena` 和 `SkipList`，`Add` 从 Arena 一次分配完整 entry 并插入 SkipList。`Get` 用 `LookupKey` Seek 到不大于 snapshot sequence 的位置，再检查 user key 和 type；value 复制到调用者 `std::string`，deletion 返回 `NotFound`。[`MemTable` 构造/析构](../../../../db/memtable.cc#L21-L26)、[`MemTable::Get`](../../../../db/memtable.cc#L102-L136)
+MemTable 构造 `Arena` 和 `SkipList`，`Add` 从 Arena 一次分配完整 entry 并插入 SkipList。`Get` 用 `LookupKey` Seek 到不大于 snapshot sequence 的位置，再检查 user key 和 type；value 复制到调用者 `std::string`，deletion 返回 `NotFound`。[`MemTable` 构造/析构](../../../source/leveldb/db/memtable.cc#L21-L26)、[`MemTable::Get`](../../../source/leveldb/db/memtable.cc#L102-L136)
 
 ```text
 DBImpl::mem_ owner Ref
@@ -74,7 +74,7 @@ seq=3: foo deletion
 - flush/compaction 只改变物理文件层次，不改变 InternalKey 的 sequence 过滤；
 - ReleaseSnapshot 只删除句柄，不能再使用该 Snapshot。
 
-公共契约要求 Snapshot 属于创建它的 DB，且 Iterator 必须在 DB 删除前销毁。[`db.h:98-106`](../../../../include/leveldb/db.h#L98-L106)、[`options.h:150-165`](../../../../include/leveldb/options.h#L150-L165)
+公共契约要求 Snapshot 属于创建它的 DB，且 Iterator 必须在 DB 删除前销毁。[`db.h:98-106`](../../../source/leveldb/include/leveldb/db.h#L98-L106)、[`options.h:150-165`](../../../source/leveldb/include/leveldb/options.h#L150-L165)
 
 ## 6. Iterator 的数据借用
 
@@ -85,9 +85,9 @@ seq=3: foo deletion
 - RandomAccessFile read scratch；
 - iterator 自己的临时编码空间。
 
-因此 D01 中 `IterStatus` 立即调用 `ToString()` 把借用 Slice 复制成测试字符串，避免把 Slice 保存到下一次 `Next/Prev` 之后。[`DBTest::IterStatus`](../../../../db/db_test.cc#L521-L529)、[`Iterator` 契约](../../../../include/leveldb/iterator.h#L60-L73)
+因此 D01 中 `IterStatus` 立即调用 `ToString()` 把借用 Slice 复制成测试字符串，避免把 Slice 保存到下一次 `Next/Prev` 之后。[`DBTest::IterStatus`](../../../source/leveldb/db/db_test.cc#L521-L529)、[`Iterator` 契约](../../../source/leveldb/include/leveldb/iterator.h#L60-L73)
 
-`IteratorPinsRef` 在后台写入和 compaction 后仍读到旧值，不是因为 Slice 永久有效，而是因为 Iterator 的 child resources 和 Version/MemTable 引用仍被 cleanup 保护。[`IteratorPinsRef`](../../../../db/db_test.cc#L1328-L1349)
+`IteratorPinsRef` 在后台写入和 compaction 后仍读到旧值，不是因为 Slice 永久有效，而是因为 Iterator 的 child resources 和 Version/MemTable 引用仍被 cleanup 保护。[`IteratorPinsRef`](../../../source/leveldb/db/db_test.cc#L1328-L1349)
 
 ## 7. SSTable、Version 和 MANIFEST
 
@@ -103,7 +103,7 @@ pending_outputs_ += N
   -> pending_outputs_ -= N / obsolete scan
 ```
 
-在 `AppendVersion` 前，表文件已经存在但尚未对 current Version 可见。若 MANIFEST 记录或 Sync 失败，不能假定输出和输入的 GC 安全关系已经提交；测试 `ManifestWriteError` 通过重开验证数据不丢。[`WriteLevel0Table`](../../../../db/db_impl.cc#L505-L546)、[`ManifestWriteError`](../../../../db/db_test.cc#L1849-L1887)
+在 `AppendVersion` 前，表文件已经存在但尚未对 current Version 可见。若 MANIFEST 记录或 Sync 失败，不能假定输出和输入的 GC 安全关系已经提交；测试 `ManifestWriteError` 通过重开验证数据不丢。[`WriteLevel0Table`](../../../source/leveldb/db/db_impl.cc#L505-L546)、[`ManifestWriteError`](../../../source/leveldb/db/db_test.cc#L1849-L1887)
 
 ## 8. 错误状态变化
 
@@ -115,13 +115,13 @@ pending_outputs_ += N
 | 缺失 SSTable | Open 在 paranoid 下返回 Corruption | 不交出 DB 指针 | 调用方需处理失败 | `MissingSSTFile` 明确断言失败 |
 | log Close | 切换 WAL 失败 | 旧/新状态受错误保护 | 后续 Put 失败 | `LogCloseError` 检查未来写入拒绝 |
 
-错误类型通过 `Status` 表示；`Status` 的 error state 自有复制的 message storage，OK 由空 state 表示。[`Status`](../../../../include/leveldb/status.h#L24-L100)
+错误类型通过 `Status` 表示；`Status` 的 error state 自有复制的 message storage，OK 由空 state 表示。[`Status`](../../../source/leveldb/include/leveldb/status.h#L24-L100)
 
 ## 9. 重新打开的持久化边界
 
-`DBImpl::Recover` 从 CURRENT 找到 MANIFEST，`VersionSet::Recover` 先恢复 file number/log number/last sequence，再扫描目录中不低于 manifest log number 的 WAL。恢复得到的 `max_sequence` 与 MANIFEST 的 `LastSequence` 取最大值。[`Recover`](../../../../db/db_impl.cc#L292-L382)
+`DBImpl::Recover` 从 CURRENT 找到 MANIFEST，`VersionSet::Recover` 先恢复 file number/log number/last sequence，再扫描目录中不低于 manifest log number 的 WAL。恢复得到的 `max_sequence` 与 MANIFEST 的 `LastSequence` 取最大值。[`Recover`](../../../source/leveldb/db/db_impl.cc#L292-L382)
 
-测试 `RecoverWithLargeLog` 用较大 batch 写入，再以更小 `write_buffer_size` 重开，验证恢复过程可以在一个 WAL 内多次写出 L0 表，同时保留所有值。这证明的是源码定义的恢复路径，不是对任意进程崩溃时文件系统持久性的承诺。[`RecoverWithLargeLog`](../../../../db/db_test.cc#L1107-L1129)
+测试 `RecoverWithLargeLog` 用较大 batch 写入，再以更小 `write_buffer_size` 重开，验证恢复过程可以在一个 WAL 内多次写出 L0 表，同时保留所有值。这证明的是源码定义的恢复路径，不是对任意进程崩溃时文件系统持久性的承诺。[`RecoverWithLargeLog`](../../../source/leveldb/db/db_test.cc#L1107-L1129)
 
 ## 相关页面
 

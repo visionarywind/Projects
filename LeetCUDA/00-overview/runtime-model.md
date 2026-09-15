@@ -2,7 +2,7 @@
 
 - 文档目的：说明三类入口从启动到退出如何管理编译、张量、GPU 工作和输出。
 - 适用范围：普通 Python 扩展、setup.py 包、interview 二进制。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：主路径已确认；底层 allocator/stream 细节未知。
 - 最后更新：2026-09-10
 - 前置阅读：[architecture.md](architecture.md)

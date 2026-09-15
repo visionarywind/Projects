@@ -22,12 +22,12 @@ LevelDB 以稳定的公共 API、顺序日志、不可变/有序表、版本编�
 | Env 抽象外部世界 | 文件、锁、Schedule、线程等均通过虚接口。 | 接口兼容性和平台差异需维护。 |
 | 无异常/无 RTTI构建 | CMake 对非 MSVC 禁用 exceptions/RTTI。 | 错误必须通过 Status 和显式资源管理传播。 |
 
-证据：[CMakeLists.txt:55-77](../../../CMakeLists.txt#L55-L77)、[db/dbformat.h:50-66](../../../db/dbformat.h#L50-L66)、[include/leveldb/options.h:166-184](../../../include/leveldb/options.h#L166-L184)。
+证据：[CMakeLists.txt:55-77](../../source/leveldb/CMakeLists.txt#L55-L77)、[db/dbformat.h:50-66](../../source/leveldb/db/dbformat.h#L50-L66)、[include/leveldb/options.h:166-184](../../source/leveldb/include/leveldb/options.h#L166-L184)。
 
 ## 设计取舍说明
 
-- **同步写**：公共文档明确说明 sync=false 类似写入操作，sync=true 类似写入后 fsync；因此可靠性/延迟由调用方选择（[doc/index.md:94-123](../../../doc/index.md#L94-L123)）。
-- **快照**：Snapshot 是不可变句柄，允许一致读；但未释放会阻止旧版本/旧数据尽早丢弃（[include/leveldb/db.h:97-105](../../../include/leveldb/db.h#L97-L105)）。
+- **同步写**：公共文档明确说明 sync=false 类似写入操作，sync=true 类似写入后 fsync；因此可靠性/延迟由调用方选择（[doc/index.md:94-123](../../source/leveldb/doc/index.md#L94-L123)）。
+- **快照**：Snapshot 是不可变句柄，允许一致读；但未释放会阻止旧版本/旧数据尽早丢弃（[include/leveldb/db.h:97-105](../../source/leveldb/include/leveldb/db.h#L97-L105)）。
 - **过滤器和缓存**：Bloom/filter 可减少磁盘读，block cache 可复用解压后的块；代价是内存占用和 cache 一致性管理。
 - **手工生命周期**：MemTable/Version/文件对象多数是裸指针配合引用计数或显式 delete；这是当前 ABI/性能实现，不等同于缺陷，修改时必须遵守所有权注释。
 
@@ -35,7 +35,7 @@ LevelDB 以稳定的公共 API、顺序日志、不可变/有序表、版本编�
 
 1. 先判断是否改变公开 API、磁盘格式、线程/锁契约或错误语义。
 2. 若枚举值、InternalKey、日志或表格式变化，必须同步更新兼容性测试和格式文档。
-3. 功能修改必须伴随测试；项目贡献要求也明确要求测试或解释无需测试（[README.md:89-101](../../../README.md#L89-L101)）。
+3. 功能修改必须伴随测试；项目贡献要求也明确要求测试或解释无需测试（[README.md:89-101](../../source/leveldb/README.md#L89-L101)）。
 4. 不把实现中的常量直接写成通用性能保证；用“当前源码默认值”描述。
 
 ## 相关文档

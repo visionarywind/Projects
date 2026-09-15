@@ -9,6 +9,9 @@
 
 ## Runtime
 
+- 池化与资源管理专题：[source/llamacpp/src/llama-kv-cache.cpp:65-304]、[source/llamacpp/src/llama-memory-recurrent.cpp:20-159]、[source/llamacpp/src/llama-context.cpp:582-721]、[source/llamacpp/tools/server/server-context.cpp:1249-1433]。
+- ggml tensor allocator：[source/llamacpp/ggml/src/ggml-alloc.c:53-91,94-177]；graph reserve/reset：[source/llamacpp/src/llama-context.cpp:582-712,819-843,2418-2464]。
+
 - backend init：[src/llama.cpp:122-151]
 - device preparation：[src/llama.cpp:158-312]
 - model load：[src/llama.cpp:316-444]

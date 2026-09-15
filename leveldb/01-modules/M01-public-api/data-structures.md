@@ -21,15 +21,15 @@ classDiagram
   WriteBatch --> Slice
 ```
 
-`DB` 拥有内部实现但由调用者 delete；`Snapshot` 是只读句柄，由 DB 创建/释放；Iterator 读取 DB 状态且必须先于 DB 销毁；Slice 只是外部缓冲区视图。[include/leveldb/db.h:25-60](../../../../include/leveldb/db.h#L25-L60)、[doc/index.md:201-229](../../../../doc/index.md#L201-L229)
+`DB` 拥有内部实现但由调用者 delete；`Snapshot` 是只读句柄，由 DB 创建/释放；Iterator 读取 DB 状态且必须先于 DB 销毁；Slice 只是外部缓冲区视图。[include/leveldb/db.h:25-60](../../../source/leveldb/include/leveldb/db.h#L25-L60)、[doc/index.md:201-229](../../../source/leveldb/doc/index.md#L201-L229)
 
 ## Options 不变量
 
-Comparator 必须跨打开保持名称和排序一致；`write_buffer_size`、`block_size`、`max_file_size` 等会影响内存、块和 compaction；Env、cache、logger 可以由调用方借用。SanitizeOptions 会复制并规范部分选项，见 M02。[include/leveldb/options.h:40-147](../../../../include/leveldb/options.h#L40-L147)、[db/db_impl.cc:87-117](../../../../db/db_impl.cc#L87-L117)
+Comparator 必须跨打开保持名称和排序一致；`write_buffer_size`、`block_size`、`max_file_size` 等会影响内存、块和 compaction；Env、cache、logger 可以由调用方借用。SanitizeOptions 会复制并规范部分选项，见 M02。[include/leveldb/options.h:40-147](../../../source/leveldb/include/leveldb/options.h#L40-L147)、[db/db_impl.cc:87-117](../../../source/leveldb/db/db_impl.cc#L87-L117)
 
 ## 状态对象
 
-Status 是值对象，API 调用方应检查 `ok()`/`IsNotFound()`；WriteBatch 可复制但修改时需外部同步；Range 中 start 包含、limit 不包含。[include/leveldb/status.h](../../../../include/leveldb/status.h)、[include/leveldb/write_batch.h:41-72](../../../../include/leveldb/write_batch.h#L41-L72)、[include/leveldb/db.h:33-40](../../../../include/leveldb/db.h#L33-L40)
+Status 是值对象，API 调用方应检查 `ok()`/`IsNotFound()`；WriteBatch 可复制但修改时需外部同步；Range 中 start 包含、limit 不包含。[include/leveldb/status.h](../../../source/leveldb/include/leveldb/status.h)、[include/leveldb/write_batch.h:41-72](../../../source/leveldb/include/leveldb/write_batch.h#L41-L72)、[include/leveldb/db.h:33-40](../../../source/leveldb/include/leveldb/db.h#L33-L40)
 
 ## 修改影响
 

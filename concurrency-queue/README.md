@@ -3,7 +3,7 @@
 - 文档目的：提供从整体架构到源码实现、Demo、测试和开发实践的统一入口。
 - 适用范围：仓库 `master` 当前提交 `683b9e31ea15eb69f1b81cc1defc7850d5f20b71`（`v1.0.5-6-g683b9e3`）。
 - 证据状态：总体模型已确认；部分性能、动态调度和未执行命令为推断或未验证。
-- 最后更新：2026-09-10
+- 最后更新：2026-09-14
 - 前置阅读：无
 - 后续阅读：[项目概览](00-overview/project-overview.md)、[架构](00-overview/architecture.md)、[模块注册表](01-modules/module-registry.md)
 
@@ -11,7 +11,7 @@
 
 `concurrentqueue` 是一个 C++11 header-only 无锁多生产者/多消费者队列。用户调用 `ConcurrentQueue<T>::enqueue` 或 `try_dequeue`；队列内部将数据分散到每个 producer 的块状子队列，再通过 producer 链表和原子计数协调消费者。显式 token 可复用 producer/consumer 状态，隐式 API 则按线程查找或创建 implicit producer。阻塞版本在同一核心队列外加轻量信号量，使消费者可以等待数据。
 
-核心不变量是：对象完成构造且构造效果对工作线程可见后才能并发使用；销毁前必须停止所有访问。该队列保证单个 producer 的顺序，但不提供独立 producer 之间的全局线性化顺序。[README.md:47-63](../../README.md#L47-L63) 和 [concurrentqueue.h:823-919](../../concurrentqueue.h#L823-L919)
+核心不变量是：对象完成构造且构造效果对工作线程可见后才能并发使用；销毁前必须停止所有访问。该队列保证单个 producer 的顺序，但不提供独立 producer 之间的全局线性化顺序。[README.md:47-63](../source/concurrency-queue/README.md#L47-L63) 和 [concurrentqueue.h:823-919](../source/concurrency-queue/concurrentqueue.h#L823-L919)
 
 ## 总体架构
 
@@ -74,6 +74,7 @@ cmake -S . -B cmake-build && cmake --build cmake-build
 - 修改核心算法：架构 → [M01 design](01-modules/M01-core-queue/design.md) → [implementation](01-modules/M01-core-queue/implementation.md) → [line-level-analysis](01-modules/M01-core-queue/line-level-analysis.md) → M05 测试。
 - 调试阻塞问题：M02 → M03 → [跨模块错误边界](90-cross-module/error-boundaries.md) → [调试指南](99-roadmap/debugging-guide.md)。
 - 扩展 C 接口：M04 interfaces → [变更影响图](90-cross-module/change-impact-map.md) → 测试配方。
+- 分析池化与资源生命周期：[池化与资源管理专题](90-cross-module/pooling-and-resource-management.md) → M01 implementation → M01 tests。
 
 ## 覆盖矩阵与状态
 
@@ -94,6 +95,7 @@ cmake -S . -B cmake-build && cmake --build cmake-build
 - [模块层](01-modules/module-registry.md)
 - [Demo 层](80-demos/demo-registry.md)
 - [跨模块层](90-cross-module/system-wiring.md)
+- [池化与资源管理专题](90-cross-module/pooling-and-resource-management.md)
 - [实践层](99-roadmap/quick-start.md)
 
 ## 源码证据摘要

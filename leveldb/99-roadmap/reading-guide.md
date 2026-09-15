@@ -83,9 +83,9 @@ M07 README → CMake targets → CTest 注册 → 对应模块 testing → `db_b
 
 ## 源码证据摘要
 
-- [`DBImpl::Open/Write/Get`](../../../db/db_impl.cc#L1121-L1276)
-- [`VersionSet::Recover/LogAndApply/PickCompaction`](../../../db/version_set.cc#L777-L991)
-- [`Table::Open/InternalGet`](../../../table/table.cc#L37-L240)
+- [`DBImpl::Open/Write/Get`](../../source/leveldb/db/db_impl.cc#L1121-L1276)
+- [`VersionSet::Recover/LogAndApply/PickCompaction`](../../source/leveldb/db/version_set.cc#L777-L991)
+- [`Table::Open/InternalGet`](../../source/leveldb/table/table.cc#L37-L240)
 
 ## 未解决问题
 

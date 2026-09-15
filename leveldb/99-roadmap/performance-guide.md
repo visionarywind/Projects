@@ -34,7 +34,7 @@ readrandom : 1.199 micros/op; (10000 of 10000 found)
 此前运行得到 `fillseq 3.104 micros/op`、`readrandom 1.141 micros/op`；不同临时目录和运行时状态下的单次差异不构成性能回归结论。
 ## db_bench 场景
 
-关注 `fillseq`、`fillrandom`、`fillsync`、`overwrite`、`readrandom`、`readseq`、`readreverse`、`compact` 和 compression 场景。[benchmarks/db_bench.cc:23-64](../../../benchmarks/db_bench.cc#L23-L64)
+关注 `fillseq`、`fillrandom`、`fillsync`、`overwrite`、`readrandom`、`readseq`、`readreverse`、`compact` 和 compression 场景。[benchmarks/db_bench.cc:23-64](../../source/leveldb/benchmarks/db_bench.cc#L23-L64)
 
 ## 变量
 
@@ -64,8 +64,8 @@ readrandom : 1.199 micros/op; (10000 of 10000 found)
 
 ## 源码证据摘要
 
-- [db_bench 场景](../../../benchmarks/db_bench.cc#L23-L64)
-- [CI benchmark/install 流程](../../../.github/workflows/build.yml#L85-L102)
+- [db_bench 场景](../../source/leveldb/benchmarks/db_bench.cc#L23-L64)
+- [CI benchmark/install 流程](../../source/leveldb/.github/workflows/build.yml#L85-L102)
 
 ## 未解决问题
 

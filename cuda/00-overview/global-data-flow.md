@@ -4,7 +4,7 @@
 - 适用范围：Driver API 内存与 Kernel launch 主线。
 - 对应源码版本：CUDA 10.2 API 字段；提交未知。
 - 证据状态：静态确认。
-- 最后更新：2026-09-11
+- 最后更新：2026-09-14
 - 前置阅读：[运行时模型](runtime-model.md)
 - 后续阅读：[端到端流程](../90-cross-module/end-to-end-flows.md)
 

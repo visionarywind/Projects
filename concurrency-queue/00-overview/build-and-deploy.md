@@ -38,7 +38,7 @@ cmake --build cmake-build
 cmake --install cmake-build --prefix "$PWD/stage"
 ```
 
-CMake 只安装 header 和导出的 interface target `concurrentqueue::concurrentqueue`，不定义 unit/fuzz/benchmark target。[../../../CMakeLists.txt:1-16](../../../CMakeLists.txt#L1-L16)
+CMake 只安装 header 和导出的 interface target `concurrentqueue::concurrentqueue`，不定义 unit/fuzz/benchmark target。[../../../CMakeLists.txt:1-16](../../source/concurrency-queue/CMakeLists.txt#L1-L16)
 
 ## CI 平台
 

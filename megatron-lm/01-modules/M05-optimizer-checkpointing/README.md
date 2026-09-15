@@ -1,6 +1,6 @@
 # M05 优化器与分布式检查点
 
-- 对应源码版本：`8190837c2b6ce176a431bc2a6ffd3439507648a7`
+- 对应源码版本：`3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`
 - 证据状态：静态源码分析；未运行保存/恢复实验。
 
 ## 主链
@@ -35,3 +35,5 @@ model.sharded_state_dict + optimizer state
 ## 风险
 
 checkpoint 兼容性取决于模型结构和并行配置；`check_checkpoint_args` 会拒绝/警告关键结构参数不匹配。异步保存和 non-persistent/local checkpoint 的清理及恢复语义尚未实测。
+
+启用 optimizer CUDA Graph 时，optimizer step 与 full-iteration graph 可能共享 capture stream 和 graph memory pool；NCCL `MemPool` 注册/注销必须覆盖实际通信 group。相关资源边界见 [CUDA Graph 与显存池生命周期](../../90-cross-module/cuda-graph-resource-lifecycle.md)，当前未运行验证。

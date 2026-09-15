@@ -2,7 +2,7 @@
 
 - 文档目的：解释 `ScheduleBatch` 如何变成 `ForwardBatch`，如何经过 TP worker 和 `ModelRunner` 完成 forward、logits 处理与 sampling。
 - 适用范围：`TpModelWorker.forward_batch_generation`、`ForwardBatch.init_new`、`ModelRunner.forward`、`ModelRunner.sample`、PP proxy 和 prefill-only 分支。
-- 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
+- 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
 - 前置阅读：[M04 Scheduler 与连续批处理](../M04-scheduler-batching/README.md)、[M07 分布式并行](../M07-分布式并行.md)
@@ -162,12 +162,12 @@ ModelRunner.sample
 
 ## 源码证据摘要
 
-- [`python/sglang/srt/managers/tp_worker.py:593-703`](../../../python/sglang/srt/managers/tp_worker.py)
-- [`python/sglang/srt/model_executor/forward_batch_info.py:758-908`](../../../python/sglang/srt/model_executor/forward_batch_info.py)
-- [`python/sglang/srt/model_executor/model_runner.py:1612-1706`](../../../python/sglang/srt/model_executor/model_runner.py)
-- [`python/sglang/srt/model_executor/model_runner.py:1756-1805`](../../../python/sglang/srt/model_executor/model_runner.py)
-- [`python/sglang/srt/model_executor/model_runner.py:1884-1938`](../../../python/sglang/srt/model_executor/model_runner.py)
-- [`python/sglang/srt/managers/scheduler.py:4548-4589`](../../../python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/tp_worker.py:593-703`](../../../source/sglang/python/sglang/srt/managers/tp_worker.py)
+- [`python/sglang/srt/model_executor/forward_batch_info.py:758-908`](../../../source/sglang/python/sglang/srt/model_executor/forward_batch_info.py)
+- [`python/sglang/srt/model_executor/model_runner.py:1612-1706`](../../../source/sglang/python/sglang/srt/model_executor/model_runner.py)
+- [`python/sglang/srt/model_executor/model_runner.py:1756-1805`](../../../source/sglang/python/sglang/srt/model_executor/model_runner.py)
+- [`python/sglang/srt/model_executor/model_runner.py:1884-1938`](../../../source/sglang/python/sglang/srt/model_executor/model_runner.py)
+- [`python/sglang/srt/managers/scheduler.py:4548-4589`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
 
 ## 深度审计
 

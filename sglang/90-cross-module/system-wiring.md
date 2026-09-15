@@ -2,7 +2,7 @@
 
 - 文档目的：把 SGLang 的启动、请求、执行和返回链路放在同一张运行时地图中。
 - 适用范围：M01-M18（普通 HTTP LLM 主线及 speculative、multimodal、disaggregation、MoE/LoRA、设备、Rust/router 变体）。
-- 对应源码版本：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
+- 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
 - 前置阅读：[总体架构](../00-overview/architecture.md)、[D01 离线 Engine](../80-demos/D01-offline-engine/01-离线批量推理.md)
@@ -27,13 +27,15 @@ flowchart LR
     S --> B[M04 ScheduleBatch]
     B --> W[M05 TP/PP worker]
     W --> R[M05 ModelRunner]
+    R --> GP[M09 CUDA Graph static buffers/global pool]
+    R --> KP[M08 KV slot/page/physical pool]
     R --> S
     S -->|output IPC| DET[Detokenizer]
     DET --> M03
     M03 --> OUT[output dict / HTTP response]
 ```
 
-图中箭头含义：CLI→CFG 是配置调用；CFG→PROC 是生命周期创建；M03→S 和 S→DET 是序列化消息；S→W→R 是进程内或 worker 内执行调用；M03→OUT 是本地状态通知。节点均有源码证据，具体变体（Ray、disaggregation、diffusion）未在此图展开。
+图中箭头含义：CLI→CFG 是配置调用；CFG→PROC 是生命周期创建；M03→S 和 S→DET 是序列化消息；S→W→R 是进程内或 worker 内执行调用；M03→OUT 是本地状态通知；R→GP/KP 是 replay/static buffer 与 KV pool 的资源依赖。节点均有源码证据，具体变体（Ray、disaggregation、diffusion）未在此图展开。
 
 ## 系统串联矩阵
 
@@ -67,10 +69,10 @@ flowchart LR
 
 ## 源码证据摘要
 
-- [`python/sglang/srt/entrypoints/engine.py:1051-1260`](../../python/sglang/srt/entrypoints/engine.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:776-845`](../../python/sglang/srt/managers/tokenizer_manager.py)
-- [`python/sglang/srt/managers/scheduler.py:1839-1925`](../../python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/tp_worker.py:593-692`](../../python/sglang/srt/managers/tp_worker.py)
+- [`python/sglang/srt/entrypoints/engine.py:1051-1260`](../../source/sglang/python/sglang/srt/entrypoints/engine.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:776-845`](../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/scheduler.py:1839-1925`](../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/tp_worker.py:593-692`](../../source/sglang/python/sglang/srt/managers/tp_worker.py)
 
 ## 未解决问题
 

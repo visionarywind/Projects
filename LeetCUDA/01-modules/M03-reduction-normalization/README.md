@@ -2,7 +2,7 @@
 
 - 文档目的：说明 reduce、softmax、LayerNorm/RMSNorm 的学习边界。
 - 适用范围：`kernels/reduce/`, `softmax/`, `layer-norm/`, `rms-norm/` 与 interview base。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：目录/接口模式已确认，深层 kernel 为部分分析。
 - 最后更新：2026-09-10
 - 前置阅读：[M01](../M01-foundation/README.md)

@@ -13,11 +13,11 @@ M04 管理“当前数据库状态”而不是单个文件：Version 按 level �
 
 ## 关键入口
 
-- `Version::Get`：[db/version_set.cc:324-401](../../../../db/version_set.cc#L324-L401)
-- `VersionSet::LogAndApply`：[db/version_set.cc:777-859](../../../../db/version_set.cc#L777-L859)
-- `VersionSet::Recover`：[db/version_set.cc:861-993](../../../../db/version_set.cc#L861-L993)
-- `VersionSet::PickCompaction`：[db/version_set.cc:1252-1304](../../../../db/version_set.cc#L1252-L1304)
-- `SetupOtherInputs`：[db/version_set.cc:1385-1446](../../../../db/version_set.cc#L1385-L1446)
+- `Version::Get`：[db/version_set.cc:324-401](../../../source/leveldb/db/version_set.cc#L324-L401)
+- `VersionSet::LogAndApply`：[db/version_set.cc:777-859](../../../source/leveldb/db/version_set.cc#L777-L859)
+- `VersionSet::Recover`：[db/version_set.cc:861-993](../../../source/leveldb/db/version_set.cc#L861-L993)
+- `VersionSet::PickCompaction`：[db/version_set.cc:1252-1304](../../../source/leveldb/db/version_set.cc#L1252-L1304)
+- `SetupOtherInputs`：[db/version_set.cc:1385-1446](../../../source/leveldb/db/version_set.cc#L1385-L1446)
 
 ## 相关文档
 

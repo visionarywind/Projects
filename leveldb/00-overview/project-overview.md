@@ -11,7 +11,7 @@
 
 LevelDB 是嵌入式、有序、持久化键值库，不是 SQL 服务，也不提供客户端/服务端协议。一个数据库目录由日志、MemTable、分层 SSTable、MANIFEST、CURRENT、锁和日志文件组成。单进程内同一个 `DB` 可被多线程共享，但同一数据库由操作系统锁限制为单进程打开。
 
-证据：[README.md:1-31](../../../README.md#L1-L31)、[doc/index.md:130-141](../../../doc/index.md#L130-L141)、[doc/impl.md:7-62](../../../doc/impl.md#L7-L62)。
+证据：[README.md:1-31](../../source/leveldb/README.md#L1-L31)、[doc/index.md:130-141](../../source/leveldb/doc/index.md#L130-L141)、[doc/impl.md:7-62](../../source/leveldb/doc/impl.md#L7-L62)。
 
 ## 输入、输出与边界
 
@@ -24,7 +24,7 @@ LevelDB 是嵌入式、有序、持久化键值库，不是 SQL 服务，也不�
 | 外部依赖 | 可选 crc32c、Snappy、Zstd、tcmalloc、SQLite/Kyoto benchmark；测试依赖 GoogleTest。 |
 | 非目标 | SQL、索引、网络服务、跨进程并发访问。 |
 
-证据：[CMakeLists.txt:4-22](../../../CMakeLists.txt#L4-L22)、[CMakeLists.txt:39-53](../../../CMakeLists.txt#L39-L53)、[README.md:29-31](../../../README.md#L29-L31)。
+证据：[CMakeLists.txt:4-22](../../source/leveldb/CMakeLists.txt#L4-L22)、[CMakeLists.txt:39-53](../../source/leveldb/CMakeLists.txt#L39-L53)、[README.md:29-31](../../source/leveldb/README.md#L29-L31)。
 
 ## 仓库组成
 
@@ -36,17 +36,17 @@ LevelDB 是嵌入式、有序、持久化键值库，不是 SQL 服务，也不�
 - `helpers/memenv/`：内存文件系统，主要用于测试。
 - `benchmarks/`、`issues/`：性能入口与回归样例；`third_party/` 为子模块。
 
-证据：[CMakeLists.txt:119-231](../../../CMakeLists.txt#L119-L231)。
+证据：[CMakeLists.txt:119-231](../../source/leveldb/CMakeLists.txt#L119-L231)。
 
 ## 设计思想（确认与推断分开）
 
-- **已确认**：写入通过日志先行和 MemTable，日志达到阈值后切换并由后台生成 Level-0 表（[doc/impl.md:64-75](../../../doc/impl.md#L64-L75)）。
-- **已确认**：Level-0 可重叠，Level-1 及以上通常按 key range 不重叠，compaction 向更高层迁移数据（[doc/impl.md:27-41](../../../doc/impl.md#L27-L41)）。
+- **已确认**：写入通过日志先行和 MemTable，日志达到阈值后切换并由后台生成 Level-0 表（[doc/impl.md:64-75](../../source/leveldb/doc/impl.md#L64-L75)）。
+- **已确认**：Level-0 可重叠，Level-1 及以上通常按 key range 不重叠，compaction 向更高层迁移数据（[doc/impl.md:27-41](../../source/leveldb/doc/impl.md#L27-L41)）。
 - **推断**：这种结构把随机写转换为顺序日志和批量合并，代价是后台 IO、读时合并和恢复时间；源码直接证明机制，但“为什么”是架构推断。
 
 ## 当前版本和维护约束
 
-目标提交为 `7ee830d`，最近提交信息是 “Bump third_party/ dependencies.”；README 明确说明项目处于非常有限维护状态，主要接受严重 bug 修复和内部支持客户端所需变更（[README.md:1-5](../../../README.md#L1-L5)）。新功能应优先证明兼容性、测试覆盖和必要性。
+目标提交为 `7ee830d`，最近提交信息是 “Bump third_party/ dependencies.”；README 明确说明项目处于非常有限维护状态，主要接受严重 bug 修复和内部支持客户端所需变更（[README.md:1-5](../../source/leveldb/README.md#L1-L5)）。新功能应优先证明兼容性、测试覆盖和必要性。
 
 ## 相关文档
 

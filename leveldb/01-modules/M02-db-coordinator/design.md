@@ -29,11 +29,11 @@ stateDiagram-v2
 
 ## 并发模型
 
-`mutex_` 保护 `mem_` 之外的大多数 DBImpl 状态；`shutting_down_`/`has_imm_` 为原子标志，后台完成通过条件变量通知。Writer 自带 CondVar，排队者等待其 `done`。[db/db_impl.h:172-205](../../../../db/db_impl.h#L172-L205)、[db/db_impl.cc:41-51](../../../../db/db_impl.cc#L41-L51)
+`mutex_` 保护 `mem_` 之外的大多数 DBImpl 状态；`shutting_down_`/`has_imm_` 为原子标志，后台完成通过条件变量通知。Writer 自带 CondVar，排队者等待其 `done`。[db/db_impl.h:172-205](../../../source/leveldb/db/db_impl.h#L172-L205)、[db/db_impl.cc:41-51](../../../source/leveldb/db/db_impl.cc#L41-L51)
 
 ## 资源所有权
 
-DBImpl 构造 TableCache/VersionSet/tmp batch；SanitizeOptions 可能创建 logger/cache，并用 `owns_info_log_`/`owns_cache_` 控制析构。MemTable/Version 通过引用计数或版本链保护活跃读者。文件删除必须考虑 `pending_outputs_`。[db/db_impl.cc:125-149](../../../../db/db_impl.cc#L125-L149)、[db/db_impl.cc:224-289](../../../../db/db_impl.cc#L224-L289)
+DBImpl 构造 TableCache/VersionSet/tmp batch；SanitizeOptions 可能创建 logger/cache，并用 `owns_info_log_`/`owns_cache_` 控制析构。MemTable/Version 通过引用计数或版本链保护活跃读者。文件删除必须考虑 `pending_outputs_`。[db/db_impl.cc:125-149](../../../source/leveldb/db/db_impl.cc#L125-L149)、[db/db_impl.cc:224-289](../../../source/leveldb/db/db_impl.cc#L224-L289)
 
 ## 修改影响
 

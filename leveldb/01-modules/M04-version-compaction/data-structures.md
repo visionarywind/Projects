@@ -19,11 +19,11 @@ classDiagram
  Compaction --> FileMetaData : inputs/grandparents
 ```
 
-`FileMetaData` 记录 refs、allowed_seeks、file number/size 和 smallest/largest InternalKey（[db/version_edit.h:17-26](../../../../db/version_edit.h#L17-L26)）。Version 的 refs 保护 iterator 期间的表集合；VersionSet current 指向链尾。[db/version_set.h:147-164](../../../../db/version_set.h#L147-L164)、[db/version_set.cc:760-775](../../../../db/version_set.cc#L760-L775)
+`FileMetaData` 记录 refs、allowed_seeks、file number/size 和 smallest/largest InternalKey（[db/version_edit.h:17-26](../../../source/leveldb/db/version_edit.h#L17-L26)）。Version 的 refs 保护 iterator 期间的表集合；VersionSet current 指向链尾。[db/version_set.h:147-164](../../../source/leveldb/db/version_set.h#L147-L164)、[db/version_set.cc:760-775](../../../source/leveldb/db/version_set.cc#L760-L775)
 
 ## 生命周期
 
-VersionEdit 临时构造 → Builder 应用到新 Version → MANIFEST 持久化 → AppendVersion 安装 → 旧 Version 引用归零 → live file 回收。Compaction 输入版本必须 Ref，完成后 ReleaseInputs。[db/version_set.cc:792-798](../../../../db/version_set.cc#L792-L798)
+VersionEdit 临时构造 → Builder 应用到新 Version → MANIFEST 持久化 → AppendVersion 安装 → 旧 Version 引用归零 → live file 回收。Compaction 输入版本必须 Ref，完成后 ReleaseInputs。[db/version_set.cc:792-798](../../../source/leveldb/db/version_set.cc#L792-L798)
 
 ## 相关文档
 

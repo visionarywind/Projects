@@ -3,8 +3,8 @@
 ## 版本锚点
 
 - 分支：`main`
-- HEAD：`f1a512c51c73ab660cf41e1af3110c7c11e3b600`
-- HEAD 提交：`[Config] msgspec.Struct for the config tier (#38753)`
+- HEAD：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
+- HEAD 提交：`Optimize MUSA FP8 quant paths with TileKernels`
 - 本地 tag：HEAD 未指向 tag
 - 工作树：`sglang/` 为知识库目录；本轮只修改文档，没有修改生产源码
 
@@ -18,6 +18,7 @@
 | 3 | 跨模块串联 | 进行中 | 已建立 system wiring、接口契约、运行轨迹、端到端流程，并补充调用链、共享数据、配置影响、错误边界、修改影响和性能路径；仍需与后续专题复核 |
 | 4 | 开发实践层 | 进行中 | 已创建 `99-roadmap/` 导航、快速上手、阅读、调试、开发、测试、性能、风险、技术债务和后续步骤文档；仍需随模块证据更新 |
 | 5 | 深度审计 | 静态审计完成，运行验证待执行 | 已完成当前文档集合的链接、fence、标题层级、源码引用覆盖和 whitespace 初检；M06-M10 的代表性 loader、allocator/eviction、prefill/decode capture 和 sampler mask 路径已补证；真实 GPU/网络/多进程行为仍需单独验证 |
+| 6 | 池化与资源管理专题 | 已完成当前 checkout 的三层池、MHA/MLA/Mamba、Radix ownership、调度回收、flush、CudaGraphRunner static buffers/global graph pool 边界静态复核 | GPU/多卡/HiCache/Graph 异步行为未验证；专用 allocator、custom pool teardown 仍需增量覆盖 |
 | QA | 分级知识检验 | 已完成扩展版 | 已创建 100 道入门题、50 道中级题、50 道高级题和 50 道专家级题；新增题目覆盖运行时不变量、异步并发、KV ownership、数值/采样正确性、分布式拓扑、扩展边界、性能观测和系统级验证；仍需随源码专题演进复核引用 |
 
 ## 已确认的证据范围
@@ -41,6 +42,7 @@
 - `sglang/01-modules/M09-attention-cuda-graph/README.md` 已创建，追踪 attention backend 合约、registry、metadata 生命周期、eager/prefill/decode graph 选择和回退。
 - `sglang/01-modules/M15-ipc-control-plane/README.md` 已创建，覆盖 PortArgs、ZMQ channels、startup pipe、请求/输出对象、msgpack/pickle、abort、异常传播和 graceful shutdown。
 - `sglang/01-modules/M11-speculative-decoding/README.md`、`M12-multimodal-runtime/README.md`、`M13-disaggregation-hicache/README.md`、`M14-moe-quantization-lora/README.md`、`M15-ipc-control-plane/README.md`、`M16-kernel-device-backend/README.md`、`M17-rust-router-gateway/README.md`、`M18-testing-benchmark-ci/README.md` 已建立，覆盖各模块的入口、生命周期、调用链、边界、测试和修改影响；`M15-ipc/README.md` 保留为兼容入口；真实硬件/网络行为仍未验证。
+- 新增 [池化与资源管理专题](../90-cross-module/pooling-and-resource-management.md)，按当前 `78be4b50af` 复核 request row、slot/page allocator、物理 KV/Mamba buffer、Radix ownership、retraction、flush、CudaGraphRunner capture batch/static buffers/global graph pool 和 KV custom pool 边界。
 
 ## 未验证事项
 
@@ -62,3 +64,8 @@
 2. 按需深化 M06-M10 的非代表性专用 backend/算法分支；当前代表路径已补充 loader dispatch、allocator/eviction policy、prefill graph capture 和 sampler mask 生命周期，不把代表路径误标为全覆盖。
 3. 为 M12-M18 的扩展路径继续补精确函数范围和测试映射；保持 GPU、网络、多卡和端到端运行状态为未验证，直到有实际结果。
 4. 在具备依赖和硬件的环境中分层执行单元、协议、Rust、GPU/多卡和 Demo 验证，并记录真实日志。
+
+## 本轮版本与覆盖变化
+
+- 旧知识库版本 `f1a512c51` 与当前源码 `78be4b50af` 不一致；本轮将版本锚点更新为当前 checkout，新增专题中的行号均按新版本确认。
+- 现有模块文档中仍有部分旧版本行号和旧目录布局，需要后续按 `evidence-index.md` 增量复核；未把旧引用自动标为已验证。

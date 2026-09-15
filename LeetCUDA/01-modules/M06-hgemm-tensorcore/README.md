@@ -2,7 +2,7 @@
 
 - 文档目的：解释 HGEMM 从 CUDA Core 到 WMMA/MMA/CuTe/WGMMA 的优化结构。
 - 适用范围：`kernels/hgemm/`, `swizzle/`, `ws-hgemm/`。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：Python/构建入口、代表 staged MMA 的 shared/register/pipeline/store 已完成深度分析；其他 kernel family 和真实 GPU 运行仍部分覆盖。
 - 最后更新：2026-09-10
 - 前置阅读：[M05](../M05-gemv-sgemm/README.md)

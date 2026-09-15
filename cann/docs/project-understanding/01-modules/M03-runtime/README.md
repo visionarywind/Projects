@@ -1,6 +1,6 @@
 # M03 Runtime：模块入口
 
-- 对应源码版本：`dae460b78`
+- 对应源码版本：`50be4c922`
 - 证据状态：C API、构建分层和 ACL Runtime 映射已确认
 
 Runtime 是设备运行时和维测基础设施，负责 Device、Context、Stream、Event、内存、任务调度、模型/Kernel 执行以及 log、profiling、dump、error manager 等 `[runtime/README.md:7-14]`。

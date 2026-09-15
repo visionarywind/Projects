@@ -27,6 +27,8 @@ LevelDB 是一个嵌入式、进程内、持久化且按键有序的字符串键
 - [模块层](01-modules/)：公共 API、DB 协调、WAL/MemTable、Version/Compaction、SSTable、Env、测试工程。
 - [关联层总览](90-cross-module/end-to-end-flows.md)：跨模块流程导航。
 - [端到端深度链路](90-cross-module/end-to-end-traces.md)：八条从 API 到文件、线程、资源和错误出口的逐阶段轨迹。
+- [池化与资源管理专题](90-cross-module/pooling-and-resource-management.md)：Arena、两级 LRU、引用计数、文件句柄和后台输出生命周期。
+- Graph 边界：LevelDB 核心不包含 CUDA Graph 或执行图内存池；专题仅覆盖 CPU Arena/cache/文件资源。
 - [实践层](99-roadmap/quick-start.md)：上手、调试、测试、功能开发和路线图。
 - [真实测试 Demo 注册表](80-demos/demo-registry.md)：以 `db/db_test.cc`/`leveldb_tests` 为入口的 D01 端到端源码解剖。
 
@@ -46,7 +48,7 @@ flowchart LR
   M07 -.验证.-> SST
 ```
 
-箭头表示调用或资源依赖；虚线表示测试/构建验证关系。M01 的公开头文件是稳定边界，`db/` 和 `table/` 的内部头文件不是公共契约（证据：[README.md:207-214](../../README.md#L207-L214)）。
+箭头表示调用或资源依赖；虚线表示测试/构建验证关系。M01 的公开头文件是稳定边界，`db/` 和 `table/` 的内部头文件不是公共契约（证据：[README.md:207-214](../source/leveldb/README.md#L207-L214)）。
 
 ## 三条最重要流程
 
@@ -62,10 +64,10 @@ flowchart LR
 
 | Demo/测试阶段 | 模块 | 真实入口/实现 | 源码证据 |
 |---|---|---|---|
-| Open/reopen | M01/M02/M04/M06 | `DB::Open` → `DBImpl::Recover` → `VersionSet::Recover` → `Env` | [`DB::Open`](../../db/db_impl.cc#L1503-L1544) |
-| Put/WAL/MemTable | M01/M02/M03 | `DB::Put` → `DBImpl::Write` → `log::Writer` → `MemTable` | [`DBImpl::Write`](../../db/db_impl.cc#L1206-L1276) |
-| flush/compaction | M02/M04/M05/M06 | `CompactMemTable`/`DoCompactionWork` → `BuildTable` → `LogAndApply` | [`DBImpl::CompactMemTable`](../../db/db_impl.cc#L549-L580) |
-| Get/Snapshot/Table | M01/M02/M04/M05 | `DBImpl::Get` → `Version::Get` → `Table::InternalGet` | [`DBImpl::Get`](../../db/db_impl.cc#L1121-L1165) |
+| Open/reopen | M01/M02/M04/M06 | `DB::Open` → `DBImpl::Recover` → `VersionSet::Recover` → `Env` | [`DB::Open`](../source/leveldb/db/db_impl.cc#L1503-L1544) |
+| Put/WAL/MemTable | M01/M02/M03 | `DB::Put` → `DBImpl::Write` → `log::Writer` → `MemTable` | [`DBImpl::Write`](../source/leveldb/db/db_impl.cc#L1206-L1276) |
+| flush/compaction | M02/M04/M05/M06 | `CompactMemTable`/`DoCompactionWork` → `BuildTable` → `LogAndApply` | [`DBImpl::CompactMemTable`](../source/leveldb/db/db_impl.cc#L549-L580) |
+| Get/Snapshot/Table | M01/M02/M04/M05 | `DBImpl::Get` → `Version::Get` → `Table::InternalGet` | [`DBImpl::Get`](../source/leveldb/db/db_impl.cc#L1121-L1165) |
 
 ## 构建与运行入口
 
@@ -78,7 +80,7 @@ ctest --test-dir build --output-on-failure     # 已验证：3/3 通过
   --db=/tmp/leveldb-knowledge-bench-20260910-r2  # 已验证：10000/10000 命中
 ```
 
-CMake 默认打开测试、基准和安装选项（[CMakeLists.txt:32-34](../../CMakeLists.txt#L32-L34)）；CI 使用配置、构建、CTest、benchmark 和安装步骤（[.github/workflows/build.yml:74-102](../../.github/workflows/build.yml#L74-L102)）。本机 Debug 构建、CTest 和有限 benchmark 已执行；此前缺少的 GoogleTest/benchmark 子模块已在用户授权后初始化。CTest 结果为 `leveldb_tests`、`c_test`、`env_posix_test` 全部通过（本轮总计 91.24 s）。benchmark 在 Debug、启用断言且未启用 Snappy 的条件下得到 `fillseq 3.114 micros/op`、`readrandom 1.199 micros/op`，仅作可运行性记录。
+CMake 默认打开测试、基准和安装选项（[CMakeLists.txt:32-34](../source/leveldb/CMakeLists.txt#L32-L34)）；CI 使用配置、构建、CTest、benchmark 和安装步骤（[.github/workflows/build.yml:74-102](../source/leveldb/.github/workflows/build.yml#L74-L102)）。本机 Debug 构建、CTest 和有限 benchmark 已执行；此前缺少的 GoogleTest/benchmark 子模块已在用户授权后初始化。CTest 结果为 `leveldb_tests`、`c_test`、`env_posix_test` 全部通过（本轮总计 91.24 s）。benchmark 在 Debug、启用断言且未启用 Snappy 的条件下得到 `fillseq 3.114 micros/op`、`readrandom 1.199 micros/op`，仅作可运行性记录。
 
 ## 按角色阅读
 
@@ -104,10 +106,10 @@ CMake 默认打开测试、基准和安装选项（[CMakeLists.txt:32-34](../../
 
 ## 源码证据摘要
 
-- [README.md:1-31](../../README.md#L1-L31)
-- [CMakeLists.txt:4-34](../../CMakeLists.txt#L4-L34)
-- [db/db_impl.h:28-71](../../db/db_impl.h#L28-L71)
-- [doc/impl.md:7-49](../../doc/impl.md#L7-L49)
+- [README.md:1-31](../source/leveldb/README.md#L1-L31)
+- [CMakeLists.txt:4-34](../source/leveldb/CMakeLists.txt#L4-L34)
+- [db/db_impl.h:28-71](../source/leveldb/db/db_impl.h#L28-L71)
+- [doc/impl.md:7-49](../source/leveldb/doc/impl.md#L7-L49)
 
 ## 未解决问题
 

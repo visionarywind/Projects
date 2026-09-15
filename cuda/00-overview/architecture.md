@@ -4,7 +4,7 @@
 - 适用范围：CUDA Driver API 主线，兼顾 OpenCL/工具旁路。
 - 对应源码版本：CUDA 10.2 API 字段；提交未知。
 - 证据状态：核心层次已确认，末端硬件调用部分推断。
-- 最后更新：2026-09-11
+- 最后更新：2026-09-14
 - 前置阅读：[项目定位](project-overview.md)
 - 后续阅读：[运行时模型](runtime-model.md)、[系统串联](../90-cross-module/system-wiring.md)
 

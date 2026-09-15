@@ -1,6 +1,6 @@
 # 技术债务
 
-- 对应源码版本：`main` / `0983c65`。
+- 对应源码版本：`main` / `4513b31`。
 - 最后更新：2026-09-10
 
 ## 已确认债务
@@ -19,4 +19,4 @@ P1：统一输入检查、错误检查和 benchmark metadata。
 P2：建立按 SM 的编译 smoke matrix 和 sanitizer job。
 P3：再考虑共享 launcher、统一 CMake 或测试 harness；不能先假设这些重构不会破坏教学边界。
 
-证据：`[docs/project-understanding/00-overview/analysis-state.md:27-44]`、`[.pre-commit-config.yaml:1-41]`。
+证据：`[00-overview/analysis-state.md:27-44]`、`[source/LeetCUDA/.pre-commit-config.yaml:1-41]`。

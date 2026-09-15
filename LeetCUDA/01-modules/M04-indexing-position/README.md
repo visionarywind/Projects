@@ -2,7 +2,7 @@
 
 - 文档目的：解释 embedding、histogram、transpose、RoPE 的共同数据访问问题。
 - 适用范围：`embedding/`, `histogram/`, `mat-transpose/`, `rope/`。
-- 对应源码版本：`0983c65`。
+- 对应源码版本：`4513b31`。
 - 证据状态：目录职责已确认；各算子边界需逐个实验。
 - 最后更新：2026-09-10
 - 前置阅读：[全局数据流](../../00-overview/global-data-flow.md)

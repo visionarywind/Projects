@@ -36,9 +36,17 @@ ELF 层先检查 magic，再依据 ELF class 分派到 32/64 位 loader；重定
 
 instantiate 先做 cycle/conditional validation，clone 并 flatten graph，转换 memset、给节点分配 context、建立 scheduling；随后统计每个 context 的 kernel/QMD/device-node 资源，在所有相关 `persistentState.internalsMutex` 上加锁调用 `cuiGraphInstantiate_UnderLock`，最后登记 QMD semaphore pool。失败会通知 tools 并销毁 exec graph（静态确认：[src/cui/cuigraph.c:3304-3492]）。
 
+per-context 资源不只是 QMD 计数：`allocateExecutionResourcesFunctor` 取得 graph constant-bank pool 节点，分配 QMD、HAL launch staging 和 constant-bank arrays；存在 device scheduler node 时，还分配 host graph/index backing 与一个 driver-owned device `CUmemobj`。node instantiate 再创建/继承无 public handle 的 internal stream、创建 completion marker 并绑定资源 slice（静态确认：[src/cui/cuigraph.c:1835-1933,1621-1809]）。
+
 graph launch 动态补入 launch stream 的 context lock，首次 launch 做 per-context 初始化；每次 launch 等待前一轮 completion marker 和 texture-header update，通知 UVM DAG running，按拓扑序逐节点提交，结束后插入当前 completion 依赖。中途失败则 rollback UVM running 状态，并始终释放多 context 锁及 tools launch 通知（静态确认：[src/cui/cuigraph.c:4056-4162]）。
 
 graph launch 还会临时处理 API stream 替换：若执行 stream 与 graph API stream 属于同一 context，节点中的 stream 指针在提交期间替换，完成后恢复原值。执行 stream 若不在 instantiate 时的 context 集合中，则将其 internals mutex 临时加入锁数组并在退出时撤回。因而 graph exec 的静态 context 集合与实际 launch stream 并非总是相同，错误路径必须同时回滚 UVM running、临时锁数量和 marker 状态（静态确认：[src/cui/cuigraph.c:4056-4162]）。
+
+destroy 在已 launch 的 exec 上先传播 completion QMD，再获取 graph context locks，销毁 node/marker、detach internal stream，并由 `destroyCtxDataFunctor` 释放 QMD、constant-bank、scheduler device memobj、host backing 和 HAL staging（静态确认：[src/cui/cuigraph.c:1035-1064,1093-1205]）。由于 scheduler backing 走 `memobjFree`，active context 上会触发 context synchronize；不能把 host-side destroy 简化成完全无等待的 `free()`（[src/cui/memobj.c:946-964]）。
+
+`cuGraphExecUpdate` 先要求 node-count/topology 可映射，再限制 kernel function、memcpy memory type/context、memset dimension/context 和 host callback。通过检查后只更新既有 exec node 参数，不重建 per-context QMD/constant-bank/stream 拓扑（静态确认：[src/api/apigraph.c:1332-1420]；[src/cui/cuigraph.c:4619-4915]）。
+
+本轮还发现两个待运行验证的静态疑点：QMD semaphore pool 注册失败可能在 `ctxLocks` 写入 exec 后先 free 数组再进入 graph destroy；node launch 中途失败可能绕过 API stream 指针恢复。详见 [Graph 资源生命周期](graph-resource-lifecycle.md) 和 [风险与技术债](risks-and-debt.md)。
 
 module unload 不是单纯释放 ELF：它先从 context module list 摘除，刷新非 internal module 的 syscall 数据，清空 CNP QMD cache，销毁 function/texture/surface/constant/sampler 引用、symbol table 与 module-scope memobj；随后在 `binload_cs` 下递减 shared ELF refcount，并按 syscall imports 递减 active/refcount，最后撤销 UVM namespace/atomics、ISR/trap handler 和 tools handle 后 free module（静态确认：[src/cui/cuimod.c:2767-2931]）。
 

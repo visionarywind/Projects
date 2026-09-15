@@ -1,9 +1,9 @@
 # 分析状态、覆盖范围与断点
 
 - 文档目的：支持大仓库分批分析和增量维护。
-- 对应源码版本：`main` / `0983c65`。
-- 最后更新：2026-09-10
-- 当前批次：阶段 0-5（盘点、模块划分、总览层、模块层、跨模块层、实践层，以及 M06/M07 代表实现和 D01/D02 Demo 深度初稿）。
+- 对应源码版本：`main` / `4513b3114de21140c846171042515e17bb907e8a`。
+- 最后更新：2026-09-15
+- 当前批次：阶段 0-5（盘点、模块划分、总览层、模块层、跨模块层、实践层，以及 M06/M07 代表实现和 D01/D02 Demo 深度初稿）；本轮新增池化与资源管理专题。
 
 ## 已完成文档
 
@@ -19,7 +19,7 @@
 
 ## 已确认关键事实
 
-1. 当前目标版本是 `main` 的 `0983c65`。
+1. 当前目标版本是 `main` 的 `4513b31`。
 2. 项目是 CUDA/PyTorch 学习与 benchmark 集合，不是统一生产 runtime。
 3. 普通模块多采用 `torch.utils.cpp_extension.load`；HGEMM/FlashAttention 支持 setup/build 变体；interview 用 `nvcc` 二进制。
 4. 两个 git submodule 是 CUTLASS 与 cudnn-frontend，`.gitmodules:1-6` 已核对。
@@ -50,6 +50,7 @@
 - 全仓库是否应引入统一 CMake/pytest/CI 尚无源码决策。
 - M06/M07 的 split/CuTe/WGMMA/其它变体和 M02-M05 小算子逐文件符号级证据仍不完整。
 - D01/D02 的动态构建、GPU correctness、sanitizer、benchmark 和 profile 尚未执行；无法填写真实输出或性能数字。
+- Python/PyTorch tensor、interview host/device buffer、stream/event/handle/workspace/TMA descriptor、shared-memory 生命周期和“无统一 Graph/CPU pool”边界已按 `4513b31` 复核；相关运行行为仍未验证。
 
 ## 下一批起点
 

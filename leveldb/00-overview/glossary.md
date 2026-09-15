@@ -36,9 +36,9 @@
 
 ## 源码证据摘要
 
-- [doc/impl.md:7-49](../../../doc/impl.md#L7-L49)
-- [db/dbformat.h:50-66](../../../db/dbformat.h#L50-L66)
-- [include/leveldb/slice.h](../../../include/leveldb/slice.h)
+- [doc/impl.md:7-49](../../source/leveldb/doc/impl.md#L7-L49)
+- [db/dbformat.h:50-66](../../source/leveldb/db/dbformat.h#L50-L66)
+- [include/leveldb/slice.h](../../source/leveldb/include/leveldb/slice.h)
 
 ## 未解决问题
 

@@ -10,3 +10,10 @@
 - `[src/cui/cuimod.c:2767-2943]`：module unload reverse path、shared ELF/syscall/UVM/tool 清理。
 - `[src/cui/cuigraph.c:3304-3492]`：graph instantiate 的 clone/flatten/context lock/QMD pool registration。
 - `[src/cui/cuigraph.c:4056-4162]`：graph launch 的动态 context lock、marker、UVM running 和 rollback。
+- `[src/cui/cuistream.c:2180-2268]`：capture graph 创建、TLS/global mode 计数、unjoined/invalidation 检查和失败销毁。
+- `[src/cui/cuigraph.c:1835-1933]`：per-context QMD、constant-bank、HAL staging 和 scheduler host/device backing。
+- `[src/cui/cuigraph.c:1621-1809,2054-2141]`：kernel node resource slice、internal stream/marker 和 instantiate traversal。
+- `[src/cui/cuigraph.c:3495-3575,3741-3880]`：kernel group memory tracking 与拓扑 node launch。
+- `[src/cui/cuigraph.c:1035-1064,1093-1205]`：exec resource teardown、stream detach、QMD/constant-bank/marker/memobj 释放。
+- `[src/api/apigraph.c:1332-1420]`、`[src/cui/cuigraph.c:4619-4915]`：graph exec update 的 topology 和参数约束。
+- `[src/cui/cuigraph.c:3457-3492,4116-4157]`：instantiate 锁数组、launch API stream 恢复的静态风险点。

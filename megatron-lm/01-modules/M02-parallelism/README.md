@@ -1,7 +1,7 @@
 # M02 并行状态与 Pipeline 调度
 
 - 文档目的：解释 Megatron Core 如何从并行配置建立 process groups，并用 schedule 驱动 microbatch。
-- 对应源码版本：`8190837c2b6ce176a431bc2a6ffd3439507648a7`
+- 对应源码版本：`3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`
 - 证据状态：静态源码分析；未进行 GPU/NCCL 动态验证。
 - 最后更新：2026-09-11
 

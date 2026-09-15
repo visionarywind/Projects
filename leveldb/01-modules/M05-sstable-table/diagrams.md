@@ -18,7 +18,7 @@ flowchart LR
   I --> T[footer: handles + magic]
 ```
 
-footer 的固定长度使 reader 可从文件尾部定位 metaindex 和 index。[table/format.h:45-65](../../../../table/format.h#L45-L65)
+footer 的固定长度使 reader 可从文件尾部定位 metaindex 和 index。[table/format.h:45-65](../../../source/leveldb/table/format.h#L45-L65)
 
 ## 写入时序
 
@@ -46,7 +46,7 @@ stateDiagram-v2
   Data --> [*]: error / cleanup
 ```
 
-`TwoLevelIterator` 的 `SkipEmptyDataBlocksForward/Backward` 实现了两个方向的跨 block 跳转。[table/two_level_iterator.cc:102-137](../../../../table/two_level_iterator.cc#L102-L137)
+`TwoLevelIterator` 的 `SkipEmptyDataBlocksForward/Backward` 实现了两个方向的跨 block 跳转。[table/two_level_iterator.cc:102-137](../../../source/leveldb/table/two_level_iterator.cc#L102-L137)
 
 ## 错误边界
 
@@ -60,4 +60,4 @@ flowchart TD
   C -->|unknown| E
 ```
 
-未知类型和解压失败不会创建可用 Block。[table/format.cc:89-160](../../../../table/format.cc#L89-L160)
+未知类型和解压失败不会创建可用 Block。[table/format.cc:89-160](../../../source/leveldb/table/format.cc#L89-L160)

@@ -2,7 +2,7 @@
 
 > 模块：全局 / 阶段 0-1  
 > 证据等级：已确认，少量范围判断为推断  
-> 源码版本：`311d4211bf1611ff7ca6b67035a4a07c79766efc`
+> 源码版本：`093a2f86c3e37c54fa3e1f9efb17b304f3433abd`
 
 ## 1. 项目是什么
 
@@ -15,8 +15,8 @@
 | 项目 | 结果 | 状态 |
 |---|---|---|
 | 分支 | `master` | 已确认 |
-| HEAD | `311d4211bf1611ff7ca6b67035a4a07c79766efc` | 已确认 |
-| `git describe` | `b10887-2-g311d4211b-dirty` | 已确认；工作区有 `CLAUDE.md` 修改 |
+| HEAD | `093a2f86c3e37c54fa3e1f9efb17b304f3433abd` | 已确认 |
+| `git describe` | `093a2f86c3` | 已确认；工作区有 `CLAUDE.md` 修改 |
 | CMake 版本 | `0.4.0-dev` 默认 | 已确认；`LLAMA_BUILD_IS_DEV=ON` |
 | 文件规模 | `src ggml common tools tests examples conversion gguf-py` 共 3099 个文件（find 统计） | 已确认 |
 | 实际编译/测试 | 未执行 | 未知 |

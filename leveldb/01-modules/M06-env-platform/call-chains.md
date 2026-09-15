@@ -19,7 +19,7 @@ TableCache::FindTable
      -> RandomAccessFile::Read (pread 或 mmap copy)
 ```
 
-RandomAccessFile 的接口要求并发安全，因此 TableCache 可以被多个读线程共享。[include/leveldb/env.h:76-85](../../../../include/leveldb/env.h#L76-L85)、[util/env_posix.cc:170-222](../../../../util/env_posix.cc#L170-L222)
+RandomAccessFile 的接口要求并发安全，因此 TableCache 可以被多个读线程共享。[include/leveldb/env.h:76-85](../../../source/leveldb/include/leveldb/env.h#L76-L85)、[util/env_posix.cc:170-222](../../../source/leveldb/util/env_posix.cc#L170-L222)
 
 ## WAL/Manifest 顺序读取
 
@@ -30,7 +30,7 @@ VersionSet::Recover / DBImpl::RecoverLogFile
   -> log::Reader
 ```
 
-SequentialFile 不保证并发，调用链由上层恢复过程串行消费。[include/leveldb/env.h:66-74](../../../../include/leveldb/env.h#L66-L74)
+SequentialFile 不保证并发，调用链由上层恢复过程串行消费。[include/leveldb/env.h:66-74](../../../source/leveldb/include/leveldb/env.h#L66-L74)
 
 ## 后台调度
 
@@ -41,7 +41,7 @@ DBImpl::MaybeScheduleCompaction
   -> DBImpl::BackgroundCall
 ```
 
-Env 明确允许多个任务在不同线程并发，因此 DBImpl 自身必须用 mutex 和 scheduled 标志保证状态正确。[include/leveldb/env.h:191-197](../../../../include/leveldb/env.h#L191-L197)
+Env 明确允许多个任务在不同线程并发，因此 DBImpl 自身必须用 mutex 和 scheduled 标志保证状态正确。[include/leveldb/env.h:191-197](../../../source/leveldb/include/leveldb/env.h#L191-L197)
 
 ## Cache 读取
 
@@ -58,7 +58,7 @@ Cache::Lookup
      -> LRU list 或 deleter
 ```
 
-证据：[util/cache.cc:253-265](../../../../util/cache.cc#L253-L265)、[util/cache.cc:336-377](../../../../util/cache.cc#L336-L377)。
+证据：[util/cache.cc:253-265](../../../source/leveldb/util/cache.cc#L253-L265)、[util/cache.cc:336-377](../../../source/leveldb/util/cache.cc#L336-L377)。
 
 ## 写文件辅助
 
@@ -72,4 +72,4 @@ WriteStringToFile
   -> failure: RemoveFile
 ```
 
-证据：[util/env.cc:49-77](../../../../util/env.cc#L49-L77)。
+证据：[util/env.cc:49-77](../../../source/leveldb/util/env.cc#L49-L77)。

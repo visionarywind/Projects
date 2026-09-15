@@ -1,6 +1,6 @@
 # 后续分析路线
 
-- 当前版本基线：GE `47020afc8`、ACL `d26308d3`、Runtime `dae460b78`、Driver `6e2914c`
+- 当前版本基线：GE `8ee1b040a`、ACL `50be4c922`、Runtime `50be4c922`、Driver `977336913`
 
 ## P0：补齐跨仓关键路径
 

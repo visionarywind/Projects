@@ -14,11 +14,11 @@ M05 将有序键值序列编码为不可变 SSTable：`TableBuilder` 依次写 d
 
 ## 关键入口
 
-- 生成：[table/table_builder.cc:93-122](../../../../table/table_builder.cc#L93-L122)、[table/table_builder.cc:212-277](../../../../table/table_builder.cc#L212-L277)
-- 打开：[table/table.cc:37-78](../../../../table/table.cc#L37-L78)
-- 单键读取：[table/table.cc:213-241](../../../../table/table.cc#L213-L241)
-- 迭代器：[table/table.cc:207-211](../../../../table/table.cc#L207-L211)
-- 缓存入口：[db/table_cache.cc:40-111](../../../../db/table_cache.cc#L40-L111)
+- 生成：[table/table_builder.cc:93-122](../../../source/leveldb/table/table_builder.cc#L93-L122)、[table/table_builder.cc:212-277](../../../source/leveldb/table/table_builder.cc#L212-L277)
+- 打开：[table/table.cc:37-78](../../../source/leveldb/table/table.cc#L37-L78)
+- 单键读取：[table/table.cc:213-241](../../../source/leveldb/table/table.cc#L213-L241)
+- 迭代器：[table/table.cc:207-211](../../../source/leveldb/table/table.cc#L207-L211)
+- 缓存入口：[db/table_cache.cc:40-111](../../../source/leveldb/db/table_cache.cc#L40-L111)
 
 ## 阅读顺序
 

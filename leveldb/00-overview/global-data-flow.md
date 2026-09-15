@@ -27,7 +27,7 @@ flowchart LR
   C --> R[用户 value / NotFound / Iterator]
 ```
 
-WAL 分块和 CRC 由 [db/log_writer.cc:33-107](../../../db/log_writer.cc#L33-L107) 实现；SSTable 生成由 [table/table_builder.cc:93-267](../../../table/table_builder.cc#L93-L267) 实现。
+WAL 分块和 CRC 由 [db/log_writer.cc:33-107](../../source/leveldb/db/log_writer.cc#L33-L107) 实现；SSTable 生成由 [table/table_builder.cc:93-267](../../source/leveldb/table/table_builder.cc#L93-L267) 实现。
 
 ## 写入数据的状态变化
 
@@ -39,7 +39,7 @@ WAL 分块和 CRC 由 [db/log_writer.cc:33-107](../../../db/log_writer.cc#L33-L1
 
 ## 读取数据的可见性
 
-InternalKey tag 为 `sequence << 8 | type`；相同 user key 按 sequence 降序排列（[db/dbformat.h:99-116](../../../db/dbformat.h#L99-L116)）。Get 使用 LookupKey 限制不超过 snapshot 的 sequence；删除标记会产生 NotFound，旧版本可能在 compaction 中清除。
+InternalKey tag 为 `sequence << 8 | type`；相同 user key 按 sequence 降序排列（[db/dbformat.h:99-116](../../source/leveldb/db/dbformat.h#L99-L116)）。Get 使用 LookupKey 限制不超过 snapshot 的 sequence；删除标记会产生 NotFound，旧版本可能在 compaction 中清除。
 
 ## 文件流
 
@@ -51,7 +51,7 @@ InternalKey tag 为 `sequence << 8 | type`；相同 user key 按 sequence 降序
 | `CURRENT` | 指向当前 MANIFEST | `SetCurrentFile` |
 | `LOCK` | 单进程互斥 | `Env::LockFile` |
 
-证据：[doc/impl.md:7-62](../../../doc/impl.md#L7-L62)。
+证据：[doc/impl.md:7-62](../../source/leveldb/doc/impl.md#L7-L62)。
 
 ## 相关文档
 

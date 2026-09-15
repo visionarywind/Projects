@@ -1,10 +1,10 @@
 # 项目定位
 
 - 文档目的：界定源码快照解决的问题、系统边界和证据范围。
-- 适用范围：`/home/mtuser/workspace/cuda` 主源码、构建和测试。
+- 适用范围：`source/cuda` 主源码、构建和测试。
 - 对应源码版本：CUDA Driver API 10.2（源码推断）；提交未知。
 - 证据状态：已确认与推断混合。
-- 最后更新：2026-09-11
+- 最后更新：2026-09-14
 - 前置阅读：[根入口](../README.md)
 - 后续阅读：[总体架构](architecture.md)
 
@@ -32,9 +32,9 @@ flowchart LR
 | Driver API/ABI | `inc/`、`src/api/`、导出表 | `[inc/cuda.h:62-170]`、`[src/cuda_master.def:21-99]` |
 | 进程初始化/TLS/全局状态 | `src/cui/cuiinit.c`、`cuitls.c` | `[src/cui/cuiinit.c:2909-2961,3060-3208]` |
 | Context/device | `cuictx.c`、`cuidevice.c`、`devmgr.c` | `[src/cui/cuictx.c:240-385]` |
-| Device/host/UVA memory | `memmgr.c`、`memobj.c`、`cuimem.c` | `[src/api/apimem.c:51-117]`、`[src/cui/cuimem.c:66-186]` |
+| Device/host/UVA memory + suballocator | `memmgr.c`、`memobj.c`、`memblock.c`、`suballocator.c`、`cuimem.c` | `[src/api/apimem.c:51-117]`、`[src/cui/memobj.c:265-375]`、`[src/cui/suballocator.c:163-220,343-405]` |
 | Stream/sync/command | `cuistream.c`、channel、marker、QMD、pushbuffer | `[src/cui/cuistream.c:1740-1878]` |
-| Module/function/launch/graph | `cuimod.c`、`cuifunc.c`、`cuilaunch.c`、`cuigraph.c` | `[src/api/apilaunch.c:211-299]` |
+| Module/function/launch/graph | `cuimod.c`、`cuifunc.c`、`cuilaunch.c`、`cuigraph.c` | `[src/api/apilaunch.c:211-299]`、`[src/cui/cuigraph.c:1835-1933,4056-4162]` |
 | 架构与 kernel 辅助 | `src/cui/hal/`、`src/kernels/`、`src/syscalls/`、`src/asm/` | `[cuda.nvmk:513-... ]`（架构选择依配置） |
 | 工具和诊断 | `src/devtools`、`src/profiler`、`src/etbl/tools` | `[cuda.nvmk:141-145,374-376]` |
 | OpenCL/互操作 | `src/cl`、`src/icd_*` | `[opencl.nvmk]`、目录清单 |

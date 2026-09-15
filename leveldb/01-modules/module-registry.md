@@ -55,9 +55,9 @@ flowchart LR
 
 ## 源码证据摘要
 
-- [CMakeLists.txt:119-231](../../../CMakeLists.txt#L119-L231)
-- [db/db_impl.h:28-71](../../../db/db_impl.h#L28-L71)
-- [db/version_set.h:166-258](../../../db/version_set.h#L166-L258)
+- [CMakeLists.txt:119-231](../../source/leveldb/CMakeLists.txt#L119-L231)
+- [db/db_impl.h:28-71](../../source/leveldb/db/db_impl.h#L28-L71)
+- [db/version_set.h:166-258](../../source/leveldb/db/version_set.h#L166-L258)
 
 ## 未解决问题
 
