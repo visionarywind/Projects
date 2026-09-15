@@ -2,10 +2,14 @@
 
 - 文档目的：给出修改 DBImpl 的最短安全路径。
 - 适用范围：M02。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：步骤基于源码和贡献规则；未执行。
 - 最后更新：2026-09-10
 - 前置阅读：[M02 line-level](line-level-analysis.md)
 - 后续阅读：[跨模块影响](../../90-cross-module/change-impact-map.md)
+## 结论摘要
+
+本页聚焦 01-modules/M02-db-coordinator/development-guide.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 修改步骤
 

@@ -2,11 +2,17 @@
 
 - 文档目的：用最小场景把 WriteBatch、WAL、恢复和 MemTable 连接起来。
 - 适用范围：M03。
-- 源码版本：`main` / `7ee830d`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：核心调用入口和数据流来自源码；Linux Debug 聚合构建与 CTest 已通过，但本页的大 value WAL 截断/损坏实验和独立 filter 尚未执行。
 - 最后更新：2026-09-10
 - 前置阅读：[M03 README](README.md)
 - 后续阅读：[M03 testing](testing.md)
+## 结论摘要
+
+本页聚焦 01-modules/M03-wal-memtable/examples.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
+- 源码版本：`main` / `7ee830d`。
 
 ## 批量写入与可见性
 
@@ -29,3 +35,17 @@ Snapshot 的生命周期由 DB 管理：调用者使用完毕后必须通过 `Re
 ## 资源边界
 
 用 MemTable iterator 逐步读取并在 owner 释放前完成访问；若修改 Arena 或引用计数，加入 iterator、reopen 和 ASan 场景，确保 MemTable 的 `Ref/Unref` 与 Arena 批量释放保持匹配。
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

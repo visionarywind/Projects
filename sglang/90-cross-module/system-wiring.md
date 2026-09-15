@@ -72,7 +72,7 @@ flowchart LR
 - [`python/sglang/srt/entrypoints/engine.py:1051-1260`](../../source/sglang/python/sglang/srt/entrypoints/engine.py)
 - [`python/sglang/srt/managers/tokenizer_manager.py:776-845`](../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
 - [`python/sglang/srt/managers/scheduler.py:1839-1925`](../../source/sglang/python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/tp_worker.py:593-692`](../../source/sglang/python/sglang/srt/managers/tp_worker.py)
+- [`python/sglang/srt/managers/tp_worker.py:1-564`](../../source/sglang/python/sglang/srt/managers/tp_worker.py)
 
 ## 未解决问题
 

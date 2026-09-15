@@ -1,8 +1,15 @@
 # 跨模块端到端流程
 
+- 文档目的：解释 90-cross-module/end-to-end-flows.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
 - 对应源码版本：`main` / `4513b31`。
 - 证据状态：普通扩展、HGEMM、NMS、interview 主路径已确认；stream/异步细节部分未知。
 - 最后更新：2026-09-10
+- 前置阅读：[项目入口](../README.md)。
+- 后续阅读：[分析状态](../00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 90-cross-module/end-to-end-flows.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 流程 A：普通 PyTorch CUDA extension
 
@@ -95,6 +102,17 @@ D02-S01 build.sh --arch
 - CUDA launch 多为异步；只有明确的 synchronize 或后续同步操作才让 benchmark/对拍可解释。
 - 构建产物、extension cache 和 third-party headers 是环境相关，不属于算子 API。
 
+## 相关文档
+- [项目入口](../README.md)
+- [分析状态](../00-overview/analysis-state.md)
+- [源码证据索引](../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
 ## 未解决问题
 
 各独立 kernel 使用哪个 current stream、是否支持 arbitrary stride，以及 launch error 的检查时机需逐文件和真实环境确认。
+
+## 下一步阅读建议
+先阅读 [分析状态](../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

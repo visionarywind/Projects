@@ -1,10 +1,16 @@
 # M01 行级审计表
 
 - 文档目的：为修改核心协议提供最小审计清单。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/concurrency-queue HEAD 683b9e3（2026-09-15 只读确认）。
 - 证据状态：按当前 HEAD 行区间整理。
 - 最后更新：2026-09-10
 - 前置阅读：[调用链](call-chains.md)
 - 后续阅读：[M05](../M05-verification/README.md)
+## 结论摘要
+
+本页聚焦 01-modules/M01-core-queue/line-level-analysis.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 | 审计维度 | 检查点 | 代码证据 | 失败后果 |
 |---|---|---|---|
@@ -20,3 +26,17 @@
 ## 变更验收
 
 任何 M01 patch 至少需要：编译 unit tests；运行单线程 enqueue/dequeue、bulk、异常和 threaded tests；若改动 atomic 协议，增加 Relacy/CDSChecker 或等价模型检查；若改动 traits/block size，验证 `try_enqueue` 失败和回收路径。
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

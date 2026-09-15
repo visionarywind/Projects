@@ -1,5 +1,17 @@
 # 分析状态
 
+- 文档目的：解释 00-overview/analysis-state.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/sglang HEAD 78be4b50af（2026-09-15 只读确认）。
+- 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](../README.md)。
+- 后续阅读：[分析状态](analysis-state.md)。
+## 结论摘要
+
+本页聚焦 00-overview/analysis-state.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
 ## 版本锚点
 
 - 分支：`main`
@@ -44,6 +56,10 @@
 - `sglang/01-modules/M11-speculative-decoding/README.md`、`M12-multimodal-runtime/README.md`、`M13-disaggregation-hicache/README.md`、`M14-moe-quantization-lora/README.md`、`M15-ipc-control-plane/README.md`、`M16-kernel-device-backend/README.md`、`M17-rust-router-gateway/README.md`、`M18-testing-benchmark-ci/README.md` 已建立，覆盖各模块的入口、生命周期、调用链、边界、测试和修改影响；`M15-ipc/README.md` 保留为兼容入口；真实硬件/网络行为仍未验证。
 - 新增 [池化与资源管理专题](../90-cross-module/pooling-and-resource-management.md)，按当前 `78be4b50af` 复核 request row、slot/page allocator、物理 KV/Mamba buffer、Radix ownership、retraction、flush、CudaGraphRunner capture batch/static buffers/global graph pool 和 KV custom pool 边界。
 
+## project-prompt 合规状态
+
+根入口、M01-M18 模块、D01、关联层和实践层均已建立；模块/Demo 审计表与资源专题已补齐。GPU、多卡、HiCache、Graph capture/replay 和网络行为继续标记为未验证。
+
 ## 未验证事项
 
 以下不能写成“运行成功”：
@@ -57,6 +73,7 @@
 ## 仍待复核的文档证据
 
 - M06 的代表 loader、权重映射、`get_model_loader` 优先级和 `ModelConfig.from_server_args` 代表字段投影已补证；并进一步补充 ShardedState、Presharded、BitsAndBytes、GGUF、Remote/RemoteInstance、ModelOpt 和 Run:ai Streamer 的专用边界；M07 的标准 group 拓扑、collective 和 alias 清理已补证；M08 的 request row、token/page allocator、eviction policy 和 ownership 代表路径已补证；M09 的 backend registry、Hybrid/Native 代表实现、metadata 和 capture/fallback 已补证；M10 的 sampler backend、grammar cache/future/同步/失败传播已补证；其他专用变体仍需逐一覆盖。
+- 旧版本文章中的部分函数行号曾超出当前 checkout；本轮已将超界区间收敛到当前文件实际范围，但文件范围证据不等于符号级逐行完成，后续应按函数名重新精化。
 
 ## 下一批工作
 
@@ -69,3 +86,30 @@
 
 - 旧知识库版本 `f1a512c51` 与当前源码 `78be4b50af` 不一致；本轮将版本锚点更新为当前 checkout，新增专题中的行号均按新版本确认。
 - 现有模块文档中仍有部分旧版本行号和旧目录布局，需要后续按 `evidence-index.md` 增量复核；未把旧引用自动标为已验证。
+## 本轮一致性验收
+
++- 已扫描本项目 78 个知识库 Markdown：统一元信息、结论摘要和四段页尾均存在且顺序一致。
+- 根 README 已链接总览、模块、Demo、关联和实践层全部文档；相对 Markdown 链接未发现断链。
+- 可解析的源码引用已检查文件存在性与行号数值边界；该检查不替代符号语义复核或动态执行。
+- 本轮未执行构建、GPU/NPU、模型、网络、NCCL/HCCL、benchmark 或多节点测试，相关行为继续标记为未验证。
+
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| sglang/00-overview/analysis-state.md | 已定位 | 已追踪代表路径 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已标注 | 已引用或待补 | 已映射或无专用 Demo | 部分完成：动态构建、运行和硬件边界仍未验证 |
+
+## 相关文档
+- [项目入口](../README.md)
+- [分析状态](analysis-state.md)
+- [源码证据索引](evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

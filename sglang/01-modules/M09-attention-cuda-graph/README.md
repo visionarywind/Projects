@@ -7,6 +7,10 @@
 - 最后更新：2026-09-15
 - 前置阅读：[M05 模型执行](../M05-model-execution/README.md)、[M08 KV Cache 与 Radix Cache](../M08-kv-cache/README.md)
 - 后续阅读：[M07 分布式并行](../M07-分布式并行.md)、[性能关键路径](../../90-cross-module/performance-critical-paths.md)
+## 结论摘要
+
+本页聚焦 01-modules/M09-attention-cuda-graph/README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 ## 1. 先建立直觉
 
@@ -178,3 +182,23 @@ Prefill graph 有自己独立的 bucket 和生命周期。`can_run_graph` 除了
 ## 14. 资源池边界
 
 `CudaGraphRunner` 为 capture batch 创建固定的 `DecodeInputBuffers`，按 `global_graph_memory_pool` 复用 graph allocation；KV cache 则可能在 custom memory pool context 中创建物理 tensor。graph static buffers、KV slot/page allocator、Radix ownership 和 flush/reset 必须分别回收，不能仅凭 graph 对象或 `torch.cuda.empty_cache()` 判断 backing 已释放（[source/sglang/python/sglang/srt/model_executor/cuda_graph_runner.py:547-721]；[source/sglang/python/sglang/srt/mem_cache/memory_pool.py:703-742]）。
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| sglang/01-modules/M09-attention-cuda-graph/README.md | 已定位 | 已追踪代表路径 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已标注 | 已引用或待补 | 已映射或无专用 Demo | 部分完成：动态构建、运行和硬件边界仍未验证 |
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

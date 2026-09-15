@@ -1,11 +1,15 @@
 # M02 执行流程
 
 - 文档目的：按源码步骤追踪 elementwise 代表实现的初始化、调用、同步和失败边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
 - 对应源码版本：`main` / `4513b31`。
 - 证据状态：elementwise add 代表路径已确认；GPU 实际运行未验证。
 - 最后更新：2026-09-10
 - 前置阅读：[implementation.md](implementation.md)
 - 后续阅读：[M08 runtime](../M08-pytorch-extension/runtime.md)
+## 结论摘要
+
+本页聚焦 01-modules/M02-elementwise/execution-flows.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 正常主路径：`M02-FLOW-MAIN-001`
 

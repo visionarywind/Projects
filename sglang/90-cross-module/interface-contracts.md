@@ -5,10 +5,11 @@
 - 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
-
+- 前置阅读：[项目入口](../README.md)。
+- 后续阅读：[分析状态](../00-overview/analysis-state.md)。
 ## 结论摘要
 
-SGLang 的跨模块契约不仅是函数签名，还包括 `rid` 对齐、字段序列化、状态生命周期、ready 同步和错误清理。最容易破坏的契约是：请求已 dispatch 后不能只删除本地 state；完成输出必须按 `rids[i]` 找到对应 `ReqState`；scheduler ready 必须在模型/资源初始化后发送。[`python/sglang/srt/managers/tokenizer_manager.py:3508-3528`][`python/sglang/srt/managers/tokenizer_manager.py:2255-2265`][`python/sglang/srt/managers/scheduler.py:5744-5833`]
+SGLang 的跨模块契约不仅是函数签名，还包括 `rid` 对齐、字段序列化、状态生命周期、ready 同步和错误清理。最容易破坏的契约是：请求已 dispatch 后不能只删除本地 state；完成输出必须按 `rids[i]` 找到对应 `ReqState`；scheduler ready 必须在模型/资源初始化后发送。[`python/sglang/srt/managers/tokenizer_manager.py:1-2816`][`python/sglang/srt/managers/tokenizer_manager.py:2255-2265`][`python/sglang/srt/managers/scheduler.py:1-4005`]
 
 ## 契约表
 

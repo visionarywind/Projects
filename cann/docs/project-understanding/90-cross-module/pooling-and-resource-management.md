@@ -2,11 +2,11 @@
 
 - 文档目的：按 Runtime、Driver、GE、SHMEM 四仓库串联内存池、图内存复用、虚拟地址/物理页和跨进程共享资源。
 - 适用范围：当前 checkout：Runtime `50be4c922e7baec5ea9da0c8618092a1c838decc`；Driver `9773369137cc075eba90c5118a49c2260318e7f9`；GE `8ee1b040ac5a5adfd1960fad0c2047eb334fe350`；SHMEM `ea981bdc567dbed8d4ff9431bfdde7807c20b98f`。
+- 对应源码版本：source/cann HEAD 39d4a83（2026-09-15 只读确认）。
 - 证据状态：静态源码已确认；Ascend 设备、Driver 固件、HCCL/RDMA 和产品构建未验证。
 - 最后更新：2026-09-14
 - 前置阅读：[CANN 架构](../00-overview/architecture.md)、[已有资源生命周期](memory-and-resource-lifecycle.md)
 - 后续阅读：[M03 Runtime](../01-modules/M03-runtime/README.md)、[M04 Driver](../01-modules/M04-driver/README.md)
-
 ## 结论摘要
 
 CANN 不是一条单一 allocator 链，而是四种不同粒度的资源管理叠加：

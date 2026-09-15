@@ -2,11 +2,13 @@
 
 - 文档目的：解释 Env 抽象如何在 POSIX 和 MemEnv 中落地，并追踪文件、调度、Cache/Arena 的真实资源边界。
 - 适用范围：`include/leveldb/env.h`、`util/env_posix.cc`、`helpers/memenv/memenv.cc`、`util/cache*`、`util/arena*`。
-- 源码版本：`main` / `7ee830d02b623e8ffe0b95d59a74db1e58da04c5`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：核心接口和主要实现已静态确认；本轮未执行跨平台构建、故障注入和并发测试。
 - 最后更新：2026-09-10
 - 前置阅读：[M06 README](README.md)
 - 后续阅读：[M06 examples](examples.md)
+
+- 源码版本：`main` / `7ee830d02b623e8ffe0b95d59a74db1e58da04c5`。
 
 ## 结论摘要
 
@@ -138,11 +140,11 @@ DBImpl::MaybeScheduleCompaction
 
 | 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Env 文件抽象 | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | 已完成 | 已完成 | M06 examples 场景 A/B、链 1/4/6/8 | 真实故障注入未执行 |
-| POSIX file | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | 已完成 | 已完成 | M06 examples、TableCache 链 | Windows 分支未构建 |
-| MemEnv | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | 已完成 | 已完成 | M06 examples 场景 D | Sync/Lock 是简化语义 |
-| Schedule boundary | 已完成 | 部分完成 | 已完成 | 部分完成 | 已完成 | 部分完成 | 部分完成 | 已完成 | 链 6/8 | 实际线程交错未知 |
-| Cache/Arena contract | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | 部分完成 | 已完成 | M06 examples 场景 E | 生命周期测试未运行 |
+| Env 文件抽象 | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | 已完成 | 已完成 | M06 examples 场景 A/B、链 1/4/6/8 | 部分完成：真实故障注入未执行 |
+| POSIX file | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | 已完成 | 已完成 | M06 examples、TableCache 链 | 部分完成：Windows 分支未构建 |
+| MemEnv | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | 已完成 | 已完成 | M06 examples 场景 D | 部分完成：Sync/Lock 是简化语义 |
+| Schedule boundary | 已完成 | 部分完成 | 已完成 | 部分完成 | 已完成 | 部分完成 | 部分完成 | 已完成 | 链 6/8 | 部分完成：实际线程交错未知 |
+| Cache/Arena contract | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | 部分完成 | 已完成 | M06 examples 场景 E | 部分完成：生命周期测试未运行 |
 
 ## 相关文档
 

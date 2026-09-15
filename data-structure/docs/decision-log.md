@@ -38,6 +38,18 @@ benchmark 固定 seed、数据规模、重复次数和 checksum，输出 median/
 
 详见 [`architecture.md`](architecture.md)。
 
+## D11：第一版新增 set-like skip_list
+
+跳表与红黑树都提供有序唯一键容器，但它们的平衡机制不同：红黑树依赖确定性颜色不变量，跳表依赖随机层级。第一版只实现 `skip_list<Key, Compare, MaxLevel>`，保留底层链表和多层 `forward` 指针的学习路径；map value、并发、节点池和完整 STL 兼容 API 延后，避免一次引入过多资源语义。
+
+## D12：跳表使用固定 seed 的可复现测试
+
+随机层级会影响结构形状和性能，因此测试构造函数接受 seed。固定 seed 不改变 level-0 的排序语义，却能让差分测试和 Sanitizer 失败稳定重放。跳表 benchmark 暂不加入，避免把单次随机结构误读为普遍性能结论。
+
+## D13：采用 LevelDB-style 跳表层级参数
+
+benchmark 的 set-like 跳表采用 `MaxLevel=12` 和约 `1/4` 的逐层晋升概率，参考 LevelDB SkipList 的典型参数。该决策只复用层数和概率，不声称复刻 LevelDB：当前节点仍使用固定大小的 forward 数组、默认 `new/delete`，并提供逐节点 `erase`；Arena、按实际高度分配节点和不可变节点生命周期留待后续实验。
+
 ## 维护约定
 
 代码注释、架构图和验证文档属于同一份设计说明：新增 public API、改变哨兵/叶子表示、改变生命周期或修改 benchmark 计时边界时，必须同步更新三者。架构图只使用当前实现中存在的类、字段和函数名称。

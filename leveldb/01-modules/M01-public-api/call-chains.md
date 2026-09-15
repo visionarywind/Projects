@@ -2,10 +2,14 @@
 
 - 文档目的：提供 M01 的最小追踪、图示和修改提示。
 - 适用范围：公共 API。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：已确认/部分推断。
 - 最后更新：2026-09-10
 - 前置阅读：[M01 README](README.md)
 - 后续阅读：[M02 call-chains](../M02-db-coordinator/call-chains.md)
+## 结论摘要
+
+本页聚焦 01-modules/M01-public-api/call-chains.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 调用链
 

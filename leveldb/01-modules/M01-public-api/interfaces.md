@@ -2,10 +2,14 @@
 
 - 文档目的：明确公共函数的参数、返回值、前置/后置条件和同步要求。
 - 适用范围：`include/leveldb`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：已确认。
 - 最后更新：2026-09-10
 - 前置阅读：[M01 README](README.md)
 - 后续阅读：[M02 接口](../M02-db-coordinator/interfaces.md)
+## 结论摘要
+
+本页聚焦 01-modules/M01-public-api/interfaces.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## DB 生命周期
 

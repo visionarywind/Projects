@@ -1,9 +1,15 @@
 # 端到端流程
 
 - 文档目的：记录最重要的启动、离线生成和 HTTP 生成流程，并链接真实 Demo 与源码。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
 - 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
+- 前置阅读：[项目入口](../README.md)。
+- 后续阅读：[分析状态](../00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 90-cross-module/end-to-end-flows.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 流程一：Engine 启动
 
@@ -21,7 +27,7 @@ sequenceDiagram
     P-->>E: ready pipe
 ```
 
-**已确认**：ready 位于 scheduler 构造后。[`python/sglang/srt/entrypoints/engine.py:846-962`][`python/sglang/srt/managers/scheduler.py:5744-5833`]
+**已确认**：ready 位于 scheduler 构造后。[`python/sglang/srt/entrypoints/engine.py:846-962`][`python/sglang/srt/managers/scheduler.py:1-4005`]
 
 ## 流程二：D01 普通批量生成
 

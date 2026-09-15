@@ -2,11 +2,17 @@
 
 - 文档目的：用重开、压缩和版本引用场景连接 VersionSet、MANIFEST 与 SSTable。
 - 适用范围：M04。
-- 源码版本：`main` / `7ee830d`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：核心调用入口和版本/压缩机制来自源码；Linux Debug 聚合构建与 CTest 已通过，但 MANIFEST 损坏、输出提交窗口和独立 compaction filter 尚未执行。
 - 最后更新：2026-09-10
 - 前置阅读：[M04 README](README.md)
 - 后续阅读：[M04 testing](testing.md)
+## 结论摘要
+
+本页聚焦 01-modules/M04-version-compaction/examples.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
+- 源码版本：`main` / `7ee830d`。
 
 ## MANIFEST 与重开
 
@@ -29,3 +35,17 @@ Level-0 文件可能重叠，因此测试应使用相邻 key、重叠 key 和跨
 ## 输出文件保护
 
 在 compaction 生成新 SSTable 但尚未完成 VersionEdit 安装的窗口注入错误，检查 `pending_outputs_` 不会让后台清理误删仍在使用的输出文件；最终失败路径应返回 `Status` 并清理临时资源。具体协调逻辑位于 [`DBImpl::WriteLevel0Table`](../../../source/leveldb/db/db_impl.cc#L505-L548) 和 [`VersionSet::LogAndApply`](../../../source/leveldb/db/version_set.cc#L777-L859)。
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

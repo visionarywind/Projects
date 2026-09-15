@@ -1,9 +1,20 @@
 # CANN GE / ACL / Runtime / Driver 项目理解知识库
 
+- 文档目的：解释 README.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：见 [00-overview/analysis-state.md](00-overview/analysis-state.md)
+- 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](README.md)。
+- 后续阅读：[分析状态](00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
 - 项目路径：`/home/mtuser/workspace/cann`
 - 文档语言：中文
 - 分析范围：`ge/`、`acl/`、`runtime/`、`driver/` 四个独立 Git 仓库及其跨仓调用关系
-- 对应源码版本：见 [00-overview/analysis-state.md](00-overview/analysis-state.md)
 - 证据规则：文档中的源码引用均采用 `[相对路径:起始行-结束行]`；“已确认/推断/未知”严格区分
 - 当前状态：第一批（仓库盘点、模块划分、总览层与模块入口）已完成；细节文档持续增量补充
 
@@ -103,6 +114,123 @@ flowchart LR
 - [项目风险登记](99-roadmap/risk-register.md)
 - [技术债务](99-roadmap/technical-debt.md)
 - [后续路线](99-roadmap/next-steps.md)
+
+## 文档元数据（规范补充）
+
+- 文档目的：说明 `README.md` 的源码分析范围、结论和维护入口。
+- 适用范围：当前项目对应模块/入口的静态源码与测试分析。
+- 对应源码版本：以本项目 `00-overview/analysis-state.md` 或同页版本字段为准。
+- 证据状态：静态源码证据；未执行的构建、测试、GPU、网络或多进程行为保持“未验证”。
+- 最后更新：2026-09-15
+- 前置阅读：本项目根 README 与 `00-overview/analysis-state.md`。
+- 后续阅读：本模块/示例的实现、测试和风险页面。
+
+## Demo 适用性说明
+
+当前知识库没有登记独立的 `80-demos/` Demo：四个 CANN 源码仓库需要 Ascend SDK、驱动、固件和设备才能形成可运行的端到端样例，本地 checkout 仅支持静态源码分析。按照 `project-prompt.md`，该缺口标记为“不适用/受环境阻塞”，不把构建命令或样例路径伪装成已运行 Demo。
+
+## 全文档索引
+
+### 00-overview
+- [00-overview/analysis-state.md](00-overview/analysis-state.md)
+- [00-overview/architecture.md](00-overview/architecture.md)
+- [00-overview/build-and-deploy.md](00-overview/build-and-deploy.md)
+- [00-overview/decision-log.md](00-overview/decision-log.md)
+- [00-overview/dependency-map.md](00-overview/dependency-map.md)
+- [00-overview/design-principles.md](00-overview/design-principles.md)
+- [00-overview/evidence-index.md](00-overview/evidence-index.md)
+- [00-overview/global-data-flow.md](00-overview/global-data-flow.md)
+- [00-overview/global-error-model.md](00-overview/global-error-model.md)
+- [00-overview/glossary.md](00-overview/glossary.md)
+- [00-overview/project-overview.md](00-overview/project-overview.md)
+- [00-overview/runtime-model.md](00-overview/runtime-model.md)
+
+### 01-modules
+- [01-modules/M01-ge/README.md](01-modules/M01-ge/README.md)
+- [01-modules/M01-ge/call-chains.md](01-modules/M01-ge/call-chains.md)
+- [01-modules/M01-ge/data-structures.md](01-modules/M01-ge/data-structures.md)
+- [01-modules/M01-ge/design.md](01-modules/M01-ge/design.md)
+- [01-modules/M01-ge/development-guide.md](01-modules/M01-ge/development-guide.md)
+- [01-modules/M01-ge/diagrams.md](01-modules/M01-ge/diagrams.md)
+- [01-modules/M01-ge/examples.md](01-modules/M01-ge/examples.md)
+- [01-modules/M01-ge/interfaces.md](01-modules/M01-ge/interfaces.md)
+- [01-modules/M01-ge/line-level-analysis.md](01-modules/M01-ge/line-level-analysis.md)
+- [01-modules/M01-ge/risks-and-debt.md](01-modules/M01-ge/risks-and-debt.md)
+- [01-modules/M01-ge/source-map.md](01-modules/M01-ge/source-map.md)
+- [01-modules/M01-ge/testing.md](01-modules/M01-ge/testing.md)
+- [01-modules/M02-acl/README.md](01-modules/M02-acl/README.md)
+- [01-modules/M02-acl/call-chains.md](01-modules/M02-acl/call-chains.md)
+- [01-modules/M02-acl/data-structures.md](01-modules/M02-acl/data-structures.md)
+- [01-modules/M02-acl/design.md](01-modules/M02-acl/design.md)
+- [01-modules/M02-acl/development-guide.md](01-modules/M02-acl/development-guide.md)
+- [01-modules/M02-acl/diagrams.md](01-modules/M02-acl/diagrams.md)
+- [01-modules/M02-acl/examples.md](01-modules/M02-acl/examples.md)
+- [01-modules/M02-acl/interfaces.md](01-modules/M02-acl/interfaces.md)
+- [01-modules/M02-acl/line-level-analysis.md](01-modules/M02-acl/line-level-analysis.md)
+- [01-modules/M02-acl/risks-and-debt.md](01-modules/M02-acl/risks-and-debt.md)
+- [01-modules/M02-acl/source-map.md](01-modules/M02-acl/source-map.md)
+- [01-modules/M02-acl/testing.md](01-modules/M02-acl/testing.md)
+- [01-modules/M03-runtime/README.md](01-modules/M03-runtime/README.md)
+- [01-modules/M03-runtime/call-chains.md](01-modules/M03-runtime/call-chains.md)
+- [01-modules/M03-runtime/data-structures.md](01-modules/M03-runtime/data-structures.md)
+- [01-modules/M03-runtime/design.md](01-modules/M03-runtime/design.md)
+- [01-modules/M03-runtime/development-guide.md](01-modules/M03-runtime/development-guide.md)
+- [01-modules/M03-runtime/diagrams.md](01-modules/M03-runtime/diagrams.md)
+- [01-modules/M03-runtime/examples.md](01-modules/M03-runtime/examples.md)
+- [01-modules/M03-runtime/interfaces.md](01-modules/M03-runtime/interfaces.md)
+- [01-modules/M03-runtime/line-level-analysis.md](01-modules/M03-runtime/line-level-analysis.md)
+- [01-modules/M03-runtime/memory-pool-analysis.md](01-modules/M03-runtime/memory-pool-analysis.md)
+- [01-modules/M03-runtime/risks-and-debt.md](01-modules/M03-runtime/risks-and-debt.md)
+- [01-modules/M03-runtime/source-map.md](01-modules/M03-runtime/source-map.md)
+- [01-modules/M03-runtime/testing.md](01-modules/M03-runtime/testing.md)
+- [01-modules/M04-driver/README.md](01-modules/M04-driver/README.md)
+- [01-modules/M04-driver/call-chains.md](01-modules/M04-driver/call-chains.md)
+- [01-modules/M04-driver/data-structures.md](01-modules/M04-driver/data-structures.md)
+- [01-modules/M04-driver/design.md](01-modules/M04-driver/design.md)
+- [01-modules/M04-driver/development-guide.md](01-modules/M04-driver/development-guide.md)
+- [01-modules/M04-driver/diagrams.md](01-modules/M04-driver/diagrams.md)
+- [01-modules/M04-driver/driver-memory-pool-analysis.md](01-modules/M04-driver/driver-memory-pool-analysis.md)
+- [01-modules/M04-driver/examples.md](01-modules/M04-driver/examples.md)
+- [01-modules/M04-driver/interfaces.md](01-modules/M04-driver/interfaces.md)
+- [01-modules/M04-driver/line-level-analysis.md](01-modules/M04-driver/line-level-analysis.md)
+- [01-modules/M04-driver/risks-and-debt.md](01-modules/M04-driver/risks-and-debt.md)
+- [01-modules/M04-driver/source-map.md](01-modules/M04-driver/source-map.md)
+- [01-modules/M04-driver/testing.md](01-modules/M04-driver/testing.md)
+- [01-modules/module-registry.md](01-modules/module-registry.md)
+
+### 80-demos
+
+### 90-cross-module
+- [90-cross-module/change-impact-map.md](90-cross-module/change-impact-map.md)
+- [90-cross-module/configuration-impact-map.md](90-cross-module/configuration-impact-map.md)
+- [90-cross-module/cross-module-call-chains.md](90-cross-module/cross-module-call-chains.md)
+- [90-cross-module/end-to-end-flows.md](90-cross-module/end-to-end-flows.md)
+- [90-cross-module/error-boundaries.md](90-cross-module/error-boundaries.md)
+- [90-cross-module/interface-contracts.md](90-cross-module/interface-contracts.md)
+- [90-cross-module/memory-and-resource-lifecycle.md](90-cross-module/memory-and-resource-lifecycle.md)
+- [90-cross-module/performance-critical-paths.md](90-cross-module/performance-critical-paths.md)
+- [90-cross-module/pooling-and-resource-management.md](90-cross-module/pooling-and-resource-management.md)
+- [90-cross-module/runtime-trace.md](90-cross-module/runtime-trace.md)
+- [90-cross-module/shared-data-and-types.md](90-cross-module/shared-data-and-types.md)
+- [90-cross-module/system-wiring.md](90-cross-module/system-wiring.md)
+
+### 99-roadmap
+- [99-roadmap/debugging-guide.md](99-roadmap/debugging-guide.md)
+- [99-roadmap/feature-development-recipes.md](99-roadmap/feature-development-recipes.md)
+- [99-roadmap/next-steps.md](99-roadmap/next-steps.md)
+- [99-roadmap/performance-guide.md](99-roadmap/performance-guide.md)
+- [99-roadmap/project-risks.md](99-roadmap/project-risks.md)
+- [99-roadmap/quick-start.md](99-roadmap/quick-start.md)
+- [99-roadmap/reading-guide.md](99-roadmap/reading-guide.md)
+- [99-roadmap/risk-register.md](99-roadmap/risk-register.md)
+- [99-roadmap/technical-debt.md](99-roadmap/technical-debt.md)
+- [99-roadmap/testing-recipes.md](99-roadmap/testing-recipes.md)
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `README.md` | 已完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已映射或不适用 | 部分完成：动态行为、边界或专用变体仍需验证 |
 
 ## 相关文档
 

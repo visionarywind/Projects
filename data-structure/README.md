@@ -1,11 +1,12 @@
-# 学习型高性能红黑树
+# 学习型高性能红黑树与跳表
 
-这是一个从零实现的、**单线程、唯一键** C++ 红黑树项目，位于本仓库的 `data-structure/`，可以独立使用 CMake 构建，不依赖仓库根目录的构建系统。
+这是一个从零实现的、**单线程、唯一键** C++ 有序容器学习项目，位于本仓库的 `data-structure/`，可以独立使用 CMake 构建，不依赖仓库根目录的构建系统。
 
 项目同时保留两条实现路线：
 
 - `rb_tree<Key, Compare>`：学习优先的 set-like 实现，使用 `nullptr` 表示叶子；
-- `rb_map<Key, T, Compare, Allocator>`：面向性能实验的 map-like 实现，使用黑色哨兵和节点 allocator。
+- `rb_map<Key, T, Compare, Allocator>`：面向性能实验的 map-like 实现，使用黑色哨兵和节点 allocator；
+- `skip_list<Key, Compare, MaxLevel>`：教学版 set-like 跳表，使用随机层级和多层 forward 指针。
 
 ## 当前状态
 
@@ -17,7 +18,9 @@
 - `rb_map` 的 `insert`、`try_emplace`、`emplace`、`operator[]`、`find`、`contains`、`erase`、`clear` 和遍历；
 - `rb_map` 的黑色 `nil_` 哨兵、`leftmost_`/`rightmost_` 边界缓存和 allocator-aware 节点分配；
 - 两套实现的不变量检查、基础测试和固定 seed 差分测试；
-- `rb_map<int, uint64_t>` 与 `std::map<int, uint64_t>` 的 Release benchmark，支持中位数、最小值、最大值和 CSV 输出。
+- `rb_map<int, uint64_t>` 与 `std::map<int, uint64_t>` 的 Release benchmark，支持中位数、最小值、最大值和 CSV 输出；
+- `rb_tree<int>`、`skip_list<int>` 与 `std::set<int>` 的可重放性能对比 benchmark；
+- `skip_list` 的固定 seed 基础测试和与 `std::set<int>` 的随机差分测试。
 
 当前版本有意不包含：
 
@@ -73,6 +76,22 @@ ctest --test-dir data-structure/build/asan --output-on-failure
 5. `tests/rb_map_differential_test.cpp`：看如何逐步对照 `std::map`；
 6. `benchmark/rb_map_benchmark.cpp`：看如何固定 workload、校验 checksum 并记录时间；
 7. `docs/implementation-notes.md` 与 `docs/testing-and-verification.md`：了解实现取舍和验证方法。
+
+## 跳表快速示例
+
+```cpp
+#include "rbtree/skip_list.hpp"
+
+rbtree::skip_list<int> list;
+list.insert(3);
+list.insert(1);
+list.insert(2);
+for (int key : list) {
+    // 通过 level-0 按序访问：1, 2, 3
+}
+```
+
+跳表的查找、插入和删除期望为 `O(log n)`，最坏情况可能退化为 `O(n)`；当前实现使用固定 seed 构造以便测试复现，并已通过 `ordered_benchmark` 与 `rb_tree`、`std::set` 做端到端性能对比。当前 benchmark 的跳表参数为 `MaxLevel=12`、晋升概率约 `1/4`，但仍使用默认 `new/delete` 和固定大小节点布局，不能视为完整的 LevelDB SkipList 实现。
 
 ## 性能原则
 

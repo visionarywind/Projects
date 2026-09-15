@@ -1,6 +1,16 @@
 # 跨模块：共享数据与类型
 
+- 文档目的：解释 90-cross-module/shared-data-and-types.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/cann HEAD 39d4a83（2026-09-15 只读确认）。
 - 证据状态：类别和关键边界已确认；完整 typedef/结构布局和设备侧 ABI 仍待补
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](../README.md)。
+- 后续阅读：[分析状态](../00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 90-cross-module/shared-data-and-types.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 | 数据/类型 | 生产层 | 消费层 | 兼容风险 |
 |---|---|---|---|
@@ -33,3 +43,17 @@ GE 图对象职责由架构文档确认 `[ge/docs/zh/design/architecture.md:76-9
 - 错误码新增需同步底层定义、转换宏、公开头文件和测试。
 - handle 内部布局不应暴露；若改变魔数/代际规则，需覆盖旧句柄错误路径。
 - 修改内存 flag、pool attribute、AICPU sub-command 或 ioctl 结构时，必须同时核对 Runtime、HAL、SVM/SDK-driver、AICPU 和跨仓测试。
+
+## 相关文档
+- [项目入口](../README.md)
+- [分析状态](../00-overview/analysis-state.md)
+- [源码证据索引](../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

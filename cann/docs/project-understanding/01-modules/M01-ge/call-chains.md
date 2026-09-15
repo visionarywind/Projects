@@ -7,6 +7,10 @@
 - 最后更新：2026-09-10
 - 前置阅读：design.md
 - 后续阅读：`90-cross-module/cross-module-call-chains.md`
+## 结论摘要
+
+本页聚焦 01-modules/M01-ge/call-chains.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 ## 初始化/Session 链
 

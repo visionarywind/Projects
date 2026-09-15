@@ -2,11 +2,11 @@
 
 - 文档目的：解释 Megatron-LM 的局部、全迭代和优化器 CUDA Graph 如何持有 stream、静态 tensor、graph memory pool、RNG 与通信资源。
 - 适用范围：源码提交 `3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`。
+- 对应源码版本：source/megatron-lm HEAD 3703d4e33（2026-09-15 只读确认）。
 - 证据状态：Python/PyTorch 调用链静态确认；CUDA allocator、NCCL、GPU replay 和峰值显存未运行验证。
 - 最后更新：2026-09-15
 - 前置阅读：[池化与资源管理](pooling-and-resource-management.md)
 - 后续阅读：[M03 训练运行时](../01-modules/M03-training-runtime/README.md)
-
 ## 结论摘要
 
 Megatron 存在三类 CUDA Graph：Transformer module 级 runner、full-iteration wrapper、optimizer wrapper。它们都要求 replay 地址稳定，但 memory-pool 策略不同：module runner 可使用全局 graph mempool 并复用边界 tensor；full-iteration/optimizer 可选择共享一个 process-wide `graph_pool_handle` 和捕获 stream，或者每次取得新 pool。Graph pool 只约束捕获分配，不等于 DDP contiguous bucket 或 NCCL `MemPool`。
@@ -46,8 +46,19 @@ module runner 使用 `CudagraphBufferMetadata` 标记 graph input/output、saved
 | module/full/optimizer CUDA Graph | 已完成 | 已完成 | 已完成 | 部分完成 | 部分完成 | 已完成 | capture/replay/side stream 已确认 | 已完成 | D01 未启用 Graph | 部分完成：静态 buffer reset、异常 capture、GPU 验证 |
 | NCCL MemPool | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | process group/context manager | 已完成 | D01 未覆盖 | 部分完成：多组失败与真实注册待验证 |
 
+## 相关文档
+- [项目入口](../README.md)
+- [分析状态](../00-overview/analysis-state.md)
+- [源码证据索引](../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
 ## 未解决问题
 
 - Full graph reset 后 class-level static buffers、共享 pool/stream 何时释放，需要进程级显存快照验证。
 - capture 抛异常时 `_IS_GRAPH_CAPTURING`、GC freeze、通信 side stream 和 pool 引用是否全部复位，需要 fault injection。
 - Graph pool、NCCL pool、DDP buffer 和 activation offload 同时启用时的峰值与 stream ordering 尚未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

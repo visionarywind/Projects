@@ -2,11 +2,13 @@
 
 - 文档目的：把 DBImpl 的一次表文件读取和一次后台任务，落到 Env 的具体文件对象、锁、调度与释放动作。
 - 适用范围：M06 与 M02/M04/M05 的交界；同时说明 MemEnv、EnvWrapper 和 Cache Handle 的测试用法。
-- 源码版本：`main` / `7ee830d02b623e8ffe0b95d59a74db1e58da04c5`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：Env 接口、MemEnv 实现和 POSIX 文件实现已由源码确认；本页命令、跨平台构建和故障注入均未执行。
 - 最后更新：2026-09-10
 - 前置阅读：[M06 interfaces](interfaces.md)
 - 后续阅读：[M06 testing](testing.md)
+
+- 源码版本：`main` / `7ee830d02b623e8ffe0b95d59a74db1e58da04c5`。
 
 ## 结论摘要
 

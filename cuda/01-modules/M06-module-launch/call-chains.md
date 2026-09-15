@@ -1,5 +1,17 @@
 # M06 调用链、接口与数据结构
 
+- 文档目的：解释 01-modules/M06-module-launch/call-chains.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](../../README.md)。
+- 后续阅读：[分析状态](../../00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 01-modules/M06-module-launch/call-chains.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
 ## Module / ELF / JIT
 
 ```text
@@ -128,3 +140,59 @@ cuiModuleUnloadEx
 ```
 
 正常卸载与 load-failure 卸载共用该 reverse path，但 `wasLoadedSuccessfully` 会影响 tools 通知。ELF image 只有 shared refcount 归零时才真正释放；syscall import refcount 归零时才清除 active bit（静态确认：[src/cui/cuimod.c:2767-2943]）。
+
+## Graph capture / instantiate / launch 链
+
+```text
+cuStreamBeginCapture
+ → cuapiStreamBeginCaptureCommon
+ → cuiStreamBeginCapture
+ → cuiGraphCreate
+ → stream.capture.graph = graph
+
+cuLaunchKernel (capturing)
+ → cuiGraphLockForCapture
+ → cuiGraphNodeValidateKernelParams
+ → cuiGraphCreateKernelNode(deps)
+ → cuiStreamUpdateCaptureInfo
+ → unlock
+
+cuStreamEndCapture
+ → origin/thread/invalidation/join validation
+ → remove participating streams/events
+ → graph handle or graph destroy
+
+cuGraphInstantiate
+ → cuiGraphInstantiate
+ → cycle + conditional validation
+ → cuiGraphCloneExec
+ → cuiGraphFlatten + cuiGraphConvertMemsetNodes
+ → context registration + cuiGraphSetupScheduling
+ → cuiGraphInstantiate_UnderLock
+ → qmdRegisterSemaphorePoolIfNeeded
+
+cuGraphLaunch
+ → cuapiGraphLaunchCommon
+ → cuiGraphLaunch
+ → wait previous per-context markers
+ → cuiUvmDagSetRunning
+ → cuiGraphNodeLaunch in topological list
+ → marker waits / pushbuffer / memcpy / callback / scheduler
+ → wait current graph completion markers
+```
+
+capture 中的 event wait 不会把另一个 graph 直接拼接进来：跨 graph capture 会使相关 capture invalidated；同一 graph 的 captured event dependencies 被放入 stream 的 `nextPushDeps`，供下一个操作创建节点时消费（静态确认：[src/api/apistream.c:480-520,src/api/apistream.c:538-667]；[src/cui/cuistream.c:1223-1272]）。
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

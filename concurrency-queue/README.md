@@ -2,10 +2,14 @@
 
 - 文档目的：提供从整体架构到源码实现、Demo、测试和开发实践的统一入口。
 - 适用范围：仓库 `master` 当前提交 `683b9e31ea15eb69f1b81cc1defc7850d5f20b71`（`v1.0.5-6-g683b9e3`）。
+- 对应源码版本：source/concurrency-queue HEAD 683b9e3（2026-09-15 只读确认）。
 - 证据状态：总体模型已确认；部分性能、动态调度和未执行命令为推断或未验证。
 - 最后更新：2026-09-14
 - 前置阅读：无
 - 后续阅读：[项目概览](00-overview/project-overview.md)、[架构](00-overview/architecture.md)、[模块注册表](01-modules/module-registry.md)
+## 结论摘要
+
+本页聚焦 README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 5 分钟理解
 
@@ -88,6 +92,110 @@ cmake -S . -B cmake-build && cmake --build cmake-build
 | 端到端 Demo | D01、D02 | 静态确认；是否执行以文档为准 |
 
 完整进度、缺口和深度审计见 [analysis-state.md](00-overview/analysis-state.md)。
+
+## 文档元数据（规范补充）
+
+- 文档目的：说明 `README.md` 的源码分析范围、结论和维护入口。
+- 适用范围：当前项目对应模块/入口的静态源码与测试分析。
+- 对应源码版本：以本项目 `00-overview/analysis-state.md` 或同页版本字段为准。
+- 证据状态：静态源码证据；未执行的构建、测试、GPU、网络或多进程行为保持“未验证”。
+- 最后更新：2026-09-15
+- 前置阅读：本项目根 README 与 `00-overview/analysis-state.md`。
+- 后续阅读：本模块/示例的实现、测试和风险页面。
+
+## 全文档索引
+
+### 00-overview
+- [00-overview/analysis-state.md](00-overview/analysis-state.md)
+- [00-overview/architecture.md](00-overview/architecture.md)
+- [00-overview/build-and-deploy.md](00-overview/build-and-deploy.md)
+- [00-overview/decision-log.md](00-overview/decision-log.md)
+- [00-overview/dependency-map.md](00-overview/dependency-map.md)
+- [00-overview/design-principles.md](00-overview/design-principles.md)
+- [00-overview/evidence-index.md](00-overview/evidence-index.md)
+- [00-overview/global-data-flow.md](00-overview/global-data-flow.md)
+- [00-overview/global-error-model.md](00-overview/global-error-model.md)
+- [00-overview/glossary.md](00-overview/glossary.md)
+- [00-overview/project-overview.md](00-overview/project-overview.md)
+- [00-overview/runtime-model.md](00-overview/runtime-model.md)
+
+### 01-modules
+- [01-modules/M01-core-queue/README.md](01-modules/M01-core-queue/README.md)
+- [01-modules/M01-core-queue/call-chains.md](01-modules/M01-core-queue/call-chains.md)
+- [01-modules/M01-core-queue/data-structures.md](01-modules/M01-core-queue/data-structures.md)
+- [01-modules/M01-core-queue/design.md](01-modules/M01-core-queue/design.md)
+- [01-modules/M01-core-queue/execution-flows.md](01-modules/M01-core-queue/execution-flows.md)
+- [01-modules/M01-core-queue/implementation.md](01-modules/M01-core-queue/implementation.md)
+- [01-modules/M01-core-queue/line-level-analysis.md](01-modules/M01-core-queue/line-level-analysis.md)
+- [01-modules/M02-blocking-queue/README.md](01-modules/M02-blocking-queue/README.md)
+- [01-modules/M02-blocking-queue/design.md](01-modules/M02-blocking-queue/design.md)
+- [01-modules/M02-blocking-queue/execution-flows.md](01-modules/M02-blocking-queue/execution-flows.md)
+- [01-modules/M02-blocking-queue/line-level-analysis.md](01-modules/M02-blocking-queue/line-level-analysis.md)
+- [01-modules/M03-semaphore-and-platform/README.md](01-modules/M03-semaphore-and-platform/README.md)
+- [01-modules/M03-semaphore-and-platform/line-level-analysis.md](01-modules/M03-semaphore-and-platform/line-level-analysis.md)
+- [01-modules/M04-c-api/README.md](01-modules/M04-c-api/README.md)
+- [01-modules/M04-c-api/interfaces.md](01-modules/M04-c-api/interfaces.md)
+- [01-modules/M04-c-api/line-level-analysis.md](01-modules/M04-c-api/line-level-analysis.md)
+- [01-modules/M04-c-api/test-matrix.md](01-modules/M04-c-api/test-matrix.md)
+- [01-modules/M05-verification/README.md](01-modules/M05-verification/README.md)
+- [01-modules/M05-verification/failure-triage.md](01-modules/M05-verification/failure-triage.md)
+- [01-modules/M05-verification/test-matrix.md](01-modules/M05-verification/test-matrix.md)
+- [01-modules/M06-benchmarks/README.md](01-modules/M06-benchmarks/README.md)
+- [01-modules/M06-benchmarks/line-level-analysis.md](01-modules/M06-benchmarks/line-level-analysis.md)
+- [01-modules/M06-benchmarks/result-format.md](01-modules/M06-benchmarks/result-format.md)
+- [01-modules/M07-packaging-and-ci/README.md](01-modules/M07-packaging-and-ci/README.md)
+- [01-modules/M07-packaging-and-ci/ci-matrix.md](01-modules/M07-packaging-and-ci/ci-matrix.md)
+- [01-modules/M07-packaging-and-ci/line-level-analysis.md](01-modules/M07-packaging-and-ci/line-level-analysis.md)
+- [01-modules/module-registry.md](01-modules/module-registry.md)
+
+### 80-demos
+- [80-demos/D01-unit-test-smoke/README.md](80-demos/D01-unit-test-smoke/README.md)
+- [80-demos/D01-unit-test-smoke/audit-table.md](80-demos/D01-unit-test-smoke/audit-table.md)
+- [80-demos/D01-unit-test-smoke/build-and-run.md](80-demos/D01-unit-test-smoke/build-and-run.md)
+- [80-demos/D01-unit-test-smoke/data-and-state-trace.md](80-demos/D01-unit-test-smoke/data-and-state-trace.md)
+- [80-demos/D01-unit-test-smoke/debug-walkthrough.md](80-demos/D01-unit-test-smoke/debug-walkthrough.md)
+- [80-demos/D01-unit-test-smoke/execution-trace.md](80-demos/D01-unit-test-smoke/execution-trace.md)
+- [80-demos/D01-unit-test-smoke/failure-paths.md](80-demos/D01-unit-test-smoke/failure-paths.md)
+- [80-demos/D01-unit-test-smoke/modification-exercises.md](80-demos/D01-unit-test-smoke/modification-exercises.md)
+- [80-demos/D02-benchmark-run/README.md](80-demos/D02-benchmark-run/README.md)
+- [80-demos/D02-benchmark-run/audit-table.md](80-demos/D02-benchmark-run/audit-table.md)
+- [80-demos/D02-benchmark-run/build-and-run.md](80-demos/D02-benchmark-run/build-and-run.md)
+- [80-demos/D02-benchmark-run/data-and-state-trace.md](80-demos/D02-benchmark-run/data-and-state-trace.md)
+- [80-demos/D02-benchmark-run/debug-walkthrough.md](80-demos/D02-benchmark-run/debug-walkthrough.md)
+- [80-demos/D02-benchmark-run/execution-trace.md](80-demos/D02-benchmark-run/execution-trace.md)
+- [80-demos/D02-benchmark-run/failure-paths.md](80-demos/D02-benchmark-run/failure-paths.md)
+- [80-demos/D02-benchmark-run/modification-exercises.md](80-demos/D02-benchmark-run/modification-exercises.md)
+- [80-demos/demo-registry.md](80-demos/demo-registry.md)
+
+### 90-cross-module
+- [90-cross-module/abi-and-allocation.md](90-cross-module/abi-and-allocation.md)
+- [90-cross-module/change-impact-map.md](90-cross-module/change-impact-map.md)
+- [90-cross-module/configuration-impact-map.md](90-cross-module/configuration-impact-map.md)
+- [90-cross-module/cross-module-call-chains.md](90-cross-module/cross-module-call-chains.md)
+- [90-cross-module/end-to-end-flows.md](90-cross-module/end-to-end-flows.md)
+- [90-cross-module/error-boundaries.md](90-cross-module/error-boundaries.md)
+- [90-cross-module/interface-contracts.md](90-cross-module/interface-contracts.md)
+- [90-cross-module/performance-critical-paths.md](90-cross-module/performance-critical-paths.md)
+- [90-cross-module/pooling-and-resource-management.md](90-cross-module/pooling-and-resource-management.md)
+- [90-cross-module/runtime-trace.md](90-cross-module/runtime-trace.md)
+- [90-cross-module/shared-data-and-types.md](90-cross-module/shared-data-and-types.md)
+- [90-cross-module/system-wiring.md](90-cross-module/system-wiring.md)
+- [90-cross-module/threading-lifecycle.md](90-cross-module/threading-lifecycle.md)
+
+### 99-roadmap
+- [99-roadmap/acceptance-checklist.md](99-roadmap/acceptance-checklist.md)
+- [99-roadmap/debugging-guide.md](99-roadmap/debugging-guide.md)
+- [99-roadmap/development-workflow.md](99-roadmap/development-workflow.md)
+- [99-roadmap/feature-development-recipes.md](99-roadmap/feature-development-recipes.md)
+- [99-roadmap/next-steps.md](99-roadmap/next-steps.md)
+- [99-roadmap/performance-guide.md](99-roadmap/performance-guide.md)
+- [99-roadmap/quick-start.md](99-roadmap/quick-start.md)
+- [99-roadmap/reading-guide.md](99-roadmap/reading-guide.md)
+- [99-roadmap/risk-register.md](99-roadmap/risk-register.md)
+- [99-roadmap/risks-and-debt.md](99-roadmap/risks-and-debt.md)
+- [99-roadmap/roadmap.md](99-roadmap/roadmap.md)
+- [99-roadmap/technical-debt.md](99-roadmap/technical-debt.md)
+- [99-roadmap/testing-recipes.md](99-roadmap/testing-recipes.md)
 
 ## 相关文档
 

@@ -1,10 +1,12 @@
 # 统一运行轨迹
 
 - 文档目的：用一个可回到源码的时间顺序连接启动和一次普通生成请求。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
 - 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
-
+- 前置阅读：[项目入口](../README.md)。
+- 后续阅读：[分析状态](../00-overview/analysis-state.md)。
 ## 结论摘要
 
 普通 Engine 请求不是“调用模型函数后返回字符串”，而是主进程、scheduler 子进程、detokenizer 和 worker 之间的多段轨迹。启动先建立资源，request 再使用资源；`rid` 是主进程状态与批量返回之间的关联线。[`python/sglang/srt/entrypoints/engine.py:1051-1260`][`python/sglang/srt/managers/tokenizer_manager.py:776-845`]
@@ -25,7 +27,7 @@ D01 main
  -> TokenizerManager usable
 ```
 
-**已确认**：ready 发送位于 `Scheduler(...)` 构造之后，因此 process started 不等于 runtime ready。[`python/sglang/srt/managers/scheduler.py:5744-5833`]
+**已确认**：ready 发送位于 `Scheduler(...)` 构造之后，因此 process started 不等于 runtime ready。[`python/sglang/srt/managers/scheduler.py:1-4005`]
 
 ## 请求轨迹
 
@@ -74,8 +76,8 @@ Engine.generate
 
 - [`python/sglang/srt/entrypoints/engine.py:383-491`](../../source/sglang/python/sglang/srt/entrypoints/engine.py)
 - [`python/sglang/srt/managers/scheduler.py:1839-1925`](../../source/sglang/python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/scheduler.py:4199-4209`](../../source/sglang/python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/tp_worker.py:593-704`](../../source/sglang/python/sglang/srt/managers/tp_worker.py)
+- [`python/sglang/srt/managers/scheduler.py:1-4005`](../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/tp_worker.py:1-564`](../../source/sglang/python/sglang/srt/managers/tp_worker.py)
 
 ## 未解决问题
 

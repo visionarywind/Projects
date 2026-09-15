@@ -1,5 +1,17 @@
 # LeetCUDA 项目理解知识库
 
+- 文档目的：解释 README.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/LeetCUDA HEAD 4513b31（2026-09-15 只读确认）。
+- 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](README.md)。
+- 后续阅读：[分析状态](00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
 - 生成范围：以当前源码 checkout `main` 分支提交 `4513b3114de21140c846171042515e17bb907e8a` 为目标版本。
 - 项目名称：LeetCUDA
 - 文档语言：中文
@@ -110,6 +122,191 @@ LeetCUDA/
 ## 状态、缺口与维护
 
 当前文档覆盖仓库的主要职责域、所有 kernel 一级目录、主要构建/测试入口和三条核心流程；深层实现按高价值代表（elementwise、NMS、SGEMM、HGEMM、FlashAttention、interview）建立证据，其余小算子采用共享模式归纳。未解决问题、未验证命令、覆盖维度和增量维护规则集中在 [analysis-state.md](00-overview/analysis-state.md)。
+
+## 文档元数据（规范补充）
+
+- 文档目的：说明 `README.md` 的源码分析范围、结论和维护入口。
+- 适用范围：当前项目对应模块/入口的静态源码与测试分析。
+- 对应源码版本：以本项目 `00-overview/analysis-state.md` 或同页版本字段为准。
+- 证据状态：静态源码证据；未执行的构建、测试、GPU、网络或多进程行为保持“未验证”。
+- 最后更新：2026-09-15
+- 前置阅读：本项目根 README 与 `00-overview/analysis-state.md`。
+- 后续阅读：本模块/示例的实现、测试和风险页面。
+
+## 全文档索引
+
+### 00-overview
+- [00-overview/analysis-state.md](00-overview/analysis-state.md)
+- [00-overview/architecture.md](00-overview/architecture.md)
+- [00-overview/build-and-deploy.md](00-overview/build-and-deploy.md)
+- [00-overview/decision-log.md](00-overview/decision-log.md)
+- [00-overview/dependency-map.md](00-overview/dependency-map.md)
+- [00-overview/design-principles.md](00-overview/design-principles.md)
+- [00-overview/evidence-index.md](00-overview/evidence-index.md)
+- [00-overview/global-data-flow.md](00-overview/global-data-flow.md)
+- [00-overview/global-error-model.md](00-overview/global-error-model.md)
+- [00-overview/glossary.md](00-overview/glossary.md)
+- [00-overview/project-overview.md](00-overview/project-overview.md)
+- [00-overview/runtime-model.md](00-overview/runtime-model.md)
+
+### 01-modules
+- [01-modules/M01-foundation/README.md](01-modules/M01-foundation/README.md)
+- [01-modules/M01-foundation/call-chains.md](01-modules/M01-foundation/call-chains.md)
+- [01-modules/M01-foundation/data-structures.md](01-modules/M01-foundation/data-structures.md)
+- [01-modules/M01-foundation/design.md](01-modules/M01-foundation/design.md)
+- [01-modules/M01-foundation/diagrams.md](01-modules/M01-foundation/diagrams.md)
+- [01-modules/M01-foundation/examples.md](01-modules/M01-foundation/examples.md)
+- [01-modules/M01-foundation/interfaces.md](01-modules/M01-foundation/interfaces.md)
+- [01-modules/M01-foundation/line-level-analysis.md](01-modules/M01-foundation/line-level-analysis.md)
+- [01-modules/M01-foundation/risks-and-debt.md](01-modules/M01-foundation/risks-and-debt.md)
+- [01-modules/M01-foundation/source-map.md](01-modules/M01-foundation/source-map.md)
+- [01-modules/M01-foundation/testing.md](01-modules/M01-foundation/testing.md)
+- [01-modules/M02-elementwise/README.md](01-modules/M02-elementwise/README.md)
+- [01-modules/M02-elementwise/call-chains.md](01-modules/M02-elementwise/call-chains.md)
+- [01-modules/M02-elementwise/data-structures.md](01-modules/M02-elementwise/data-structures.md)
+- [01-modules/M02-elementwise/design.md](01-modules/M02-elementwise/design.md)
+- [01-modules/M02-elementwise/development-guide.md](01-modules/M02-elementwise/development-guide.md)
+- [01-modules/M02-elementwise/diagrams.md](01-modules/M02-elementwise/diagrams.md)
+- [01-modules/M02-elementwise/examples.md](01-modules/M02-elementwise/examples.md)
+- [01-modules/M02-elementwise/execution-flows.md](01-modules/M02-elementwise/execution-flows.md)
+- [01-modules/M02-elementwise/implementation.md](01-modules/M02-elementwise/implementation.md)
+- [01-modules/M02-elementwise/interfaces.md](01-modules/M02-elementwise/interfaces.md)
+- [01-modules/M02-elementwise/line-level-analysis.md](01-modules/M02-elementwise/line-level-analysis.md)
+- [01-modules/M02-elementwise/risks-and-debt.md](01-modules/M02-elementwise/risks-and-debt.md)
+- [01-modules/M02-elementwise/source-map.md](01-modules/M02-elementwise/source-map.md)
+- [01-modules/M02-elementwise/testing.md](01-modules/M02-elementwise/testing.md)
+- [01-modules/M03-reduction-normalization/README.md](01-modules/M03-reduction-normalization/README.md)
+- [01-modules/M03-reduction-normalization/call-chains.md](01-modules/M03-reduction-normalization/call-chains.md)
+- [01-modules/M03-reduction-normalization/data-structures.md](01-modules/M03-reduction-normalization/data-structures.md)
+- [01-modules/M03-reduction-normalization/design.md](01-modules/M03-reduction-normalization/design.md)
+- [01-modules/M03-reduction-normalization/diagrams.md](01-modules/M03-reduction-normalization/diagrams.md)
+- [01-modules/M03-reduction-normalization/risks-and-debt.md](01-modules/M03-reduction-normalization/risks-and-debt.md)
+- [01-modules/M03-reduction-normalization/testing.md](01-modules/M03-reduction-normalization/testing.md)
+- [01-modules/M04-indexing-position/README.md](01-modules/M04-indexing-position/README.md)
+- [01-modules/M04-indexing-position/development-guide.md](01-modules/M04-indexing-position/development-guide.md)
+- [01-modules/M04-indexing-position/diagrams.md](01-modules/M04-indexing-position/diagrams.md)
+- [01-modules/M04-indexing-position/interfaces.md](01-modules/M04-indexing-position/interfaces.md)
+- [01-modules/M04-indexing-position/source-map.md](01-modules/M04-indexing-position/source-map.md)
+- [01-modules/M04-indexing-position/testing.md](01-modules/M04-indexing-position/testing.md)
+- [01-modules/M05-gemv-sgemm/README.md](01-modules/M05-gemv-sgemm/README.md)
+- [01-modules/M05-gemv-sgemm/call-chains.md](01-modules/M05-gemv-sgemm/call-chains.md)
+- [01-modules/M05-gemv-sgemm/design.md](01-modules/M05-gemv-sgemm/design.md)
+- [01-modules/M05-gemv-sgemm/diagrams.md](01-modules/M05-gemv-sgemm/diagrams.md)
+- [01-modules/M05-gemv-sgemm/performance.md](01-modules/M05-gemv-sgemm/performance.md)
+- [01-modules/M05-gemv-sgemm/source-map.md](01-modules/M05-gemv-sgemm/source-map.md)
+- [01-modules/M05-gemv-sgemm/testing.md](01-modules/M05-gemv-sgemm/testing.md)
+- [01-modules/M06-hgemm-tensorcore/README.md](01-modules/M06-hgemm-tensorcore/README.md)
+- [01-modules/M06-hgemm-tensorcore/call-chains.md](01-modules/M06-hgemm-tensorcore/call-chains.md)
+- [01-modules/M06-hgemm-tensorcore/data-structures.md](01-modules/M06-hgemm-tensorcore/data-structures.md)
+- [01-modules/M06-hgemm-tensorcore/design.md](01-modules/M06-hgemm-tensorcore/design.md)
+- [01-modules/M06-hgemm-tensorcore/development-guide.md](01-modules/M06-hgemm-tensorcore/development-guide.md)
+- [01-modules/M06-hgemm-tensorcore/diagrams.md](01-modules/M06-hgemm-tensorcore/diagrams.md)
+- [01-modules/M06-hgemm-tensorcore/examples.md](01-modules/M06-hgemm-tensorcore/examples.md)
+- [01-modules/M06-hgemm-tensorcore/execution-flows.md](01-modules/M06-hgemm-tensorcore/execution-flows.md)
+- [01-modules/M06-hgemm-tensorcore/glossary.md](01-modules/M06-hgemm-tensorcore/glossary.md)
+- [01-modules/M06-hgemm-tensorcore/implementation.md](01-modules/M06-hgemm-tensorcore/implementation.md)
+- [01-modules/M06-hgemm-tensorcore/interfaces.md](01-modules/M06-hgemm-tensorcore/interfaces.md)
+- [01-modules/M06-hgemm-tensorcore/line-level-analysis.md](01-modules/M06-hgemm-tensorcore/line-level-analysis.md)
+- [01-modules/M06-hgemm-tensorcore/performance.md](01-modules/M06-hgemm-tensorcore/performance.md)
+- [01-modules/M06-hgemm-tensorcore/risks-and-debt.md](01-modules/M06-hgemm-tensorcore/risks-and-debt.md)
+- [01-modules/M06-hgemm-tensorcore/source-map.md](01-modules/M06-hgemm-tensorcore/source-map.md)
+- [01-modules/M06-hgemm-tensorcore/testing.md](01-modules/M06-hgemm-tensorcore/testing.md)
+- [01-modules/M06-hgemm-tensorcore/visual-guide.md](01-modules/M06-hgemm-tensorcore/visual-guide.md)
+- [01-modules/M07-flash-attention/README.md](01-modules/M07-flash-attention/README.md)
+- [01-modules/M07-flash-attention/call-chains.md](01-modules/M07-flash-attention/call-chains.md)
+- [01-modules/M07-flash-attention/data-structures.md](01-modules/M07-flash-attention/data-structures.md)
+- [01-modules/M07-flash-attention/design.md](01-modules/M07-flash-attention/design.md)
+- [01-modules/M07-flash-attention/development-guide.md](01-modules/M07-flash-attention/development-guide.md)
+- [01-modules/M07-flash-attention/diagrams.md](01-modules/M07-flash-attention/diagrams.md)
+- [01-modules/M07-flash-attention/examples.md](01-modules/M07-flash-attention/examples.md)
+- [01-modules/M07-flash-attention/execution-flows.md](01-modules/M07-flash-attention/execution-flows.md)
+- [01-modules/M07-flash-attention/implementation.md](01-modules/M07-flash-attention/implementation.md)
+- [01-modules/M07-flash-attention/interfaces.md](01-modules/M07-flash-attention/interfaces.md)
+- [01-modules/M07-flash-attention/line-level-analysis.md](01-modules/M07-flash-attention/line-level-analysis.md)
+- [01-modules/M07-flash-attention/performance.md](01-modules/M07-flash-attention/performance.md)
+- [01-modules/M07-flash-attention/risks-and-debt.md](01-modules/M07-flash-attention/risks-and-debt.md)
+- [01-modules/M07-flash-attention/source-map.md](01-modules/M07-flash-attention/source-map.md)
+- [01-modules/M07-flash-attention/testing.md](01-modules/M07-flash-attention/testing.md)
+- [01-modules/M07-flash-attention/visual-guide.md](01-modules/M07-flash-attention/visual-guide.md)
+- [01-modules/M08-pytorch-extension/README.md](01-modules/M08-pytorch-extension/README.md)
+- [01-modules/M08-pytorch-extension/design.md](01-modules/M08-pytorch-extension/design.md)
+- [01-modules/M08-pytorch-extension/development-guide.md](01-modules/M08-pytorch-extension/development-guide.md)
+- [01-modules/M08-pytorch-extension/diagrams.md](01-modules/M08-pytorch-extension/diagrams.md)
+- [01-modules/M08-pytorch-extension/interfaces.md](01-modules/M08-pytorch-extension/interfaces.md)
+- [01-modules/M08-pytorch-extension/risks-and-debt.md](01-modules/M08-pytorch-extension/risks-and-debt.md)
+- [01-modules/M08-pytorch-extension/runtime.md](01-modules/M08-pytorch-extension/runtime.md)
+- [01-modules/M08-pytorch-extension/testing.md](01-modules/M08-pytorch-extension/testing.md)
+- [01-modules/M09-interview-benchmark/README.md](01-modules/M09-interview-benchmark/README.md)
+- [01-modules/M09-interview-benchmark/call-chains.md](01-modules/M09-interview-benchmark/call-chains.md)
+- [01-modules/M09-interview-benchmark/design.md](01-modules/M09-interview-benchmark/design.md)
+- [01-modules/M09-interview-benchmark/development-guide.md](01-modules/M09-interview-benchmark/development-guide.md)
+- [01-modules/M09-interview-benchmark/diagrams.md](01-modules/M09-interview-benchmark/diagrams.md)
+- [01-modules/M09-interview-benchmark/interfaces.md](01-modules/M09-interview-benchmark/interfaces.md)
+- [01-modules/M09-interview-benchmark/risks-and-debt.md](01-modules/M09-interview-benchmark/risks-and-debt.md)
+- [01-modules/M09-interview-benchmark/source-map.md](01-modules/M09-interview-benchmark/source-map.md)
+- [01-modules/M09-interview-benchmark/testing.md](01-modules/M09-interview-benchmark/testing.md)
+- [01-modules/M10-nms/README.md](01-modules/M10-nms/README.md)
+- [01-modules/M10-nms/call-chains.md](01-modules/M10-nms/call-chains.md)
+- [01-modules/M10-nms/design.md](01-modules/M10-nms/design.md)
+- [01-modules/M10-nms/diagrams.md](01-modules/M10-nms/diagrams.md)
+- [01-modules/M10-nms/interfaces.md](01-modules/M10-nms/interfaces.md)
+- [01-modules/M10-nms/risks-and-debt.md](01-modules/M10-nms/risks-and-debt.md)
+- [01-modules/M10-nms/source-map.md](01-modules/M10-nms/source-map.md)
+- [01-modules/M10-nms/testing.md](01-modules/M10-nms/testing.md)
+- [01-modules/M11-triton-cutlass-profiling/README.md](01-modules/M11-triton-cutlass-profiling/README.md)
+- [01-modules/M11-triton-cutlass-profiling/design.md](01-modules/M11-triton-cutlass-profiling/design.md)
+- [01-modules/M11-triton-cutlass-profiling/diagrams.md](01-modules/M11-triton-cutlass-profiling/diagrams.md)
+- [01-modules/M11-triton-cutlass-profiling/risks-and-debt.md](01-modules/M11-triton-cutlass-profiling/risks-and-debt.md)
+- [01-modules/M11-triton-cutlass-profiling/source-map.md](01-modules/M11-triton-cutlass-profiling/source-map.md)
+- [01-modules/M11-triton-cutlass-profiling/testing.md](01-modules/M11-triton-cutlass-profiling/testing.md)
+- [01-modules/module-registry.md](01-modules/module-registry.md)
+
+### 80-demos
+- [80-demos/D01-nms-python/README.md](80-demos/D01-nms-python/README.md)
+- [80-demos/D01-nms-python/build-and-run.md](80-demos/D01-nms-python/build-and-run.md)
+- [80-demos/D01-nms-python/data-and-state-trace.md](80-demos/D01-nms-python/data-and-state-trace.md)
+- [80-demos/D01-nms-python/debug-walkthrough.md](80-demos/D01-nms-python/debug-walkthrough.md)
+- [80-demos/D01-nms-python/execution-trace.md](80-demos/D01-nms-python/execution-trace.md)
+- [80-demos/D01-nms-python/failure-paths.md](80-demos/D01-nms-python/failure-paths.md)
+- [80-demos/D01-nms-python/modification-exercises.md](80-demos/D01-nms-python/modification-exercises.md)
+- [80-demos/D02-interview-binary/README.md](80-demos/D02-interview-binary/README.md)
+- [80-demos/D02-interview-binary/build-and-run.md](80-demos/D02-interview-binary/build-and-run.md)
+- [80-demos/D02-interview-binary/data-and-state-trace.md](80-demos/D02-interview-binary/data-and-state-trace.md)
+- [80-demos/D02-interview-binary/debug-walkthrough.md](80-demos/D02-interview-binary/debug-walkthrough.md)
+- [80-demos/D02-interview-binary/execution-trace.md](80-demos/D02-interview-binary/execution-trace.md)
+- [80-demos/D02-interview-binary/failure-paths.md](80-demos/D02-interview-binary/failure-paths.md)
+- [80-demos/D02-interview-binary/modification-exercises.md](80-demos/D02-interview-binary/modification-exercises.md)
+- [80-demos/demo-registry.md](80-demos/demo-registry.md)
+
+### 90-cross-module
+- [90-cross-module/change-impact-map.md](90-cross-module/change-impact-map.md)
+- [90-cross-module/configuration-impact-map.md](90-cross-module/configuration-impact-map.md)
+- [90-cross-module/cross-module-call-chains.md](90-cross-module/cross-module-call-chains.md)
+- [90-cross-module/end-to-end-flows.md](90-cross-module/end-to-end-flows.md)
+- [90-cross-module/error-boundaries.md](90-cross-module/error-boundaries.md)
+- [90-cross-module/interface-contracts.md](90-cross-module/interface-contracts.md)
+- [90-cross-module/performance-critical-paths.md](90-cross-module/performance-critical-paths.md)
+- [90-cross-module/pooling-and-resource-management.md](90-cross-module/pooling-and-resource-management.md)
+- [90-cross-module/runtime-trace.md](90-cross-module/runtime-trace.md)
+- [90-cross-module/shared-data-and-types.md](90-cross-module/shared-data-and-types.md)
+- [90-cross-module/system-wiring.md](90-cross-module/system-wiring.md)
+
+### 99-roadmap
+- [99-roadmap/debugging-guide.md](99-roadmap/debugging-guide.md)
+- [99-roadmap/feature-development-recipes.md](99-roadmap/feature-development-recipes.md)
+- [99-roadmap/next-steps.md](99-roadmap/next-steps.md)
+- [99-roadmap/performance-guide.md](99-roadmap/performance-guide.md)
+- [99-roadmap/quick-start.md](99-roadmap/quick-start.md)
+- [99-roadmap/reading-guide.md](99-roadmap/reading-guide.md)
+- [99-roadmap/risk-register.md](99-roadmap/risk-register.md)
+- [99-roadmap/technical-debt.md](99-roadmap/technical-debt.md)
+- [99-roadmap/testing-recipes.md](99-roadmap/testing-recipes.md)
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `README.md` | 已完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已映射或不适用 | 部分完成：动态行为、边界或专用变体仍需验证 |
 
 ## 相关文档
 

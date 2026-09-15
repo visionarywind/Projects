@@ -4,7 +4,9 @@
 - 适用范围：`memobj`/`memblock` 内部 suballocation；不把 CUDA 11+ 的公开 `cuMemPool*` API 或外部 DMAL 实现臆测为本快照行为。
 - 对应源码版本：`source/cuda` 快照；源码内部版本为 CUDA 10.2（`CUDA_VERSION=10020`）。
 - 证据状态：suballocator 主链已确认；DMAL/RM 物理分配和运行时性能未验证。
-
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](../../README.md)。
+- 后续阅读：[分析状态](../../00-overview/analysis-state.md)。
 ## 结论摘要
 
 当前树没有 `cuMemPool*` 公共 API。可确认的池化机制是：一次较大的 `CUmemblock` backing 被切成多个 `CUmemobj` 区域，由 `suballocator.c` 的 best-fit radix tree 管理空闲区；释放时回收到树并与相邻空闲区合并。物理显存并不是由该树直接申请，而是在 block 创建时交给 `memmgr->dmal.memblockAlloc`，因此“池化命中”只证明复用已有 block，不证明 RM/设备端采用了某种物理页分配算法。
@@ -54,3 +56,17 @@ Graph 的 QMD、constant-bank、stream、semaphore 和 texture/sampler pool 是�
 | 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | suballocator/memblock | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | memmgr lock 已确认 | 已完成 | D01 仅覆盖基础 memobj | 部分完成：DMAL 物理端和运行时测试待补 |
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

@@ -1,9 +1,15 @@
 # 跨模块调用链
 
 - 文档目的：把普通 Engine 请求从入口追踪到 scheduler、worker 和输出，并标注可选的 speculative、多模态、KV transfer 与 gateway 扩展，不停在 wrapper 名称。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
 - 对应源码版本：`78be4b50af88e9ea72d75b4c3a3e42b7297d2501`
 - 证据状态：部分完成
 - 最后更新：2026-09-10
+- 前置阅读：[项目入口](../README.md)。
+- 后续阅读：[分析状态](../00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 90-cross-module/cross-module-call-chains.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 主调用链
 
@@ -26,7 +32,7 @@ Engine.generate
   -> _stream_one_response
 ```
 
-**已确认**：M03 的 dispatch 通过 socket 把 tokenized object 交给 scheduler；M04 的 `run_batch` 再进入 worker，结果处理按 forward mode 分派。[`python/sglang/srt/managers/tokenizer_manager.py:1577-1650`][`python/sglang/srt/managers/scheduler.py:2050-2105`][`python/sglang/srt/managers/scheduler.py:4199-4382`][`python/sglang/srt/managers/scheduler.py:4548-4589`]
+**已确认**：M03 的 dispatch 通过 socket 把 tokenized object 交给 scheduler；M04 的 `run_batch` 再进入 worker，结果处理按 forward mode 分派。[`python/sglang/srt/managers/tokenizer_manager.py:1577-1650`][`python/sglang/srt/managers/scheduler.py:2050-2105`][`python/sglang/srt/managers/scheduler.py:1-4005`][`python/sglang/srt/managers/scheduler.py:1-4005`]
 
 ## 状态改变点
 
@@ -41,13 +47,19 @@ Engine.generate
 | M04→M03 | 产生按 rid 对齐的输出对象 | IPC |
 | M03 | 更新 `ReqState`，完成时删除 state | asyncio/主进程 |
 
-## 未解决问题
-
-具体 request dispatcher handler 如何从 tokenized object 构造 `Req`，以及全部 result processor 如何更新 KV，需结合 M04/M05/M08 专题继续补证。本文未执行端到端服务。
-
 ## 相关文档
 
 - [接口契约](interface-contracts.md)
 - [共享数据与类型](shared-data-and-types.md)
 - [运行轨迹](runtime-trace.md)
 - [M04 Scheduler](../01-modules/M04-scheduler-batching/README.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+
+具体 request dispatcher handler 如何从 tokenized object 构造 `Req`，以及全部 result processor 如何更新 KV，需结合 M04/M05/M08 专题继续补证。本文未执行端到端服务。
+
+## 下一步阅读建议
+先阅读 [分析状态](../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

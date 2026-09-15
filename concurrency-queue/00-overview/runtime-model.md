@@ -2,11 +2,11 @@
 
 - 文档目的：说明队列对象、producer、block、token、semaphore 的创建、使用和销毁。
 - 适用范围：M01–M03；不适用于服务进程启动/部署。
+- 对应源码版本：source/concurrency-queue HEAD 683b9e3（2026-09-15 只读确认）。
 - 证据状态：静态生命周期已确认；跨线程可见性由调用方负责。
 - 最后更新：2026-09-10
 - 前置阅读：[架构](architecture.md)
 - 后续阅读：[M01 execution flows](../01-modules/M01-core-queue/execution-flows.md)
-
 ## 结论摘要
 
 运行时从调用方构造 queue 开始，没有库级“start”阶段。构造函数准备 implicit hash 和初始 block pool；第一次显式 token 或隐式 enqueue 可能创建 producer；每次 enqueue 在 producer 的 block 中 placement-new 对象并 release 发布 tail；dequeue 通过 acquire 读取可见对象、移动赋值、显式析构并标记槽位为空；析构要求无并发访问，遍历 producer、hash、free list 和初始 pool 释放资源。

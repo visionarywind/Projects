@@ -2,11 +2,11 @@
 
 - 文档目的：把公开 API、内部算法、同步、验证和交付边界串成一张总图。
 - 适用范围：M01–M07，当前 Git HEAD。
+- 对应源码版本：source/concurrency-queue HEAD 683b9e3（2026-09-15 只读确认）。
 - 证据状态：主调用关系已确认；模块抽象层级是文档化推断。
 - 最后更新：2026-09-10
 - 前置阅读：[项目概览](project-overview.md)
 - 后续阅读：[M01 实现](../01-modules/M01-core-queue/implementation.md)、[系统串联](../90-cross-module/system-wiring.md)
-
 ## 结论摘要
 
 项目采用“header-only 算法层 + 可选阻塞/ABI 适配层 + 独立验证/基准 + 两套交付构建”的结构。运行时没有中心调度器：producer 直接写自己的子队列，consumer 遍历 producer 链表并用每个子队列的 head/tail 原子协议领取元素。

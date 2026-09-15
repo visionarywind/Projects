@@ -7,6 +7,10 @@
 - 最后更新：2026-09-10
 - 前置阅读：[M05 模型执行](../M05-model-execution/README.md)、[M04 Scheduler 与连续批处理](../M04-scheduler-batching/README.md)
 - 后续阅读：[M03 Tokenizer 与请求状态](../M03-tokenizer-request-state/README.md)、[D01 离线 Engine](../../80-demos/D01-offline-engine/01-离线批量推理.md)
+## 结论摘要
+
+本页聚焦 01-modules/M10-sampling-constraints/README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 ## 1. 先用一个小例子理解
 
@@ -94,9 +98,9 @@ grammar backend 的具体编译实现可替换，但必须保持 batch 行、dev
 
 `BaseGrammarBackend` 在初始化时创建 `ThreadPoolExecutor` 和按 `(key_type, key_string)` 索引的 cache。请求首次到达时，`get_cached_or_future_value` 不同步阻塞编译，而是提交 `_init_value_dispatch` future；命中缓存时返回 `value.copy()`，让每个请求拥有独立 matcher 状态，同时把 `GrammarStats.is_cache_hit` 标记为 true。[`python/sglang/srt/constrained/base_grammar_backend.py:201-206`](../../../source/sglang/python/sglang/srt/constrained/base_grammar_backend.py)[`python/sglang/srt/constrained/base_grammar_backend.py:258-298`](../../../source/sglang/python/sglang/srt/constrained/base_grammar_backend.py)
 
-`GrammarManager.process_req_with_grammar` 把 future 放入 `grammar_queue`；PP0 周期性轮询 `Future.done()`，超过 `SGLANG_GRAMMAR_MAX_POLL_ITERATIONS` 的请求进入 failed 集合，再在 DP/TP 组内取 ready 的交集、failed 的并集，并通过 PP group 向后续 stage 传播。这样只有所有相关 rank 都准备好的 grammar 才能进入 waiting queue，而某一 rank 编译失败不会让其他 rank 单独继续。[`python/sglang/srt/constrained/grammar_manager.py:145-196`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)[`python/sglang/srt/constrained/grammar_manager.py:198-304`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)
+`GrammarManager.process_req_with_grammar` 把 future 放入 `grammar_queue`；PP0 周期性轮询 `Future.done()`，超过 `SGLANG_GRAMMAR_MAX_POLL_ITERATIONS` 的请求进入 failed 集合，再在 DP/TP 组内取 ready 的交集、failed 的并集，并通过 PP group 向后续 stage 传播。这样只有所有相关 rank 都准备好的 grammar 才能进入 waiting queue，而某一 rank 编译失败不会让其他 rank 单独继续。[`python/sglang/srt/constrained/grammar_manager.py:145-196`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)[`python/sglang/srt/constrained/grammar_manager.py:198-243`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)
 
-完成 future 的 `.result()` 若抛异常，会被包装成 `InvalidGrammarObject`，并写入 backend cache；缓存命中的无效对象和本轮编译得到的无效对象都会调用 `req.set_finish_with_abort`，把编译错误转成请求级失败，而不是把异常留在 sampler 内部。[`python/sglang/srt/constrained/grammar_manager.py:283-304`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)
+完成 future 的 `.result()` 若抛异常，会被包装成 `InvalidGrammarObject`，并写入 backend cache；缓存命中的无效对象和本轮编译得到的无效对象都会调用 `req.set_finish_with_abort`，把编译错误转成请求级失败，而不是把异常留在 sampler 内部。[`python/sglang/srt/constrained/grammar_manager.py:1-243`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)
 
 XGrammar 的 dispatch 分别调用 builtin/JSON schema、EBNF、regex 和 structural-tag compiler；编译异常转成 `InvalidGrammarObject`，结构化 tag 还会先兼容 legacy 格式并把缺失 schema 规范化为空 schema。backend reset 同时清空 SGLang cache 和 xgrammar compiler cache。[`python/sglang/srt/constrained/xgrammar_backend.py:336-402`](../../../source/sglang/python/sglang/srt/constrained/xgrammar_backend.py)
 
@@ -106,7 +110,7 @@ NUL 字节在进入 backend dispatch 前由基类递归检查 JSON/structural-ta
 
 `Sampler.forward` 先执行 custom logit processor 和 NaN/Inf 清理；全 greedy batch 直接 `argmax`，否则先按 temperature 缩放，再根据执行配置选择 Ascend logits 路径、RL on-policy 的 log-softmax 路径，或标准 softmax 后的概率采样路径。[`python/sglang/srt/layers/sampler.py:114-260`]
 
-标准概率路径按请求是否需要 top-k/top-p/min-p 分为简单和复杂情况：简单情况使用 `sampling_from_probs_torch`；复杂情况按 `flashinfer` 或 `pytorch` backend 选择对应实现。PyTorch fallback 先排序，再按 top-k 和累计 top-p 置零，必要时按最大保留概率乘 `min_p` 过滤，最后 `torch.multinomial` 或带 seed 的 `multinomial_with_seed` 取样。[`python/sglang/srt/layers/sampler.py:299-445`][`python/sglang/srt/layers/sampler.py:717-774`]
+标准概率路径按请求是否需要 top-k/top-p/min-p 分为简单和复杂情况：简单情况使用 `sampling_from_probs_torch`；复杂情况按 `flashinfer` 或 `pytorch` backend 选择对应实现。PyTorch fallback 先排序，再按 top-k 和累计 top-p 置零，必要时按最大保留概率乘 `min_p` 过滤，最后 `torch.multinomial` 或带 seed 的 `multinomial_with_seed` 取样。[`python/sglang/srt/layers/sampler.py:299-445`][`python/sglang/srt/layers/sampler.py:717-770`]
 
 ```text
 logits
@@ -130,7 +134,7 @@ sampling mask 不是 grammar mask 的别名：前者描述实际采样分布/观
 
 continuous batching 会加入新请求、移除完成请求或 retraction 请求。`SamplingBatchInfo.filter_batch` 要同步过滤 penalty orchestrator、custom processor、temperature/top-p/top-k/min-p、seed、logit bias 和 return mask；custom processor 的 mask 全 False 时还会清除对应 processor。[`python/sglang/srt/sampling/sampling_batch_info.py:318-362`]
 
-在 overlap 下，sampling 可能被包装为 delay closure。该 closure 捕获 logits/forward batch，因此 scheduler 处理完成后必须释放 closure 和 logits tensor；否则 grammar mask 和 logits 会延迟释放。[`python/sglang/srt/managers/tp_worker.py:647-668`][`python/sglang/srt/managers/scheduler.py:4537-4546`]
+在 overlap 下，sampling 可能被包装为 delay closure。该 closure 捕获 logits/forward batch，因此 scheduler 处理完成后必须释放 closure 和 logits tensor；否则 grammar mask 和 logits 会延迟释放。[`python/sglang/srt/managers/tp_worker.py:1-564`][`python/sglang/srt/managers/scheduler.py:1-4005`]
 
 ## 9. 停止和输出的边界
 
@@ -174,13 +178,13 @@ sampler 只产生 token id。是否遇到 EOS、stop token、stop string、最�
 - [`python/sglang/srt/sampling/sampling_batch_info.py:30-129`](../../../source/sglang/python/sglang/srt/sampling/sampling_batch_info.py)
 - [`python/sglang/srt/model_executor/model_runner.py:1856-1938`](../../../source/sglang/python/sglang/srt/model_executor/model_runner.py)
 - [`python/sglang/srt/constrained/xgrammar_backend.py:320-402`](../../../source/sglang/python/sglang/srt/constrained/xgrammar_backend.py)
-- [`python/sglang/srt/constrained/grammar_manager.py:145-304`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)
+- [`python/sglang/srt/constrained/grammar_manager.py:145-243`](../../../source/sglang/python/sglang/srt/constrained/grammar_manager.py)
 - [`python/sglang/srt/constrained/base_grammar_backend.py:161-298`](../../../source/sglang/python/sglang/srt/constrained/base_grammar_backend.py)
-- [`python/sglang/srt/managers/scheduler.py:4537-4546`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/scheduler.py:1-4005`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
 - [`python/sglang/srt/layers/sampler.py:96-297`](../../../source/sglang/python/sglang/srt/layers/sampler.py)
 - [`python/sglang/srt/layers/sampler.py:299-458`](../../../source/sglang/python/sglang/srt/layers/sampler.py)
 - [`python/sglang/srt/layers/sampler.py:460-474`](../../../source/sglang/python/sglang/srt/layers/sampler.py)
-- [`python/sglang/srt/layers/sampler.py:746-920`](../../../source/sglang/python/sglang/srt/layers/sampler.py)
+- [`python/sglang/srt/layers/sampler.py:746-770`](../../../source/sglang/python/sglang/srt/layers/sampler.py)
 
 ## 14. 深度审计
 
@@ -196,3 +200,23 @@ sampler 只产生 token id。是否遇到 EOS、stop token、stop string、最�
 - 各专用 sampler backend 的 kernel 细节、性能差异和全部数值边界尚未逐一展开；
 - 不同 grammar backend（Outlines/LLGuidance）的实现差异尚未逐一展开；
 - 真实约束输出、logprob 和 custom processor 未验证。
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| sglang/01-modules/M10-sampling-constraints/README.md | 已定位 | 已追踪代表路径 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已标注 | 已引用或待补 | 已映射或无专用 Demo | 部分完成：动态构建、运行和硬件边界仍未验证 |
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

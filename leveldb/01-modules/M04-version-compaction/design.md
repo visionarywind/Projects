@@ -2,11 +2,11 @@
 
 - 文档目的：说明 Version/Manifest/compaction 如何实现持久化状态转换。
 - 适用范围：M04。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：机制已确认；目标解释部分推断。
 - 最后更新：2026-09-10
 - 前置阅读：[M04 README](README.md)
 - 后续阅读：[M04 数据结构](data-structures.md)
-
 ## 结论摘要
 
 Version 是不可变的逻辑视图；VersionEdit 描述新增/删除文件和序列元数据；LogAndApply 先构造新 Version，再锁外写 MANIFEST，成功后安装 current。这把昂贵文件 IO 与短暂元数据锁分开，并让失败时旧 Version 继续服务。

@@ -4,7 +4,9 @@
 - 适用范围：`source/cuda/src/api` 和 `src/cui` 的 host-side graph 实现；设备 scheduler kernel、RM 和 HAL 末端仅追踪到接口边界。
 - 对应源码版本：`source/cuda` 快照，内部 API 版本 CUDA 10.2。
 - 证据状态：Graph host-side 主路径和资源清理已静态确认；GPU 执行、性能和并发竞态未验证。
-
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](../../README.md)。
+- 后续阅读：[分析状态](../../00-overview/analysis-state.md)。
 ## 结论摘要
 
 Graph 不是只保存 kernel 参数的静态 DAG。普通 graph 在 capture 期间保存节点和依赖；instantiate 会 clone/flatten、为每个 context 建立资源表，分配内部 stream、completion marker、QMD、constant-bank backing、HAL staging 和可选的 device-side scheduler graph；launch 通过 marker、UVM DAG 和 stream push 建立跨 context 的异步依赖。Graph exec destroy 反向释放这些资源，并通过 memobj/stream 的同步契约避免 GPU 仍在使用时回收 backing。
@@ -56,3 +58,17 @@ destroy 首先在已 launch 的 graph 上传播 completion QMD，必要时取得
 | 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | capture/graph exec | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | 多 context/stream 已确认 | 已完成 | 当前无专用 Graph Demo | 部分完成：失败路径和设备端待运行验证 |
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

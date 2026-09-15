@@ -2,11 +2,17 @@
 
 - 文档目的：解释同一份数据如何从 API 表示转换为日志、InternalKey、MemTable、SSTable 和 MANIFEST 元数据，并标出所有权边界。
 - 适用范围：M01–M06。
-- 源码版本：`main` / `7ee830d`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：主要编码、字段和引用动作已由源码确认；跨平台实现差异和运行时悬空错误需实验/工具验证。
 - 最后更新：2026-09-10
 - 前置阅读：[展开版跨模块调用链](cross-module-call-chains.md)
 - 后续阅读：[配置影响地图](configuration-impact-map.md)
+## 结论摘要
+
+本页聚焦 90-cross-module/shared-data-and-types.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
+- 源码版本：`main` / `7ee830d`。
 
 ## 一张跨阶段数据图
 

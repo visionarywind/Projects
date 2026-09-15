@@ -2,10 +2,14 @@
 
 - 文档目的：给出 DBImpl 的初始化、正常、异常、清理和后台路径。
 - 适用范围：`db_impl.cc`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：主要节点已确认。
 - 最后更新：2026-09-10
 - 前置阅读：[M02 README](README.md)
 - 后续阅读：[跨模块调用链](../../90-cross-module/cross-module-call-chains.md)
+## 结论摘要
+
+本页聚焦 01-modules/M02-db-coordinator/call-chains.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 初始化/恢复
 

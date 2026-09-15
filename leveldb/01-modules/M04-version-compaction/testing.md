@@ -2,10 +2,14 @@
 
 - 文档目的：列出 Version/Manifest/Compaction 的验证策略。
 - 适用范围：M04。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：测试存在已确认，执行未验证。
 - 最后更新：2026-09-10
 - 前置阅读：[M04 diagrams](diagrams.md)
 - 后续阅读：[M07 testing](../M07-tests-build/testing.md)
+## 结论摘要
+
+本页聚焦 01-modules/M04-version-compaction/testing.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 测试矩阵
 

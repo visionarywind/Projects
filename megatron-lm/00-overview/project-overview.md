@@ -2,11 +2,11 @@
 
 - 文档目的：说明项目解决的问题、组成和边界。
 - 适用范围：Megatron-LM `main` at `3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`。
+- 对应源码版本：source/megatron-lm HEAD 3703d4e33（2026-09-15 只读确认）。
 - 证据状态：已确认（能力描述）；设计动机部分为推断。
 - 最后更新：2026-09-10
 - 前置阅读：[仓库 README](../../README.md)
 - 后续阅读：[总体架构](architecture.md)
-
 ## 结论摘要
 
 项目将“可复用的大模型训练基础组件”和“可直接参考的训练程序”放在同一仓库。Core 的边界是模型、并行、数据、优化、检查点和推理 API；顶层脚本和 `megatron/training` 负责把这些组件编排成完整训练作业。[README.md:15-21] [README.md:65-87]

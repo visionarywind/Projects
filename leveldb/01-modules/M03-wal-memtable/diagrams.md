@@ -2,10 +2,14 @@
 
 - 文档目的：展示 WAL/MemTable 时序，给出真实示例入口和测试方法。
 - 适用范围：M03。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：源码/测试存在已确认，命令未验证。
 - 最后更新：2026-09-10
 - 前置阅读：[M03 README](README.md)
 - 后续阅读：[M03 开发指南](development-guide.md)
+## 结论摘要
+
+本页聚焦 01-modules/M03-wal-memtable/diagrams.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 时序图
 

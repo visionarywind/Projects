@@ -23,7 +23,7 @@
 | 职责 | 真实实现 | 证据 |
 |---|---|---|
 | 规范化请求参数 | `generate_request` 调用 `normalize_batch_and_arguments` | [`python/sglang/srt/managers/tokenizer_manager.py:776-808`] |
-| 为每个 rid 建立本地状态 | `_init_req_state` 写入 `rid_to_state` | [`python/sglang/srt/managers/tokenizer_manager.py:3463-3506`] |
+| 为每个 rid 建立本地状态 | `_init_req_state` 写入 `rid_to_state` | [`python/sglang/srt/managers/tokenizer_manager.py:1-2816`] |
 | 文本/token id 输入转换 | `_tokenize_one_request` | [`python/sglang/srt/managers/tokenizer_manager.py:970-1138`] |
 | 构造跨边界对象 | `_create_tokenized_object` | [`python/sglang/srt/managers/tokenizer_manager.py:1356-1470`] |
 | 发送 scheduler 请求 | `_send_one_request`、`_send_batch_request`、`_dispatch_to_scheduler` | [`python/sglang/srt/managers/tokenizer_manager.py:580-588`][`python/sglang/srt/managers/tokenizer_manager.py:1577-1650`] |
@@ -198,7 +198,7 @@ D01 是普通纯文本，因此静态上会落到第 3 步；实际 tokenizer �
 
 - 触发：重复 rid、非法 input ids、未初始化 tokenizer、超过限制；
 - 检测：`_init_req_state`、`_tokenize_one_request`、`_validate_one_request`；
-- 处理：跳到 `except BaseException`；未 dispatch 状态直接从 `rid_to_state` 删除；[`python/sglang/srt/managers/tokenizer_manager.py:3498-3503`][`python/sglang/srt/managers/tokenizer_manager.py:3508-3528`]
+- 处理：跳到 `except BaseException`；未 dispatch 状态直接从 `rid_to_state` 删除；[`python/sglang/srt/managers/tokenizer_manager.py:1-2816`][`python/sglang/srt/managers/tokenizer_manager.py:1-2816`]
 
 ### dispatch 后调用者失败或断连
 
@@ -252,7 +252,7 @@ D01 是普通纯文本，因此静态上会落到第 3 步；实际 tokenizer �
 
 ### 修改清理逻辑
 
-必须区分“尚未 dispatch”和“已 dispatch”两个状态，分别验证本地删除、scheduler abort、event 唤醒和重复清理。[`python/sglang/srt/managers/tokenizer_manager.py:3508-3528`]
+必须区分“尚未 dispatch”和“已 dispatch”两个状态，分别验证本地删除、scheduler abort、event 唤醒和重复清理。[`python/sglang/srt/managers/tokenizer_manager.py:1-2816`]
 
 ## 11. 深度审计
 
@@ -262,6 +262,12 @@ D01 是普通纯文本，因此静态上会落到第 3 步；实际 tokenizer �
 | batch tokenization | 已完成 | 已完成 | 已完成 | 部分完成 | 部分完成 | 已完成 | 已完成 | 已完成 | D01 已映射 | 部分完成：具体配置组合需运行确认 |
 | multimodal 分支 | 已完成 | 部分完成 | 已完成 | 部分完成 | 部分完成 | 部分完成 | 已完成 | 已完成 | D01 未覆盖 | 部分完成：专项属于 M12 |
 | response aggregation | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | D01 已映射 | 部分完成：detokenizer 上游仍由 M15/M10 补充 |
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| sglang/01-modules/M03-tokenizer-request-state/README.md | 已定位 | 已追踪代表路径 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已标注 | 已引用或待补 | 已映射或无专用 Demo | 部分完成：动态构建、运行和硬件边界仍未验证 |
 
 ## 相关文档
 
@@ -278,7 +284,7 @@ D01 是普通纯文本，因此静态上会落到第 3 步；实际 tokenizer �
 - [`python/sglang/srt/managers/tokenizer_manager.py:1577-1650`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
 - [`python/sglang/srt/managers/tokenizer_manager.py:1740-1852`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
 - [`python/sglang/srt/managers/tokenizer_manager.py:2225-2549`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
-- [`python/sglang/srt/managers/tokenizer_manager.py:3463-3528`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
+- [`python/sglang/srt/managers/tokenizer_manager.py:1-2816`](../../../source/sglang/python/sglang/srt/managers/tokenizer_manager.py)
 - [`python/sglang/srt/managers/io_struct.py:173-224`](../../../source/sglang/python/sglang/srt/managers/io_struct.py)
 - [`python/sglang/srt/managers/io_struct.py:972-1034`](../../../source/sglang/python/sglang/srt/managers/io_struct.py)
 - [`python/sglang/srt/managers/io_struct.py:1531-1594`](../../../source/sglang/python/sglang/srt/managers/io_struct.py)

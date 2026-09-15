@@ -31,6 +31,12 @@ flash_attn_mma.py args
 
 减少中间 attention 矩阵的显存占用是融合/tiling 的核心收益；代价是复杂同步、动态 shared memory、架构宏和数值误差。`--D > 256` 自动启用 SDPA 比较，支持上限会按 tag 跳过。[kernels/flash-attn/flash_attn_mma.py:214-227,329-337]
 
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| LeetCUDA/01-modules/M07-flash-attention/README.md | 已定位 | 已追踪代表路径 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已标注 | 已引用或待补 | 已映射或无专用 Demo | 部分完成：动态构建、运行和硬件边界仍未验证 |
+
 ## 相关文档
 
 - [implementation.md](implementation.md)：tiling-QKV 的布局、shared 复用、online softmax 和输出
@@ -57,3 +63,6 @@ flash_attn_mma.py args
 ## 未解决问题
 
 需要在真实 CUDA 环境确认每个 `D/B/H/N` 组合和架构宏的可编译/可运行矩阵。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

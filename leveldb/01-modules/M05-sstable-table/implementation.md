@@ -2,11 +2,13 @@
 
 - 文档目的：把 SSTable 从构造字节到 TableCache 命中、Block 读取和迭代器清理的实现链落到具体代码。
 - 适用范围：`table/`、`db/table_cache.*` 与 M02/M04/M06 的调用边界。
-- 源码版本：`main` / `7ee830d02b623e8ffe0b95d59a74db1e58da04c5`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：主要函数、数据格式和句柄生命周期已静态确认；构造/损坏/压缩测试本轮未执行。
 - 最后更新：2026-09-10
 - 前置阅读：[M05 README](README.md)
 - 后续阅读：[端到端单键读取](../../90-cross-module/end-to-end-traces.md#链-4单键读取从快照序号到-table-block)
+
+- 源码版本：`main` / `7ee830d02b623e8ffe0b95d59a74db1e58da04c5`。
 
 ## 结论摘要
 
@@ -161,9 +163,9 @@ return block_iter.status()
 
 | 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| TableBuilder/Block | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 单线程 builder；已确认 | 已完成 | 链 6/7、M05 examples | 测试未运行 |
-| Table::Open/InternalGet | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 读调用线程；block cache 交界已说明 | 已完成 | 链 4/5、M05 examples | 具体 cache 命中率未测量 |
-| TableCache | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 多读线程契约来自 Env | 已完成 | 链 4/5 | eviction 回归未运行 |
+| TableBuilder/Block | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 单线程 builder；已确认 | 已完成 | 链 6/7、M05 examples | 部分完成：测试未运行 |
+| Table::Open/InternalGet | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 读调用线程；block cache 交界已说明 | 已完成 | 链 4/5、M05 examples | 部分完成：具体 cache 命中率未测量 |
+| TableCache | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 多读线程契约来自 Env | 已完成 | 链 4/5 | 部分完成：eviction 回归未运行 |
 
 ## 相关文档
 

@@ -2,11 +2,11 @@
 
 - 文档目的：描述打开、运行、后台工作和关闭的生命周期。
 - 适用范围：LevelDB `1.23.0`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：主流程已确认；平台线程数为待验证细节。
 - 最后更新：2026-09-10
 - 前置阅读：[总体架构](architecture.md)
 - 后续阅读：[端到端流程](../90-cross-module/end-to-end-flows.md)
-
 ## 结论摘要
 
 `DB::Open` 创建 `DBImpl` 后执行恢复：创建/锁定目录，读取 CURRENT 指向的 MANIFEST，恢复 Version，重放符合条件的日志，必要时把恢复出的 MemTable 写为 Level-0 表，随后开始接收写入。运行中写线程与后台 compaction 通过 `mutex_`、条件变量、writer 队列和 Env 调度协调。析构先等待后台任务，再释放文件和版本资源。

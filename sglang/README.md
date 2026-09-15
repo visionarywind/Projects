@@ -1,6 +1,22 @@
 # SGLang 源码级架构分析
 
+- 文档目的：解释 README.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/sglang HEAD 78be4b50af（2026-09-15 只读确认）。
+- 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](README.md)。
+- 后续阅读：[分析状态](00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
 这是一套面向初学者、以当前 checkout 源码为证据的 SGLang 项目深度理解知识库。它不只罗列目录，而是把“配置如何解析、进程如何启动、请求如何流动、模型如何加载、GPU 如何执行、结果如何返回”拆成可以回到源码验证的模块和调用链。
+
+## 一句话介绍
+
+SGLang 是一个把 HTTP/离线请求编排、连续批处理、KV 缓存、模型执行、采样和多进程服务组合起来的 LLM 推理运行时。
 
 ## 版本与证据约定
 
@@ -125,9 +141,125 @@ ServerArgs
   → ready
 ```
 
+## 三条关键端到端流程
+
+1. **启动与就绪**：`ServerArgs` 解析后发布运行时配置，创建 scheduler/worker 进程和并行组，加载模型与 KV pool，最后进入 ready；详见 [M01](01-modules/M01-cli-service-startup/README.md)、[M06](01-modules/M06-model-loading/README.md)。
+2. **在线请求**：HTTP/OpenAI 请求经过 TokenizerManager、IPC、Scheduler admission 和 KV block 分配，由 ModelRunner 执行并经 detokenizer 返回流式输出；详见 [M02](01-modules/M02-http-api-protocol/README.md)、[M03](01-modules/M03-tokenizer-request-state/README.md)、[M04](01-modules/M04-scheduler-batching/README.md)。
+3. **设备执行与回收**：batch 选择 attention backend 和 eager/ CUDA Graph 路径，更新 KV/Radix ownership，完成请求后释放 request row、slot/page 和进程资源；详见 [M05](01-modules/M05-model-execution/README.md)、[M08](01-modules/M08-kv-cache/README.md)、[M09](01-modules/M09-attention-cuda-graph/README.md)。
+
 ## 文档中的代码引用约定
 
 - 路径使用仓库根目录作为相对路径。
 - 行号对应撰写时的代码版本；代码变化后应以函数名和附近逻辑为准，并重新核对行号。
 - “逐行分析”优先解释每一段代码的输入、输出、状态变化和设计原因，不机械翻译每个语句。
 - 代码示例是帮助理解的最小例子，不一定是可直接用于生产的完整配置。
+
+## 文档元数据（规范补充）
+
+- 文档目的：说明 `README.md` 的源码分析范围、结论和维护入口。
+- 适用范围：当前项目对应模块/入口的静态源码与测试分析。
+- 对应源码版本：以本项目 `00-overview/analysis-state.md` 或同页版本字段为准。
+- 证据状态：静态源码证据；未执行的构建、测试、GPU、网络或多进程行为保持“未验证”。
+- 最后更新：2026-09-15
+- 前置阅读：本项目根 README 与 `00-overview/analysis-state.md`。
+- 后续阅读：本模块/示例的实现、测试和风险页面。
+
+## 全文档索引
+
+### 00-overview
+- [00-overview/01-整体架构.md](00-overview/01-整体架构.md)
+- [00-overview/analysis-state.md](00-overview/analysis-state.md)
+- [00-overview/architecture.md](00-overview/architecture.md)
+- [00-overview/build-and-deploy.md](00-overview/build-and-deploy.md)
+- [00-overview/decision-log.md](00-overview/decision-log.md)
+- [00-overview/dependency-map.md](00-overview/dependency-map.md)
+- [00-overview/design-principles.md](00-overview/design-principles.md)
+- [00-overview/evidence-index.md](00-overview/evidence-index.md)
+- [00-overview/global-data-flow.md](00-overview/global-data-flow.md)
+- [00-overview/global-error-model.md](00-overview/global-error-model.md)
+- [00-overview/glossary.md](00-overview/glossary.md)
+- [00-overview/project-overview.md](00-overview/project-overview.md)
+- [00-overview/runtime-model.md](00-overview/runtime-model.md)
+
+### 01-modules
+- [01-modules/M01-cli-service-startup/README.md](01-modules/M01-cli-service-startup/README.md)
+- [01-modules/M02-http-api-protocol/README.md](01-modules/M02-http-api-protocol/README.md)
+- [01-modules/M03-tokenizer-request-state/README.md](01-modules/M03-tokenizer-request-state/README.md)
+- [01-modules/M04-scheduler-batching/README.md](01-modules/M04-scheduler-batching/README.md)
+- [01-modules/M05-model-execution/README.md](01-modules/M05-model-execution/README.md)
+- [01-modules/M06-model-loading/README.md](01-modules/M06-model-loading/README.md)
+- [01-modules/M07-分布式并行.md](01-modules/M07-分布式并行.md)
+- [01-modules/M08-kv-cache/README.md](01-modules/M08-kv-cache/README.md)
+- [01-modules/M09-attention-cuda-graph/README.md](01-modules/M09-attention-cuda-graph/README.md)
+- [01-modules/M10-sampling-constraints/README.md](01-modules/M10-sampling-constraints/README.md)
+- [01-modules/M11-speculative-decoding/README.md](01-modules/M11-speculative-decoding/README.md)
+- [01-modules/M12-multimodal-runtime/README.md](01-modules/M12-multimodal-runtime/README.md)
+- [01-modules/M13-disaggregation-hicache/README.md](01-modules/M13-disaggregation-hicache/README.md)
+- [01-modules/M14-moe-quantization-lora/README.md](01-modules/M14-moe-quantization-lora/README.md)
+- [01-modules/M15-ipc/README.md](01-modules/M15-ipc/README.md)
+- [01-modules/M15-ipc-control-plane/README.md](01-modules/M15-ipc-control-plane/README.md)
+- [01-modules/M16-kernel-device-backend/README.md](01-modules/M16-kernel-device-backend/README.md)
+- [01-modules/M17-rust-router-gateway/README.md](01-modules/M17-rust-router-gateway/README.md)
+- [01-modules/M18-testing-benchmark-ci/README.md](01-modules/M18-testing-benchmark-ci/README.md)
+- [01-modules/module-registry.md](01-modules/module-registry.md)
+
+### 80-demos
+- [80-demos/D01-offline-engine/01-离线批量推理.md](80-demos/D01-offline-engine/01-离线批量推理.md)
+- [80-demos/D01-offline-engine/README.md](80-demos/D01-offline-engine/README.md)
+- [80-demos/D01-offline-engine/build-and-run.md](80-demos/D01-offline-engine/build-and-run.md)
+- [80-demos/D01-offline-engine/data-and-state-trace.md](80-demos/D01-offline-engine/data-and-state-trace.md)
+- [80-demos/D01-offline-engine/debug-walkthrough.md](80-demos/D01-offline-engine/debug-walkthrough.md)
+- [80-demos/D01-offline-engine/execution-trace.md](80-demos/D01-offline-engine/execution-trace.md)
+- [80-demos/D01-offline-engine/failure-paths.md](80-demos/D01-offline-engine/failure-paths.md)
+- [80-demos/D01-offline-engine/modification-exercises.md](80-demos/D01-offline-engine/modification-exercises.md)
+- [80-demos/demo-registry.md](80-demos/demo-registry.md)
+
+### 90-cross-module
+- [90-cross-module/change-impact-map.md](90-cross-module/change-impact-map.md)
+- [90-cross-module/configuration-impact-map.md](90-cross-module/configuration-impact-map.md)
+- [90-cross-module/cross-module-call-chains.md](90-cross-module/cross-module-call-chains.md)
+- [90-cross-module/end-to-end-flows.md](90-cross-module/end-to-end-flows.md)
+- [90-cross-module/error-boundaries.md](90-cross-module/error-boundaries.md)
+- [90-cross-module/interface-contracts.md](90-cross-module/interface-contracts.md)
+- [90-cross-module/performance-critical-paths.md](90-cross-module/performance-critical-paths.md)
+- [90-cross-module/pooling-and-resource-management.md](90-cross-module/pooling-and-resource-management.md)
+- [90-cross-module/runtime-trace.md](90-cross-module/runtime-trace.md)
+- [90-cross-module/shared-data-and-types.md](90-cross-module/shared-data-and-types.md)
+- [90-cross-module/system-wiring.md](90-cross-module/system-wiring.md)
+
+### 99-roadmap
+- [99-roadmap/README.md](99-roadmap/README.md)
+- [99-roadmap/debugging-guide.md](99-roadmap/debugging-guide.md)
+- [99-roadmap/feature-development-recipes.md](99-roadmap/feature-development-recipes.md)
+- [99-roadmap/next-steps.md](99-roadmap/next-steps.md)
+- [99-roadmap/performance-guide.md](99-roadmap/performance-guide.md)
+- [99-roadmap/qa-advanced.md](99-roadmap/qa-advanced.md)
+- [99-roadmap/qa-beginner.md](99-roadmap/qa-beginner.md)
+- [99-roadmap/qa-expert.md](99-roadmap/qa-expert.md)
+- [99-roadmap/qa-intermediate.md](99-roadmap/qa-intermediate.md)
+- [99-roadmap/qa.md](99-roadmap/qa.md)
+- [99-roadmap/quick-start.md](99-roadmap/quick-start.md)
+- [99-roadmap/reading-guide.md](99-roadmap/reading-guide.md)
+- [99-roadmap/risk-register.md](99-roadmap/risk-register.md)
+- [99-roadmap/technical-debt.md](99-roadmap/technical-debt.md)
+- [99-roadmap/testing-recipes.md](99-roadmap/testing-recipes.md)
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `README.md` | 已完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已映射或不适用 | 部分完成：动态行为、边界或专用变体仍需验证 |
+
+## 相关文档
+- [项目入口](README.md)
+- [分析状态](00-overview/analysis-state.md)
+- [源码证据索引](00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

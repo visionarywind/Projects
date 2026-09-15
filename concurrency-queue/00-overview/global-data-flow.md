@@ -1,10 +1,15 @@
 # 全局数据流
 
 - 文档目的：以数据、控制、错误和资源四条线描述核心运行路径。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/concurrency-queue HEAD 683b9e3（2026-09-15 只读确认）。
 - 证据状态：主路径已确认；跨平台动态分支为未知。
 - 最后更新：2026-09-10
 - 前置阅读：[总体架构](architecture.md)
 - 后续阅读：[M01 调用链](../01-modules/M01-core-queue/call-chains.md)
+## 结论摘要
+
+本页聚焦 00-overview/global-data-flow.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 数据流
 
@@ -47,6 +52,14 @@ flowchart TD
 
 初始 block pool → producer 使用 → block 完全为空 → parent free list → 新 producer/block 再请求；producer list 和 hash table 的节点由 queue 持有，直到 queue 析构或 producer 被回收。queue 析构必须在所有访问者退出后执行。[`concurrentqueue.h:875-919`](../../source/concurrency-queue/concurrentqueue.h#L875-L919)、[`concurrentqueue.h:3068-3143`](../../source/concurrency-queue/concurrentqueue.h#L3068-L3143)
 
+## 相关文档
+- [项目入口](../README.md)
+- [分析状态](analysis-state.md)
+- [源码证据索引](evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
 ## 未解决问题
 
 - 各平台 semaphore 具体系统调用及超时精度需要目标平台运行确认。
@@ -55,3 +68,6 @@ flowchart TD
 ## 下一步
 
 对实现修改先沿 [change-impact-map](../90-cross-module/change-impact-map.md) 检查数据、错误和资源流是否仍闭合。
+
+## 下一步阅读建议
+先阅读 [分析状态](analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

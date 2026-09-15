@@ -1,0 +1,230 @@
+{
+  "main": {
+    "id": "4608beeb51bfcb10",
+    "type": "split",
+    "children": [
+      {
+        "id": "74db0d7ab227dbe3",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "bf00cdda55a5aaf0",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "interview-prompt.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "interview-prompt"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "9f854e7db4f2f57e",
+    "type": "split",
+    "children": [
+      {
+        "id": "bc6a994ea6a2eecb",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "59b9001952c7792f",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "85eff7e01d667857",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "5372fd944c0d88ba",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "6a06158507049795",
+    "type": "split",
+    "children": [
+      {
+        "id": "1f2415bff1df8dcb",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "bac0624bacfaceb7",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "interview-prompt.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "反向链接"
+            }
+          },
+          {
+            "id": "de3167c0a8102f29",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "interview-prompt.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "出链"
+            }
+          },
+          {
+            "id": "b172e6d76125aa1c",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "e3237227decd97fc",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "b8bcfce6ee10ef20",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "interview-prompt.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "大纲"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false
+    }
+  },
+  "active": "bf00cdda55a5aaf0",
+  "lastOpenFiles": [
+    "data-structure/benchmark/README.md.tmp.3429090.739e97629999",
+    "data-structure/build/ordered-release/ordered-redis-layout.csv",
+    "data-structure/build/asan/Testing/Temporary/LastTest.log.tmp",
+    "data-structure/build/asan/CMakeFiles/Progress/3",
+    "data-structure/build/asan/CMakeFiles/Progress/12",
+    "data-structure/build/asan/CMakeFiles/Progress/2",
+    "data-structure/build/asan/CMakeFiles/Progress/11",
+    "data-structure/build/asan/CMakeFiles/Progress/1",
+    "data-structure/build/asan/CMakeFiles/Progress/count.txt",
+    "data-structure/build/asan/CMakeFiles/Progress",
+    "data-structure/build/ordered-release/Testing/Temporary/LastTest.log.tmp",
+    "insights/README.md",
+    "insights/04-design-decision-and-validation.md",
+    "insights/03-arxiv-reading-notes.md",
+    "insights/02-kv-pool-lifecycle-and-ownership.md",
+    "insights/01-static-dynamic-hybrid-pools.md",
+    "insights/00-concepts-and-taxonomy.md",
+    "interview/inference/insights/04-design-decision-and-validation.md",
+    "interview/inference/insights/03-arxiv-reading-notes.md",
+    "interview/inference/insights/02-kv-pool-lifecycle-and-ownership.md",
+    "interview/inference/insights/01-static-dynamic-hybrid-pools.md",
+    "interview/inference/insights/00-concepts-and-taxonomy.md",
+    "interview/inference/insights/README.md",
+    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K12-production-evolution.md",
+    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K11-performance-capacity.md",
+    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K10-observability-slo.md",
+    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K09-failure-recovery.md",
+    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K08-collective-communication.md",
+    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K07-transfer-topology.md",
+    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K06-scheduling-isolation.md",
+    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K05-async-completion.md",
+    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K04-memory-pools.md",
+    "interview/heterogeneous-resource-stability-interview-bank/01-question-bank/expert.md",
+    "interview/heterogeneous-resource-stability-interview-bank/01-question-bank/advanced.md",
+    "interview/heterogeneous-resource-stability-interview-bank/01-question-bank/intermediate.md",
+    "interview/ai-software-quality-interview-bank/04-review/quality-audit.md"
+  ]
+}

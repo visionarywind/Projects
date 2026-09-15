@@ -1,8 +1,17 @@
 # 分析状态、覆盖范围与断点
 
 - 文档目的：支持大仓库分批分析和增量维护。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
 - 对应源码版本：`main` / `4513b3114de21140c846171042515e17bb907e8a`。
+- 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
+- 前置阅读：[项目入口](../README.md)。
+- 后续阅读：[分析状态](analysis-state.md)。
+## 结论摘要
+
+本页聚焦 00-overview/analysis-state.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
 - 当前批次：阶段 0-5（盘点、模块划分、总览层、模块层、跨模块层、实践层，以及 M06/M07 代表实现和 D01/D02 Demo 深度初稿）；本轮新增池化与资源管理专题。
 
 ## 已完成文档
@@ -42,6 +51,15 @@
 | 开发场景 | 新 kernel、行为/API/配置/修 bug/性能/测试配方已生成 | 各小模块的专属配方可细化 |
 | 链接状态 | 知识库内部相对链接已建立并检查过 | 外部/源码证据链接不是 Markdown 文件链接 |
 
+## 相关文档
+
+- [module-registry.md](../01-modules/module-registry.md)
+- [evidence-index.md](evidence-index.md)
+- [../99-roadmap/next-steps.md](../99-roadmap/next-steps.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
 ## 未解决问题
 
 - 当前目标 GPU、CUDA/PyTorch/driver 版本和是否允许执行构建测试未由用户另行指定；文档按源码推断并将命令标为未验证。
@@ -67,11 +85,22 @@
 
 源码文件变更后，至少更新：对应模块 README/source-map/line-level/testing、受影响的 90-cross-module 文件、`evidence-index.md` 和本状态文件。不要复制整段源码；优先更新符号、行号、证据状态和未解决问题。
 
-## 相关文档
+## project-prompt 合规状态
 
-- [module-registry.md](../01-modules/module-registry.md)
-- [evidence-index.md](evidence-index.md)
-- [../99-roadmap/next-steps.md](../99-roadmap/next-steps.md)
+根入口、模块/Demo 审计表、关联层和实践层入口已补齐；本项目无统一 CPU/GPU allocator 或 CUDA Graph runtime，已在资源专题中明确“不适用”及源码边界。动态 GPU、构建和 benchmark 结果仍为未验证。
+## 本轮一致性验收
+
++- 已扫描本项目 158 个知识库 Markdown：统一元信息、结论摘要和四段页尾均存在且顺序一致。
+- 根 README 已链接总览、模块、Demo、关联和实践层全部文档；相对 Markdown 链接未发现断链。
+- 可解析的源码引用已检查文件存在性与行号数值边界；该检查不替代符号语义复核或动态执行。
+- 本轮未执行构建、GPU/NPU、模型、网络、NCCL/HCCL、benchmark 或多节点测试，相关行为继续标记为未验证。
+
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| LeetCUDA/00-overview/analysis-state.md | 已定位 | 已追踪代表路径 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已标注 | 已引用或待补 | 已映射或无专用 Demo | 部分完成：动态构建、运行和硬件边界仍未验证 |
 
 ## 下一步阅读建议
 

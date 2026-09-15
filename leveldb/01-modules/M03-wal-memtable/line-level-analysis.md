@@ -2,10 +2,15 @@
 
 - 文档目的：覆盖 M03 最关键逻辑块、输入输出、复杂度和风险。
 - 适用范围：`write_batch.cc`、`log_writer.cc`、`log_reader.cc`、`memtable.cc`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：已确认。
 - 最后更新：2026-09-10
 - 前置阅读：[M03 call-chains](call-chains.md)
 - 后续阅读：[M03 testing](testing.md)
+## 结论摘要
+
+本页聚焦 01-modules/M03-wal-memtable/line-level-analysis.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 | 代码块 | 意图 | 输入/输出 | 状态变化 | 风险 |
 |---|---|---|---|---|

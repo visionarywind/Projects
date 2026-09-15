@@ -2,11 +2,11 @@
 
 - 文档目的：解释 LevelDB 的分层、模块关系和关键控制/数据流。
 - 适用范围：`main` / `7ee830d`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：机制已确认；动机和部分线程关系为推断。
 - 最后更新：2026-09-10
 - 前置阅读：[项目概览](project-overview.md)
 - 后续阅读：[全局数据流](global-data-flow.md)、[跨模块链](../90-cross-module/cross-module-call-chains.md)
-
 ## 结论摘要
 
 LevelDB 的核心不是一个单一索引，而是多个可替换层：公开 API 定义契约，`DBImpl` 持有数据库生命周期和并发状态，WAL/MemTable 承接最近写入，VersionSet 维护持久化版本，TableCache/SSTable 提供有序磁盘读，Env 提供操作系统抽象。

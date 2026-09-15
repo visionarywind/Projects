@@ -2,10 +2,14 @@
 
 - 文档目的：解释 batch、InternalKey、MemTable 条目的布局与所有权。
 - 适用范围：M03。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：已确认。
 - 最后更新：2026-09-10
 - 前置阅读：[M03 interfaces](interfaces.md)
 - 后续阅读：[M04 数据结构](../M04-version-compaction/data-structures.md)
+## 结论摘要
+
+本页聚焦 01-modules/M03-wal-memtable/data-structures.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 关系图
 

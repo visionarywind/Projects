@@ -48,3 +48,12 @@ Elementwise 只显示 dtype 检查和宏绑定；NMS 还检查 device、dim、�
 全仓库缺少统一的 device/stream/error/contiguous 检查规范。
 
 资源边界：binding 借用调用方 tensor 的 `data_ptr()`，不拥有 tensor 或其 allocator；异步 kernel 返回后调用方仍须保持 tensor 存活。项目没有自有 CPU arena、GPU memory pool 或统一 CUDA Graph runtime，PyTorch caching allocator、extension cache 和单个 benchmark 的 `cudaMalloc` 必须分别记录。
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `01-modules/M08-pytorch-extension/README.md` | 已完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已映射或不适用 | 部分完成：动态行为、边界或专用变体仍需验证 |
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

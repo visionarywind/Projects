@@ -12,6 +12,18 @@
 
 所有结构性测试在操作后调用 `verify_invariants()`，这样能尽量定位首次破坏不变量的操作。
 
+## `skip_list` 回归测试
+
+`skip_list` 测试使用固定 seed `12345`，覆盖空表、重复插入、查找、const 迭代器、清空复用，以及头部/中间/尾部和不存在 key 的删除。另有固定操作序列与 `std::set<int>` 逐步差分，比较插入结果、删除结果、size 和 level-0 有序内容，并在每一步调用 `verify_invariants()`。
+
+`ordered_benchmark` 中的跳表实验采用 LevelDB-style 参数 `MaxLevel=12`、逐层晋升概率约 `1/4`。这只复用 LevelDB 的层数和概率，当前实现仍使用固定大小 forward 数组及默认 `new/delete`，所以结果不等同于 LevelDB SkipList 的性能。
+
+## 有序容器性能对比
+
+`ordered_benchmark` 对 `rb_tree<int>`、`skip_list<int>` 和 `std::set<int>` 使用相同的随机插入序列、混合命中/未命中查找键和随机删除序列，记录 insert/find/iterate/erase 的 median/min/max 与 checksum。构建时启用 `RBTREE_BUILD_ORDERED_BENCHMARKS=ON`；详细结果和解释见 [`../benchmark/README.md`](../benchmark/README.md)。
+
+benchmark 只衡量端到端容器行为：三者都使用默认 `new/delete`，而 skip list 还包含随机层级生成和多层 forward 指针维护成本。因此结果不能单独归因于红黑树旋转或跳表搜索算法。
+
 ## Debug 和 Sanitizer
 
 ```bash

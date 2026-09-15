@@ -2,11 +2,17 @@
 
 - 文档目的：按端到端阶段说明错误的产生点、Status 传播、后台错误固化和资源清理。
 - 适用范围：Open/recovery、Write、Get/Iterator、flush、compaction、shutdown。
-- 源码版本：`main` / `7ee830d`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：主要错误分支和清理动作已由源码确认；具体文件系统断电语义需实验。
 - 最后更新：2026-09-10
 - 前置阅读：[端到端深度链路](end-to-end-traces.md)
 - 后续阅读：[风险登记](../99-roadmap/risk-register.md)
+## 结论摘要
+
+本页聚焦 90-cross-module/error-boundaries.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
+- 源码版本：`main` / `7ee830d`。
 
 ## 统一错误模型
 

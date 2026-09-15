@@ -2,11 +2,11 @@
 
 - 文档目的：说明 Status、日志损坏、后台错误和恢复如何传播。
 - 适用范围：LevelDB 1.23.0。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：主要机制已确认。
 - 最后更新：2026-09-10
 - 前置阅读：[运行模型](runtime-model.md)
 - 后续阅读：[错误边界](../90-cross-module/error-boundaries.md)
-
 ## 结论摘要
 
 LevelDB 主要不用 C++ 异常，而用 `Status` 返回错误；WAL Reader 将物理记录错误报告给 Reporter，恢复路径决定是否继续；后台错误写入 `bg_error_`，之后可能阻止继续写入或安全删除文件。`paranoid_checks` 控制部分可忽略错误是否升级。

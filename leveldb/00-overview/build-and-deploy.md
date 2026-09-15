@@ -2,11 +2,11 @@
 
 - 文档目的：把仓库真实构建/测试入口整理成可执行配方，并记录本机验证结果。
 - 适用范围：目标提交 `7ee830d02b623e8ffe0b95d59a74db1e58da04c5`；本机 Linux Debug 构建。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：命令来源和本机执行结果已确认；Release、Sanitizer、跨平台和故障注入未验证。
 - 最后更新：2026-09-10
 - 前置阅读：[项目概览](project-overview.md)
 - 后续阅读：[快速上手](../99-roadmap/quick-start.md)
-
 ## 结论摘要
 
 项目使用 CMake 3.22+，默认构建 LevelDB、`leveldbutil`、测试和 benchmark；测试由 CTest 注册。本轮在获得授权后初始化 `third_party/googletest` 与 `third_party/benchmark` 子模块，Debug configure/build/CTest、小规模 `db_bench` 和本地 prefix install 均已执行成功。

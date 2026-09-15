@@ -2,11 +2,11 @@
 
 - 文档目的：解释写入记录如何编码、持久化、恢复并进入内存表。
 - 适用范围：`db/log_*`、`write_batch*`、`memtable*`、`dbformat*`、`skiplist.h`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：核心机制已确认。
 - 最后更新：2026-09-10
 - 前置阅读：[全局数据流](../../00-overview/global-data-flow.md)
 - 后续阅读：[M04 Version/Compaction](../M04-version-compaction/README.md)
-
 ## 结论摘要
 
 M03 把用户批次转换为带 sequence/type 的 InternalKey，WAL 以可校验的物理记录持久化同一批次，MemTable 使用 Arena + SkipList 保存可排序的内存副本。恢复通过 Reader 重放完整 WriteBatch；MemTable 满后交给 M04 生成 SSTable。
@@ -46,3 +46,19 @@ M03 把用户批次转换为带 sequence/type 的 InternalKey，WAL 以可校验
 ## 下一步阅读建议
 
 先读 [data-structures.md](data-structures.md)，再追踪 WriteBatch → WAL → MemTable。
+
+## 文档元数据（规范补充）
+
+- 文档目的：说明 `01-modules/M03-wal-memtable/README.md` 的源码分析范围、结论和维护入口。
+- 适用范围：当前项目对应模块/入口的静态源码与测试分析。
+- 对应源码版本：以本项目 `00-overview/analysis-state.md` 或同页版本字段为准。
+- 证据状态：静态源码证据；未执行的构建、测试、GPU、网络或多进程行为保持“未验证”。
+- 最后更新：2026-09-15
+- 前置阅读：本项目根 README 与 `00-overview/analysis-state.md`。
+- 后续阅读：本模块/示例的实现、测试和风险页面。
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `01-modules/M03-wal-memtable/README.md` | 已完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已映射或不适用 | 部分完成：动态行为、边界或专用变体仍需验证 |

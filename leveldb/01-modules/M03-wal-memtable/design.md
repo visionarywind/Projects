@@ -2,11 +2,11 @@
 
 - 文档目的：说明 WAL、批次和 MemTable 的协作及取舍。
 - 适用范围：M03。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：机制已确认，性能动机部分推断。
 - 最后更新：2026-09-10
 - 前置阅读：[M03 README](README.md)
 - 后续阅读：[M03 调用链](call-chains.md)
-
 ## 结论摘要
 
 同一 WriteBatch 同时是原子编辑集合、WAL 载荷和 MemTable 插入来源。sequence 为每个编辑建立可见性顺序；InternalKey 将 user key 与序列号/类型绑定，因而读和 compaction 可在合并多个版本时判断可见记录。

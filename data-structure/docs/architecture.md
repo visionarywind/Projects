@@ -1,4 +1,4 @@
-# 红黑树架构设计与运行流程
+# 红黑树与跳表架构设计和运行流程
 
 > 本文对应 `include/rbtree/rb_tree.hpp`、`include/rbtree/rb_map.hpp` 和 `benchmark/rb_map_benchmark.cpp`。代码注释解释“这一行为什么存在”，本文解释“这些对象如何组成一个系统”。图使用 Mermaid；如果 Markdown 阅读器不渲染 Mermaid，图下的文字说明仍然给出同样的结构。
 
@@ -341,3 +341,76 @@ begin/end
 - [benchmark 说明](../benchmark/README.md)
 - [教学版实现](../include/rbtree/rb_tree.hpp)
 - [map 性能版实现](../include/rbtree/rb_map.hpp)
+
+## 12. 跳表实现
+
+项目新增 `skip_list<Key, Compare, MaxLevel>`，它与两套红黑树一样是单线程、唯一键的有序容器，但采用随机层级而不是颜色修复来缩短搜索路径。具体实现见 [`../include/rbtree/skip_list.hpp`](../include/rbtree/skip_list.hpp)。
+
+### 12.1 节点布局与所有权
+
+```mermaid
+flowchart LR
+    List[skip_list\nheader_ / level_ / size_]
+    H0[header_[0]]
+    H1[header_[1]]
+    H2[header_[2]]
+    N1[node key=10\nheight=3]
+    N2[node key=20\nheight=1]
+    N3[node key=30\nheight=2]
+    End[nullptr]
+
+    List --> H0
+    List --> H1
+    List --> H2
+    H2 -->|forward[2]| N1
+    N1 -->|forward[2]| N3
+    N3 -->|forward[2]| End
+    H1 -->|forward[1]| N1
+    N1 -->|forward[1]| N3
+    N3 -->|forward[1]| End
+    H0 -->|forward[0]| N1
+    N1 -->|forward[0]| N2
+    N2 -->|forward[0]| N3
+    N3 -->|forward[0]| End
+```
+
+- `header_` 是嵌入容器的多层入口，不存储假的 `Key`；
+- `forward[0]` 是完整有序链表，迭代器只沿这一层前进；
+- 节点高度为 `height`，只有 `[0, height)` 的 forward 指针有效，其余必须为 `nullptr`；
+- `level_` 是当前最高有效层，范围为 `[1, MaxLevel]`；
+- 真实节点由 level-0 链表唯一拥有，`clear()` 依次删除它们；header 和 forward 指针不拥有额外节点。
+
+### 12.2 查找、插入和删除流程
+
+```mermaid
+flowchart TD
+    Start([insert / find / erase]) --> Top[从 level_-1 开始]
+    Top --> Move{下一节点 key < 目标?}
+    Move -->|是| Right[沿当前层 forward 向右]
+    Right --> Move
+    Move -->|否| Record[记录当前层 predecessor]
+    Record --> Down{还有更低层?}
+    Down -->|是| Lower[下降一层]
+    Lower --> Move
+    Down -->|否| Candidate[检查 level-0 successor]
+    Candidate --> Equal{key 等价?}
+    Equal -->|find 命中| Found[返回节点]
+    Equal -->|find 未命中| Miss[返回 end]
+    Equal -->|insert 重复| Duplicate[返回 false]
+    Equal -->|insert 新键| Height[生成随机 node_height]
+    Height --> Splice[在 0..height-1 层逐层 splice]
+    Splice --> InsertDone[增加 size_]
+    Equal -->|erase 命中| Unlink[沿 update 路径逐层 bypass]
+    Unlink --> LowerLevel[删除空的最高层]
+    LowerLevel --> EraseDone[delete 节点并减少 size_]
+```
+
+搜索时 `update[index]` 记录第 `index` 层中最后一个小于目标 key 的节点；`nullptr` 表示从对应的 `header_[index]` 开始。插入先完成搜索，重复 key 在分配前返回；新节点生成随机高度后逐层插入。删除复用同一条路径逐层绕过目标，再从 level 0 释放节点并降低空的最高层。
+
+查找、插入、删除的期望复杂度为 `O(log n)`，随机形状异常时最坏可能退化为 `O(n)`；迭代器每步沿 level 0 前进，复杂度为 `O(1)`。固定 seed 只影响层级形状，不改变底层有序结果。
+
+### 12.3 跳表验证与边界
+
+`verify_invariants()` 检查底层 key 严格有序、每层无环、高层节点也存在于 level 0、节点高度和 forward 范围合法、空的高层已被裁掉，以及 `size_` 与底层节点数量一致。当前跳表只提供 set-like API、前向迭代器和 `new/delete` 生命周期，不提供 map value、并发、节点池、完整 STL 兼容 API 或 benchmark 结论。
+
+`skip_list_test.cpp` 使用固定 seed 与 `std::set<int>` 做随机差分，验证插入、删除、查找、size、有序遍历和不变量。当前 Release benchmark 仍只比较 `rb_map` 与 `std::map`；如果未来加入跳表 benchmark，必须同时固定 `MaxLevel`、随机策略、seed、数据集和计时边界。

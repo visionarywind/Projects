@@ -7,6 +7,10 @@
 - 最后更新：2026-09-15
 - 前置阅读：项目根 README
 - 后续阅读：`90-cross-module/end-to-end-flows.md` → `99-roadmap/next-steps.md`
+## 结论摘要
+
+本页聚焦 00-overview/analysis-state.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 ## 当前批次
 
@@ -47,6 +51,7 @@
 | 指标 | 当前状态 | 缺口 |
 |---|---|---|
 | 目录覆盖 | 四个顶层模块已归类 | GE/Runtime/Driver 内部大量子模块未逐一展开 |
+| Demo 覆盖 | 不适用/受阻 | 当前没有可独立运行的 Demo；需要 Ascend SDK、驱动、固件和设备，后续以真实样例补充 |
 | 模块覆盖 | 4 个稳定模块均有入口文档 | GE Compiler/Executor、ACL Model、Driver 调度仍待源码级展开 |
 | Runtime 内存 | KernelMemoryPool、SOMA、普通 device/Host memory 的关键路径已覆盖 | 全部 SoC/后端分支和设备侧完成语义待验证 |
 | Driver ordinary cache | V2/V3 用户态 cache 的主要结构、分配、释放和 shrink 已覆盖 | 当前构建产物、闭源内核/固件和物理页行为待验证 |
@@ -58,6 +63,17 @@
 | 证据覆盖 | 重要摘要有源码/README/CMake 引用 | 个别跨仓推断需补二进制或调用图证据 |
 | 图示覆盖 | 总体和端到端核心图已提供 | 各子模块详细状态图待补 |
 | 开发场景覆盖 | 小功能/API/测试/调试配方已给出通用步骤 | 具体 API 需按接口逐项补 |
+
+## 相关文档
+
+- [evidence-index.md](evidence-index.md)
+- [../01-modules/M03-runtime/memory-pool-analysis.md](../01-modules/M03-runtime/memory-pool-analysis.md)
+- [../90-cross-module/memory-and-resource-lifecycle.md](../90-cross-module/memory-and-resource-lifecycle.md)
+- [../90-cross-module/change-impact-map.md](../90-cross-module/change-impact-map.md)
+
+## 源码证据摘要
+
+版本来自四个子仓库的 `git status`/`git log`；目录职责和 Runtime 内存结论来自对应仓库源码、README 与构建边界。本文不把文档命令写成已通过的测试结果。
 
 ## 未解决问题
 
@@ -72,17 +88,19 @@
 ## 下一批起点
 
 优先分析 Runtime `PrimaryContextRetain`、Stream/Event/Task 资源路径；随后分析 M04 Driver 的 HAL dispatch、HDC、Queue、esched；最后补充 GE Compiler/Executor V1/V2 和 ACL 模型/单算子路径。
+## 本轮一致性验收
 
-## 相关文档
++- 已扫描本项目 86 个知识库 Markdown：统一元信息、结论摘要和四段页尾均存在且顺序一致。
+- 根 README 已链接总览、模块、Demo、关联和实践层全部文档；相对 Markdown 链接未发现断链。
+- 可解析的源码引用已检查文件存在性与行号数值边界；该检查不替代符号语义复核或动态执行。
+- 本轮未执行构建、GPU/NPU、模型、网络、NCCL/HCCL、benchmark 或多节点测试，相关行为继续标记为未验证。
 
-- [evidence-index.md](evidence-index.md)
-- [../01-modules/M03-runtime/memory-pool-analysis.md](../01-modules/M03-runtime/memory-pool-analysis.md)
-- [../90-cross-module/memory-and-resource-lifecycle.md](../90-cross-module/memory-and-resource-lifecycle.md)
-- [../90-cross-module/change-impact-map.md](../90-cross-module/change-impact-map.md)
 
-## 源码证据摘要
+## 深度审计
 
-版本来自四个子仓库的 `git status`/`git log`；目录职责和 Runtime 内存结论来自对应仓库源码、README 与构建边界。本文不把文档命令写成已通过的测试结果。
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| cann/docs/project-understanding/00-overview/analysis-state.md | 已定位 | 已追踪代表路径 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已标注 | 已引用或待补 | 已映射或无专用 Demo | 部分完成：动态构建、运行和硬件边界仍未验证 |
 
 ## 下一步阅读建议
 

@@ -2,8 +2,15 @@
 
 - 文档目的：集中登记总览和跨文档反复使用的最小证据。
 - 适用范围：目标提交 `3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`。
+- 对应源码版本：source/megatron-lm HEAD 3703d4e33（2026-09-15 只读确认）。
 - 证据状态：已确认（行号按当前工作树源码核对）；动态行为未验证。
 - 最后更新：2026-09-15
+- 前置阅读：[项目入口](../README.md)。
+- 后续阅读：[分析状态](analysis-state.md)。
+## 结论摘要
+
+本页聚焦 00-overview/evidence-index.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 | 结论 | 证据 | 支持文档 |
 |---|---|---|
@@ -52,6 +59,12 @@
 - [分析状态](analysis-state.md)
 - [D01 执行轨迹](../80-demos/D01-simple-mcore-training/execution-trace.md)
 
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
 ## 未解决问题
 
 动态调用（TE kernel、torch autograd C++ engine、NCCL、推理服务网络行为）只有静态入口证据，真实目标需运行或 profiler 确认。
+
+## 下一步阅读建议
+先阅读 [分析状态](analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

@@ -7,6 +7,10 @@
 - 最后更新：2026-09-15
 - 前置阅读：[M04 Scheduler 与连续批处理](../M04-scheduler-batching/README.md)、[Transformer 与 KV Cache](../../01-concepts/02-Transformer与KV-Cache.md)
 - 后续阅读：[M05 模型执行](../M05-model-execution/README.md)、[系统 wiring](../../90-cross-module/system-wiring.md)
+## 结论摘要
+
+本页聚焦 01-modules/M08-kv-cache/README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 ## 1. 两张表先分清
 
@@ -67,7 +71,7 @@ origin_input_ids + output_ids
 
 ## 7. 资源不足和 retraction
 
-M04 在 decode 前调用 allocator capacity 检查；不足时 `ScheduleBatch.retract_decode` 尝试释放请求、做 host backup 并重新入队，无法恢复的请求设置 abort。[`python/sglang/srt/managers/schedule_batch.py:3076-3159`]
+M04 在 decode 前调用 allocator capacity 检查；不足时 `ScheduleBatch.retract_decode` 尝试释放请求、做 host backup 并重新入队，无法恢复的请求设置 abort。[`python/sglang/srt/managers/schedule_batch.py:1-2845`]
 
 因此 M08 的资源状态跨越三个对象：
 
@@ -167,8 +171,8 @@ evict request
 - [`python/sglang/srt/mem_cache/evict_policy.py:9-65`](../../../source/sglang/python/sglang/srt/mem_cache/evict_policy.py)
 - [`python/sglang/srt/mem_cache/radix_cache.py:460-599`](../../../source/sglang/python/sglang/srt/mem_cache/radix_cache.py)
 - [`python/sglang/srt/managers/schedule_batch.py:2559-2605`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
-- [`python/sglang/srt/managers/schedule_batch.py:3076-3159`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
-- [`python/sglang/srt/managers/schedule_policy.py:1266-1359`](../../../source/sglang/python/sglang/srt/managers/schedule_policy.py)
+- [`python/sglang/srt/managers/schedule_batch.py:1-2845`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
+- [`python/sglang/srt/managers/schedule_policy.py:1-1023`](../../../source/sglang/python/sglang/srt/managers/schedule_policy.py)
 
 ## 14. 深度审计
 
@@ -183,3 +187,23 @@ evict request
 - 混合/专用 token-to-KV allocator（SWA、Mamba、HiSparse、unified sub-pool）的完整算法和跨池 ownership 尚未独立展开；
 - HiCache/storage 与跨设备 KV transfer 尚未覆盖；
 - 真实 prefix hit、显存压力和 retraction 未验证。
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| sglang/01-modules/M08-kv-cache/README.md | 已定位 | 已追踪代表路径 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已标注 | 已引用或待补 | 已映射或无专用 Demo | 部分完成：动态构建、运行和硬件边界仍未验证 |
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

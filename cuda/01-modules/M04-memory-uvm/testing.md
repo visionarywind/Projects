@@ -1,5 +1,17 @@
 # M04 测试、开发与风险
 
+- 文档目的：解释 01-modules/M04-memory-uvm/testing.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](../../README.md)。
+- 后续阅读：[分析状态](../../00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 01-modules/M04-memory-uvm/testing.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
 ## 测试证据
 
 - `basic_sanity:init` 直接创建 v3020 context，使用 driver 内部 `memobjAlloc` 分配 2 MiB device memobj，随后逐个 `memobjFree` 并销毁 context（静态确认：[tests/cuda_test/basic_sanity.cu:49-100]）。
@@ -26,3 +38,17 @@
 - 释放 interior pointer 被拒绝是契约，不应为“方便”放宽（证据：[src/api/apimem.c:315-319]）。
 - UVM page-fault/迁移路径跨越当前源码边界，任何性能或一致性结论都需运行时证据。
 - `CUmembins` 在头文件和旧测试计划中存在，但未找到当前初始化/使用路径；不能以“5 个 bin 已启用”作为测试前提（静态证据：[src/cuda_mem.h:173-182]；[src/cui/memmgr.h:21-23,85-86]）。
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

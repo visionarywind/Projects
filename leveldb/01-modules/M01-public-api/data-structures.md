@@ -2,10 +2,14 @@
 
 - 文档目的：解释公共类型的所有权、不变量和跨模块影响。
 - 适用范围：公开头文件。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：已确认。
 - 最后更新：2026-09-10
 - 前置阅读：[M01 interfaces](interfaces.md)
 - 后续阅读：[M03 数据结构](../M03-wal-memtable/data-structures.md)
+## 结论摘要
+
+本页聚焦 01-modules/M01-public-api/data-structures.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 类型关系
 

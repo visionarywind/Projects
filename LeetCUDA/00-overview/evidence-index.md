@@ -1,9 +1,16 @@
 # 源码证据索引
 
 - 文档目的：集中索引支撑关键结论的源码位置。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
 - 对应源码版本：`4513b31`。
 - 证据状态：已确认索引；行号需随源码变更维护。
 - 最后更新：2026-09-15
+- 前置阅读：[项目入口](../README.md)。
+- 后续阅读：[分析状态](analysis-state.md)。
+## 结论摘要
+
+本页聚焦 00-overview/evidence-index.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 | 主题 | 证据 | 支撑结论 |
 |---|---|---|
@@ -35,7 +42,7 @@
 | M06 untested architecture branch | `kernels/hgemm/mma/basic/hgemm_mma_stage.cu:536-567` | sm90 `stmatrix` is source-declared untested |
 | M07 tiling-QKV layout/state | `kernels/flash-attn/mma/basic/flash_attn_mma_tiling_qkv.cu:50-200` | Br/Bc, `[B,H,N,D]`, Q/K/V SMEM alias, register state |
 | M07 QK/softmax/PV/store | `kernels/flash-attn/mma/basic/flash_attn_mma_tiling_qkv.cu:201-797` | staged QK, online softmax, P@V, O normalization/store |
-| M07 dispatch/boundary | `kernels/flash-attn/mma/basic/flash_attn_mma_tiling_qkv.cu:799-946` | D list, stage mapping, sequence full-tile assert |
+| M07 dispatch/boundary | `kernels/flash-attn/mma/basic/flash_attn_mma_tiling_qkv.cu:799-945` | D list, stage mapping, sequence full-tile assert |
 | D01 NMS Demo | `80-demos/D01-nms-python/` | Python load, mask/resolve, state and failure trace |
 | D02 Interview Demo | `80-demos/D02-interview-binary/` | arch build, explicit allocation, HGEMM/FA benchmark trace |
 | Python tensor/extension allocation | `source/LeetCUDA/kernels/sgemm/sgemm.py:10-30,127-145` | PyTorch extension loading and benchmark tensor reuse |

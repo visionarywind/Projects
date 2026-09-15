@@ -2,10 +2,14 @@
 
 - 文档目的：说明协议和内存表的测试边界。
 - 适用范围：M03。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：测试文件和 CMake 注册已确认，执行未验证。
 - 最后更新：2026-09-10
 - 前置阅读：[M03 diagrams](diagrams.md)
 - 后续阅读：[M07 testing](../M07-tests-build/testing.md)
+## 结论摘要
+
+本页聚焦 01-modules/M03-wal-memtable/testing.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 现有测试
 

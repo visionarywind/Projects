@@ -2,11 +2,11 @@
 
 - 文档目的：解释 DBImpl 的状态机、并发和资源边界。
 - 适用范围：`db_impl`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：机制已确认，设计动机部分推断。
 - 最后更新：2026-09-10
 - 前置阅读：[M02 README](README.md)
 - 后续阅读：[M02 行级分析](line-level-analysis.md)
-
 ## 结论摘要
 
 DBImpl 通过一个主 mutex 保护持久化状态，使用 writer 队列合并写请求，使用 Env 的异步调度运行后台 flush/compaction。它把锁内的元数据变更和锁外的文件 IO 分开，并用 Version/引用计数维持读者看到的稳定状态。

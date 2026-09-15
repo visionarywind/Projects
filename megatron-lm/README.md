@@ -5,6 +5,11 @@
 - 对应源码版本：`main`，提交 `3703d4e33a3a2b2d11ebcc8e41f45af7ce7d1eda`。
 - 证据状态：总览已完成；M01-M06、Demo 和跨模块文档已完成首版静态分析，动态验证仍待完成，详见 [分析状态](00-overview/analysis-state.md)。
 - 最后更新：2026-09-11
+- 前置阅读：[项目入口](README.md)。
+- 后续阅读：[分析状态](00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 项目一句话介绍
 
@@ -162,6 +167,123 @@ BASE_REF=main CHECK_ONLY=true SKIP_DOCS=false bash tools/autoformat.sh
 ## 文档状态与未解决问题
 
 当前文档已完成仓库盘点、模块划分、总览、M01-M06 首版静态分析、D01 轨迹、跨模块地图和实践路线；M01 backend、复杂并行/异步路径、完整资源清理以及实际 GPU/NCCL/推理验证仍待继续，具体缺口见 [analysis-state.md](00-overview/analysis-state.md)。
+
+## 文档元数据（规范补充）
+
+- 文档目的：说明 `README.md` 的源码分析范围、结论和维护入口。
+- 适用范围：当前项目对应模块/入口的静态源码与测试分析。
+- 对应源码版本：以本项目 `00-overview/analysis-state.md` 或同页版本字段为准。
+- 证据状态：静态源码证据；未执行的构建、测试、GPU、网络或多进程行为保持“未验证”。
+- 最后更新：2026-09-15
+- 前置阅读：本项目根 README 与 `00-overview/analysis-state.md`。
+- 后续阅读：本模块/示例的实现、测试和风险页面。
+
+## 全文档索引
+
+### 00-overview
+- [00-overview/analysis-state.md](00-overview/analysis-state.md)
+- [00-overview/architecture.md](00-overview/architecture.md)
+- [00-overview/build-and-deploy.md](00-overview/build-and-deploy.md)
+- [00-overview/decision-log.md](00-overview/decision-log.md)
+- [00-overview/dependency-map.md](00-overview/dependency-map.md)
+- [00-overview/design-principles.md](00-overview/design-principles.md)
+- [00-overview/evidence-index.md](00-overview/evidence-index.md)
+- [00-overview/global-data-flow.md](00-overview/global-data-flow.md)
+- [00-overview/global-error-model.md](00-overview/global-error-model.md)
+- [00-overview/glossary.md](00-overview/glossary.md)
+- [00-overview/project-overview.md](00-overview/project-overview.md)
+- [00-overview/runtime-model.md](00-overview/runtime-model.md)
+
+### 01-modules
+- [01-modules/M01-core-models/README.md](01-modules/M01-core-models/README.md)
+- [01-modules/M01-core-models/call-chains.md](01-modules/M01-core-models/call-chains.md)
+- [01-modules/M01-core-models/data-structures.md](01-modules/M01-core-models/data-structures.md)
+- [01-modules/M01-core-models/design.md](01-modules/M01-core-models/design.md)
+- [01-modules/M01-core-models/development-guide.md](01-modules/M01-core-models/development-guide.md)
+- [01-modules/M01-core-models/diagrams.md](01-modules/M01-core-models/diagrams.md)
+- [01-modules/M01-core-models/examples.md](01-modules/M01-core-models/examples.md)
+- [01-modules/M01-core-models/execution-flows.md](01-modules/M01-core-models/execution-flows.md)
+- [01-modules/M01-core-models/implementation.md](01-modules/M01-core-models/implementation.md)
+- [01-modules/M01-core-models/interfaces.md](01-modules/M01-core-models/interfaces.md)
+- [01-modules/M01-core-models/line-level-analysis.md](01-modules/M01-core-models/line-level-analysis.md)
+- [01-modules/M01-core-models/risks-and-debt.md](01-modules/M01-core-models/risks-and-debt.md)
+- [01-modules/M01-core-models/source-map.md](01-modules/M01-core-models/source-map.md)
+- [01-modules/M01-core-models/testing.md](01-modules/M01-core-models/testing.md)
+- [01-modules/M02-parallelism/README.md](01-modules/M02-parallelism/README.md)
+- [01-modules/M02-parallelism/data-structures.md](01-modules/M02-parallelism/data-structures.md)
+- [01-modules/M02-parallelism/design.md](01-modules/M02-parallelism/design.md)
+- [01-modules/M02-parallelism/execution-flows.md](01-modules/M02-parallelism/execution-flows.md)
+- [01-modules/M02-parallelism/implementation.md](01-modules/M02-parallelism/implementation.md)
+- [01-modules/M02-parallelism/interfaces.md](01-modules/M02-parallelism/interfaces.md)
+- [01-modules/M02-parallelism/source-map.md](01-modules/M02-parallelism/source-map.md)
+- [01-modules/M03-training-runtime/README.md](01-modules/M03-training-runtime/README.md)
+- [01-modules/M03-training-runtime/call-chains.md](01-modules/M03-training-runtime/call-chains.md)
+- [01-modules/M03-training-runtime/data-structures.md](01-modules/M03-training-runtime/data-structures.md)
+- [01-modules/M03-training-runtime/execution-flows.md](01-modules/M03-training-runtime/execution-flows.md)
+- [01-modules/M03-training-runtime/implementation.md](01-modules/M03-training-runtime/implementation.md)
+- [01-modules/M03-training-runtime/interfaces.md](01-modules/M03-training-runtime/interfaces.md)
+- [01-modules/M03-training-runtime/source-map.md](01-modules/M03-training-runtime/source-map.md)
+- [01-modules/M04-data-pipeline/README.md](01-modules/M04-data-pipeline/README.md)
+- [01-modules/M04-data-pipeline/implementation.md](01-modules/M04-data-pipeline/implementation.md)
+- [01-modules/M04-data-pipeline/interfaces.md](01-modules/M04-data-pipeline/interfaces.md)
+- [01-modules/M04-data-pipeline/source-map.md](01-modules/M04-data-pipeline/source-map.md)
+- [01-modules/M05-optimizer-checkpointing/README.md](01-modules/M05-optimizer-checkpointing/README.md)
+- [01-modules/M05-optimizer-checkpointing/execution-flows.md](01-modules/M05-optimizer-checkpointing/execution-flows.md)
+- [01-modules/M05-optimizer-checkpointing/implementation.md](01-modules/M05-optimizer-checkpointing/implementation.md)
+- [01-modules/M05-optimizer-checkpointing/source-map.md](01-modules/M05-optimizer-checkpointing/source-map.md)
+- [01-modules/M06-inference-and-tools/README.md](01-modules/M06-inference-and-tools/README.md)
+- [01-modules/M06-inference-and-tools/execution-flows.md](01-modules/M06-inference-and-tools/execution-flows.md)
+- [01-modules/M06-inference-and-tools/implementation.md](01-modules/M06-inference-and-tools/implementation.md)
+- [01-modules/M06-inference-and-tools/source-map.md](01-modules/M06-inference-and-tools/source-map.md)
+- [01-modules/module-registry.md](01-modules/module-registry.md)
+
+### 80-demos
+- [80-demos/D01-simple-mcore-training/README.md](80-demos/D01-simple-mcore-training/README.md)
+- [80-demos/D01-simple-mcore-training/build-and-run.md](80-demos/D01-simple-mcore-training/build-and-run.md)
+- [80-demos/D01-simple-mcore-training/data-and-state-trace.md](80-demos/D01-simple-mcore-training/data-and-state-trace.md)
+- [80-demos/D01-simple-mcore-training/debug-walkthrough.md](80-demos/D01-simple-mcore-training/debug-walkthrough.md)
+- [80-demos/D01-simple-mcore-training/debugging-and-failures.md](80-demos/D01-simple-mcore-training/debugging-and-failures.md)
+- [80-demos/D01-simple-mcore-training/execution-trace.md](80-demos/D01-simple-mcore-training/execution-trace.md)
+- [80-demos/D01-simple-mcore-training/failure-paths.md](80-demos/D01-simple-mcore-training/failure-paths.md)
+- [80-demos/D01-simple-mcore-training/modification-exercises.md](80-demos/D01-simple-mcore-training/modification-exercises.md)
+- [80-demos/demo-registry.md](80-demos/demo-registry.md)
+
+### 90-cross-module
+- [90-cross-module/change-impact-map.md](90-cross-module/change-impact-map.md)
+- [90-cross-module/configuration-impact-map.md](90-cross-module/configuration-impact-map.md)
+- [90-cross-module/cross-module-call-chains.md](90-cross-module/cross-module-call-chains.md)
+- [90-cross-module/cuda-graph-resource-lifecycle.md](90-cross-module/cuda-graph-resource-lifecycle.md)
+- [90-cross-module/end-to-end-flows.md](90-cross-module/end-to-end-flows.md)
+- [90-cross-module/error-boundaries.md](90-cross-module/error-boundaries.md)
+- [90-cross-module/interface-contracts.md](90-cross-module/interface-contracts.md)
+- [90-cross-module/performance-critical-paths.md](90-cross-module/performance-critical-paths.md)
+- [90-cross-module/pooling-and-resource-management.md](90-cross-module/pooling-and-resource-management.md)
+- [90-cross-module/runtime-trace.md](90-cross-module/runtime-trace.md)
+- [90-cross-module/shared-data-and-types.md](90-cross-module/shared-data-and-types.md)
+- [90-cross-module/system-wiring.md](90-cross-module/system-wiring.md)
+
+### 99-roadmap
+- [99-roadmap/README.md](99-roadmap/README.md)
+- [99-roadmap/debugging-guide.md](99-roadmap/debugging-guide.md)
+- [99-roadmap/feature-development-recipes.md](99-roadmap/feature-development-recipes.md)
+- [99-roadmap/next-steps.md](99-roadmap/next-steps.md)
+- [99-roadmap/performance-guide.md](99-roadmap/performance-guide.md)
+- [99-roadmap/qa-advanced.md](99-roadmap/qa-advanced.md)
+- [99-roadmap/qa-beginner.md](99-roadmap/qa-beginner.md)
+- [99-roadmap/qa-expert.md](99-roadmap/qa-expert.md)
+- [99-roadmap/qa-intermediate.md](99-roadmap/qa-intermediate.md)
+- [99-roadmap/qa.md](99-roadmap/qa.md)
+- [99-roadmap/quick-start.md](99-roadmap/quick-start.md)
+- [99-roadmap/reading-guide.md](99-roadmap/reading-guide.md)
+- [99-roadmap/risk-register.md](99-roadmap/risk-register.md)
+- [99-roadmap/technical-debt.md](99-roadmap/technical-debt.md)
+- [99-roadmap/testing-recipes.md](99-roadmap/testing-recipes.md)
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `README.md` | 已完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已映射或不适用 | 部分完成：动态行为、边界或专用变体仍需验证 |
 
 ## 相关文档
 

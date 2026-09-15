@@ -1,5 +1,17 @@
 # CUDA 源码证据索引
 
+- 文档目的：解释 00-overview/evidence-index.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](../README.md)。
+- 后续阅读：[分析状态](analysis-state.md)。
+## 结论摘要
+
+本页聚焦 00-overview/evidence-index.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
 本索引列出当前知识库反复使用的关键源码证据。路径均相对于 `source/cuda`；“静态确认”表示已阅读源码文本，不表示构建或运行成功。
 
 ## 版本、入口与构建
@@ -49,6 +61,9 @@
 - `[src/cui/cuifunc.c:2501-2637,2803-2985]`：function resource merge、参数 packing/validation。
 - `[src/cui/cuijitlink.c:79-142,219-255,360-402]`：JIT link state、输入副本、finish/destroy。
 - `[src/cui/cuigraph.c:3304-3492,4056-4162]`：graph instantiate 多 context 锁、QMD 注册、launch/marker/UVM rollback。
+- `[src/cui/cuigraph.c:2692-2923]`：graph 拓扑排序、scheduling group、pushbuffer/QMD chaining/scheduler 选择和 QMD cache。
+- `[src/cui/cuigraph.c:1835-1933,1949-2141]`：per-context QMD/constant-bank/HAL staging、internal stream、scheduler device-node backing 和参数 finalize。
+- `[src/cui/cuigraph.c:3495-3898]`：kernel group push、memory tracking、QMD patch/finalize、节点 marker wait 和 completion 汇聚。
 - `[src/cui/cuigraph.c:1835-1933,2054-2141]`：per-context QMD/constant-bank、internal stream、scheduler host/device backing 和 node instantiate。
 - `[src/cui/cuigraph.c:1035-1064,1093-1205]`：graph exec 资源 teardown、stream detach、QMD/constant-bank/marker/memobj 释放。
 - `[src/cui/cuigraph.c:3457-3492,4116-4157]`：instantiate/launch 错误路径中的锁数组和 API stream 恢复静态疑点。
@@ -98,3 +113,17 @@
 - 读到的源码只能证明静态控制流、字段和分支；不能证明 GPU 行为、硬件兼容性或最终生成物正确。
 - 生成的 `.c`、`.bin`、`.cubin`、`.exe`、SASS 和历史实验资料用于边界或回归线索，不替代手写源码证据。
 - 外部 common、resman/RM、compiler/gpgpucomp、firmware 和 nvmake 配置未完整纳入，涉及这些边界时使用“未知/未验证”。
+
+## 相关文档
+- [项目入口](../README.md)
+- [分析状态](analysis-state.md)
+- [源码证据索引](evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

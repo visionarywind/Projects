@@ -2,10 +2,14 @@
 
 - 文档目的：为未参与过 LevelDB 的开发者提供可追溯的架构、代码、构建、调试和扩展入口。
 - 适用范围：仓库 `main` 在提交 `7ee830d02b623e8ffe0b95d59a74db1e58da04c5` 的源码；项目版本 `1.23.0`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：核心源码和 Linux Debug 验证已确认；未执行的 Release、Sanitizer、跨平台和故障注入实验明确标注。
 - 最后更新：2026-09-10
 - 前置阅读：无
 - 后续阅读：[5 分钟项目概览](00-overview/project-overview.md)、[阅读指南](99-roadmap/reading-guide.md)
+## 结论摘要
+
+本页聚焦 README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 一句话介绍
 
@@ -94,6 +98,162 @@ CMake 默认打开测试、基准和安装选项（[CMakeLists.txt:32-34](../sou
 当前已完成仓库盘点、目标版本确认、总体模型、模块划分、全部标准模块文档、八条端到端深度链路，以及 Linux Debug 构建验证。最新静态检查覆盖 117 个 Markdown 文件、1212 个相对链接（断链 0）、源码锚点越界 0；`git diff --check` 无输出。深度文档使用的函数控制流、锁边界、引用动作和错误出口已由源码核对；CTest 聚合目标和有限 benchmark 已实际运行。
 
 本机已完成 Debug configure、build、CTest 和有限 benchmark；本轮 CTest 的 3 个目标全部通过。此前本地 prefix install 也已完成。Release/RelWithDebInfo、Sanitizer、fault injection、跨平台构建、D01 各 filter 的独立记录和生产性能基线仍未验证。没有运行服务或修改 LevelDB 源码。
+
+## 文档元数据（规范补充）
+
+- 文档目的：说明 `README.md` 的源码分析范围、结论和维护入口。
+- 适用范围：当前项目对应模块/入口的静态源码与测试分析。
+- 对应源码版本：以本项目 `00-overview/analysis-state.md` 或同页版本字段为准。
+- 证据状态：静态源码证据；未执行的构建、测试、GPU、网络或多进程行为保持“未验证”。
+- 最后更新：2026-09-15
+- 前置阅读：本项目根 README 与 `00-overview/analysis-state.md`。
+- 后续阅读：本模块/示例的实现、测试和风险页面。
+
+## 全文档索引
+
+### 00-overview
+- [00-overview/analysis-state.md](00-overview/analysis-state.md)
+- [00-overview/architecture.md](00-overview/architecture.md)
+- [00-overview/build-and-deploy.md](00-overview/build-and-deploy.md)
+- [00-overview/decision-log.md](00-overview/decision-log.md)
+- [00-overview/dependency-map.md](00-overview/dependency-map.md)
+- [00-overview/design-principles.md](00-overview/design-principles.md)
+- [00-overview/evidence-index.md](00-overview/evidence-index.md)
+- [00-overview/global-data-flow.md](00-overview/global-data-flow.md)
+- [00-overview/global-error-model.md](00-overview/global-error-model.md)
+- [00-overview/glossary.md](00-overview/glossary.md)
+- [00-overview/project-overview.md](00-overview/project-overview.md)
+- [00-overview/runtime-model.md](00-overview/runtime-model.md)
+
+### 01-modules
+- [01-modules/M01-public-api/README.md](01-modules/M01-public-api/README.md)
+- [01-modules/M01-public-api/call-chains.md](01-modules/M01-public-api/call-chains.md)
+- [01-modules/M01-public-api/data-structures.md](01-modules/M01-public-api/data-structures.md)
+- [01-modules/M01-public-api/design.md](01-modules/M01-public-api/design.md)
+- [01-modules/M01-public-api/development-guide.md](01-modules/M01-public-api/development-guide.md)
+- [01-modules/M01-public-api/diagrams.md](01-modules/M01-public-api/diagrams.md)
+- [01-modules/M01-public-api/examples.md](01-modules/M01-public-api/examples.md)
+- [01-modules/M01-public-api/interfaces.md](01-modules/M01-public-api/interfaces.md)
+- [01-modules/M01-public-api/line-level-analysis.md](01-modules/M01-public-api/line-level-analysis.md)
+- [01-modules/M01-public-api/risks-and-debt.md](01-modules/M01-public-api/risks-and-debt.md)
+- [01-modules/M01-public-api/source-map.md](01-modules/M01-public-api/source-map.md)
+- [01-modules/M01-public-api/testing.md](01-modules/M01-public-api/testing.md)
+- [01-modules/M02-db-coordinator/README.md](01-modules/M02-db-coordinator/README.md)
+- [01-modules/M02-db-coordinator/call-chains.md](01-modules/M02-db-coordinator/call-chains.md)
+- [01-modules/M02-db-coordinator/data-structures.md](01-modules/M02-db-coordinator/data-structures.md)
+- [01-modules/M02-db-coordinator/design.md](01-modules/M02-db-coordinator/design.md)
+- [01-modules/M02-db-coordinator/development-guide.md](01-modules/M02-db-coordinator/development-guide.md)
+- [01-modules/M02-db-coordinator/diagrams.md](01-modules/M02-db-coordinator/diagrams.md)
+- [01-modules/M02-db-coordinator/examples.md](01-modules/M02-db-coordinator/examples.md)
+- [01-modules/M02-db-coordinator/interfaces.md](01-modules/M02-db-coordinator/interfaces.md)
+- [01-modules/M02-db-coordinator/line-level-analysis.md](01-modules/M02-db-coordinator/line-level-analysis.md)
+- [01-modules/M02-db-coordinator/risks-and-debt.md](01-modules/M02-db-coordinator/risks-and-debt.md)
+- [01-modules/M02-db-coordinator/source-map.md](01-modules/M02-db-coordinator/source-map.md)
+- [01-modules/M02-db-coordinator/testing.md](01-modules/M02-db-coordinator/testing.md)
+- [01-modules/M03-wal-memtable/README.md](01-modules/M03-wal-memtable/README.md)
+- [01-modules/M03-wal-memtable/call-chains.md](01-modules/M03-wal-memtable/call-chains.md)
+- [01-modules/M03-wal-memtable/data-structures.md](01-modules/M03-wal-memtable/data-structures.md)
+- [01-modules/M03-wal-memtable/design.md](01-modules/M03-wal-memtable/design.md)
+- [01-modules/M03-wal-memtable/development-guide.md](01-modules/M03-wal-memtable/development-guide.md)
+- [01-modules/M03-wal-memtable/diagrams.md](01-modules/M03-wal-memtable/diagrams.md)
+- [01-modules/M03-wal-memtable/examples.md](01-modules/M03-wal-memtable/examples.md)
+- [01-modules/M03-wal-memtable/interfaces.md](01-modules/M03-wal-memtable/interfaces.md)
+- [01-modules/M03-wal-memtable/line-level-analysis.md](01-modules/M03-wal-memtable/line-level-analysis.md)
+- [01-modules/M03-wal-memtable/risks-and-debt.md](01-modules/M03-wal-memtable/risks-and-debt.md)
+- [01-modules/M03-wal-memtable/source-map.md](01-modules/M03-wal-memtable/source-map.md)
+- [01-modules/M03-wal-memtable/testing.md](01-modules/M03-wal-memtable/testing.md)
+- [01-modules/M04-version-compaction/README.md](01-modules/M04-version-compaction/README.md)
+- [01-modules/M04-version-compaction/call-chains.md](01-modules/M04-version-compaction/call-chains.md)
+- [01-modules/M04-version-compaction/data-structures.md](01-modules/M04-version-compaction/data-structures.md)
+- [01-modules/M04-version-compaction/design.md](01-modules/M04-version-compaction/design.md)
+- [01-modules/M04-version-compaction/development-guide.md](01-modules/M04-version-compaction/development-guide.md)
+- [01-modules/M04-version-compaction/diagrams.md](01-modules/M04-version-compaction/diagrams.md)
+- [01-modules/M04-version-compaction/examples.md](01-modules/M04-version-compaction/examples.md)
+- [01-modules/M04-version-compaction/interfaces.md](01-modules/M04-version-compaction/interfaces.md)
+- [01-modules/M04-version-compaction/line-level-analysis.md](01-modules/M04-version-compaction/line-level-analysis.md)
+- [01-modules/M04-version-compaction/risks-and-debt.md](01-modules/M04-version-compaction/risks-and-debt.md)
+- [01-modules/M04-version-compaction/source-map.md](01-modules/M04-version-compaction/source-map.md)
+- [01-modules/M04-version-compaction/testing.md](01-modules/M04-version-compaction/testing.md)
+- [01-modules/M05-sstable-table/README.md](01-modules/M05-sstable-table/README.md)
+- [01-modules/M05-sstable-table/call-chains.md](01-modules/M05-sstable-table/call-chains.md)
+- [01-modules/M05-sstable-table/data-structures.md](01-modules/M05-sstable-table/data-structures.md)
+- [01-modules/M05-sstable-table/design.md](01-modules/M05-sstable-table/design.md)
+- [01-modules/M05-sstable-table/development-guide.md](01-modules/M05-sstable-table/development-guide.md)
+- [01-modules/M05-sstable-table/diagrams.md](01-modules/M05-sstable-table/diagrams.md)
+- [01-modules/M05-sstable-table/examples.md](01-modules/M05-sstable-table/examples.md)
+- [01-modules/M05-sstable-table/implementation.md](01-modules/M05-sstable-table/implementation.md)
+- [01-modules/M05-sstable-table/interfaces.md](01-modules/M05-sstable-table/interfaces.md)
+- [01-modules/M05-sstable-table/line-level-analysis.md](01-modules/M05-sstable-table/line-level-analysis.md)
+- [01-modules/M05-sstable-table/risks-and-debt.md](01-modules/M05-sstable-table/risks-and-debt.md)
+- [01-modules/M05-sstable-table/source-map.md](01-modules/M05-sstable-table/source-map.md)
+- [01-modules/M05-sstable-table/testing.md](01-modules/M05-sstable-table/testing.md)
+- [01-modules/M06-env-platform/README.md](01-modules/M06-env-platform/README.md)
+- [01-modules/M06-env-platform/call-chains.md](01-modules/M06-env-platform/call-chains.md)
+- [01-modules/M06-env-platform/data-structures.md](01-modules/M06-env-platform/data-structures.md)
+- [01-modules/M06-env-platform/design.md](01-modules/M06-env-platform/design.md)
+- [01-modules/M06-env-platform/development-guide.md](01-modules/M06-env-platform/development-guide.md)
+- [01-modules/M06-env-platform/diagrams.md](01-modules/M06-env-platform/diagrams.md)
+- [01-modules/M06-env-platform/examples.md](01-modules/M06-env-platform/examples.md)
+- [01-modules/M06-env-platform/implementation.md](01-modules/M06-env-platform/implementation.md)
+- [01-modules/M06-env-platform/interfaces.md](01-modules/M06-env-platform/interfaces.md)
+- [01-modules/M06-env-platform/line-level-analysis.md](01-modules/M06-env-platform/line-level-analysis.md)
+- [01-modules/M06-env-platform/risks-and-debt.md](01-modules/M06-env-platform/risks-and-debt.md)
+- [01-modules/M06-env-platform/source-map.md](01-modules/M06-env-platform/source-map.md)
+- [01-modules/M06-env-platform/testing.md](01-modules/M06-env-platform/testing.md)
+- [01-modules/M07-tests-build/README.md](01-modules/M07-tests-build/README.md)
+- [01-modules/M07-tests-build/call-chains.md](01-modules/M07-tests-build/call-chains.md)
+- [01-modules/M07-tests-build/data-structures.md](01-modules/M07-tests-build/data-structures.md)
+- [01-modules/M07-tests-build/design.md](01-modules/M07-tests-build/design.md)
+- [01-modules/M07-tests-build/development-guide.md](01-modules/M07-tests-build/development-guide.md)
+- [01-modules/M07-tests-build/diagrams.md](01-modules/M07-tests-build/diagrams.md)
+- [01-modules/M07-tests-build/examples.md](01-modules/M07-tests-build/examples.md)
+- [01-modules/M07-tests-build/interfaces.md](01-modules/M07-tests-build/interfaces.md)
+- [01-modules/M07-tests-build/line-level-analysis.md](01-modules/M07-tests-build/line-level-analysis.md)
+- [01-modules/M07-tests-build/risks-and-debt.md](01-modules/M07-tests-build/risks-and-debt.md)
+- [01-modules/M07-tests-build/source-map.md](01-modules/M07-tests-build/source-map.md)
+- [01-modules/M07-tests-build/testing.md](01-modules/M07-tests-build/testing.md)
+- [01-modules/module-registry.md](01-modules/module-registry.md)
+
+### 80-demos
+- [80-demos/D01-dbtest-lifecycle/README.md](80-demos/D01-dbtest-lifecycle/README.md)
+- [80-demos/D01-dbtest-lifecycle/build-and-run.md](80-demos/D01-dbtest-lifecycle/build-and-run.md)
+- [80-demos/D01-dbtest-lifecycle/data-and-state-trace.md](80-demos/D01-dbtest-lifecycle/data-and-state-trace.md)
+- [80-demos/D01-dbtest-lifecycle/debug-walkthrough.md](80-demos/D01-dbtest-lifecycle/debug-walkthrough.md)
+- [80-demos/D01-dbtest-lifecycle/execution-trace.md](80-demos/D01-dbtest-lifecycle/execution-trace.md)
+- [80-demos/D01-dbtest-lifecycle/failure-paths.md](80-demos/D01-dbtest-lifecycle/failure-paths.md)
+- [80-demos/D01-dbtest-lifecycle/modification-exercises.md](80-demos/D01-dbtest-lifecycle/modification-exercises.md)
+- [80-demos/demo-registry.md](80-demos/demo-registry.md)
+
+### 90-cross-module
+- [90-cross-module/change-impact-map.md](90-cross-module/change-impact-map.md)
+- [90-cross-module/configuration-impact-map.md](90-cross-module/configuration-impact-map.md)
+- [90-cross-module/cross-module-call-chains.md](90-cross-module/cross-module-call-chains.md)
+- [90-cross-module/end-to-end-flows.md](90-cross-module/end-to-end-flows.md)
+- [90-cross-module/end-to-end-traces.md](90-cross-module/end-to-end-traces.md)
+- [90-cross-module/error-boundaries.md](90-cross-module/error-boundaries.md)
+- [90-cross-module/interface-contracts.md](90-cross-module/interface-contracts.md)
+- [90-cross-module/performance-critical-paths.md](90-cross-module/performance-critical-paths.md)
+- [90-cross-module/pooling-and-resource-management.md](90-cross-module/pooling-and-resource-management.md)
+- [90-cross-module/runtime-trace.md](90-cross-module/runtime-trace.md)
+- [90-cross-module/shared-data-and-types.md](90-cross-module/shared-data-and-types.md)
+- [90-cross-module/system-wiring.md](90-cross-module/system-wiring.md)
+
+### 99-roadmap
+- [99-roadmap/debugging-guide.md](99-roadmap/debugging-guide.md)
+- [99-roadmap/feature-development-recipes.md](99-roadmap/feature-development-recipes.md)
+- [99-roadmap/next-steps.md](99-roadmap/next-steps.md)
+- [99-roadmap/performance-guide.md](99-roadmap/performance-guide.md)
+- [99-roadmap/quick-start.md](99-roadmap/quick-start.md)
+- [99-roadmap/reading-guide.md](99-roadmap/reading-guide.md)
+- [99-roadmap/risk-register.md](99-roadmap/risk-register.md)
+- [99-roadmap/technical-debt.md](99-roadmap/technical-debt.md)
+- [99-roadmap/testing-recipes.md](99-roadmap/testing-recipes.md)
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `README.md` | 已完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已映射或不适用 | 部分完成：动态行为、边界或专用变体仍需验证 |
 
 ## 相关文档
 

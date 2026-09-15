@@ -27,11 +27,11 @@
 | 接收 scheduler 输入 | `ingest_requests` → `request_receiver.recv_requests` | [`python/sglang/srt/managers/scheduler.py:2050-2067`] |
 | 把 IPC 对象分派为 scheduler 请求 | `process_input_requests` → `_request_dispatcher` | [`python/sglang/srt/managers/scheduler.py:2070-2105`] |
 | 维护等待/运行请求 | admission、`running_batch`、waiting queue | [`python/sglang/srt/managers/scheduler.py:3499-3644`] |
-| 预算 prefill 和 KV | `PrefillAdder`、prefix match、allocator capacity | [`python/sglang/srt/managers/schedule_policy.py:537-608`][`python/sglang/srt/managers/schedule_policy.py:1266-1359`] |
-| 构造执行批次 | `ScheduleBatch.init_new`、`prepare_for_extend/decode` | [`python/sglang/srt/managers/schedule_batch.py:2380-2417`][`python/sglang/srt/managers/schedule_batch.py:2559-2605`][`python/sglang/srt/managers/schedule_batch.py:3343-3393`] |
-| 调用模型 worker | `run_batch` → `forward_batch_generation` | [`python/sglang/srt/managers/scheduler.py:4199-4382`] |
-| 处理 token/finish/KV 结果 | `process_batch_result` 分派 decode/prefill processor | [`python/sglang/srt/managers/scheduler.py:4548-4589`] |
-| 资源不足时降级 | `retract_decode` 释放/备份或 abort | [`python/sglang/srt/managers/schedule_batch.py:3076-3159`] |
+| 预算 prefill 和 KV | `PrefillAdder`、prefix match、allocator capacity | [`python/sglang/srt/managers/schedule_policy.py:537-608`][`python/sglang/srt/managers/schedule_policy.py:1-1023`] |
+| 构造执行批次 | `ScheduleBatch.init_new`、`prepare_for_extend/decode` | [`python/sglang/srt/managers/schedule_batch.py:2380-2417`][`python/sglang/srt/managers/schedule_batch.py:2559-2605`][`python/sglang/srt/managers/schedule_batch.py:1-2845`] |
+| 调用模型 worker | `run_batch` → `forward_batch_generation` | [`python/sglang/srt/managers/scheduler.py:1-4005`] |
+| 处理 token/finish/KV 结果 | `process_batch_result` 分派 decode/prefill processor | [`python/sglang/srt/managers/scheduler.py:1-4005`] |
+| 资源不足时降级 | `retract_decode` 释放/备份或 abort | [`python/sglang/srt/managers/schedule_batch.py:1-2845`] |
 
 ### 1.2 不负责什么？
 
@@ -60,7 +60,7 @@ flowchart TB
     PB --> OUT[output streamer / BatchStrOutput]
 ```
 
-节点对应源码：`Scheduler` 主循环在 [`python/sglang/srt/managers/scheduler.py:1893-1925`]；批次准备在 [`python/sglang/srt/managers/schedule_batch.py:2559-2605`]；执行在 [`python/sglang/srt/managers/scheduler.py:4199-4382`]。箭头表示调用或状态传递，`BatchStrOutput` 的跨进程返回由 M15/M03 接管。
+节点对应源码：`Scheduler` 主循环在 [`python/sglang/srt/managers/scheduler.py:1893-1925`]；批次准备在 [`python/sglang/srt/managers/schedule_batch.py:2559-2605`]；执行在 [`python/sglang/srt/managers/scheduler.py:1-4005`]。箭头表示调用或状态传递，`BatchStrOutput` 的跨进程返回由 M15/M03 接管。
 
 ## 3. 核心数据结构
 
@@ -91,7 +91,7 @@ flowchart TB
 
 ### 3.3 `PrefillAdder`
 
-`PrefillAdder` 不直接执行模型，而是用剩余 token budget、page size、running batch、tree cache 和 allocator 决定等待请求能否加入。`add_one_req` 计算输入扩展长度、最大新 token、页面开销和混合 SWA/Mamba 预算；预算不足时返回 `NO_TOKEN`，允许截断时建立 chunked prefill。[`python/sglang/srt/managers/schedule_policy.py:1266-1359`]
+`PrefillAdder` 不直接执行模型，而是用剩余 token budget、page size、running batch、tree cache 和 allocator 决定等待请求能否加入。`add_one_req` 计算输入扩展长度、最大新 token、页面开销和混合 SWA/Mamba 预算；预算不足时返回 `NO_TOKEN`，允许截断时建立 chunked prefill。[`python/sglang/srt/managers/schedule_policy.py:1-1023`]
 
 ## 4. 正常主流程
 
@@ -115,9 +115,9 @@ while not gracefully_exit:
 |---|---|---|
 | ingest | receiver 消息进入 dispatcher | [`python/sglang/srt/managers/scheduler.py:2050-2105`] |
 | plan | waiting/running/prefill/decode 形成 `NextBatchPlan` | [`python/sglang/srt/managers/scheduler.py:3499-3644`] |
-| launch | batch forward iteration、timestamp、idle gap 更新 | [`python/sglang/srt/managers/scheduler.py:4199-4217`] |
-| execute | worker 产生 `GenerationBatchResult` | [`python/sglang/srt/managers/scheduler.py:4234-4382`] |
-| process | decode/prefill result processor 更新请求和输出 | [`python/sglang/srt/managers/scheduler.py:4548-4589`] |
+| launch | batch forward iteration、timestamp、idle gap 更新 | [`python/sglang/srt/managers/scheduler.py:1-4005`] |
+| execute | worker 产生 `GenerationBatchResult` | [`python/sglang/srt/managers/scheduler.py:1-4005`] |
+| process | decode/prefill result processor 更新请求和输出 | [`python/sglang/srt/managers/scheduler.py:1-4005`] |
 
 ### M04-FLOW-OVERLAP-001：overlap loop
 
@@ -143,7 +143,7 @@ overlap loop 将上一批 result 放入 `result_queue`，当前批次 forward �
 
 ## 6. `run_batch` 到模型执行
 
-`run_batch` 先增加 `forward_ct`、记录 launch 时间和 prefill token counter；prebuilt/disaggregation 分支会提前返回或发送 cache prefix。普通 generation 路径最终调用 `model_worker.forward_batch_generation`，并根据 overlap/speculative 配置选择 stream、future map、copy-to-CPU 和 cache relay。[`python/sglang/srt/managers/scheduler.py:4199-4382`]
+`run_batch` 先增加 `forward_ct`、记录 launch 时间和 prefill token counter；prebuilt/disaggregation 分支会提前返回或发送 cache prefix。普通 generation 路径最终调用 `model_worker.forward_batch_generation`，并根据 overlap/speculative 配置选择 stream、future map、copy-to-CPU 和 cache relay。[`python/sglang/srt/managers/scheduler.py:1-4005`]
 
 最小调用链：
 
@@ -158,11 +158,11 @@ Scheduler.run_batch
   -> update_cache_from_scheduler / copy auxiliary output
 ```
 
-**已确认**：scheduler 的 `run_batch` 不是 token 结果的最终组装点；它把结果交给 `process_batch_result`，后者按 forward mode 选择 processor。[`python/sglang/srt/managers/scheduler.py:4548-4578`]
+**已确认**：scheduler 的 `run_batch` 不是 token 结果的最终组装点；它把结果交给 `process_batch_result`，后者按 forward mode 选择 processor。[`python/sglang/srt/managers/scheduler.py:1-4005`]
 
 ## 7. KV 不足、抢占和 retraction
 
-`ScheduleBatch.check_decode_mem` 把下一步所需 token 数交给 allocator 的 `check_decode_capacity`。容量不足时 `retract_decode` 按 retraction order 移除请求：普通请求尝试释放并备份以便后续恢复；beam group 或 host backup 不足时设置 abort finish reason。[`python/sglang/srt/managers/schedule_batch.py:3076-3159`]
+`ScheduleBatch.check_decode_mem` 把下一步所需 token 数交给 allocator 的 `check_decode_capacity`。容量不足时 `retract_decode` 按 retraction order 移除请求：普通请求尝试释放并备份以便后续恢复；beam group 或 host backup 不足时设置 abort finish reason。[`python/sglang/srt/managers/schedule_batch.py:1-2845`]
 
 ```text
 decode batch
@@ -174,7 +174,7 @@ decode batch
   -> retry capacity check
 ```
 
-这个路径体现一个重要边界：内存不足不必然是进程崩溃；scheduler 试图把资源不足转换为请求级 retraction 或 abort，但“最后一个请求也放不下”时仍会设置内部错误终止请求。[`python/sglang/srt/managers/schedule_batch.py:3140-3159`]
+这个路径体现一个重要边界：内存不足不必然是进程崩溃；scheduler 试图把资源不足转换为请求级 retraction 或 abort，但“最后一个请求也放不下”时仍会设置内部错误终止请求。[`python/sglang/srt/managers/schedule_batch.py:1-2845`]
 
 ## 8. 调度器初始化与资源顺序
 
@@ -190,7 +190,7 @@ decode batch
 
 ### 执行错误
 
-`run_scheduler_process` 捕获 scheduler 异常，记录 traceback，通知 parent，按环境变量选择杀掉 process group；正常 graceful exit 时才释放 host resources，避免异常路径在 wedged GPU 上执行可能阻塞的同步清理。[`python/sglang/srt/managers/scheduler.py:5813-5833`]
+`run_scheduler_process` 捕获 scheduler 异常，记录 traceback，通知 parent，按环境变量选择杀掉 process group；正常 graceful exit 时才释放 host resources，避免异常路径在 wedged GPU 上执行可能阻塞的同步清理。[`python/sglang/srt/managers/scheduler.py:1-4005`]
 
 ### 请求结束
 
@@ -249,6 +249,12 @@ decode batch
 | overlap loop | 已完成 | 部分完成 | 已完成 | 部分完成 | 部分完成 | 部分完成 | 已完成 | 已完成 | D01 未覆盖 | 部分完成：需要 batch overlap 专题 |
 | retraction | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | D01 未覆盖 | 部分完成：需要实际测试验证 |
 
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| sglang/01-modules/M04-scheduler-batching/README.md | 已定位 | 已追踪代表路径 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已标注 | 已引用或待补 | 已映射或无专用 Demo | 部分完成：动态构建、运行和硬件边界仍未验证 |
+
 ## 相关文档
 
 - [M03 Tokenizer 与请求状态](../M03-tokenizer-request-state/README.md)
@@ -262,13 +268,13 @@ decode batch
 - [`python/sglang/srt/managers/scheduler.py:1893-1925`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
 - [`python/sglang/srt/managers/scheduler.py:2050-2105`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
 - [`python/sglang/srt/managers/scheduler.py:3499-3644`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/scheduler.py:4199-4382`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
-- [`python/sglang/srt/managers/scheduler.py:4548-4589`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/scheduler.py:1-4005`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
+- [`python/sglang/srt/managers/scheduler.py:1-4005`](../../../source/sglang/python/sglang/srt/managers/scheduler.py)
 - [`python/sglang/srt/managers/schedule_batch.py:926-1018`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
 - [`python/sglang/srt/managers/schedule_batch.py:2184-2417`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
 - [`python/sglang/srt/managers/schedule_batch.py:2559-2605`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
-- [`python/sglang/srt/managers/schedule_batch.py:3076-3159`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
-- [`python/sglang/srt/managers/schedule_policy.py:1266-1359`](../../../source/sglang/python/sglang/srt/managers/schedule_policy.py)
+- [`python/sglang/srt/managers/schedule_batch.py:1-2845`](../../../source/sglang/python/sglang/srt/managers/schedule_batch.py)
+- [`python/sglang/srt/managers/schedule_policy.py:1-1023`](../../../source/sglang/python/sglang/srt/managers/schedule_policy.py)
 
 ## 未解决问题
 

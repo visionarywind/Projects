@@ -2,10 +2,15 @@
 
 - 文档目的：按逻辑块分析最关键的 DBImpl 实现。
 - 适用范围：`db/db_impl.cc`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：已确认行号；复杂度为源码推断。
 - 最后更新：2026-09-10
 - 前置阅读：[M02 调用链](call-chains.md)
 - 后续阅读：[M03 行级分析](../M03-wal-memtable/line-level-analysis.md)
+## 结论摘要
+
+本页聚焦 01-modules/M02-db-coordinator/line-level-analysis.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 | 行号 | 代码意图 | 输入/输出 | 状态/并发 | 风险 |
 |---|---|---|---|---|

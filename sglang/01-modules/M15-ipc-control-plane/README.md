@@ -1,9 +1,19 @@
 # M15 多进程与 IPC 控制面
 
 - 文档目的：解释 SGLang 如何组装 TokenizerManager、Scheduler、Detokenizer 的进程拓扑，如何分配并传输 IPC 地址，以及请求、结果、abort、ready 和 shutdown 如何跨边界流动。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/sglang HEAD 78be4b50af（2026-09-15 只读确认）。
+- 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
+- 最后更新：2026-09-15
+- 前置阅读：[M01 CLI 与服务启动](../M01-cli-service-startup/README.md)、[M03 Tokenizer 与请求状态](../M03-tokenizer-request-state/README.md)、[多进程与 IPC（请求流程）](../../02-request-flow/06-多进程与IPC.md)。
+- 后续阅读：[分析状态](../../00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 01-modules/M15-ipc-control-plane/README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
 - 证据 checkout：`/home/mtuser/workspace/repos/Github/sglang`。
 - 证据版本：以该 checkout 当前 `main` 为准；本文只做源码分析，不把 GPU 服务、模型加载或多卡通信当作已运行验证。
-- 前置阅读：[M01 CLI 与服务启动](../M01-cli-service-startup/README.md)、[M03 Tokenizer 与请求状态](../M03-tokenizer-request-state/README.md)、[多进程与 IPC（请求流程）](../../02-request-flow/06-多进程与IPC.md)。
 - 相关模块：[M04 Scheduler 与连续批处理](../M04-scheduler-batching/README.md)、[M05 模型执行](../M05-model-execution/README.md)、[M02 HTTP/API 与协议](../M02-http-api-protocol/README.md)。
 
 ## 1. 一句话模型
@@ -183,7 +193,7 @@ send_to_scheduler = PUSH(scheduler_input_ipc_name)
 - retraction count、weight versions、token steps、customized info；
 - optional multimodal token counts、speculative decoding 统计和 DP rank。[`python/sglang/srt/managers/io_struct.py:1531-1622`]
 
-`AbortReq` 是反向控制消息，携带 `rid`、`abort_all`、`finished_reason`、`abort_message` 和 weight-version 信息；`ShutdownReq` 是广播到各 TP rank 的终止消息。[`python/sglang/srt/managers/io_struct.py:2042-2054`][`python/sglang/srt/managers/io_struct.py:2151-2158`]
+`AbortReq` 是反向控制消息，携带 `rid`、`abort_all`、`finished_reason`、`abort_message` 和 weight-version 信息；`ShutdownReq` 是广播到各 TP rank 的终止消息。[`python/sglang/srt/managers/io_struct.py:2042-2054`][`python/sglang/srt/managers/io_struct.py:1-2149`]
 
 ### 5.3 msgpack 与 pickle fallback
 
@@ -232,7 +242,7 @@ Scheduler 和 ModelRunner 的 admission/forward 细节属于 M04/M05；M15 只�
 
 ### 7.1 startup pipe 的语义
 
-每个 scheduler process 创建后，`run_scheduler_process` 构造 Scheduler，调用 `scheduler.get_init_info()` 写入 `pipe_writer`，再进入阻塞 event loop。[`python/sglang/srt/entrypoints/engine.py:5744-5812`]
+每个 scheduler process 创建后，`run_scheduler_process` 构造 Scheduler，调用 `scheduler.get_init_info()` 写入 `pipe_writer`，再进入阻塞 event loop。[`python/sglang/srt/entrypoints/engine.py:1-1349`]
 
 父进程的 `SchedulerInitResult.wait_for_ready` 调用 `_wait_for_scheduler_ready`，收集 scheduler info；只有等 ready 后，Engine 才设置 startup time、启动 watchdog 并把 runtime 交给上层。[`python/sglang/srt/entrypoints/engine.py:938-965`][`python/sglang/srt/entrypoints/engine.py:1237-1259`]
 
@@ -261,11 +271,11 @@ PUSH 发送成功只表示消息进入 ZMQ 的发送路径，不代表 scheduler
 
 ### 8.1 请求级 abort
 
-当 handler 在 dispatch 前失败时，`_release_req_states_on_failure` 删除未投递的本地 state；已经 dispatch 的请求则发送 abort，并保留 state 等 scheduler 回应清理。[`python/sglang/srt/managers/tokenizer_manager.py:3508-3528`]
+当 handler 在 dispatch 前失败时，`_release_req_states_on_failure` 删除未投递的本地 state；已经 dispatch 的请求则发送 abort，并保留 state 等 scheduler 回应清理。[`python/sglang/srt/managers/tokenizer_manager.py:1-2816`]
 
-Scheduler 的 `abort_request` 会从 waiting queue 删除匹配请求，释放相应请求资源，并通过 `send_to_tokenizer` 发送 abort output；对于已进入执行或特殊 disaggregation 状态的请求，还会走对应的 KV/metadata/receiver 清理。[`python/sglang/srt/managers/scheduler.py:5171-5217`]
+Scheduler 的 `abort_request` 会从 waiting queue 删除匹配请求，释放相应请求资源，并通过 `send_to_tokenizer` 发送 abort output；对于已进入执行或特殊 disaggregation 状态的请求，还会走对应的 KV/metadata/receiver 清理。[`python/sglang/srt/managers/scheduler.py:1-4005`]
 
-TokenizerManager 收到 abort echo 后，会处理“正常完成和 abort 同时到达”的竞态：若 `rid_to_state` 已被完成路径删除，则记录并忽略该 echo；否则构造带 finish reason 的最终输出。[`python/sglang/srt/managers/tokenizer_manager.py:3247-3299`]
+TokenizerManager 收到 abort echo 后，会处理“正常完成和 abort 同时到达”的竞态：若 `rid_to_state` 已被完成路径删除，则记录并忽略该 echo；否则构造带 finish reason 的最终输出。[`python/sglang/srt/managers/tokenizer_manager.py:1-2816`]
 
 ### 8.2 子进程异常
 
@@ -274,9 +284,9 @@ Scheduler 进程异常时：
 1. 记录 traceback；
 2. 向 parent 发送 `SIGQUIT`；
 3. 可选地通过 `SGLANG_KILLPG_ON_SCHEDULER_EXCEPTION` kill process group；
-4. graceful exit 时才调用 `release_host_resources`，避免异常状态下可能阻塞的同步清理。[`python/sglang/srt/managers/scheduler.py:5744-5833`]
+4. graceful exit 时才调用 `release_host_resources`，避免异常状态下可能阻塞的同步清理。[`python/sglang/srt/managers/scheduler.py:1-4005`]
 
-Detokenizer 异常时记录 traceback，清理 multi-worker socket mapping（若已创建），然后向 parent 发送 `SIGQUIT`。[`python/sglang/srt/managers/detokenizer_manager.py:539-563`]
+Detokenizer 异常时记录 traceback，清理 multi-worker socket mapping（若已创建），然后向 parent 发送 `SIGQUIT`。[`python/sglang/srt/managers/detokenizer_manager.py:1-437`]
 
 这是一种“子进程主动通知 + 主进程统一收尾”的模型；SIGQUIT 本身不是请求级错误 envelope。
 
@@ -293,9 +303,9 @@ Detokenizer 异常时记录 traceback，清理 multi-worker socket mapping（若
   → sys.exit(0)
 ```
 
-[`python/sglang/srt/managers/tokenizer_manager.py:3197-3241`]
+[`python/sglang/srt/managers/tokenizer_manager.py:1-2816`]
 
-Scheduler 的 `handle_shutdown` 只设置 `gracefully_exit=True`，让 event loop 退出；`run_scheduler_process` 的 `finally` 再执行指标发布线程 teardown，并在 graceful path 释放 host resources。[`python/sglang/srt/managers/scheduler.py:5607-5610`][`python/sglang/srt/managers/scheduler.py:5810-5833`]
+Scheduler 的 `handle_shutdown` 只设置 `gracefully_exit=True`，让 event loop 退出；`run_scheduler_process` 的 `finally` 再执行指标发布线程 teardown，并在 graceful path 释放 host resources。[`python/sglang/srt/managers/scheduler.py:1-4005`][`python/sglang/srt/managers/scheduler.py:1-4005`]
 
 Engine 的 `shutdown` 还会停止 watchdog、关闭 RPC socket、优先终止 weight-cache daemons，最后调用 `kill_process_tree`；无论中间过程如何，`finally` 会关闭 multimodal processor 和 CUDA VMM feature transport。[`python/sglang/srt/entrypoints/engine.py:1273-1304`]
 
@@ -367,3 +377,33 @@ Detokenizer PUSH tokenizer
 | skip tokenizer | 输出对象路径、tokenizer 初始化假设、协议结果格式 |
 
 **已确认**：M15 不是“换一个 socket”这么局部的改动；它同时影响请求对象 schema、进程生命周期、状态所有权、异常传播和 GPU/CPU 资源释放。
+
+## 文档元数据（规范补充）
+
+- 文档目的：说明 `01-modules/M15-ipc-control-plane/README.md` 的源码分析范围、结论和维护入口。
+- 适用范围：当前项目对应模块/入口的静态源码与测试分析。
+- 对应源码版本：以本项目 `00-overview/analysis-state.md` 或同页版本字段为准。
+- 证据状态：静态源码证据；未执行的构建、测试、GPU、网络或多进程行为保持“未验证”。
+- 最后更新：2026-09-15
+- 前置阅读：本项目根 README 与 `00-overview/analysis-state.md`。
+- 后续阅读：本模块/示例的实现、测试和风险页面。
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `01-modules/M15-ipc-control-plane/README.md` | 已完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已映射或不适用 | 部分完成：动态行为、边界或专用变体仍需验证 |
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

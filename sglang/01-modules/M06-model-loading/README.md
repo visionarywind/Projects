@@ -1,8 +1,18 @@
 # M06 模型加载与权重路由
 
 - 文档目的：说明 ModelConfig/LoadConfig 如何选择模型架构、loader 和权重变换，并把 checkpoint 变成各并行 rank 可消费的参数。
-- 源码证据：`/home/mtuser/workspace/repos/Github/sglang` 当前 checkout。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/sglang HEAD 78be4b50af（2026-09-15 只读确认）。
 - 证据状态：初始化、权重路由和并行 barrier 已静态确认；真实 checkpoint、GPU 权重加载未验证。
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](../../README.md)。
+- 后续阅读：[分析状态](../../00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 01-modules/M06-model-loading/README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
+- 源码证据：`/home/mtuser/workspace/repos/Github/sglang` 当前 checkout。
 - 关联专题：[模型加载与并行初始化](../../03-model-loading/01-模型加载与并行初始化.md)、[M05 模型执行](../M05-model-execution/README.md)、[M07 分布式并行](../M07-分布式并行.md)。
 
 ## 1. 边界
@@ -55,7 +65,7 @@ ServerArgs
 | `ModelOptModelLoader` (`:3772-4040`) | ModelOpt 校准、导出或预量化 | ModelOpt workflow/flags |
 | `RunaiModelStreamerLoader` (`:4041-4281`) | Run:ai streamer | `LoadFormat.RUNAI_STREAMER` |
 
-`get_model_loader` 的当前分派顺序是源码中的显式优先级，而不是文件后缀猜测：先处理 `DUMMY` 和可调用的自定义 load format；随后处理 `auto-round-int8`；再根据 ModelOpt 配置决定是否进入 `ModelOptModelLoader`（`modelopt_fp4` 的 online 非预量化路径以及 Run:ai/remote-instance 会避开它）；之后依次检查 sharded state、presharded、bitsandbytes、GGUF、expert pack、layered、Flash RL、remote、remote-instance、private、Run:ai streamer 和 IPC cache，均未命中时返回 `DefaultModelLoader`。[`python/sglang/srt/model_loader/loader.py:4282-4417`]。因此同一个量化名字在不同 `load_format`、是否已经量化、是否存在 ModelOpt workflow 配置下可能进入不同 loader；精确判断必须同时查看 `LoadConfig` 和 `ModelConfig`。
+`get_model_loader` 的当前分派顺序是源码中的显式优先级，而不是文件后缀猜测：先处理 `DUMMY` 和可调用的自定义 load format；随后处理 `auto-round-int8`；再根据 ModelOpt 配置决定是否进入 `ModelOptModelLoader`（`modelopt_fp4` 的 online 非预量化路径以及 Run:ai/remote-instance 会避开它）；之后依次检查 sharded state、presharded、bitsandbytes、GGUF、expert pack、layered、Flash RL、remote、remote-instance、private、Run:ai streamer 和 IPC cache，均未命中时返回 `DefaultModelLoader`。[`python/sglang/srt/model_loader/loader.py:1-3368`]。因此同一个量化名字在不同 `load_format`、是否已经量化、是否存在 ModelOpt workflow 配置下可能进入不同 loader；精确判断必须同时查看 `LoadConfig` 和 `ModelConfig`。
 
 ## 3.1 `get_model_loader` 的实际优先级
 
@@ -68,7 +78,7 @@ ServerArgs
 5. 再按 `SHARDED_STATE`、`PRESHARDED`、`BITSANDBYTES`、`GGUF`、`EXPERT_PACK`、`LAYERED`、`FLASH_RL`、`REMOTE`、`REMOTE_INSTANCE`、`PRIVATE`、`RUNAI_STREAMER` 和 `IPC_CACHE` 分派；
 6. 其余情况回退到 `DefaultModelLoader`。
 
-因此同一个量化名称可能因“已量化/在线量化”“是否请求 ModelOpt workflow”以及 load format 而进入不同 loader；排查时应同时打印 `LoadConfig.load_format`、`ModelConfig.quantization` 和 ModelOpt workflow 字段。[`python/sglang/srt/model_loader/loader.py:4282-4416`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
+因此同一个量化名称可能因“已量化/在线量化”“是否请求 ModelOpt workflow”以及 load format 而进入不同 loader；排查时应同时打印 `LoadConfig.load_format`、`ModelConfig.quantization` 和 ModelOpt workflow 字段。[`python/sglang/srt/model_loader/loader.py:1-3368`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
 ## 3.2 `ModelConfig.from_server_args` 的配置投影
 
@@ -116,9 +126,9 @@ ModelRunner.initialize_model()
 
 ## 6. 模型专用权重入口：Llama/Qwen2
 
-Llama 和 Qwen2 都由 `load_weights` 根据 `SGLANG_ENABLE_WEIGHT_LOADER_V2` 在 legacy 路径与 `AutoWeightsLoader` 路径之间选择。legacy 路径在模型类中显式处理 PP layer range、跳过 rotary/projector 等 checkpoint 项、QKV/MLP stacked mapping 和参数 `weight_loader`；v2 路径把这些职责拆给 `filter_pp_weights`、walker 和 remap registry。[`python/sglang/srt/models/llama.py:662-740`][`python/sglang/srt/models/qwen2.py:615-691`]
+Llama 和 Qwen2 都由 `load_weights` 根据 `SGLANG_ENABLE_WEIGHT_LOADER_V2` 在 legacy 路径与 `AutoWeightsLoader` 路径之间选择。legacy 路径在模型类中显式处理 PP layer range、跳过 rotary/projector 等 checkpoint 项、QKV/MLP stacked mapping 和参数 `weight_loader`；v2 路径把这些职责拆给 `filter_pp_weights`、walker 和 remap registry。[`python/sglang/srt/models/llama.py:662-740`][`python/sglang/srt/models/qwen2.py:615-660`]
 
-当前 v2 的精确行为可由源码直接确认：Llama 的 `_load_weights_v2` 使用 FP8 suffix remap，并忽略 projector、vision tower、额外 bias 和旧 `.kv_scale`；Qwen2 使用相同的 PP/filter/skip 结构，并在 tied embedding 时把 `embed_tokens.weight` 复制到 `lm_head.weight`。[`python/sglang/srt/models/llama.py:742-774`][`python/sglang/srt/models/qwen2.py:692-729`]
+当前 v2 的精确行为可由源码直接确认：Llama 的 `_load_weights_v2` 使用 FP8 suffix remap，并忽略 projector、vision tower、额外 bias 和旧 `.kv_scale`；Qwen2 使用相同的 PP/filter/skip 结构，并在 tied embedding 时把 `embed_tokens.weight` 复制到 `lm_head.weight`。[`python/sglang/srt/models/llama.py:742-774`][`python/sglang/srt/models/qwen2.py:1-660`]
 
 ```text
 checkpoint iterator
@@ -169,17 +179,17 @@ checkpoint iterator
 
 ### Remote 与 RemoteInstance：传输层替代本地 checkpoint
 
-`RemoteModelLoader` 根据 connector 类型在 KV 和 FS 两条路径之间选择：KV connector 按 TP rank 取远端 weight iterator，并复用 state-dict copy、LoRA padding narrow 和 `_post_load_weights`；FS connector 则把远端 iterator 交给模型 `load_weights`，并在 quant post-process 时用 `device_loading_context` 临时把参数放到 target device。[`python/sglang/srt/model_loader/loader.py:3495-3510,3542-3591`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
+`RemoteModelLoader` 根据 connector 类型在 KV 和 FS 两条路径之间选择：KV connector 按 TP rank 取远端 weight iterator，并复用 state-dict copy、LoRA padding narrow 和 `_post_load_weights`；FS connector 则把远端 iterator 交给模型 `load_weights`，并在 quant post-process 时用 `device_loading_context` 临时把参数放到 target device。[`python/sglang/srt/model_loader/loader.py:1-3368,3542-3591`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
-`RemoteInstanceModelLoader` 先在本地 target device/meta 上创建空模型，再按 backend 分派：NCCL 建立 model-update group，由源实例广播每个 parameter，完成后销毁该 group；Transfer Engine 先注册模型 memory regions，再按 seed instance 的 session/metadata 传输；ModelExpress 则委托外部 `MxModelLoader`，缺少 `modelexpress` 依赖会立即报错。[`python/sglang/srt/model_loader/loader.py:3292-3378,3380-3427`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
+`RemoteInstanceModelLoader` 先在本地 target device/meta 上创建空模型，再按 backend 分派：NCCL 建立 model-update group，由源实例广播每个 parameter，完成后销毁该 group；Transfer Engine 先注册模型 memory regions，再按 seed instance 的 session/metadata 传输；ModelExpress 则委托外部 `MxModelLoader`，缺少 `modelexpress` 依赖会立即报错。[`python/sglang/srt/model_loader/loader.py:3292-3368,3380-3427`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
 这些 loader 的 `download_model` 不是普通本地下载语义：RemoteInstance 明确抛出 `NotImplementedError`，Remote 由 connector 自己提供数据；因此启动排障时应分别记录 connector type、source instance、TP rank、传输 session 和 post-load 是否执行，而不能只记录 model path。
 
 ### ModelOpt 与 Run:ai Streamer：workflow/streaming 的额外生命周期
 
-`ModelOptModelLoader.load_model` 对已经量化的模型直接复用父类加载；未量化时进入 standard workflow，先加载 base model，再解析 `modelopt_quant` 或 unified quantization 名称，取得 `mtq` 配置，最后由 `_setup_modelopt_quantization` 执行 restore、calibration、checkpoint save 和可选 HF export。当前 calibration 使用 ModelOpt dataset utility 创建 `cnn_dailymail` dataloader（batch size 36、512 samples）；ModelOpt 不可用、配置无效或 workflow 出错均是显式依赖/配置边界。[`python/sglang/srt/model_loader/loader.py:3772-3877,3942-4038`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
+`ModelOptModelLoader.load_model` 对已经量化的模型直接复用父类加载；未量化时进入 standard workflow，先加载 base model，再解析 `modelopt_quant` 或 unified quantization 名称，取得 `mtq` 配置，最后由 `_setup_modelopt_quantization` 执行 restore、calibration、checkpoint save 和可选 HF export。当前 calibration 使用 ModelOpt dataset utility 创建 `cnn_dailymail` dataloader（batch size 36、512 samples）；ModelOpt 不可用、配置无效或 workflow 出错均是显式依赖/配置边界。[`python/sglang/srt/model_loader/loader.py:1-3368,3942-4038`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
-`RunaiModelStreamerLoader` 将本地目录、Run:ai object-storage URI 或 HF 下载目录解析成 safetensors 文件集合，过滤 index 中未使用的重复 consolidated/sharded 文件；iterator 支持 distributed streaming、对象存储并发/内存配置，并在 draft worker 中只保留指定 MTP layer、重写为 layer 0。正式加载只接受 CUDA/CPU，通过 `DefaultModelLoader.load_weights_and_postprocess` 消费 primary 和 model 声明的 secondary sources；当前源码明确拒绝 ModelOpt quantization。[`python/sglang/srt/model_loader/loader.py:4041-4054,4088-4110,4112-4219,4221-4279`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
+`RunaiModelStreamerLoader` 将本地目录、Run:ai object-storage URI 或 HF 下载目录解析成 safetensors 文件集合，过滤 index 中未使用的重复 consolidated/sharded 文件；iterator 支持 distributed streaming、对象存储并发/内存配置，并在 draft worker 中只保留指定 MTP layer、重写为 layer 0。正式加载只接受 CUDA/CPU，通过 `DefaultModelLoader.load_weights_and_postprocess` 消费 primary 和 model 声明的 secondary sources；当前源码明确拒绝 ModelOpt quantization。[`python/sglang/srt/model_loader/loader.py:1-3368,4088-4110,4112-4219,4221-4279`](../../../source/sglang/python/sglang/srt/model_loader/loader.py)
 
 ## 7. quantization 与 post-load
 
@@ -247,3 +257,33 @@ loader 遍历 checkpoint shards；每个 parameter 经过过滤、映射和 `wei
 修改 ModelConfig 会影响 M01 参数解析、M05 runner、M07 parallel groups、M09 attention/KV layout、M10 sampling capacity 和 M12 multimodal capability。修改 weight mapping 会影响 checkpoint compatibility、TP/PP rank、quant kernel 和 LoRA base weights。修改 loader cleanup 还影响 M15 Engine ready/error propagation。
 
 **已确认**：loader 通过配置、架构、参数路由和 post-load 形成 rank-local model；`get_model_loader` 的主要短路优先级、`from_server_args` 的代表字段投影和 Llama/Qwen2 v2 路由已由当前 checkout 静态确认。**仍待复核**：复杂架构的全部专用 loader 行为、所有模型的完整权重映射以及 `ModelConfig` 全部 HF/multimodal 字段来源。**未验证**：真实权重加载。
+
+## 文档元数据（规范补充）
+
+- 文档目的：说明 `01-modules/M06-model-loading/README.md` 的源码分析范围、结论和维护入口。
+- 适用范围：当前项目对应模块/入口的静态源码与测试分析。
+- 对应源码版本：以本项目 `00-overview/analysis-state.md` 或同页版本字段为准。
+- 证据状态：静态源码证据；未执行的构建、测试、GPU、网络或多进程行为保持“未验证”。
+- 最后更新：2026-09-15
+- 前置阅读：本项目根 README 与 `00-overview/analysis-state.md`。
+- 后续阅读：本模块/示例的实现、测试和风险页面。
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `01-modules/M06-model-loading/README.md` | 已完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已映射或不适用 | 部分完成：动态行为、边界或专用变体仍需验证 |
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

@@ -2,11 +2,17 @@
 
 - 文档目的：指导修改 Env、port、Cache 和 Arena。
 - 适用范围：M06。
-- 源码版本：`main` / `7ee830d`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：约束来自源码接口；性能和平台结论需实验。
 - 最后更新：2026-09-10
 - 前置阅读：[M06 line-level-analysis](line-level-analysis.md)
 - 后续阅读：[跨模块影响](../../90-cross-module/change-impact-map.md)
+## 结论摘要
+
+本页聚焦 01-modules/M06-env-platform/development-guide.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
+- 源码版本：`main` / `7ee830d`。
 
 ## 修改 Env
 
@@ -35,3 +41,17 @@
 - M03：Arena 与 MemTable entry 生命周期。
 - M05：Table/Block cache handle 和 RandomAccessFile。
 - M07：平台矩阵、可选依赖和测试注册。
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

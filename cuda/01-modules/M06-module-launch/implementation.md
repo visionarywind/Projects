@@ -1,5 +1,17 @@
 # M06 实现：launch setup 和 graph 分支
 
+- 文档目的：解释 01-modules/M06-module-launch/implementation.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](../../README.md)。
+- 后续阅读：[分析状态](../../00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 01-modules/M06-module-launch/implementation.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
 ## API common
 
 `cuapiLaunchKernelCommon` 取得 TLS，通过 `cuiFuncInitCheck` 得到 function context，通过 `cuiStreamInitCheckWithFlags` 得到 stream context；二者不相等时返回 `CUDA_ERROR_INVALID_HANDLE`。随后锁 context，按 stream capture 状态选择 graph 或普通 launch（静态确认：[src/api/apilaunch.c:223-251,252-301]）。
@@ -53,3 +65,27 @@ module unload 不是单纯释放 ELF：它先从 context module list 摘除，�
 ## 内存追踪
 
 launch memory tracking 收集 function、syscall、context local memory、QMD/texture/sampler pool、context memmgr、per-launch constant bank、module scope 和 function scope objects，防止异步执行期间依赖资源提前回收（静态确认：[src/cui/cuilaunch.c:163-218]）。
+
+## Graph instantiate、调度与 launch 细节
+
+`cuiGraphInstantiate` 的 host-side 编译顺序是：cycle/conditional 检查 → `cuiGraphCloneExec` → `cuiGraphFlatten` → memset lowering → context assignment → scheduling。之后统计每个 context 的 kernel、outer conditional 和 device-node 数量，收集并锁定相关 `internalsMutex`，调用 `cuiGraphInstantiate_UnderLock` 分配资源并实例化节点；最后注册 QMD semaphore pools。任一步失败都进入统一销毁路径（静态确认：[src/cui/cuigraph.c:3304-3492]）。
+
+`cuiGraphSetupScheduling` 用 Kahn 风格的未排序依赖计数产生拓扑顺序：根节点先入队，处理节点时递减后继计数。简单的同 context kernel 边选择 QMD chaining；非 kernel、CNP、跨 context、硬件不支持或显式禁用 chaining 的边标记 pushbuffer；分叉/条件体则插入 scheduler node。连续串行 kernel 按 QMD cache 容量分组并设置 `cacheQmd`（静态确认：[src/cui/cuigraph.c:2630-2653,2692-2923]）。
+
+设备 scheduler backing 中每个 `CUIgraphDeviceNode` 写入 successor index、`nPredsRemain`；kernel 节点编码由 HAL 生成的 PCAS packet，conditional 节点保存 body roots、body end nodes 和 end semaphore。scheduler kernel 参数直到所有 node resource index 确定后才 finalize（静态确认：[src/cui/cuigraph.c:1949-2051,2127-2137]）。具体 scheduler kernel 的设备执行和架构 packet 语义属于外部 compiler/HAL/RM 边界，当前仅静态确认。
+
+`cuiGraphNodeLaunch` 先为根节点等待 API stream marker，为跨 stream 或可能带 QMD semaphore 的前驱插入 marker wait；kernel group 一次 begin/end push，按 `updatePending` 选择完整 `launchFinalize` 或图专用 patch，初始化 QMD semaphore、登记 memory tracking，再由 HAL `launchControl` 发出 root QMD。非 kernel 节点通过 memcpy、host callback、memset 或空操作路径执行，并把下一个 work 的 dependency marker 写回节点；叶节点的 marker 汇入 per-context graph completion marker（静态确认：[src/cui/cuigraph.c:3495-3731,3741-3898]）。
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

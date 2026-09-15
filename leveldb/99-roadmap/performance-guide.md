@@ -2,11 +2,17 @@
 
 - 文档目的：指导读写、压缩、缓存和 compaction 的可重复性能分析，并区分可运行性结果与性能结论。
 - 适用范围：benchmark 和生产前实验。
-- 源码版本：`main` / `7ee830d`。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：热点、flags 和本轮 Debug 小样本结果已确认；性能结论必须用 Release/固定条件实测。
 - 最后更新：2026-09-10
 - 前置阅读：[性能关键路径](../90-cross-module/performance-critical-paths.md)
 - 后续阅读：[风险登记](risk-register.md)
+## 结论摘要
+
+本页聚焦 99-roadmap/performance-guide.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
+- 源码版本：`main` / `7ee830d`。
 
 ## 基线
 

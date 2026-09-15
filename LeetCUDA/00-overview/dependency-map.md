@@ -7,6 +7,10 @@
 - 最后更新：2026-09-10
 - 前置阅读：[architecture.md](architecture.md)
 - 后续阅读：[build-and-deploy.md](build-and-deploy.md)
+## 结论摘要
+
+本页聚焦 00-overview/dependency-map.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
 
 ## 依赖图
 

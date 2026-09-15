@@ -2,10 +2,14 @@
 
 - 文档目的：指导修改版本持久化和 compaction。
 - 适用范围：M04。
+- 对应源码版本：source/leveldb HEAD 7ee830d（2026-09-15 只读确认）。
 - 证据状态：源码约束已确认。
 - 最后更新：2026-09-10
 - 前置阅读：[M04 line-level](line-level-analysis.md)
 - 后续阅读：[跨模块影响](../../90-cross-module/change-impact-map.md)
+## 结论摘要
+
+本页聚焦 01-modules/M04-version-compaction/development-guide.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 ## 修改步骤
 

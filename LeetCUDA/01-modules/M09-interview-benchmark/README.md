@@ -48,3 +48,12 @@ common.cuh -> base.cuh -> sgemv.cuh/sgemm.cuh/hgemm.cuh/flash_attn.cuh
 完整 CLI 参数表和每个 phase 的 test/bench 选择关系需继续从文件后半段整理。
 
 资源边界：M09 是单进程 benchmark，不提供跨 kernel 的显存池或 Graph replay 管理器；host/device buffer、workspace、event、stream 和 library handle 均由各测试函数显式创建/销毁。`CUDA_CHECK` 直接退出时，异常路径可能跳过清理；不可将该行为推广为生产级资源管理。
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `01-modules/M09-interview-benchmark/README.md` | 已完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已映射或不适用 | 部分完成：动态行为、边界或专用变体仍需验证 |
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

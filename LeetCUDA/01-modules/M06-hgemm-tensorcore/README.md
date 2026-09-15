@@ -34,6 +34,12 @@ block swizzle 面向 L2/cache locality，SMEM swizzle/padding 面向 bank confli
 
 优先测试 correctness against torch.matmul/cuBLAS，再测试 M/N/K 非 tile 倍数、TN column-major 转换、stages=1/2/3、sm_80/89/90a 编译和动态 shared memory。不要以“超过 cuBLAS”作为稳定行为断言。
 
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| LeetCUDA/01-modules/M06-hgemm-tensorcore/README.md | 已定位 | 已追踪代表路径 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已标注 | 已引用或待补 | 已映射或无专用 Demo | 部分完成：动态构建、运行和硬件边界仍未验证 |
+
 ## 相关文档
 
 - [implementation.md](implementation.md)：Python→PyBind→launcher→staged MMA 的实际落地、dsmem、register double buffer 和写回
@@ -62,3 +68,6 @@ block swizzle 面向 L2/cache locality，SMEM swizzle/padding 面向 bank confli
 ## 未解决问题
 
 深层 `mma/`, `wgmma/`, `cutlass/` 每个 kernel 的完整 layout 图和 ABI 仍需按目标 GPU 增量解析。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

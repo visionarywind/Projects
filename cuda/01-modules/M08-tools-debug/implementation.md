@@ -1,5 +1,17 @@
 # M08 设计与实现
 
+- 文档目的：解释 01-modules/M08-tools-debug/implementation.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](../../README.md)。
+- 后续阅读：[分析状态](../../00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 01-modules/M08-tools-debug/implementation.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
 ## Callback 设计
 
 `toolsCallbackEnabled` 读取每个 domain/cbid 的 volatile enable flag，关闭时避免进入通用 dispatch；打开后由 `toolsIssueCallback` 广播给已注册 callback（静态确认：[src/etbl/tools/tools_callbacks_internal.h:22-41]）。driver 用私有结构翻译 memory flags 为稳定的 tools descriptor，避免 tools 直接依赖内部 `nvtypes`（静态确认：[src/etbl/tools/tools_callbacks_internal.h:45-219]）。
@@ -27,3 +39,17 @@ memcheck 为 error entry 分配 pinned host/device 可见内存；全局 allocat
 debugger 的 shared control variables 连接 attach/session 与 launch blocking 等协议状态；API check 通过 TLS callback inactive 条件防止 callback 重入。静态源码能确认状态闸门和字段用途，但不能确认另一进程何时更新这些变量、RPC/IPC 如何完成握手（静态确认：[src/devtools/debugger/cudbgapi.c:401-557]；[src/devtools/debugger/cudbgdriver.c:103-210]）。
 
 profiler 的全局模式与 launch 内 perfmon 操作由不同层次管理：前者决定是否接受 profile client，后者插入具体提交窗口。故 callback end 或 host API 返回不等价于 counter 已停止，最终完成仍依赖 stream/marker 路径；这部分设备端时序未知。
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。

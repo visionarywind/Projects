@@ -1,7 +1,18 @@
 # M16 Kernel 与设备后端
 
-- 源码证据：`/home/mtuser/workspace/repos/Github/sglang` 当前 checkout。
+- 文档目的：解释 01-modules/M16-kernel-device-backend/README.md 的职责、证据和维护边界。
+- 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
+- 对应源码版本：source/sglang HEAD 78be4b50af（2026-09-15 只读确认）。
 - 证据状态：平台抽象、后端选择和 kernel dispatch 的静态路径已确认；具体设备上的编译、数值和性能未验证。
+- 最后更新：2026-09-15
+- 前置阅读：[项目入口](../../README.md)。
+- 后续阅读：[分析状态](../../00-overview/analysis-state.md)。
+## 结论摘要
+
+本页聚焦 01-modules/M16-kernel-device-backend/README.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
+
+
+- 源码证据：`/home/mtuser/workspace/repos/Github/sglang` 当前 checkout。
 - 关联：[M05 模型执行](../M05-model-execution/README.md)、[M07 分布式并行](../M07-分布式并行.md)、[M09 Attention/CUDA Graph](../M09-attention-cuda-graph/README.md)。
 
 ## 1. 边界与分层
@@ -22,7 +33,7 @@ ServerArgs / environment
 
 `python/sglang/srt/platforms/interface.py` 的 `SRTPlatform` 约定设备名称、device id、可用能力、通信 backend、worker 初始化和相关 runtime hook。CUDA、ROCm、CPU、NPU、XPU、MUSA、MLX 等平台在 `srt/platforms/` 提供实现或适配；平台模块不是简单的设备字符串别名，部分能力（dtype、graph、IPC、通信和 kernel）必须分别判断。
 
-平台解析在启动阶段完成，结果被 ModelRunner、分布式初始化、KV pool、attention backend 和 kernel 选择共同消费。`current_platform` 是惰性单例：显式 `SGLANG_PLATFORM` 只加载选中的 entry point；自动发现要求最多一个 OOT 插件，若没有插件再按 CPU opt-in、CUDA、ROCm、XPU 顺序回退到内置平台。平台插件必须返回可解析且继承 `SRTPlatform` 的类，否则启动失败。[`python/sglang/srt/platforms/__init__.py:49-160`][`python/sglang/srt/platforms/__init__.py:166-173`] 若平台缺少专用实现，代码可能选择通用 PyTorch/Triton 路径或直接报不支持；“存在 fallback”不等于目标平台上的完整功能已验证。
+平台解析在启动阶段完成，结果被 ModelRunner、分布式初始化、KV pool、attention backend 和 kernel 选择共同消费。`current_platform` 是惰性单例：显式 `SGLANG_PLATFORM` 只加载选中的 entry point；自动发现要求最多一个 OOT 插件，若没有插件再按 CPU opt-in、CUDA、ROCm、XPU 顺序回退到内置平台。平台插件必须返回可解析且继承 `SRTPlatform` 的类，否则启动失败。[`python/sglang/srt/platforms/__init__.py:49-125`][`python/sglang/srt/platforms/__init__.py:1-125`] 若平台缺少专用实现，代码可能选择通用 PyTorch/Triton 路径或直接报不支持；“存在 fallback”不等于目标平台上的完整功能已验证。
 
 ## 3. Kernel dispatch 契约
 
@@ -50,3 +61,33 @@ ServerArgs / environment
 ## 7. 修改影响
 
 修改 platform capability 会影响 M07 process-group 初始化、M08 KV allocation、M09 graph eligibility、M14 quant/MoE 和 M18 suite filtering；修改 kernel layout 会影响 M05 `ForwardBatch`、attention metadata、通信和 checkpoint/packed-weight contract。新增后端应同时补齐 resolver、能力声明、fallback、测试注册和 cleanup，而不是只添加一个 import。
+
+## 文档元数据（规范补充）
+
+- 文档目的：说明 `01-modules/M16-kernel-device-backend/README.md` 的源码分析范围、结论和维护入口。
+- 适用范围：当前项目对应模块/入口的静态源码与测试分析。
+- 对应源码版本：以本项目 `00-overview/analysis-state.md` 或同页版本字段为准。
+- 证据状态：静态源码证据；未执行的构建、测试、GPU、网络或多进程行为保持“未验证”。
+- 最后更新：2026-09-15
+- 前置阅读：本项目根 README 与 `00-overview/analysis-state.md`。
+- 后续阅读：本模块/示例的实现、测试和风险页面。
+
+## 深度审计
+
+| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `01-modules/M16-kernel-device-backend/README.md` | 已完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 已映射或不适用 | 部分完成：动态行为、边界或专用变体仍需验证 |
+
+## 相关文档
+- [项目入口](../../README.md)
+- [分析状态](../../00-overview/analysis-state.md)
+- [源码证据索引](../../00-overview/evidence-index.md)
+
+## 源码证据摘要
+本页结论所需的源码路径和行号以 [源码证据索引](../../00-overview/evidence-index.md) 及正文引用为准；本页不把未执行的构建、运行或硬件行为写成已验证事实。
+
+## 未解决问题
+目标环境、动态构建/运行、硬件和外部依赖行为未在本轮执行；缺少直接证据的结论仍标记为未知或未验证。
+
+## 下一步阅读建议
+先阅读 [分析状态](../../00-overview/analysis-state.md)，再沿本页已有链接进入对应模块、Demo 或跨模块流程。
