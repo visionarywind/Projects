@@ -1,0 +1,702 @@
+# 2411. 按位或最大的最小子数组长度
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/smallest-subarrays-with-maximum-bitwise-or/
+- 题目 slug：`smallest-subarrays-with-maximum-bitwise-or`
+- 来源专题：位运算
+- 来源分类路径：三、与或（AND/OR）的性质 / AND/OR LogTrick
+- 难度分：1938
+- 外部题解来源：https://leetcode.cn/problems/smallest-subarrays-with-maximum-bitwise-or/solutions/1830911/by-endlesscheng-zai1/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[从 O(nlogU) 到 O(n)：LogTrick / 滑动窗口 + 栈（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/smallest-subarrays-with-maximum-bitwise-or/solutions/1830911/by-endlesscheng-zai1/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`by-endlesscheng-zai1`
+- topic id：`1830911`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 方法一：LogTrick
+
+**详细讲解**：[LogTrick 入门教程](https://zhuanlan.zhihu.com/p/1933215367158830792)。
+
+```py [sol-Python3]
+class Solution:
+    def smallestSubarrays(self, nums: List[int]) -> List[int]:
+        ans = [1] * len(nums)  # 子数组的长度至少是 1
+        for i, x in enumerate(nums):  # 计算右端点为 i 的子数组的或值
+            for j in range(i - 1, -1, -1):
+                if (nums[j] | x) == nums[j]:  # nums[j] 及其左边元素无法增大
+                    break
+                nums[j] |= x  # nums[j] 增大，现在 nums[j] = 原数组 nums[j] 到 nums[i] 的或值
+                ans[j] = i - j + 1  # nums[j] 最后一次增大时的子数组长度就是答案
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int[] smallestSubarrays(int[] nums) {
+        int n = nums.length;
+        int[] ans = new int[n];
+        for (int i = 0; i < n; i++) { // 计算右端点为 i 的子数组的或值
+            int x = nums[i];
+            ans[i] = 1; // 子数组的长度至少是 1
+            // 循环直到 nums[j] 无法增大，其左侧元素也无法增大
+            for (int j = i - 1; j >= 0 && (nums[j] | x) != nums[j]; j--) {
+                nums[j] |= x; // nums[j] 增大，现在 nums[j] = 原数组 nums[j] 到 nums[i] 的或值
+                ans[j] = i - j + 1; // nums[j] 最后一次增大时的子数组长度就是答案
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<int> smallestSubarrays(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> ans(n);
+        for (int i = 0; i < n; i++) { // 计算右端点为 i 的子数组的或值
+            int x = nums[i];
+            ans[i] = 1; // 子数组的长度至少是 1
+            // 循环直到 nums[j] 无法增大，其左侧元素也无法增大
+            for (int j = i - 1; j >= 0 && (nums[j] | x) != nums[j]; j--) {
+                nums[j] |= x; // nums[j] 增大，现在 nums[j] = 原数组 nums[j] 到 nums[i] 的或值
+                ans[j] = i - j + 1; // nums[j] 最后一次增大时的子数组长度就是答案
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+int* smallestSubarrays(int* nums, int numsSize, int* returnSize) {
+    int* ans = malloc(numsSize * sizeof(int));
+    *returnSize = numsSize;
+
+    for (int i = 0; i < numsSize; i++) { // 计算右端点为 i 的子数组的或值
+        int x = nums[i];
+        ans[i] = 1; // 子数组的长度至少是 1
+        // 循环直到 nums[j] 无法增大，其左侧元素也无法增大
+        for (int j = i - 1; j >= 0 && (nums[j] | x) != nums[j]; j--) {
+            nums[j] |= x; // nums[j] 增大，现在 nums[j] = 原数组 nums[j] 到 nums[i] 的或值
+            ans[j] = i - j + 1; // nums[j] 最后一次增大时的子数组长度就是答案
+        }
+    }
+
+    return ans;
+}
+```
+
+```go [sol-Go]
+func smallestSubarrays(nums []int) []int {
+	ans := make([]int, len(nums))
+	for i, x := range nums { // 计算右端点为 i 的子数组的或值
+		ans[i] = 1 // 子数组的长度至少是 1
+		// 循环直到 nums[j] 无法增大，其左侧元素也无法增大
+		for j := i - 1; j >= 0 && nums[j]|x != nums[j]; j-- {
+			nums[j] |= x // nums[j] 增大，现在 nums[j] = 原数组 nums[j] 到 nums[i] 的或值
+			ans[j] = i - j + 1 // nums[j] 最后一次增大时的子数组长度就是答案
+		}
+	}
+	return ans
+}
+```
+
+```js [sol-JavaScript]
+var smallestSubarrays = function(nums) {
+    const n = nums.length;
+    const ans = Array(n).fill(1); // 子数组的长度至少是 1
+    for (let i = 0; i < n; i++) { // 计算右端点为 i 的子数组的或值
+        let x = nums[i];
+        // 循环直到 nums[j] 无法增大，其左侧元素也无法增大
+        for (let j = i - 1; j >= 0 && (nums[j] | x) !== nums[j]; j--) {
+            nums[j] |= x; // nums[j] 增大，现在 nums[j] = 原数组 nums[j] 到 nums[i] 的或值
+            ans[j] = i - j + 1; // nums[j] 最后一次增大时的子数组长度就是答案
+        }
+    }
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn smallest_subarrays(mut nums: Vec<i32>) -> Vec<i32> {
+        let n = nums.len();
+        let mut ans = vec![0; n];
+        for i in 0..n { // 计算右端点为 i 的子数组的或值
+            let x = nums[i];
+            ans[i] = 1; // 子数组的长度至少是 1
+            for j in (0..i).rev() {
+                if (nums[j] | x) == nums[j] { // nums[j] 及其左边元素无法增大
+                    break;
+                }
+                nums[j] |= x; // nums[j] 增大，现在 nums[j] = 原数组 nums[j] 到 nums[i] 的或值
+                ans[j] = (i - j + 1) as i32; // nums[j] 最后一次增大时的子数组长度就是答案
+            }
+        }
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\log U)$，其中 $n$ 是 $\textit{nums}$ 的长度，$U=\max(\textit{nums})\le 10^9$。由于 $10^9<2^{30}$，二进制数对应集合的大小不会超过 $30$，因此在或运算下，每个数字至多可以增大 $30$ 次（从空集增大到有 $30$ 个元素）。**总体上看**，二重循环的总循环次数等于每个数字可以增大的次数之和，即 $O(n\log U)$。
+- 空间复杂度：$\mathcal{O}(1)$。返回值不计入。
+
+## 方法二：滑动窗口+栈
+
+[原理讲解（方法二）](https://leetcode.cn/problems/find-subarray-with-bitwise-or-closest-to-k/solutions/2798206/li-yong-and-de-xing-zhi-pythonjavacgo-by-gg4d/)
+
+### 写法一
+
+本题由于要获知的信息都在 $\textit{nums}[i]$ 的右侧，所以要倒着滑窗。外层循环枚举左端点 $\textit{left}$，内层循环缩小右端点 $\textit{right}$。当我们发现子数组 $[\textit{left},\textit{right}]$ 的或值等于子数组 $[\textit{left},\textit{right}-1]$ 的或值时，说明窗口右端点可以缩小。
+
+另外要保证栈中至少有两个数，方便判断窗口右端点是否可以缩小。
+
+```py [sol-Python3]
+class Solution:
+    def smallestSubarrays(self, nums: List[int]) -> List[int]:
+        n = len(nums)
+        ans = [0] * n
+        ans[-1] = 1
+        if n == 1:
+            return ans
+
+        # 保证栈中至少有两个数，方便判断窗口右端点是否要缩小
+        nums[-1] |= nums[-2]
+        left_or, right, bottom = 0, n - 1, n - 2
+        for left in range(n - 2, -1, -1):
+            left_or |= nums[left]
+            # 子数组 [left,right] 的或值 = 子数组 [left,right-1] 的或值，说明窗口右端点可以缩小
+            while right > left and (left_or | nums[right]) == (left_or | nums[right - 1]):
+                right -= 1
+                # 栈中只剩一个数
+                if bottom >= right:
+                    # 重新构建一个栈，栈底为 left，栈顶为 right
+                    for i in range(left + 1, right + 1):
+                        nums[i] |= nums[i - 1]
+                    bottom = left
+                    left_or = 0
+            ans[left] = right - left + 1
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int[] smallestSubarrays(int[] nums) {
+        int n = nums.length;
+        int[] ans = new int[n];
+        ans[n - 1] = 1;
+        if (n == 1) {
+            return ans;
+        }
+
+        // 保证栈中至少有两个数，方便判断窗口右端点是否要缩小
+        nums[n - 1] |= nums[n - 2];
+        int leftOr = 0, right = n - 1, bottom = n - 2;
+        for (int left = n - 2; left >= 0; left--) {
+            leftOr |= nums[left];
+            // 子数组 [left,right] 的或值 = 子数组 [left,right-1] 的或值，说明窗口右端点可以缩小
+            while (right > left && (leftOr | nums[right]) == (leftOr | nums[right - 1])) {
+                right--;
+                // 栈中只剩一个数
+                if (bottom >= right) {
+                    // 重新构建一个栈，栈底为 left，栈顶为 right
+                    for (int i = left + 1; i <= right; i++) {
+                        nums[i] |= nums[i - 1];
+                    }
+                    bottom = left;
+                    leftOr = 0;
+                }
+            }
+            ans[left] = right - left + 1;
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<int> smallestSubarrays(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> ans(n);
+        ans[n - 1] = 1;
+        if (n == 1) {
+            return ans;
+        }
+
+        // 保证栈中至少有两个数，方便判断窗口右端点是否要缩小
+        nums[n - 1] |= nums[n - 2];
+        int left_or = 0, right = n - 1, bottom = n - 2;
+        for (int left = n - 2; left >= 0; left--) {
+            left_or |= nums[left];
+            // 子数组 [left,right] 的或值 = 子数组 [left,right-1] 的或值，说明窗口右端点可以缩小
+            while (right > left && (left_or | nums[right]) == (left_or | nums[right - 1])) {
+                right--;
+                // 栈中只剩一个数
+                if (bottom >= right) {
+                    // 重新构建一个栈，栈底为 left，栈顶为 right
+                    for (int i = left + 1; i <= right; i++) {
+                        nums[i] |= nums[i - 1];
+                    }
+                    bottom = left;
+                    left_or = 0;
+                }
+            }
+            ans[left] = right - left + 1;
+        }
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+int* smallestSubarrays(int* nums, int n, int* returnSize) {
+    int* ans = malloc(n * sizeof(int));
+    *returnSize = n;
+
+    ans[n - 1] = 1;
+    if (n == 1) {
+        return ans;
+    }
+
+    // 保证栈中至少有两个数，方便判断窗口右端点是否要缩小
+    nums[n - 1] |= nums[n - 2];
+    int left_or = 0, right = n - 1, bottom = n - 2;
+    for (int left = n - 2; left >= 0; left--) {
+        left_or |= nums[left];
+        // 子数组 [left,right] 的或值 = 子数组 [left,right-1] 的或值，说明窗口右端点可以缩小
+        while (right > left && (left_or | nums[right]) == (left_or | nums[right - 1])) {
+            right--;
+            // 栈中只剩一个数
+            if (bottom >= right) {
+                // 重新构建一个栈，栈底为 left，栈顶为 right
+                for (int i = left + 1; i <= right; i++) {
+                    nums[i] |= nums[i - 1];
+                }
+                bottom = left;
+                left_or = 0;
+            }
+        }
+        ans[left] = right - left + 1;
+    }
+    return ans;
+}
+```
+
+```go [sol-Go]
+func smallestSubarrays(nums []int) []int {
+	n := len(nums)
+	ans := make([]int, n)
+	ans[n-1] = 1
+	if n == 1 {
+		return ans
+	}
+
+	// 保证栈中至少有两个数，方便判断窗口右端点是否要缩小
+	nums[n-1] |= nums[n-2]
+	leftOr, right, bottom := 0, n-1, n-2
+	for left := n - 2; left >= 0; left-- {
+		leftOr |= nums[left]
+		// 子数组 [left,right] 的或值 = 子数组 [left,right-1] 的或值，说明窗口右端点可以缩小
+		for right > left && leftOr|nums[right] == leftOr|nums[right-1] {
+			right--
+			// 栈中只剩一个数
+			if bottom >= right {
+				// 重新构建一个栈，栈底为 left，栈顶为 right
+				for i := left + 1; i <= right; i++ {
+					nums[i] |= nums[i-1]
+				}
+				bottom = left
+				leftOr = 0
+			}
+		}
+		ans[left] = right - left + 1
+	}
+	return ans
+}
+```
+
+```js [sol-JavaScript]
+var smallestSubarrays = function(nums) {
+    const n = nums.length;
+    const ans = Array(n).fill(0);
+    ans[n - 1] = 1;
+    if (n === 1) {
+        return ans;
+    }
+
+    // 保证栈中至少有两个数，方便判断窗口右端点是否要缩小
+    nums[n - 1] |= nums[n - 2];
+    let leftOr = 0, right = n - 1, bottom = n - 2;
+    for (let left = n - 2; left >= 0; left--) {
+        leftOr |= nums[left];
+        // 子数组 [left,right] 的或值 = 子数组 [left,right-1] 的或值，说明窗口右端点可以缩小
+        while (right > left && (leftOr | nums[right]) === (leftOr | nums[right - 1])) {
+            right--;
+            // 栈中只剩一个数
+            if (bottom >= right) {
+                // 重新构建一个栈，栈底为 left，栈顶为 right
+                for (let i = left + 1; i <= right; i++) {
+                    nums[i] |= nums[i - 1];
+                }
+                bottom = left;
+                leftOr = 0;
+            }
+        }
+        ans[left] = right - left + 1;
+    }
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn smallest_subarrays(mut nums: Vec<i32>) -> Vec<i32> {
+        let n = nums.len();
+        let mut ans = vec![0; n];
+        ans[n - 1] = 1;
+        if n == 1 {
+            return ans;
+        }
+
+        // 保证栈中至少有两个数，方便判断窗口右端点是否要缩小
+        nums[n - 1] |= nums[n - 2];
+        let mut left_or = 0;
+        let mut right = n - 1;
+        let mut bottom = n - 2;
+        for left in (0..=n - 2).rev() {
+            left_or |= nums[left];
+            // 子数组 [left,right] 的或值 = 子数组 [left,right-1] 的或值，说明窗口右端点可以缩小
+            while right > left && (left_or | nums[right]) == (left_or | nums[right - 1]) {
+                right -= 1;
+                // 栈中只剩一个数
+                if bottom >= right {
+                    // 重新构建一个栈，栈底为 left，栈顶为 right
+                    for i in left + 1..=right {
+                        nums[i] |= nums[i - 1];
+                    }
+                    bottom = left;
+                    left_or = 0;
+                }
+            }
+            ans[left] = (right - left + 1) as i32;
+        }
+        ans
+    }
+}
+```
+
+### 写法二
+
+额外维护 $\textit{nums}$ 的后缀或值 $\textit{sufOr}$，如果窗口或值等于后缀或值，说明窗口右端点可以缩小。这样就无需保证栈中至少有两个数了。
+
+```py [sol-Python3]
+class Solution:
+    def smallestSubarrays(self, nums: List[int]) -> List[int]:
+        n = len(nums)
+        ans = [0] * n
+        left_or = suf_or = 0
+        right = bottom = n - 1
+        for left in range(n - 1, -1, -1):
+            suf_or |= nums[left]
+            left_or |= nums[left]
+            while right >= left and (left_or | nums[right]) == suf_or:
+                right -= 1
+                # 栈为空
+                if bottom > right:
+                    # 重新构建一个栈，栈底为 left，栈顶为 right
+                    for i in range(left + 1, right + 1):
+                        nums[i] |= nums[i - 1]
+                    bottom = left
+                    left_or = 0
+            # 循环结束后 [left,right] 不满足要求，但 [left,right+1] 满足要求
+            ans[left] = right - left + 2
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int[] smallestSubarrays(int[] nums) {
+        int n = nums.length;
+        int[] ans = new int[n];
+        int leftOr = 0, sufOr = 0;
+        int right = n - 1, bottom = n - 1;
+        for (int left = n - 1; left >= 0; left--) {
+            sufOr |= nums[left];
+            leftOr |= nums[left];
+            while (right >= left && (leftOr | nums[right]) == sufOr) {
+                right--;
+                // 栈为空
+                if (bottom > right) {
+                    // 重新构建一个栈，栈底为 left，栈顶为 right
+                    for (int i = left + 1; i <= right; i++) {
+                        nums[i] |= nums[i - 1];
+                    }
+                    bottom = left;
+                    leftOr = 0;
+                }
+            }
+            // 循环结束后 [left,right] 不满足要求，但 [left,right+1] 满足要求
+            ans[left] = right - left + 2;
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<int> smallestSubarrays(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> ans(n);
+        int left_or = 0, suf_or = 0;
+        int right = n - 1, bottom = n - 1;
+        for (int left = n - 1; left >= 0; left--) {
+            suf_or |= nums[left];
+            left_or |= nums[left];
+            while (right >= left && (left_or | nums[right]) == suf_or) {
+                right--;
+                // 栈为空
+                if (bottom > right) {
+                    // 重新构建一个栈，栈底为 left，栈顶为 right
+                    for (int i = left + 1; i <= right; i++) {
+                        nums[i] |= nums[i - 1];
+                    }
+                    bottom = left;
+                    left_or = 0;
+                }
+            }
+            // 循环结束后 [left,right] 不满足要求，但 [left,right+1] 满足要求
+            ans[left] = right - left + 2;
+        }
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+int* smallestSubarrays(int* nums, int n, int* returnSize) {
+    int* ans = malloc(n * sizeof(int));
+    *returnSize = n;
+    int left_or = 0, suf_or = 0;
+    int right = n - 1, bottom = n - 1;
+    for (int left = n - 1; left >= 0; left--) {
+        suf_or |= nums[left];
+        left_or |= nums[left];
+        while (right >= left && (left_or | nums[right]) == suf_or) {
+            right--;
+            // 栈为空
+            if (bottom > right) {
+                // 重新构建一个栈，栈底为 left，栈顶为 right
+                for (int i = left + 1; i <= right; i++) {
+                    nums[i] |= nums[i - 1];
+                }
+                bottom = left;
+                left_or = 0;
+            }
+        }
+        // 循环结束后 [left,right] 不满足要求，但 [left,right+1] 满足要求
+        ans[left] = right - left + 2;
+    }
+    return ans;
+}
+```
+
+```go [sol-Go]
+func smallestSubarrays(nums []int) []int {
+	n := len(nums)
+	ans := make([]int, n)
+	leftOr, sufOr := 0, 0
+	right, bottom := n-1, n-1
+	for left, x := range slices.Backward(nums) {
+		sufOr |= x
+		leftOr |= x
+		for right >= left && leftOr|nums[right] == sufOr {
+			right--
+			// 栈为空
+			if bottom > right {
+				// 重新构建一个栈，栈底为 left，栈顶为 right
+				for i := left + 1; i <= right; i++ {
+					nums[i] |= nums[i-1]
+				}
+				bottom = left
+				leftOr = 0
+			}
+		}
+		// 循环结束后 [left,right] 不满足要求，但 [left,right+1] 满足要求
+		ans[left] = right - left + 2
+	}
+	return ans
+}
+```
+
+```js [sol-JavaScript]
+var smallestSubarrays = function(nums) {
+    const n = nums.length;
+    const ans = new Array(n).fill(0);
+    let leftOr = 0, sufOr = 0;
+    let right = n - 1, bottom = n - 1;
+    for (let left = n - 1; left >= 0; left--) {
+        sufOr |= nums[left];
+        leftOr |= nums[left];
+        while (right >= left && (leftOr | nums[right]) === sufOr) {
+            right--;
+            // 栈为空
+            if (bottom > right) {
+                // 重新构建一个栈，栈底为 left，栈顶为 right
+                for (let i = left + 1; i <= right; i++) {
+                    nums[i] |= nums[i - 1];
+                }
+                bottom = left;
+                leftOr = 0;
+            }
+        }
+        // 循环结束后 [left,right] 不满足要求，但 [left,right+1] 满足要求
+        ans[left] = right - left + 2;
+    }
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn smallest_subarrays(mut nums: Vec<i32>) -> Vec<i32> {
+        let n = nums.len();
+        let mut ans = vec![0; n];
+        let mut left_or = 0;
+        let mut suf_or = 0;
+        let mut right = n - 1;
+        let mut bottom = n  - 1;
+        for left in (0..n).rev() {
+            suf_or |= nums[left];
+            left_or |= nums[left];
+            while right < n && right >= left && (left_or | nums[right]) == suf_or {
+                // 栈为空
+                if bottom >= right {
+                    // 重新构建一个栈，栈底为 left，栈顶为 right-1
+                    for i in left + 1..right {
+                        nums[i] |= nums[i - 1];
+                    }
+                    bottom = left;
+                    left_or = 0;
+                }
+                right -= 1;
+            }
+            // 循环结束后 [left,right] 不满足要求，但 [left,right+1] 满足要求
+            ans[left] = (right - left + 2) as i32;
+        }
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是 $\textit{nums}$ 的长度。虽然我们写了个三重循环，但每个元素至多入栈出栈各一次，所以三重循环的**总**循环次数是 $\mathcal{O}(n)$ 的，所以时间复杂度是 $\mathcal{O}(n)$。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 思考题
+
+把「或」改成「异或」，其余不变，要怎么做？
+
+欢迎在评论区分享你的思路/代码。
+
+## 专题训练
+
+见下面位运算题单的「**LogTrick**」。部分题目也可以用滑动窗口+栈解决。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `三、与或（AND/OR）的性质 / AND/OR LogTrick`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `三、与或（AND/OR）的性质 / AND/OR LogTrick`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

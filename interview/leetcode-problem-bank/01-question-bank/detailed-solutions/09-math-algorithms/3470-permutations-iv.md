@@ -1,0 +1,346 @@
+# 3470. 全排列 IV
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/permutations-iv/
+- 题目 slug：`permutations-iv`
+- 来源专题：数学算法
+- 来源分类路径：二、组合数学 / §2.2 组合计数
+- 难度分：2474
+- 外部题解来源：https://leetcode.cn/problems/permutations-iv/solutions/3591426/cong-zuo-wang-you-gou-zao-pythonjavacgo-a0tqz/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[从左往右构造（Python/Java/C++/Go）](https://leetcode.cn/problems/permutations-iv/solutions/3591426/cong-zuo-wang-you-gou-zao-pythonjavacgo-a0tqz/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`cong-zuo-wang-you-gou-zao-pythonjavacgo-a0tqz`
+- topic id：`3591426`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 什么时候返回空列表
+
+由于相邻元素奇偶性不同，确定第一个元素填什么，后面元素的奇偶性就确定了。比如第一个数填的是偶数，那么后面元素一定是按照奇偶奇偶的顺序填。
+
+$[1,n]$ 中有 $\left\lfloor n/2\right\rfloor$ 个偶数，$\left\lceil n/2\right\rceil$ 个奇数。
+
+- 这些偶数有 $\left\lfloor n/2\right\rfloor!$ 个不同的排列。
+- 这些奇数有 $\left\lceil n/2\right\rceil!$ 个不同的排列。
+
+如果 $n$ 是奇数，那么只能按照奇偶奇偶的顺序填，由于奇偶位置互相独立，根据乘法原理可得方案数为 $\left\lfloor n/2\right\rfloor!\left\lceil n/2\right\rceil!$。
+
+如果 $n$ 是偶数，那么可以按照奇偶奇偶的顺序填，也可以按照偶奇偶奇的顺序填，方案数为 $2\left\lfloor n/2\right\rfloor!\left\lceil n/2\right\rceil!$。
+
+如果 $k$ 比上述方案数还大，返回空列表。
+
+代码实现时，可以预处理 $f$ 数组，其中 $f[n] = \left\lfloor n/2\right\rfloor!\left\lceil n/2\right\rceil!$。这可以通过计算 $1,1,2,2,3,3,4,4,\cdots$ 的**前缀积**得到。
+
+## 如何填数字
+
+为方便计算，先把 $k$ 减一，也就是改成从 $0$ 开始。
+
+看示例 1，**按照第一个数分组**，每一组的大小都是 $2$，也就是 $f[n-1]=f[3]=2$。
+
+- 当 $k\in [0,1]$ 时，第一个数在第一组中，一定是 $1$。
+- 当 $k\in [2,3]$ 时，第一个数在第二组中，一定是 $2$。
+- 当 $k\in [4,5]$ 时，第一个数在第三组中，一定是 $3$。
+- 当 $k\in [6,7]$ 时，第一个数在第四组中，一定是 $4$。
+
+所以根据 $\left\lfloor\dfrac{k}{f[n-1]}\right\rfloor$ 的值，我们可以知道第一个数在第几组，从而确定第一个数填什么。再次强调，$k$ 是从 $0$ 开始的。
+
+设 $k'=k\bmod f[n-1]$，问题变成计算 $n-1$ 个数的字典序第 $k'$ 小的交替排列。这是一个规模更小的子问题，可以用递归/迭代解决。实现细节见代码注释。
+
+注意 $n$ 是偶数的情况，有奇偶奇偶、偶奇偶奇两种顺序，需要特殊处理第一个数怎么填。
+
+具体请看 [视频讲解](https://www.bilibili.com/video/BV1m39bYiEVV/?t=10m23s)，欢迎点赞关注~
+
+```py [sol-Python3]
+# 预处理交替排列的方案数
+f = [1]
+i = 1
+while f[-1] < 10 ** 15:
+    f.append(f[-1] * i)
+    f.append(f[-1] * i)
+    i += 1
+
+class Solution:
+    def permute(self, n: int, k: int) -> List[int]:
+        # k 改成从 0 开始，方便计算
+        k -= 1
+        if n < len(f) and k >= f[n] * (2 - n % 2):  # n 是偶数的时候，方案数乘以 2
+            return []
+
+        # cand 表示剩余未填入 ans 的数字
+        # cand[0] 保存偶数，cand[1] 保存奇数
+        cand = [list(range(2, n + 1, 2)), list(range(1, n + 1, 2))]
+
+        ans = [0] * n
+        parity = 1  # 当前要填入 ans 的数字的奇偶性
+        for i in range(n):
+            if n - 1 - i < len(f):
+                # 比如示例 1，按照第一个数分组，每一组的大小都是 size=f[n-1-i]=f[3]=2
+                # 知道 k 和 size 就知道我们要去哪一组（第 j 组）
+                j, k = divmod(k, f[n - 1 - i])
+                # n 是偶数的情况，第一个数既可以填奇数又可以填偶数，要特殊处理
+                if n % 2 == 0 and i == 0:
+                    parity = 1 - j % 2
+                    j //= 2
+            else:
+                j = 0  # n 很大的情况下，只能按照 1,2,3,... 的顺序填
+            ans[i] = cand[parity].pop(j)
+            parity ^= 1  # 下一个数的奇偶性
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    // 预处理交替排列的方案数
+    private static final List<Long> f = new ArrayList<>();
+
+    static {
+        f.add(1L);
+        for (int i = 1; f.getLast() < 1e15; i++) {
+            f.add(f.getLast() * i);
+            f.add(f.getLast() * i);
+        }
+    }
+
+    public int[] permute(int n, long k) {
+        // k 改成从 0 开始，方便计算
+        k--;
+        if (n < f.size() && k >= f.get(n) * (2 - n % 2)) { // n 是偶数的时候，方案数乘以 2
+            return new int[]{};
+        }
+
+        // cand 表示剩余未填入 ans 的数字
+        // cand[0] 保存偶数，cand[1] 保存奇数
+        List<Integer>[] cand = new ArrayList[2];
+        cand[0] = new ArrayList<>();
+        for (int i = 2; i <= n; i += 2) {
+            cand[0].add(i);
+        }
+        cand[1] = new ArrayList<>();
+        for (int i = 1; i <= n; i += 2) {
+            cand[1].add(i);
+        }
+
+        int[] ans = new int[n];
+        int parity = 1; // 当前要填入 ans[i] 的数的奇偶性
+        for (int i = 0; i < n; i++) {
+            int j = 0;
+            if (n - 1 - i < f.size()) {
+                // 比如示例 1，按照第一个数分组，每一组的大小都是 size=2
+                // 知道 k 和 size 就知道我们要去哪一组
+                long size = f.get(n - 1 - i);
+                j = (int) (k / size); // 去第 j 组
+                k %= size;
+                // n 是偶数的情况，第一个数既可以填奇数又可以填偶数，要特殊处理
+                if (n % 2 == 0 && i == 0) {
+                    parity = 1 - j % 2;
+                    j /= 2;
+                }
+            } // else j=0，在 n 很大的情况下，只能按照 1,2,3,... 的顺序填
+            ans[i] = cand[parity].remove(j);
+            parity ^= 1; // 下一个数的奇偶性
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+// 预处理交替排列的方案数
+vector<long long> f = {1};
+int init = []() {
+    for (int i = 1; f.back() < 1e15; i++) {
+        f.push_back(f.back() * i);
+        f.push_back(f.back() * i);
+    }
+    return 0;
+}();
+
+class Solution {
+public:
+    vector<int> permute(int n, long long k) {
+        // k 改成从 0 开始，方便计算
+        k--;
+        if (n < f.size() && k >= f[n] * (2 - n % 2)) { // n 是偶数的时候，方案数乘以 2
+            return {};
+        }
+
+        // cand 表示剩余未填入 ans 的数字
+        // cand[0] 保存偶数，cand[1] 保存奇数
+        vector<int> cand[2];
+        for (int i = 2; i <= n; i += 2) {
+            cand[0].push_back(i);
+        }
+        for (int i = 1; i <= n; i += 2) {
+            cand[1].push_back(i);
+        }
+
+        vector<int> ans(n);
+        int parity = 1; // 当前要填入 ans 的数字的奇偶性
+        for (int i = 0; i < n; i++) {
+            int j = 0;
+            if (n - 1 - i < f.size()) {
+                // 比如示例 1，按照第一个数分组，每一组的大小都是 size=2
+                // 知道 k 和 size 就知道我们要去哪一组
+                long long size = f[n - 1 - i];
+                j = k / size; // 去第 j 组
+                k %= size;
+                // n 是偶数的情况，第一个数既可以填奇数又可以填偶数，要特殊处理
+                if (n % 2 == 0 && i == 0) {
+                    parity = 1 - j % 2;
+                    j /= 2;
+                }
+            } // else j=0，在 n 很大的情况下，只能按照 1,2,3,... 的顺序填
+            ans[i] = cand[parity][j];
+            cand[parity].erase(cand[parity].begin() + j);
+            parity ^= 1; // 下一个数的奇偶性
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+// 预处理交替排列的方案数
+var f = []int{1}
+
+func init() {
+	for i := 1; f[len(f)-1] < 1e15; i++ {
+		f = append(f, f[len(f)-1]*i)
+		f = append(f, f[len(f)-1]*i)
+	}
+}
+
+func permute(n int, K int64) []int {
+	// k 改成从 0 开始，方便计算
+	k := int(K - 1)
+	if n < len(f) && k >= f[n]*(2-n%2) { // n 是偶数的时候，方案数乘以 2
+		return nil
+	}
+
+	// cand 表示剩余未填入 ans 的数字
+	// cand[0] 保存偶数，cand[1] 保存奇数
+	cand := [2][]int{}
+	for i := 2; i <= n; i += 2 {
+		cand[0] = append(cand[0], i)
+	}
+	for i := 1; i <= n; i += 2 {
+		cand[1] = append(cand[1], i)
+	}
+
+	ans := make([]int, n)
+	parity := 1 // 当前要填入 ans[i] 的数的奇偶性
+	for i := range n {
+		j := 0
+		if n-1-i < len(f) {
+			// 比如示例 1，按照第一个数分组，每一组的大小都是 size=2
+			// 知道 k 和 size 就知道我们要去哪一组
+			size := f[n-1-i]
+			j = k / size // 去第 j 组
+			k %= size
+			// n 是偶数的情况，第一个数既可以填奇数又可以填偶数，要特殊处理
+			if n%2 == 0 && i == 0 {
+				parity = 1 - j%2
+				j /= 2
+			}
+		} // else j=0，在 n 很大的情况下，只能按照 1,2,3,... 的顺序填
+		ans[i] = cand[parity][j]
+		cand[parity] = slices.Delete(cand[parity], j, j+1)
+		parity ^= 1 // 下一个数的奇偶性
+	}
+	return ans
+}
+```
+
+#### 复杂度分析
+
+预处理的时间和空间忽略不计。
+
+- 时间复杂度：$\mathcal{O}(n^2)$。**注**：如果用有序集合或者树状数组维护剩余元素，可以做到 $\mathcal{O}(n\log n)$。考虑到本题 $n$ 很小，直接删除元素是最快的（常数小）。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/最短路/最小生成树/二分图/基环树/欧拉路径）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/状态机/划分/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `二、组合数学 / §2.2 组合计数`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `二、组合数学 / §2.2 组合计数`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

@@ -21,7 +21,22 @@
 
 `verify_subtree` 递归检查边界 key、父指针、红色节点的孩子颜色，然后分别检查左右子树的节点数和黑高。空子树返回黑高 1，因此每个真实黑节点会使返回黑高加一。顶层另外检查根颜色、根父指针和返回节点数与 `size_` 的一致性。
 
-## `rb_map` 的哨兵规则
+## `llrb_tree` 的左倾规则
+
+`llrb_tree` 使用 `nullptr` 叶子，但不保存 parent 指针。除普通 BST 和红黑约束外，还必须满足：
+
+1. 空树的 `root_` 为空；非空树的根为黑色；
+2. 红链接只能由父节点指向左孩子，不能存在红右链接；
+3. 不能存在连续的左红链接（红节点不能有红孩子）；
+4. 左右子树到外部空叶子的黑高相同；
+5. 左子树 key 严格小于当前 key，右子树 key 严格大于当前 key；
+6. `size_` 等于真实节点数量，且中序序列无重复；
+7. `insert_node` 返回和 `erase_node` 回溯时都要经过 `balance`，根在 public API 结束时恢复为黑色；
+8. 节点只通过树的 root 可达，旋转只改变链接，不改变既有节点地址。
+
+`erase` 会暂时把根染红，并在向下过程中调用 `move_red_left`/`move_red_right`；这属于删除算法的临时状态，操作完成后不得从 public API 观察到红根或红右链接。LLRB 迭代器不依赖 parent，而是从 `root_` 搜索 successor/predecessor，因此节点地址稳定但 `++`/`--` 的复杂度为 `O(log n)`。
+
+
 
 `rb_map` 使用每棵树独有的共享 `nil_` 哨兵，而不是 `nullptr`：
 
@@ -41,7 +56,7 @@
 1. `level_` 始终在 `[1, MaxLevel]` 内；
 2. 空表时 `size_ == 0`、所有 `header_[i] == nullptr`，且 `level_ == 1`；
 3. 非空表的 level 0 入口 `header_[0]` 非空，底层节点严格按 `Compare` 有序且没有重复 key；
-4. 节点的 `height` 在 `[1, MaxLevel]` 内，只有 `forward[0..height)` 有效；其余 forward 槽必须为 `nullptr`；
+4. 节点的 `height` 在 `[1, MaxLevel]` 内，真实节点只按实际高度分配 `forward[0..height)`，不能访问未分配的更高层槽；
 5. 某节点出现在第 `i` 层时，必然也出现在 level 0，且 `height > i`；
 6. 每层 forward 链都不能形成环，且 key 严格递增；
 7. `size_` 等于 level-0 链上的真实节点数量；

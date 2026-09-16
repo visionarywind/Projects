@@ -1,0 +1,1039 @@
+# 3671. 子序列美丽值求和
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/sum-of-beautiful-subsequences/
+- 题目 slug：`sum-of-beautiful-subsequences`
+- 来源专题：动态规划
+- 来源分类路径：十一、优化 DP / §11.4 树状数组/线段树优化 DP
+- 难度分：2647
+- 外部题解来源：https://leetcode.cn/problems/sum-of-beautiful-subsequences/solutions/3768197/bei-shu-rong-chi-zhi-yu-shu-zhuang-shu-z-rs5w/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[倍数容斥 + 值域树状数组优化 DP（Python/Java/C++/Go）](https://leetcode.cn/problems/sum-of-beautiful-subsequences/solutions/3768197/bei-shu-rong-chi-zhi-yu-shu-zhuang-shu-z-rs5w/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`bei-shu-rong-chi-zhi-yu-shu-zhuang-shu-z-rs5w`
+- topic id：`3768197`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 前置知识
+
+1. **倍数容斥**。请看 [3312. 查询排序后的最大公约数](https://leetcode.cn/problems/sorted-gcd-pair-queries/)，[我的题解](https://leetcode.cn/problems/sorted-gcd-pair-queries/solutions/2940415/mei-ju-rong-chi-qian-zhui-he-er-fen-pyth-ujis/)。
+2. **树状数组**。讲解：[带你发明树状数组！附数学证明](https://leetcode.cn/problems/range-sum-query-mutable/solution/dai-ni-fa-ming-shu-zhuang-shu-zu-fu-shu-lyfll/)。
+
+## 转化
+
+设 $U=\max(\textit{nums})$
+
+本题需要对每个 $g=1,2,3,\dots,U$，求出有多少个严格递增子序列的 GCD **恰好**等于 $g$。
+
+我们可以先求出有多少个严格递增子序列的 GCD 是 $g$ 的**倍数**，再利用倍数容斥，转化成「恰好」。
+
+## 分组
+
+对每个 $g=1,2,3,\dots,U$，计算 $\textit{nums}$ 的子序列 $b$，其中每个元素都是 $g$ 的倍数。
+
+这可以在遍历 $\textit{nums}$ 的过程中完成：
+
+- 枚举 $x = \textit{nums}[i]$ 的因子 $d$。
+- 把 $x$ 加到一个二维列表 $\textit{groups}[d]$ 中。
+
+## 计算严格递增子序列的个数
+
+枚举 $g$，计算子序列 $b = \textit{groups}[g]$ 的严格递增子序列的个数。
+
+定义 $f[i][x]$ 表示 $b[0]$ 到 $b[i]$ 中的，以 $x$ 结尾的严格递增子序列的个数。⚠**注意**：$x$ 是元素值，不是下标。
+
+如果 $x\ne b[i]$，那么问题变成 $b[0]$ 到 $b[i-1]$ 中的，以 $x$ 结尾的严格递增子序列的个数，此时有 $f[i][x] = f[i-1][x]$。
+
+如果 $x=b[i]$，我们需要知道在 $b[0]$ 到 $b[i-1]$ 中的，以 $y\ (y<x)$ 结尾的严格递增子序列的个数，再算上 $b[i]$ 单独组成一个子序列，得 
+
+$$
+f[i][x] = 1 + \sum_{y=1}^{x-1} f[i-1][y]
+$$
+
+这可以用值域树状数组优化。
+
+代码实现时，$f$ 数组的第一个维度可以优化掉，并直接记录在树状数组中。
+
+## 写法一
+
+设 $U=\max(\textit{nums})\le 7\times 10^4$。如果每次计算子序列个数时，就创建一棵新的 $\mathcal{O}(U)$ 大小的树状数组，那么光是创建树状数组，就需要 $\mathcal{O}(U^2)$ 的时间。
+
+一个简单的想法是，把数组改成哈希表，这样每次初始化只需要 $\mathcal{O}(1)$ 时间。但哈希表常数太大。
+
+注意到子序列中的元素都是 $g$ 的倍数，当 $g$ 较大时比较离散，可以考虑离散化。
+
+但更简单的做法是，把每个元素除以 $g$。相应地，只需创建 $\mathcal{O}(m/g)$ 大小的树状数组。
+
+注意取模，为什么可以在计算中取模？请看 [模运算的世界：当加减乘除遇上取模](https://leetcode.cn/circle/discuss/mDfnkW/)。
+
+[本题视频讲解](https://www.bilibili.com/video/BV1SMaGz7EXe/?t=26m58s)，欢迎点赞关注~
+
+```py [sol-Python3]
+MOD = 1_000_000_007
+
+# 预处理每个数的因子
+MX = 70_001
+divisors = [[] for _ in range(MX)]
+for i in range(1, MX):
+    for j in range(i, MX, i):  # 枚举 i 的倍数 j
+        divisors[j].append(i)  # i 是 j 的因子
+
+
+# 完整模板见 https://leetcode.cn/circle/discuss/mOr1u6/
+class FenwickTree:
+    def __init__(self, n: int):
+        self.tree = [0] * (n + 1)  # 使用下标 1 到 n
+
+    # a[i] 增加 val
+    # 1 <= i <= n
+    # 时间复杂度 O(log n)
+    def update(self, i: int, val: int) -> None:
+        t = self.tree
+        while i < len(t):
+            t[i] += val
+            i += i & -i
+
+    # 计算前缀和 a[1] + ... + a[i]
+    # 1 <= i <= n
+    # 时间复杂度 O(log n)
+    def pre(self, i: int) -> int:
+        t = self.tree
+        res = 0
+        while i > 0:
+            res += t[i]
+            i &= i - 1
+        return res % MOD
+
+
+class Solution:
+    def totalBeauty(self, nums: List[int]) -> int:
+        m = max(nums)
+
+        # 计算 b 的严格递增子序列的个数
+        def count_increasing_subsequence(b: List[int], g: int) -> int:
+            t = FenwickTree(m // g)
+            res = 0
+            for x in b:
+                x //= g
+                # cnt 表示以 x 结尾的严格递增子序列的个数
+                cnt = t.pre(x - 1) + 1  # +1 是因为 x 可以一个数组成一个子序列
+                res += cnt
+                t.update(x, cnt)  # 更新以 x 结尾的严格递增子序列的个数
+            return res
+
+        groups = [[] for _ in range(m + 1)]
+        for x in nums:
+            for d in divisors[x]:
+                groups[d].append(x)
+
+        f = [0] * (m + 1)
+        ans = 0
+        for i in range(m, 0, -1):
+            f[i] = count_increasing_subsequence(groups[i], i)
+            # 倍数容斥
+            for j in range(i * 2, m + 1, i):
+                f[i] -= f[j]
+            ans += f[i] * i
+        return ans % MOD
+```
+
+```java [sol-Java]
+// 完整模板见 https://leetcode.cn/circle/discuss/mOr1u6/
+class FenwickTree {
+    private final long[] tree;
+
+    public FenwickTree(int n) {
+        tree = new long[n + 1]; // 使用下标 1 到 n
+    }
+
+    // a[i] 增加 val
+    // 1 <= i <= n
+    // 时间复杂度 O(log n)
+    public void update(int i, long val) {
+        for (; i < tree.length; i += i & -i) {
+            tree[i] += val;
+        }
+    }
+
+    // 求前缀和 a[1] + ... + a[i]
+    // 1 <= i <= n
+    // 时间复杂度 O(log n)
+    public long pre(int i) {
+        long res = 0;
+        for (; i > 0; i &= i - 1) {
+            res += tree[i];
+        }
+        return res;
+    }
+}
+
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public int totalBeauty(int[] nums) {
+        int m = 0;
+        for (int x : nums) {
+            m = Math.max(m, x);
+        }
+
+        List<Integer>[] groups = new ArrayList[m + 1];
+        Arrays.setAll(groups, _ -> new ArrayList<>());
+        for (int x : nums) {
+            for (int d = 1; d * d <= x; d++) { // 枚举 x 的因子 d
+                if (x % d == 0) {
+                    groups[d].add(x);
+                    if (d * d < x) {
+                        groups[x / d].add(x);
+                    }
+                }
+            }
+        }
+
+        int[] f = new int[m + 1];
+        long ans = 0;
+        for (int i = m; i > 0; i--) {
+            long res = countIncreasingSubsequence(groups[i], i, m);
+            // 倍数容斥
+            for (int j = i * 2; j <= m; j += i) {
+                res -= f[j];
+            }
+            res %= MOD;
+            f[i] = (int) res;
+            // m 个 MOD * m 相加，至多为 MOD * m * m，不会超过 64 位整数最大值
+            ans += res * i;
+        }
+        // 保证结果非负
+        return (int) ((ans % MOD + MOD) % MOD);
+    }
+
+    // 计算 b 的严格递增子序列的个数
+    private long countIncreasingSubsequence(List<Integer> b, int g, int m) {
+        FenwickTree t = new FenwickTree(m / g);
+        long res = 0;
+        for (int x : b) {
+            x /= g;
+            // cnt 表示以 x 结尾的严格递增子序列的个数
+            long cnt = t.pre(x - 1) + 1; // +1 是因为 x 可以一个数组成一个子序列
+            cnt %= MOD;
+            res += cnt;
+            t.update(x, cnt); // 更新以 x 结尾的严格递增子序列的个数
+        }
+        return res;
+    }
+}
+```
+
+```java [sol-Java 预处理]
+// 完整模板见 https://leetcode.cn/circle/discuss/mOr1u6/
+class FenwickTree {
+    private final long[] tree;
+
+    public FenwickTree(int n) {
+        tree = new long[n + 1]; // 使用下标 1 到 n
+    }
+
+    // a[i] 增加 val
+    // 1 <= i <= n
+    // 时间复杂度 O(log n)
+    public void update(int i, long val) {
+        for (; i < tree.length; i += i & -i) {
+            tree[i] += val;
+        }
+    }
+
+    // 求前缀和 a[1] + ... + a[i]
+    // 1 <= i <= n
+    // 时间复杂度 O(log n)
+    public long pre(int i) {
+        long res = 0;
+        for (; i > 0; i &= i - 1) {
+            res += tree[i];
+        }
+        return res;
+    }
+}
+
+class Solution {
+    private static final int MOD = 1_000_000_007;
+    private static final int MX = 70_001;
+    private static final List<Integer>[] divisors = new ArrayList[MX];
+    private static boolean initialized = false;
+
+    // 这样写比 static block 更快
+    private void init() {
+        if (initialized) {
+            return;
+        }
+        initialized = true;
+
+        // 预处理每个数的因子
+        Arrays.setAll(divisors, _ -> new ArrayList<>());
+        for (int i = 1; i < MX; i++) {
+            for (int j = i; j < MX; j += i) { // 枚举 i 的倍数 j
+                divisors[j].add(i); // i 是 j 的因子
+            }
+        }
+    }
+
+    public int totalBeauty(int[] nums) {
+        init();
+        int m = 0;
+        for (int x : nums) {
+            m = Math.max(m, x);
+        }
+
+        List<Integer>[] groups = new ArrayList[m + 1];
+        Arrays.setAll(groups, _ -> new ArrayList<>());
+        for (int x : nums) {
+            for (int d : divisors[x]) {
+                groups[d].add(x);
+            }
+        }
+
+        int[] f = new int[m + 1];
+        long ans = 0;
+        for (int i = m; i > 0; i--) {
+            long res = countIncreasingSubsequence(groups[i], i, m);
+            // 倍数容斥
+            for (int j = i * 2; j <= m; j += i) {
+                res -= f[j];
+            }
+            res %= MOD;
+            f[i] = (int) res;
+            // m 个 MOD * m 相加，至多为 MOD * m * m，不会超过 64 位整数最大值
+            ans += res * i;
+        }
+        // 保证结果非负
+        return (int) ((ans % MOD + MOD) % MOD);
+    }
+
+    // 计算 b 的严格递增子序列的个数
+    private long countIncreasingSubsequence(List<Integer> b, int g, int m) {
+        FenwickTree t = new FenwickTree(m / g);
+        long res = 0;
+        for (int x : b) {
+            x /= g;
+            // cnt 表示以 x 结尾的严格递增子序列的个数
+            long cnt = t.pre(x - 1) + 1; // +1 是因为 x 可以一个数组成一个子序列
+            cnt %= MOD;
+            res += cnt;
+            t.update(x, cnt); // 更新以 x 结尾的严格递增子序列的个数
+        }
+        return res;
+    }
+}
+```
+
+```cpp [sol-C++]
+const int MOD = 1'000'000'007;
+const int MX = 70'001;
+vector<int> divisors[MX];
+
+int init = [] {
+    // 预处理每个数的因子
+    for (int i = 1; i < MX; i++) {
+        for (int j = i; j < MX; j += i) { // 枚举 i 的倍数 j
+            divisors[j].push_back(i); // i 是 j 的因子
+        }
+    }
+    return 0;
+}();
+
+// 完整模板见 https://leetcode.cn/circle/discuss/mOr1u6/
+// 根据题目用 FenwickTree<int> t(n) 或者 FenwickTree<long long> t(n) 初始化
+template<typename T>
+class FenwickTree {
+    vector<T> tree;
+
+public:
+    // 使用下标 1 到 n
+    FenwickTree(int n) : tree(n + 1) {}
+
+    // a[i] 增加 val
+    // 1 <= i <= n
+    // 时间复杂度 O(log n)
+    void update(int i, T val) {
+        for (; i < tree.size(); i += i & -i) {
+            tree[i] += val;
+        }
+    }
+
+    // 求前缀和 a[1] + ... + a[i]
+    // 1 <= i <= n
+    // 时间复杂度 O(log n)
+    T pre(int i) const {
+        T res = 0;
+        for (; i > 0; i &= i - 1) {
+            res += tree[i];
+        }
+        return res;
+    }
+};
+
+class Solution {
+public:
+    int totalBeauty(vector<int>& nums) {
+        int m = ranges::max(nums);
+
+        // 计算 b 的严格递增子序列的个数
+        auto count_increasing_subsequence = [&](vector<int>& b, int g) -> long long {
+            FenwickTree<long long> t(m / g);
+            long long res = 0;
+            for (int x : b) {
+                x /= g;
+                // cnt 表示以 x 结尾的严格递增子序列的个数
+                long long cnt = t.pre(x - 1) + 1; // +1 是因为 x 可以一个数组成一个子序列
+                cnt %= MOD;
+                res += cnt;
+                t.update(x, cnt); // 更新以 x 结尾的严格递增子序列的个数
+            }
+            return res;
+        };
+
+        vector<vector<int>> groups(m + 1);
+        for (int x : nums) {
+            for (int d : divisors[x]) {
+                groups[d].push_back(x);
+            }
+        }
+
+        vector<int> f(m + 1);
+        long long ans = 0;
+        for (int i = m; i > 0; i--) {
+            long long res = count_increasing_subsequence(groups[i], i);
+            // 倍数容斥
+            for (int j = i * 2; j <= m; j += i) {
+                res -= f[j];
+            }
+            f[i] = res % MOD;
+            // m 个 MOD * m 相加，至多为 MOD * m * m，不会超过 64 位整数最大值
+            ans += 1LL * f[i] * i;
+        }
+        // 保证结果非负
+        return (ans % MOD + MOD) % MOD;
+    }
+};
+```
+
+```go [sol-Go]
+const mod = 1_000_000_007
+const mx = 70_001
+var divisors [mx][]int
+
+func init() {
+	// 预处理每个数的因子
+	for i := 1; i < mx; i++ {
+		for j := i; j < mx; j += i { // 枚举 i 的倍数 j
+			divisors[j] = append(divisors[j], i) // i 是 j 的因子
+		}
+	}
+}
+
+// 完整模板见 https://leetcode.cn/circle/discuss/mOr1u6/
+type fenwick []int
+
+func newFenwickTree(n int) fenwick {
+	return make(fenwick, n+1) // 使用下标 1 到 n
+}
+
+// a[i] 增加 val
+// 1 <= i <= n
+// 时间复杂度 O(log n)
+func (f fenwick) update(i, val int) {
+	for ; i < len(f); i += i & -i {
+		f[i] += val
+	}
+}
+
+// 求前缀和 a[1] + ... + a[i]
+// 1 <= i <= n
+// 时间复杂度 O(log n)
+func (f fenwick) pre(i int) (res int) {
+	for ; i > 0; i &= i - 1 {
+		res += f[i]
+	}
+	return res % mod
+}
+
+func totalBeauty(nums []int) (ans int) {
+	m := slices.Max(nums)
+
+	// 计算 b 的严格递增子序列的个数
+	countIncreasingSubsequence := func(b []int, g int) (res int) {
+		t := newFenwickTree(m / g)
+		for _, x := range b {
+			x /= g
+			// cnt 表示以 x 结尾的严格递增子序列的个数
+			cnt := t.pre(x-1) + 1 // +1 是因为 x 可以一个数组成一个子序列
+			res += cnt
+			t.update(x, cnt) // 更新以 x 结尾的严格递增子序列的个数
+		}
+		return res % mod
+	}
+
+	groups := make([][]int, m+1)
+	for _, x := range nums {
+		for _, d := range divisors[x] {
+			groups[d] = append(groups[d], x)
+		}
+	}
+
+	f := make([]int, m+1)
+	for i := m; i > 0; i-- {
+		f[i] = countIncreasingSubsequence(groups[i], i)
+		// 倍数容斥
+		for j := i * 2; j <= m; j += i {
+			f[i] -= f[j]
+		}
+		// 注意 |f[i]| * i < mod * (m / i) * i = mod * m
+		// m 个 mod * m 相加，至多为 mod * m * m，不会超过 64 位整数最大值
+		ans += f[i] * i
+	}
+	// 保证结果非负
+	return (ans%mod + mod) % mod
+}
+```
+
+## 写法二：用时间戳懒初始化
+
+这个写法只需创建一次树状数组，**适用于更一般的场景**。
+
+- 初始化时间戳 $\textit{now}=0$。
+- 用 $\textit{now}$ 加一代替树状数组的初始化。
+- 用 $\textit{time}[i]$ 表示 $i$ 这个位置的最新时间戳。
+- 如果更新时发现 $\textit{time}[i] < \textit{now}$，那么这个时候再执行树状数组的初始化，即初始化 $\textit{tree}[i] = 0$，并更新 $\textit{time}[i] = \textit{now}$。
+- 查询时只累加 $\textit{time}[i] = \textit{now}$ 的 $\textit{tree}[i]$。
+
+```py [sol-Python3]
+MOD = 1_000_000_007
+
+# 预处理每个数的因子
+MX = 70_001
+divisors = [[] for _ in range(MX)]
+for i in range(1, MX):
+    for j in range(i, MX, i):  # 枚举 i 的倍数 j
+        divisors[j].append(i)  # i 是 j 的因子
+
+class Solution:
+    def totalBeauty(self, nums: List[int]) -> int:
+        m = max(nums)
+
+        # 树状数组（时间戳优化）
+        tree = [0] * (m + 1)
+        time = [0] * (m + 1)
+        now = 0
+
+        def update(i: int, val: int) -> None:
+            nonlocal now
+            while i <= m:
+                if time[i] < now:
+                    time[i] = now
+                    tree[i] = 0  # 懒重置
+                tree[i] += val
+                i += i & -i
+
+        def pre(i: int) -> int:
+            res = 0
+            while i > 0:
+                if time[i] == now:
+                    res += tree[i]
+                i &= i - 1
+            return res % MOD
+
+        # 计算 b 的严格递增子序列的个数
+        def count_increasing_subsequence(b: List[int]) -> int:
+            nonlocal now
+            now += 1  # 重置树状数组（懒重置）
+            res = 0
+            for x in b:
+                # cnt 表示以 x 结尾的严格递增子序列的个数
+                cnt = pre(x - 1) + 1  # +1 是因为 x 可以一个数组成一个子序列
+                res += cnt
+                update(x, cnt)  # 更新以 x 结尾的严格递增子序列的个数
+            return res
+
+        groups = [[] for _ in range(m + 1)]
+        for x in nums:
+            for d in divisors[x]:
+                groups[d].append(x)
+
+        f = [0] * (m + 1)
+        ans = 0
+        for i in range(m, 0, -1):
+            f[i] = count_increasing_subsequence(groups[i])
+            # 倍数容斥
+            for j in range(i * 2, m + 1, i):
+                f[i] -= f[j]
+            ans += f[i] * i
+        return ans % MOD
+```
+
+```java [sol-Java]
+class FenwickTree {
+    private static final int MOD = 1_000_000_007;
+    private final int[] tree;
+    private final int[] time;
+    private int now = 0;
+
+    public FenwickTree(int size) {
+        tree = new int[size + 1];
+        time = new int[size + 1];
+    }
+
+    // 重置树状数组（懒重置）
+    public void reset() {
+        now++;
+    }
+
+    // 把位置 i 的数增加 val
+    public void update(int i, int val) {
+        while (i < tree.length) {
+            if (time[i] < now) {
+                time[i] = now;
+                tree[i] = 0; // 懒重置
+            }
+            tree[i] = (tree[i] + val) % MOD;
+            i += i & -i;
+        }
+    }
+
+    // 计算 [1,i] 的元素和
+    public int pre(int i) {
+        long res = 0;
+        while (i > 0) {
+            if (time[i] == now) {
+                res += tree[i];
+            }
+            i &= i - 1;
+        }
+        return (int) (res % MOD);
+    }
+}
+
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public int totalBeauty(int[] nums) {
+        int m = 0;
+        for (int x : nums) {
+            m = Math.max(m, x);
+        }
+
+        List<Integer>[] groups = new ArrayList[m + 1];
+        Arrays.setAll(groups, _ -> new ArrayList<>());
+        for (int x : nums) {
+            for (int d = 1; d * d <= x; d++) { // 枚举 x 的因子 d
+                if (x % d == 0) {
+                    groups[d].add(x);
+                    if (d * d < x) {
+                        groups[x / d].add(x);
+                    }
+                }
+            }
+        }
+
+        FenwickTree t = new FenwickTree(m);
+        int[] f = new int[m + 1];
+        long ans = 0;
+        for (int i = m; i > 0; i--) {
+            long res = countIncreasingSubsequence(groups[i], t);
+            // 倍数容斥
+            for (int j = i * 2; j <= m; j += i) {
+                res -= f[j];
+            }
+            res %= MOD;
+            f[i] = (int) res;
+            // m 个 MOD * m 相加，至多为 MOD * m * m，不会超过 64 位整数最大值
+            ans += res * i;
+        }
+        // 保证结果非负
+        return (int) ((ans % MOD + MOD) % MOD);
+    }
+
+    // 计算 b 的严格递增子序列的个数
+    private long countIncreasingSubsequence(List<Integer> b, FenwickTree t) {
+        t.reset();
+        long res = 0;
+        for (int x : b) {
+            // cnt 表示以 x 结尾的严格递增子序列的个数
+            int cnt = t.pre(x - 1) + 1; // +1 是因为 x 可以一个数组成一个子序列
+            res += cnt;
+            t.update(x, cnt); // 更新以 x 结尾的严格递增子序列的个数
+        }
+        return res;
+    }
+}
+```
+
+```java [sol-Java 预处理]
+class FenwickTree {
+    private static final int MOD = 1_000_000_007;
+    private final int[] tree;
+    private final int[] time;
+    private int now = 0;
+
+    public FenwickTree(int size) {
+        tree = new int[size + 1];
+        time = new int[size + 1];
+    }
+
+    // 重置树状数组（懒重置）
+    public void reset() {
+        now++;
+    }
+
+    // 把位置 i 的数增加 val
+    public void update(int i, int val) {
+        while (i < tree.length) {
+            if (time[i] < now) {
+                time[i] = now;
+                tree[i] = 0; // 懒重置
+            }
+            tree[i] = (tree[i] + val) % MOD;
+            i += i & -i;
+        }
+    }
+
+    // 计算 [1,i] 的元素和
+    public int pre(int i) {
+        long res = 0;
+        while (i > 0) {
+            if (time[i] == now) {
+                res += tree[i];
+            }
+            i &= i - 1;
+        }
+        return (int) (res % MOD);
+    }
+}
+
+class Solution {
+    private static final int MOD = 1_000_000_007;
+    private static final int MX = 70_001;
+    private static final List<Integer>[] divisors = new ArrayList[MX];
+    private static boolean initialized = false;
+
+    // 这样写比 static block 更快
+    private void init() {
+        if (initialized) {
+            return;
+        }
+        initialized = true;
+
+        // 预处理每个数的因子
+        Arrays.setAll(divisors, _ -> new ArrayList<>());
+        for (int i = 1; i < MX; i++) {
+            for (int j = i; j < MX; j += i) { // 枚举 i 的倍数 j
+                divisors[j].add(i); // i 是 j 的因子
+            }
+        }
+    }
+
+    public int totalBeauty(int[] nums) {
+        init();
+        int m = 0;
+        for (int x : nums) {
+            m = Math.max(m, x);
+        }
+
+        List<Integer>[] groups = new ArrayList[m + 1];
+        Arrays.setAll(groups, _ -> new ArrayList<>());
+        for (int x : nums) {
+            for (int d : divisors[x]) {
+                groups[d].add(x);
+            }
+        }
+
+        FenwickTree t = new FenwickTree(m);
+        int[] f = new int[m + 1];
+        long ans = 0;
+        for (int i = m; i > 0; i--) {
+            long res = countIncreasingSubsequence(groups[i], t);
+            // 倍数容斥
+            for (int j = i * 2; j <= m; j += i) {
+                res -= f[j];
+            }
+            res %= MOD;
+            f[i] = (int) res;
+            // m 个 MOD * m 相加，至多为 MOD * m * m，不会超过 64 位整数最大值
+            ans += res * i;
+        }
+        // 保证结果非负
+        return (int) ((ans % MOD + MOD) % MOD);
+    }
+
+    // 计算 b 的严格递增子序列的个数
+    private long countIncreasingSubsequence(List<Integer> b, FenwickTree t) {
+        t.reset();
+        long res = 0;
+        for (int x : b) {
+            // cnt 表示以 x 结尾的严格递增子序列的个数
+            int cnt = t.pre(x - 1) + 1; // +1 是因为 x 可以一个数组成一个子序列
+            res += cnt;
+            t.update(x, cnt); // 更新以 x 结尾的严格递增子序列的个数
+        }
+        return res;
+    }
+}
+```
+
+```cpp [sol-C++]
+const int MX = 70'001;
+vector<int> divisors[MX];
+
+int init = [] {
+    // 预处理每个数的因子
+    for (int i = 1; i < MX; i++) {
+        for (int j = i; j < MX; j += i) { // 枚举 i 的倍数 j
+            divisors[j].push_back(i); // i 是 j 的因子
+        }
+    }
+    return 0;
+}();
+
+class Solution {
+public:
+    int totalBeauty(vector<int>& nums) {
+        const int MOD = 1'000'000'007;
+        int m = ranges::max(nums);
+
+        // 树状数组（时间戳优化）
+        vector<int> tree(m + 1), time(m + 1);
+        int now = 0;
+        auto update = [&](int i, int val) -> void {
+            while (i <= m) {
+                if (time[i] < now) {
+                    time[i] = now;
+                    tree[i] = 0; // 懒重置
+                }
+                tree[i] = (tree[i] + val) % MOD;
+                i += i & -i;
+            }
+        };
+        auto pre = [&](int i) -> int {
+            long long res = 0;
+            while (i > 0) {
+                if (time[i] == now) {
+                    res += tree[i];
+                }
+                i &= i - 1;
+            }
+            return res % MOD;
+        };
+
+        // 计算 b 的严格递增子序列的个数
+        auto count_increasing_subsequence = [&](vector<int>& b) -> long long {
+            now++; // 重置树状数组（懒重置）
+            long long res = 0;
+            for (int x : b) {
+                // cnt 表示以 x 结尾的严格递增子序列的个数
+                int cnt = pre(x - 1) + 1; // +1 是因为 x 可以一个数组成一个子序列
+                res += cnt;
+                update(x, cnt); // 更新以 x 结尾的严格递增子序列的个数
+            }
+            return res;
+        };
+
+        vector<vector<int>> groups(m + 1);
+        for (int x : nums) {
+            for (int d : divisors[x]) {
+                groups[d].push_back(x);
+            }
+        }
+
+        vector<int> f(m + 1);
+        long long ans = 0;
+        for (int i = m; i > 0; i--) {
+            long long res = count_increasing_subsequence(groups[i]);
+            // 倍数容斥
+            for (int j = i * 2; j <= m; j += i) {
+                res -= f[j];
+            }
+            f[i] = res % MOD;
+            // m 个 MOD * m 相加，至多为 MOD * m * m，不会超过 64 位整数最大值
+            ans += 1LL * f[i] * i;
+        }
+        // 保证结果非负
+        return (ans % MOD + MOD) % MOD;
+    }
+};
+```
+
+```go [sol-Go]
+const mod = 1_000_000_007
+const mx = 70_001
+
+var divisors [mx][]int
+
+func init() {
+	// 预处理每个数的因子
+	for i := 1; i < mx; i++ {
+		for j := i; j < mx; j += i { // 枚举 i 的倍数 j
+			divisors[j] = append(divisors[j], i) // i 是 j 的因子
+		}
+	}
+}
+
+func totalBeauty(nums []int) (ans int) {
+	m := slices.Max(nums)
+
+	// 树状数组（时间戳优化）
+	tree := make([]int, m+1)
+	time := make([]int, m+1) // 避免反复初始化树状数组
+	now := 0
+	update := func(i, val int) {
+		for ; i <= m; i += i & -i {
+			if time[i] < now {
+				time[i] = now
+				tree[i] = 0 // 懒重置
+			}
+			tree[i] += val
+		}
+	}
+	pre := func(i int) (res int) {
+		for ; i > 0; i &= i - 1 {
+			if time[i] == now {
+				res += tree[i]
+			}
+		}
+		return res % mod
+	}
+
+	// 计算 b 的严格递增子序列的个数
+	countIncreasingSubsequence := func(b []int) (res int) {
+		now++ // 重置树状数组（懒重置）
+		for _, x := range b {
+			// cnt 表示以 x 结尾的严格递增子序列的个数
+			cnt := pre(x-1) + 1 // +1 是因为 x 可以一个数组成一个子序列
+			res += cnt
+			update(x, cnt) // 更新以 x 结尾的严格递增子序列的个数
+		}
+		return res % mod
+	}
+
+	groups := make([][]int, m+1)
+	for _, x := range nums {
+		for _, d := range divisors[x] {
+			groups[d] = append(groups[d], x)
+		}
+	}
+
+	f := make([]int, m+1)
+	for i := m; i > 0; i-- {
+		f[i] = countIncreasingSubsequence(groups[i])
+		// 倍数容斥
+		for j := i * 2; j <= m; j += i {
+			f[i] -= f[j]
+		}
+		// 注意 |f[i]| * i < mod * (m / i) * i = mod * m
+		// m 个 mod * m 相加，至多为 mod * m * m，不会超过 64 位整数最大值
+		ans += f[i] * i
+	}
+	// 保证结果非负
+	return (ans%mod + mod) % mod
+}
+```
+
+#### 复杂度分析
+
+预处理的时间和空间不计入。
+
+- 时间复杂度：$\mathcal{O}(Dn\log U + U\log U)$，其中 $n$ 是 $\textit{nums}$ 的长度，$U=\max(\textit{nums})\le 7\times 10^4$，$D\le 120$ 为单个数的最大因子个数。
+- 空间复杂度：$\mathcal{O}(Dn + U)$。
+
+## 相似题目
+
+[3312. 查询排序后的最大公约数](https://leetcode.cn/problems/sorted-gcd-pair-queries/)
+
+## 专题训练
+
+1. 数学题单的「**§1.6 最大公约数（GCD）**」。
+2. 数据结构题单的「**§8.1 树状数组**」。
+3. 动态规划题单的「**§7.4 合法子序列 DP**」和「**§11.4 树状数组/线段树优化 DP**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `十一、优化 DP / §11.4 树状数组/线段树优化 DP`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `十一、优化 DP / §11.4 树状数组/线段树优化 DP`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

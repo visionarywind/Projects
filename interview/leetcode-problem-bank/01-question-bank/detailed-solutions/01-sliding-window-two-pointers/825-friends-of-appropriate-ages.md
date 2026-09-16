@@ -1,0 +1,316 @@
+# 825. 适龄的朋友
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/friends-of-appropriate-ages/
+- 题目 slug：`friends-of-appropriate-ages`
+- 来源专题：滑动窗口与双指针
+- 来源分类路径：二、不定长滑动窗口 / §2.4 其他（选做）
+- 难度分：1697
+- 外部题解来源：https://leetcode.cn/problems/friends-of-appropriate-ages/solutions/2990994/ji-shu-hua-dong-chuang-kou-pythonjavaccg-jfya/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[计数+滑动窗口（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/friends-of-appropriate-ages/solutions/2990994/ji-shu-hua-dong-chuang-kou-pythonjavaccg-jfya/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`ji-shu-hua-dong-chuang-kou-pythonjavaccg-jfya`
+- topic id：`2990994`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+根据题意，$x$ 向 $y$ 发送好友请求，只需满足 $x\ne y$ 且
+
+$$
+\dfrac{1}{2}\cdot \textit{ages}[x] + 7 < \textit{ages}[y] \le \textit{ages}[x]
+$$
+
+注意，只要满足了 $\textit{ages}[y] \le \textit{ages}[x]$，题目的第三个条件一定为假。
+
+由于 $n$ 很大而 $\textit{ages}[i]\le 120$，我们可以用一个长为 $121$ 的 $\textit{cnt}$ 数组统计每个年龄的人数。
+
+枚举年龄 $\textit{ageX}$，我们需要知道：
+
+- 可以发送好友请求的最小年龄 $\textit{ageY}$ 是多少。
+- 年龄在区间 $[\textit{ageY},\textit{ageX}]$ 中的人数。
+
+由于 $\textit{ageX}$ 越大，$\textit{ageY}$ 也越大，可以用**滑动窗口**解决。如果你不了解滑动窗口，可以看视频[【基础算法精讲 03】](https://www.bilibili.com/video/BV1hd4y1r7Gq/)。
+
+窗口内维护年龄在区间 $[\textit{ageY},\textit{ageX}]$ 中的人数 $\textit{cntWindow}$。
+
+如果发现 $\textit{cntWindow} > 0$，说明存在可以发送好友请求的用户：
+
+- 当前这 $\textit{cnt}[\textit{ageX}]$ 个用户可以与 $\textit{cntWindow}$ 个用户发送好友请求，根据乘法原理，这有 $\textit{cnt}[\textit{ageX}]\cdot \textit{cntWindow}$ 个。
+- 其中有 $\textit{cnt}[\textit{ageX}]$ 个好友请求是自己发给自己的，不符合题目要求，要减去。
+
+所以把
+
+$$
+\textit{cnt}[\textit{ageX}]\cdot \textit{cntWindow} - \textit{cnt}[\textit{ageX}]
+$$
+
+加入答案。
+
+## 细节
+
+$\textit{ageY} \le \dfrac{1}{2}\cdot \textit{ageX} + 7$ 等价于 $\textit{ageY}\cdot 2 \le \textit{ageX} + 14$。
+
+由上式可知，当 $\textit{ageX}$ 增加 $1$ 时，$\textit{ageY}$ 至多增加 $1$（斜率只有 $\dfrac{1}{2}$），所以滑动窗口的内层 $\texttt{while}$ 循环至多循环一次，可以改成 $\texttt{if}$ 语句。
+
+注：年龄可以从 $15$ 开始枚举，但考虑到如果题目条件改了，就不适用了，所以简单起见，从 $0$ 开始枚举。
+
+```py [sol-Python3]
+class Solution:
+    def numFriendRequests(self, ages: List[int]) -> int:
+        cnt = [0] * 121
+        for age in ages:
+            cnt[age] += 1
+
+        ans = cnt_window = age_y = 0
+        for age_x, c in enumerate(cnt):
+            cnt_window += c
+            if age_y * 2 <= age_x + 14:  # 不能发送好友请求
+                cnt_window -= cnt[age_y]
+                age_y += 1
+            if cnt_window:  # 存在可以发送好友请求的用户
+                ans += c * cnt_window - c
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int numFriendRequests(int[] ages) {
+        int[] cnt = new int[121];
+        for (int age : ages) {
+            cnt[age]++;
+        }
+
+        int ans = 0;
+        int ageY = 0;
+        int cntWindow = 0;
+        for (int ageX = 0; ageX < cnt.length; ageX++) {
+            cntWindow += cnt[ageX];
+            if (ageY * 2 <= ageX + 14) { // 不能发送好友请求
+                cntWindow -= cnt[ageY];
+                ageY++;
+            }
+            if (cntWindow > 0) { // 存在可以发送好友请求的用户
+                ans += cnt[ageX] * cntWindow - cnt[ageX];
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int numFriendRequests(vector<int>& ages) {
+        int cnt[121]{};
+        for (int age : ages) {
+            cnt[age]++;
+        }
+
+        int ans = 0, cnt_window = 0, age_y = 0;
+        for (int age_x = 0; age_x < 121; age_x++) {
+            cnt_window += cnt[age_x];
+            if (age_y * 2 <= age_x + 14) { // 不能发送好友请求
+                cnt_window -= cnt[age_y];
+                age_y++;
+            }
+            if (cnt_window > 0) { // 存在可以发送好友请求的用户
+                ans += cnt[age_x] * cnt_window - cnt[age_x];
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+int numFriendRequests(int* ages, int agesSize) {
+    int cnt[121] = {};
+    for (int i = 0; i < agesSize; i++) {
+        cnt[ages[i]]++;
+    }
+
+    int ans = 0, cnt_window = 0, age_y = 0;
+    for (int age_x = 0; age_x < 121; age_x++) {
+        cnt_window += cnt[age_x];
+        if (age_y * 2 <= age_x + 14) { // 不能发送好友请求
+            cnt_window -= cnt[age_y];
+            age_y++;
+        }
+        if (cnt_window > 0) { // 存在可以发送好友请求的用户
+            ans += cnt[age_x] * cnt_window - cnt[age_x];
+        }
+    }
+    return ans;
+}
+```
+
+```go [sol-Go]
+func numFriendRequests(ages []int) (ans int) {
+    cnt := [121]int{}
+    for _, age := range ages {
+        cnt[age]++
+    }
+
+    cntWindow, ageY := 0, 0
+    for ageX, c := range cnt[:] {
+        cntWindow += c
+        if ageY*2 <= ageX+14 { // 不能发送好友请求
+            cntWindow -= cnt[ageY]
+            ageY++
+        }
+        if cntWindow > 0 { // 存在可以发送好友请求的用户
+            ans += c*cntWindow - c
+        }
+    }
+    return
+}
+```
+
+```js [sol-JavaScript]
+var numFriendRequests = function(ages) {
+    const cnt = Array(121).fill(0);
+    for (const age of ages) {
+        cnt[age]++;
+    }
+
+    let ans = 0, cntWindow = 0, ageY = 0;
+    for (let ageX = 0; ageX < cnt.length; ageX++) {
+        cntWindow += cnt[ageX];
+        if (ageY * 2 <= ageX + 14) { // 不能发送好友请求
+            cntWindow -= cnt[ageY];
+            ageY++;
+        }
+        if (cntWindow > 0) { // 存在可以发送好友请求的用户
+            ans += cnt[ageX] * cntWindow - cnt[ageX];
+        }
+    }
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn num_friend_requests(ages: Vec<i32>) -> i32 {
+        let mut cnt = vec![0; 121];
+        for age in ages {
+            cnt[age as usize] += 1;
+        }
+
+        let mut ans = 0;
+        let mut age_y = 0;
+        let mut cnt_window = 0;
+        for age_x in 0..cnt.len() {
+            cnt_window += cnt[age_x];
+            if age_y * 2 <= age_x + 14 { // 不能发送好友请求
+                cnt_window -= cnt[age_y];
+                age_y += 1;
+            }
+            if cnt_window > 0 { // 存在可以发送好友请求的用户
+                ans += cnt[age_x] * cnt_window - cnt[age_x];
+            }
+        }
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n+U)$，其中 $n$ 是 $\textit{ages}$ 的长度，$U=\max(\textit{ages})\le 120$。
+- 空间复杂度：$\mathcal{O}(U)$。
+
+## 思考题
+
+改成 $\dfrac{1}{2}\cdot \textit{ages}[x] + 7 < \textit{ages}[y] \le 2\cdot \textit{ages}[x]$，要怎么做？
+
+欢迎在评论区分享你的思路/代码。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. 【本题相关】[滑动窗口与双指针（定长/不定长/单序列/双序列/三指针）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/最短路/最小生成树/二分图/基环树/欧拉路径）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/状态机/划分/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与一般树（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `二、不定长滑动窗口 / §2.4 其他（选做）`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `二、不定长滑动窗口 / §2.4 其他（选做）`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

@@ -1,0 +1,598 @@
+# 2965. 找出缺失和重复的数字
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/find-missing-and-repeated-values/
+- 题目 slug：`find-missing-and-repeated-values`
+- 来源专题：位运算
+- 来源分类路径：九、其他
+- 难度分：Unknown
+- 外部题解来源：https://leetcode.cn/problems/find-missing-and-repeated-values/solutions/2569783/mo-ni-pythonjavacgo-by-endlesscheng-mexz/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[三种方法：计数/位运算/数学（Python/Java/C++/Go/JS/Rust）](https://leetcode.cn/problems/find-missing-and-repeated-values/solutions/2569783/mo-ni-pythonjavacgo-by-endlesscheng-mexz/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`mo-ni-pythonjavacgo-by-endlesscheng-mexz`
+- topic id：`2569783`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 方法一：统计元素出现次数
+
+用数组统计每个数的出现次数，然后遍历 $[1,n^2]$，寻找出现两次的数，和出现零次的数。
+
+```py [sol-Python3]
+class Solution:
+    def findMissingAndRepeatedValues(self, grid: List[List[int]]) -> List[int]:
+        n = len(grid)
+        cnt = [0] * (n * n + 1)
+        for row in grid:
+            for x in row:
+                cnt[x] += 1
+
+        ans = [0, 0]
+        for i in range(1, n * n + 1):
+            if cnt[i] == 2:
+                ans[0] = i  # 出现两次的数
+            elif cnt[i] == 0:
+                ans[1] = i  # 出现零次的数
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int[] findMissingAndRepeatedValues(int[][] grid) {
+        int n = grid.length;
+        int[] cnt = new int[n * n + 1];
+        for (int[] row : grid) {
+            for (int x : row) {
+                cnt[x]++;
+            }
+        }
+
+        int[] ans = new int[2];
+        for (int i = 1; i <= n * n; i++) {
+            if (cnt[i] == 2) {
+                ans[0] = i; // 出现两次的数
+            } else if (cnt[i] == 0) {
+                ans[1] = i; // 出现零次的数
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<int> findMissingAndRepeatedValues(vector<vector<int>>& grid) {
+        int n = grid.size();
+        vector<int> cnt(n * n + 1);
+        for (auto& row : grid) {
+            for (int x : row) {
+                cnt[x]++;
+            }
+        }
+
+        vector<int> ans(2);
+        for (int i = 1; i <= n * n; i++) {
+            if (cnt[i] == 2) {
+                ans[0] = i; // 出现两次的数
+            } else if (cnt[i] == 0) {
+                ans[1] = i; // 出现零次的数
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func findMissingAndRepeatedValues(grid [][]int) []int {
+	n := len(grid)
+	cnt := make([]int, n*n+1)
+	for _, row := range grid {
+		for _, x := range row {
+			cnt[x]++
+		}
+	}
+
+	ans := make([]int, 2)
+	for i := 1; i <= n*n; i++ {
+		if cnt[i] == 2 {
+			ans[0] = i // 出现两次的数
+		} else if cnt[i] == 0 {
+			ans[1] = i // 出现零次的数
+		}
+	}
+	return ans
+}
+```
+
+```js [sol-JavaScript]
+var findMissingAndRepeatedValues = function(grid) {
+    const n = grid.length;
+    const cnt = Array(n * n + 1).fill(0);
+    for (const row of grid) {
+        for (const x of row) {
+            cnt[x]++;
+        }
+    }
+
+    const ans = Array(2);
+    for (let i = 1; i <= n * n; i++) {
+        if (cnt[i] === 2) {
+            ans[0] = i; // 出现两次的数
+        } else if (cnt[i] === 0) {
+            ans[1] = i; // 出现零次的数
+        }
+    }
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn find_missing_and_repeated_values(grid: Vec<Vec<i32>>) -> Vec<i32> {
+        let n = grid.len();
+        let mut cnt = vec![0; n * n + 1];
+        for row in grid {
+            for x in row {
+                cnt[x as usize] += 1;
+            }
+        }
+
+        let mut ans = vec![0; 2];
+        for i in 1..=n * n {
+            if cnt[i] == 2 {
+                ans[0] = i as i32; // 出现两次的数
+            } else if cnt[i] == 0 {
+                ans[1] = i as i32; // 出现零次的数
+            }
+        }
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n^2)$，其中 $n$ 为 $\textit{grid}$ 的行数和列数。
+- 空间复杂度：$\mathcal{O}(n^2)$。
+
+## 方法二：位运算
+
+能否做到 $\mathcal{O}(1)$ 额外空间？
+
+额外添加 $1,2,3,\cdots,n^2$，那么就有一个数出现一次，一个数出现三次，其余数均出现两次。
+
+在异或操作下，一个数出现三次和出现一次是一样的，于是问题变成 [260. 只出现一次的数字 III](https://leetcode.cn/problems/single-number-iii/)，具体请看我的[【图解】](https://leetcode.cn/problems/single-number-iii/solution/tu-jie-yi-zhang-tu-miao-dong-zhuan-huan-np9d2/)。
+
+以下代码基于我 260 题解的第二份代码修改：
+
+1. 计算 $\textit{xorAll}$ 时，额外计算 $1$ 到 $n^2$ 的异或和。有 $\mathcal{O}(1)$ 公式，见 [1486. 数组异或操作的题解](https://leetcode.cn/problems/xor-operation-in-an-array/solution/o1-gong-shi-tui-dao-pythonjavaccgojsrust-le23/)。注意，$(4k)^2=16k^2$ 是 $4$ 的倍数，$(4k+2)^2=16k^2+16k+4$ 也是 $4$ 的倍数，$(4k+1)^2=16k^2+8k+1$ 模 $4$ 等于 $1$，$(4k+3)^2=16k^2+24k+9$ 模 $4$ 也等于 $1$，所以 $n^2$ 模 $4$ 要么是 $0$ 要么是 $1$，取决于 $n$ 是偶数还是奇数。如果 $n$ 是偶数，那么 $1$ 到 $n^2$ 的异或和等于 $n^2$，否则等于 $1$。
+2. 计算 $\textit{ans}$ 时，额外遍历 $1$ 到 $n^2$ 的每个数。
+
+```py [sol-Python3]
+class Solution:
+    def findMissingAndRepeatedValues(self, grid: List[List[int]]) -> List[int]:
+        n = len(grid)
+        xor_all = reduce(xor, (x for row in grid for x in row)) ^ (1 if n % 2 else n * n)
+        shift = xor_all.bit_length() - 1
+
+        ans = [0, 0]
+        for x in range(1, n * n + 1):
+            ans[x >> shift & 1] ^= x
+        for row in grid:
+            for x in row:
+                ans[x >> shift & 1] ^= x
+
+        return ans if ans[0] in (x for row in grid for x in row) else ans[::-1]
+```
+
+```java [sol-Java]
+class Solution {
+    public int[] findMissingAndRepeatedValues(int[][] grid) {
+        int n = grid.length;
+        int xorAll = 0;
+        for (int[] row : grid) {
+            for (int x : row) {
+                xorAll ^= x;
+            }
+        }
+        xorAll ^= n % 2 > 0 ? 1 : n * n;
+        int shift = Integer.numberOfTrailingZeros(xorAll);
+
+        int[] ans = new int[2];
+        for (int x = 1; x <= n * n; x++) {
+            ans[x >> shift & 1] ^= x;
+        }
+        for (int[] row : grid) {
+            for (int x : row) {
+                ans[x >> shift & 1] ^= x;
+            }
+        }
+
+        for (int[] row : grid) {
+            for (int x : row) {
+                if (x == ans[0]) {
+                    return ans;
+                }
+            }
+        }
+        return new int[]{ans[1], ans[0]};
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<int> findMissingAndRepeatedValues(vector<vector<int>>& grid) {
+        int n = grid.size();
+        int xor_all = 0;
+        for (auto& row : grid) {
+            for (int x : row) {
+                xor_all ^= x;
+            }
+        }
+        xor_all ^= n % 2 ? 1 : n * n;
+        int shift = __builtin_ctz(xor_all);
+
+        vector<int> ans(2);
+        for (int x = 1; x <= n * n; x++) {
+            ans[x >> shift & 1] ^= x;
+        }
+        for (auto& row : grid) {
+            for (int x : row) {
+                ans[x >> shift & 1] ^= x;
+            }
+        }
+
+        for (auto& row : grid) {
+            if (ranges::find(row, ans[0]) != row.end()) {
+                return ans;
+            }
+        }
+        return {ans[1], ans[0]};
+    }
+};
+```
+
+```go [sol-Go]
+func findMissingAndRepeatedValues(grid [][]int) []int {
+    n := len(grid)
+    xorAll := 0
+    for _, row := range grid {
+        for _, x := range row {
+            xorAll ^= x
+        }
+    }
+    if n%2 > 0 {
+        xorAll ^= 1
+    } else {
+        xorAll ^= n * n
+    }
+    shift := bits.TrailingZeros(uint(xorAll))
+
+    ans := make([]int, 2)
+    for x := 1; x <= n*n; x++ {
+        ans[x>>shift&1] ^= x
+    }
+    for _, row := range grid {
+        for _, x := range row {
+            ans[x>>shift&1] ^= x
+        }
+    }
+
+    for _, row := range grid {
+        if slices.Contains(row, ans[0]) {
+            return ans
+        }
+    }
+    return []int{ans[1], ans[0]}
+}
+```
+
+```js [sol-JavaScript]
+var findMissingAndRepeatedValues = function(grid) {
+    const n = grid.length;
+    let xorAll = 0;
+    for (const row of grid) {
+        for (const x of row) {
+            xorAll ^= x;
+        }
+    }
+    xorAll ^= n % 2 ? 1 : n * n;
+    const shift = 31 - Math.clz32(xorAll);
+
+    const ans = [0, 0];
+    for (let x = 1; x <= n * n; x++) {
+        ans[x >> shift & 1] ^= x;
+    }
+    for (const row of grid) {
+        for (const x of row) {
+            ans[x >> shift & 1] ^= x;
+        }
+    }
+
+    for (const row of grid) {
+        if (row.includes(ans[0])) {
+            return ans;
+        }
+    }
+    return [ans[1], ans[0]];
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn find_missing_and_repeated_values(grid: Vec<Vec<i32>>) -> Vec<i32> {
+        let n = grid.len() as i32;
+        let mut xor_all = 0;
+        for row in &grid {
+            for &x in row {
+                xor_all ^= x;
+            }
+        }
+        xor_all ^= if n % 2 > 0 { 1 } else { n * n };
+        let shift = xor_all.trailing_zeros();
+
+        let mut ans = vec![0, 0];
+        for x in 1..=n * n {
+            ans[(x >> shift & 1) as usize] ^= x;
+        }
+        for row in &grid {
+            for &x in row {
+                ans[(x >> shift & 1) as usize] ^= x;
+            }
+        }
+
+        for row in grid {
+            if row.contains(&ans[0]) {
+                return ans;
+            }
+        }
+        vec![ans[1], ans[0]]
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n^2)$，其中 $n$ 为 $\textit{grid}$ 的行数和列数。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 方法三：数学
+
+继续优化，我们可以做到**一次遍历**。
+
+设 $a$ 出现两次，$b$ 出现零次。
+
+累加 $\textit{grid}$ 的所有元素（$a$ 多加了一次，$b$ 少加了一次），再减去 $1$ 到 $n^2$ 的元素和，我们得到了 $a-b$。设计算出的结果为 $d_1$，则有
+
+$$
+a-b = d_1 
+$$
+
+累加 $\textit{grid}$ 的所有元素的平方（$a^2$ 多加了一次，$b^2$ 少加了一次），再减去 $1$ 到 $n^2$ 的平方和，我们得到了 $a^2-b^2$。设计算出的结果为 $d_2$，则有
+
+$$
+a^2-b^2 = (a+b)(a-b) = d_2
+$$
+
+由于 $a\ne b$（同一个数不可能出现两次又出现零次），左右两边可同时除以 $a-b=d_1$，得
+
+$$
+a+b = \dfrac{d_2}{d_1}
+$$
+
+知道了 $a-b$ 和 $a+b$，解方程组，得
+
+$$
+\begin{align}
+a &= \dfrac{d_2/d_1+d_1}{2}\\
+b &= \dfrac{d_2/d_1-d_1}{2}\\
+\end{align}
+$$
+
+注：设 $m=n^2$，则 $1$ 到 $m$ 的和为 $\dfrac{m(m+1)}{2}$，平方和为 $\dfrac{m  (m + 1)  (2m  + 1)}{6}$。
+
+```py [sol-Python3]
+class Solution:
+    def findMissingAndRepeatedValues(self, grid: List[List[int]]) -> List[int]:
+        m = len(grid) ** 2
+        # 注：两次遍历可以合并为一次遍历，这里只是为了方便实现用了两次遍历
+        d1 = sum(x for row in grid for x in row) - m * (m + 1) // 2
+        d2 = sum(x * x for row in grid for x in row) - m * (m + 1) * (m * 2 + 1) // 6
+        return [(d2 // d1 + d1) // 2, (d2 // d1 - d1) // 2]
+```
+
+```java [sol-Java]
+class Solution {
+    public int[] findMissingAndRepeatedValues(int[][] grid) {
+        int n = grid.length;
+        int m = n * n;
+        int d1 = -m * (m + 1) / 2;
+        long d2 = (long) -m * (m + 1) * (m * 2 + 1) / 6;
+        for (int[] row : grid) {
+            for (int x : row) {
+                d1 += x;
+                d2 += x * x;
+            }
+        }
+        int d = (int) (d2 / d1);
+        return new int[]{(d + d1) / 2, (d - d1) / 2};
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<int> findMissingAndRepeatedValues(vector<vector<int>>& grid) {
+        int n = grid.size();
+        int m = n * n;
+        int d1 = -m * (m + 1) / 2;
+        long long d2 = (long long) -m * (m + 1) * (m * 2 + 1) / 6;
+        for (auto& row : grid) {
+            for (int x : row) {
+                d1 += x;
+                d2 += x * x;
+            }
+        }
+        int d = d2 / d1;
+        return {(d + d1) / 2, (d - d1) / 2};
+    }
+};
+```
+
+```go [sol-Go]
+func findMissingAndRepeatedValues(grid [][]int) []int {
+	n := len(grid)
+	m := n * n
+	d1 := -m * (m + 1) / 2
+	d2 := -m * (m + 1) * (m*2 + 1) / 6
+	for _, row := range grid {
+		for _, x := range row {
+			d1 += x
+			d2 += x * x
+		}
+	}
+	return []int{(d2/d1 + d1) / 2, (d2/d1 - d1) / 2}
+}
+```
+
+```js [sol-JavaScript]
+var findMissingAndRepeatedValues = function(grid) {
+    const n = grid.length;
+    const m = n * n;
+    let d1 = -m * (m + 1) / 2;
+    let d2 = -m * (m + 1) * (m * 2 + 1) / 6;
+    for (const row of grid) {
+        for (const x of row) {
+            d1 += x;
+            d2 += x * x;
+        }
+    }
+    return [(d2 / d1 + d1) / 2, (d2 / d1 - d1) / 2];
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn find_missing_and_repeated_values(grid: Vec<Vec<i32>>) -> Vec<i32> {
+        let n = grid.len() as i32;
+        let m = n * n;
+        let mut d1 = -m * (m + 1) / 2;
+        let m = m as i64;
+        let mut d2 = -m * (m + 1) * (m * 2 + 1) / 6;
+        for row in grid {
+            for x in row {
+                d1 += x;
+                d2 += (x * x) as i64;
+            }
+        }
+        let d = (d2 / d1 as i64) as i32;
+        vec![(d + d1) / 2, (d - d1) / 2]
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n^2)$，其中 $n$ 为 $\textit{grid}$ 的行数和列数。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 思考题
+
+方法二在计算 `ans[x >> shift & 1] ^= x` 时，遍历了 $1$ 到 $n^2$ 的每个数，你能用 $\mathcal{O}(1)$ 的公式解决吗？
+
+欢迎在评论区发表你的思路/代码。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `九、其他`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `九、其他`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

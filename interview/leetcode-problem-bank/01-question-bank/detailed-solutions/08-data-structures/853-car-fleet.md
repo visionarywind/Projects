@@ -1,0 +1,402 @@
+# 853. 车队
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/car-fleet/
+- 题目 slug：`car-fleet`
+- 来源专题：常用数据结构
+- 来源分类路径：三、栈 / §3.3 邻项消除
+- 难度分：Unknown
+- 外部题解来源：https://leetcode.cn/problems/car-fleet/solutions/4023772/liang-chong-fang-fa-zheng-xu-bian-li-zha-bl8z/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[两种方法：正序遍历+栈 / 倒序遍历（Python/Java/C++/Go）](https://leetcode.cn/problems/car-fleet/solutions/4023772/liang-chong-fang-fa-zheng-xu-bian-li-zha-bl8z/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`liang-chong-fang-fa-zheng-xu-bian-li-zha-bl8z`
+- topic id：`4023772`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 分析
+
+本题的关键是什么？是距离、速度还是时间？
+
+一辆车虽然开得快，但可能离 $\textit{target}$ 远，右边的车都已经开到 $\textit{target}$ 了还没追上。
+
+怎么判断能否在右边的车到达 $\textit{target}$ 之前（或者恰好到达）追上右边的车？
+
+计算每辆车开到 $\textit{target}$ 的**用时**。只要比右边的车更早（或者同时）到达 $\textit{target}$，那么就能与右边的车组成一个车队（合并）。此外，这还说明右边的车更慢，所以合并时，相当于删除了左边的车。
+
+## 方法一：正序遍历 + 栈
+
+按照位置排序后，从左到右遍历车。
+
+把遍历过的车的用时保存在一个栈中，如果当前车的用时比栈顶大（或者相等），那么栈顶车就会在一定时间后与当前车合并，于是弹出栈顶。反复直到栈为空，或者栈顶车的用时严格大于当前车的用时。
+
+最后，从栈底到栈顶，车的用时是严格递减的，每辆车都无法及时地追上其右边的车，无法合并。所以最终答案为栈的大小。
+
+### 写法一
+
+```py [sol-Python3]
+class Solution:
+    def carFleet(self, target: int, position: List[int], speed: List[int]) -> int:
+        st = []
+        for p, v in sorted(zip(position, speed)):
+            t = (target - p) / v
+            while st and st[-1] <= t:
+                st.pop()  # 栈顶车追上当前车，与当前车合并（删除栈顶车）
+            st.append(t)
+        return len(st)
+```
+
+```java [sol-Java]
+class Solution {
+    public int carFleet(int target, int[] position, int[] speed) {
+        int[][] a = new int[position.length][2];
+        for (int i = 0; i < position.length; i++) {
+            a[i] = new int[]{position[i], speed[i]};
+        }
+        Arrays.sort(a, (p, q) -> p[0] - q[0]);
+
+        ArrayDeque<Double> st = new ArrayDeque<>();
+        for (int[] p : a) {
+            double t = (double) (target - p[0]) / p[1];
+            while (!st.isEmpty() && st.peek() <= t) {
+                st.pop(); // 栈顶车追上当前车，与当前车合并（删除栈顶车）
+            }
+            st.push(t);
+        }
+        return st.size();
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int carFleet(int target, vector<int>& position, vector<int>& speed) {
+        vector<pair<int, int>> a(position.size());
+        for (int i = 0; i < position.size(); i++) {
+            a[i] = {position[i], speed[i]};
+        }
+        ranges::sort(a, {}, &pair<int, int>::first); // 按照 position[i] 从小到大排序
+
+        stack<double> st;
+        for (auto& [p, v] : a) {
+            double t = 1.0 * (target - p) / v;
+            while (!st.empty() && st.top() <= t) {
+                st.pop(); // 栈顶车追上当前车，与当前车合并（删除栈顶车）
+            }
+            st.push(t);
+        }
+        return st.size();
+    }
+};
+```
+
+```go [sol-Go]
+func carFleet(target int, position, speed []int) int {
+	type pair struct{ p, v int }
+	a := make([]pair, len(position))
+	for i, p := range position {
+		a[i] = pair{p, speed[i]}
+	}
+	slices.SortFunc(a, func(a, b pair) int { return a.p - b.p })
+
+	st := []float64{}
+	for _, p := range a {
+		t := float64(target-p.p) / float64(p.v)
+		for len(st) > 0 && st[len(st)-1] <= t {
+			st = st[:len(st)-1] // 栈顶车追上当前车，与当前车合并（删除栈顶车）
+		}
+		st = append(st, t)
+	}
+	return len(st)
+}
+```
+
+### 写法二
+
+把除法 $\dfrac{a}{b} \le \dfrac{c}{d}$ 改成等价的乘法 $ad \le cb$，避免浮点误差。
+
+```py [sol-Python3]
+class Solution:
+    def carFleet(self, target: int, position: List[int], speed: List[int]) -> int:
+        st = []
+        for p, v in sorted(zip(position, speed)):
+            while st and (target - st[-1][0]) * v <= (target - p) * st[-1][1]:
+                st.pop()
+            st.append((p, v))
+        return len(st)
+```
+
+```java [sol-Java]
+class Solution {
+    public int carFleet(int target, int[] position, int[] speed) {
+        int[][] a = new int[position.length][2];
+        for (int i = 0; i < position.length; i++) {
+            a[i] = new int[]{position[i], speed[i]};
+        }
+        Arrays.sort(a, (p, q) -> p[0] - q[0]);
+
+        ArrayDeque<int[]> st = new ArrayDeque<>();
+        for (int[] p : a) {
+            while (!st.isEmpty()) {
+                int[] q = st.peek();
+                if ((long) (target - q[0]) * p[1] > (long) (target - p[0]) * q[1]) {
+                    break;
+                }
+                st.pop();
+            }
+            st.push(p);
+        }
+        return st.size();
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int carFleet(int target, vector<int>& position, vector<int>& speed) {
+        vector<pair<int, int>> a(position.size());
+        for (int i = 0; i < position.size(); i++) {
+            a[i] = {position[i], speed[i]};
+        }
+        ranges::sort(a, {}, &pair<int, int>::first); // 按照 position[i] 从小到大排序
+
+        stack<pair<int, int>> st;
+        for (auto& [p, v] : a) {
+            while (!st.empty() && 1LL * (target - st.top().first) * v <= 1LL * (target - p) * st.top().second) {
+                st.pop();
+            }
+            st.emplace(p, v);
+        }
+        return st.size();
+    }
+};
+```
+
+```go [sol-Go]
+func carFleet(target int, position, speed []int) int {
+	type pair struct{ p, v int }
+	a := make([]pair, len(position))
+	for i, p := range position {
+		a[i] = pair{p, speed[i]}
+	}
+	slices.SortFunc(a, func(a, b pair) int { return a.p - b.p })
+
+	st := []pair{}
+	for _, p := range a {
+		for len(st) > 0 {
+			q := st[len(st)-1]
+			if (target-q.p)*p.v > (target-p.p)*q.v {
+				break
+			}
+			st = st[:len(st)-1]
+		}
+		st = append(st, p)
+	}
+	return len(st)
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\log n)$，其中 $n$ 是 $\textit{position}$ 的长度。瓶颈在排序上。虽然我们写了个二重循环，但每个元素至多入栈出栈各一次，所以二重循环的**总**循环次数是 $\mathcal{O}(n)$ 的。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 方法二：倒序遍历
+
+用时大的车会把左边用时更小（或者相等）的车删除（合并）。
+
+于是**倒序遍历**，维护遍历过的车的用时的最大值 $\textit{maxT}$。
+
+- 如果当前车的用时比 $\textit{maxT}$ 小（或者相等），那它可以追上右边用时为 $\textit{maxT}$ 的车，不计入答案。
+- 否则答案加一，更新 $\textit{maxT}$ 为当前车的用时。
+
+```py [sol-Python3]
+class Solution:
+    def carFleet(self, target: int, position: List[int], speed: List[int]) -> int:
+        # 降序排序，这样下面可以正序遍历，写起来更方便
+        a = sorted(zip(position, speed), reverse=True)
+        ans = max_t = 0
+        for p, v in a:
+            t = (target - p) / v
+            if t > max_t:
+                max_t = t
+                ans += 1
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int carFleet(int target, int[] position, int[] speed) {
+        int[][] a = new int[position.length][2];
+        for (int i = 0; i < position.length; i++) {
+            a[i] = new int[]{position[i], speed[i]};
+        }
+        // 降序排序，这样下面可以正序遍历，写起来更方便
+        Arrays.sort(a, (p, q) -> q[0] - p[0]);
+
+        double maxT = 0;
+        int ans = 0;
+        for (int[] p : a) {
+            double t = (double) (target - p[0]) / p[1];
+            if (t > maxT) {
+                maxT = t;
+                ans++;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int carFleet(int target, vector<int>& position, vector<int>& speed) {
+        vector<pair<int, int>> a(position.size());
+        for (int i = 0; i < position.size(); i++) {
+            a[i] = {position[i], speed[i]};
+        }
+        // 降序排序，这样下面可以正序遍历，写起来更方便
+        ranges::sort(a, {}, [](auto& p) { return -p.first; });
+
+        double max_t = 0;
+        int ans = 0;
+        for (auto& [p, v] : a) {
+            double t = 1.0 * (target - p) / v;
+            if (t > max_t) {
+                max_t = t;
+                ans++;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func carFleet(target int, position, speed []int) (ans int) {
+	n := len(position)
+	type pair struct{ p, v int }
+	a := make([]pair, n)
+	for i, p := range position {
+		a[i] = pair{p, speed[i]}
+	}
+	// 降序排序，这样下面可以正序遍历，写起来更方便
+	slices.SortFunc(a, func(a, b pair) int { return b.p - a.p })
+
+	maxT := 0.0
+	for _, p := range a {
+		t := float64(target-p.p) / float64(p.v)
+		if t > maxT {
+			maxT = t
+			ans++
+		}
+	}
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\log n)$，其中 $n$ 是 $\textit{position}$ 的长度。瓶颈在排序上。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 相似题目
+
+- [4045. 统计车组数](https://leetcode.cn/problems/count-robot-groups/)
+- [1776. 车队 II](https://leetcode.cn/problems/car-fleet-ii/)
+
+## 专题训练
+
+见下面数据结构题单的「**§3.3 邻项消除**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/discuss/post/3141566/ru-he-ke-xue-shua-ti-by-endlesscheng-q3yd/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/discuss/post/3578981/ti-dan-hua-dong-chuang-kou-ding-chang-bu-rzz7/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/discuss/post/3579164/ti-dan-er-fen-suan-fa-er-fen-da-an-zui-x-3rqn/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/discuss/post/3579480/ti-dan-dan-diao-zhan-ju-xing-xi-lie-zi-d-u4hk/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/discuss/post/3580195/fen-xiang-gun-ti-dan-wang-ge-tu-dfsbfszo-l3pa/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/discuss/post/3580371/fen-xiang-gun-ti-dan-wei-yun-suan-ji-chu-nth4/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/discuss/post/3581143/fen-xiang-gun-ti-dan-tu-lun-suan-fa-dfsb-qyux/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/discuss/post/3581838/fen-xiang-gun-ti-dan-dong-tai-gui-hua-ru-007o/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/discuss/post/3583665/fen-xiang-gun-ti-dan-chang-yong-shu-ju-j-bvmv/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/discuss/post/3584388/fen-xiang-gun-ti-dan-shu-xue-suan-fa-shu-gcai/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/discuss/post/3091107/fen-xiang-gun-ti-dan-tan-xin-ji-ben-tan-k58yb/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/discuss/post/3142882/fen-xiang-gun-ti-dan-lian-biao-er-cha-sh-6srp/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/discuss/post/3144832/fen-xiang-gun-ti-dan-zi-fu-chuan-kmpzhan-ugt4/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `三、栈 / §3.3 邻项消除`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `三、栈 / §3.3 邻项消除`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

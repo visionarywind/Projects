@@ -8,6 +8,7 @@ void run_differential_tests();
 void run_map_tests();
 void run_map_differential_tests();
 void run_skip_list_tests();
+void run_llrb_tree_tests();
 
 int main() {
     run_basic_tests();
@@ -18,6 +19,7 @@ int main() {
     run_map_tests();
     run_map_differential_tests();
     run_skip_list_tests();
+    run_llrb_tree_tests();
 
     if (test_support::failures != 0) {
         std::cerr << test_support::failures << " check(s) failed\n";

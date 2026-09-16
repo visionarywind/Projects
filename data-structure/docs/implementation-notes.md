@@ -31,10 +31,18 @@
 ## 计时边界
 
 
-## `skip_list` 的实现
+## `llrb_tree` 的实现
 
-`skip_list<Key, Compare, MaxLevel>` 是单线程、唯一键的 set-like 跳表。它用 `header_` 作为不存储 key 的入口，用 `level_` 记录当前最高有效层，用固定大小的 `forward` 数组保存每个节点在各层的后继。底层 `forward[0]` 是完整有序链表，也是迭代器唯一遍历的路径。
+`llrb_tree<Key, Compare>` 是与 `rb_tree` 并列的 set-like 实现，不改写 parent-based 的普通红黑树。节点仅保存 `key`、颜色和左右指针，不保存 parent；`insert_node` 在递归返回阶段执行 `balance`，通过左旋、右旋和颜色翻转维持左倾红链接。删除采用 top-down LLRB：`move_red_left`/`move_red_right` 在下降前把可借用的红链接移动到目标方向，`delete_min` 删除后继，回溯时再次 `balance`。
 
-查找从 `level_ - 1` 开始：只要下一节点仍小于目标就向右，否则下降一层。插入在同一趟搜索中填充 `update[]`，其中每个元素是对应层最后一个小于目标的节点；重复 key 在分配前直接返回。新节点随机生成高度后，逐层执行 splice。删除复用 `update[]` 逐层绕过目标，删除后回收空的最高层，再释放目标节点。
+`erase` 先确认 key 存在，再把全黑根临时染红，删除结束后恢复根为黑色并递减 `size_`。删除分支必须使用比较器意义上的等价判断（两个方向都不小于），不能把 `!compare_(key, current->key)` 当成等价，因为它也匹配所有更大的 key。双孩子节点通过复制 successor 的 key 后删除右子树最小节点，因此当前 API 要求 `Key` 可赋值；这项取舍应在以后支持不可赋值 key 时改为物理节点移动。
 
-随机高度当前采用 LevelDB-style 参数：`MaxLevel` 作为结构上限，每次以约 `1/4` 的概率晋升到下一层；实现使用 `[0, 3]` 均匀整数分布，避免浮点分布的额外成本。高度期望分布使查找、插入和删除为 `O(log n)`，但跳表没有红黑树那样的确定性高度上界，异常随机形状的最坏复杂度为 `O(n)`。固定 seed 只用于复现层级形状，不改变 level-0 的有序结果。`verify_invariants()` 检查每层有序、节点高度范围、高层节点是否存在于底层、forward 空闲槽是否为空、无环以及 `size_` 计数。
+LLRB 每个真实节点使用一次普通 `new`，删除使用一次 `delete`，没有池化、Arena 或自定义 allocator。没有 parent 也意味着迭代器每次求 successor/predecessor 都从 root 搜索，遍历计时不能与 parent-based `rb_tree` 混同解释。
+
+
+
+`skip_list<Key, Compare, MaxLevel>` 是单线程、唯一键的 set-like 跳表。它用 `header_` 作为不存储 key 的多层入口，用 `level_` 记录当前最高有效层。真实节点采用变长布局：节点对象尾部只分配实际高度对应的 `forward[0..height)`，避免每个节点都携带完整 `MaxLevel` 指针数组。底层 `forward[0]` 是完整有序链表，也是迭代器唯一遍历的路径。
+
+查找从 `level_ - 1` 开始：只要下一节点仍小于目标就向右，否则下降一层。插入在同一趟搜索中填充 `update[]`，其中每个元素是对应层最后一个小于目标的节点；重复 key 在分配和随机化后续链接前直接返回。新节点随机生成高度后，逐层执行 splice。删除复用 `update[]` 逐层绕过目标，删除后回收空的最高层，再释放目标节点。
+
+随机高度当前采用 LevelDB/Redis-style 参数：`MaxLevel` 作为结构上限，每次以约 `1/4` 的概率晋升到下一层；实现直接使用 `mt19937` 输出的低两位做晋升判断，避免 `std::uniform_int_distribution` 在插入热路径上的额外开销。高度期望分布使查找、插入和删除为 `O(log n)`，但跳表没有红黑树那样的确定性高度上界，异常随机形状的最坏复杂度为 `O(n)`。固定 seed 只用于复现层级形状，不改变 level-0 的有序结果。`verify_invariants()` 检查每层有序、节点高度范围、无环以及 `size_` 计数。当前实现为了 set-like 正向遍历 benchmark 去掉了 Redis `backward/tail/span` 字段；如需 rank、range 或反向遍历，应单独加回并重新 benchmark。

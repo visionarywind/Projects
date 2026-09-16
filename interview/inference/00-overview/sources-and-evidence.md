@@ -28,6 +28,7 @@
 - `../../sglang/90-cross-module/pooling-and-resource-management.md`：SGLang 三层池、allocator、物理 KV/Mamba pool、Radix ownership、retraction、flush 和 CUDA Graph/custom pool 边界。
 - `../../sglang/01-modules/M08-kv-cache/README.md`：request row、token/page allocator、prefix match、page alignment、finished/unfinished cache。
 - 专题入口：`../../insights/README.md`。
+- arXiv 原始 PDF 解析材料：`../../insights/arxiv-pdf/README.md`（保存 PDF、`pdftotext` 抽取文本、`pdfinfo` 元数据和中文详译）。
 - 外部论文索引：
   - [PagedAttention / vLLM](https://arxiv.org/abs/2309.06180)：分页式 KV 管理、共享与碎片控制。
   - [vAttention](https://arxiv.org/abs/2405.04437)：虚拟地址连续与物理动态映射。
@@ -39,4 +40,4 @@
   - [LMCache](https://arxiv.org/abs/2510.09665)：跨 GPU、CPU、storage、network 的 KV cache 层。
   - [Robust KV Cache Management](https://arxiv.org/abs/2607.16892)：输出长度不确定性下的 reservation、routing 和 SLO 权衡。
 
-专题中的论文性能数字只代表作者在论文条件下的报告；当前环境没有复现 GPU、模型、网络、RDMA 或压测结果。
+专题中的论文性能数字只代表作者在论文条件下的报告；当前环境没有复现 GPU、模型、网络、RDMA 或压测结果。arXiv PDF 解析成功只表示原文可检索和可人工归纳，不等同于本地复现实验。

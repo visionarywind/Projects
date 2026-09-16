@@ -1,0 +1,1249 @@
+# 188. 买卖股票的最佳时机 IV
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-iv/
+- 题目 slug：`best-time-to-buy-and-sell-stock-iv`
+- 来源专题：动态规划
+- 来源分类路径：六、状态机 DP / §6.1 买卖股票
+- 难度分：Unknown
+- 外部题解来源：https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-iv/solutions/2201488/shi-pin-jiao-ni-yi-bu-bu-si-kao-dong-tai-kksg/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[【视频】教你一步步思考动态规划！股票问题通用解法！（Python/Java/C++/Go/JS/Rust）](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-iv/solutions/2201488/shi-pin-jiao-ni-yi-bu-bu-si-kao-dong-tai-kksg/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`shi-pin-jiao-ni-yi-bu-bu-si-kao-dong-tai-kksg`
+- topic id：`2201488`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 视频讲解
+
+请看[【基础算法精讲 21】](https://www.bilibili.com/video/BV1ho4y1W7QK/)。如果这个视频对你有帮助，欢迎一键三连~
+
+## 一、递归搜索 + 保存计算结果 = 记忆化搜索
+
+在 [122. 买卖股票的最佳时机 II](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-ii/solution/shi-pin-jiao-ni-yi-bu-bu-si-kao-dong-tai-o3y4/) 的基础上，添加一个参数 $j$，表示当前可以至多交易 $j$ 次。
+
+⚠**注意**：买入 + 卖出才算一笔交易，不是两笔交易。
+
+⚠**注意**：由于最后未持有股票，手上的股票一定会卖掉，所以代码中的 `j-1` 可以写在买股票的时候，也可以写在卖股票的时候，这两种写法都是可以的。代码用的是「在买入时 `j-1`」的写法。
+
+```py [sol-Python3]
+class Solution:
+    def maxProfit(self, k: int, prices: List[int]) -> int:
+        # 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=False 未持有，hold=True 持有）
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int, hold: bool) -> int:
+            if j < 0:
+                return -inf
+            if i < 0:
+                return -inf if hold else 0
+
+            if hold:  # 今天结束时持有股票
+                # 今天没有操作，j 不变，昨天结束时持有股票
+                # 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+                return max(dfs(i - 1, j, True), dfs(i - 1, j - 1, False) - prices[i])
+
+            # 今天结束时未持有股票
+            # 今天没有操作，j 不变，昨天结束时未持有股票
+            # 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+            return max(dfs(i - 1, j, False), dfs(i - 1, j, True) + prices[i])
+
+        return dfs(len(prices) - 1, k, False)
+```
+
+```java [sol-Java]
+class Solution {
+    private int[] prices;
+    private int[][][] memo;
+
+    public int maxProfit(int k, int[] prices) {
+        this.prices = prices;
+        int n = prices.length;
+        memo = new int[n][k + 1][2];
+        for (int[][] mat : memo) {
+            for (int[] row : mat) {
+                Arrays.fill(row, Integer.MIN_VALUE); // MIN_VALUE 表示还没有计算过
+            }
+        }
+        return dfs(n - 1, k, 0);
+    }
+
+    // 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=0 未持有，hold=1 持有）
+    private int dfs(int i, int j, int hold) {
+        if (j < 0) {
+            return Integer.MIN_VALUE / 2; // 除 2 防止溢出
+        }
+        if (i < 0) {
+            return hold == 1 ? Integer.MIN_VALUE / 2 : 0;
+        }
+
+        if (memo[i][j][hold] != Integer.MIN_VALUE) { // 之前计算过
+            return memo[i][j][hold];
+        }
+
+        if (hold == 1) { // 今天结束时持有股票
+            // 今天没有操作，j 不变，昨天结束时持有股票
+            // 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+            return memo[i][j][hold] = Math.max(dfs(i - 1, j, 1), dfs(i - 1, j - 1, 0) - prices[i]);
+        }
+
+        // 今天结束时未持有股票
+        // 今天没有操作，j 不变，昨天结束时未持有股票
+        // 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+        return memo[i][j][hold] = Math.max(dfs(i - 1, j, 0), dfs(i - 1, j, 1) + prices[i]);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxProfit(int k, vector<int>& prices) {
+        int n = prices.size();
+        vector memo(n, vector<array<int, 2>>(k + 1, {INT_MIN, INT_MIN})); // INT_MIN 表示还没有计算过
+
+        // 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=false 未持有，hold=true 持有）
+        auto dfs = [&](this auto&& dfs, int i, int j, bool hold) -> int {
+            if (j < 0) {
+                return INT_MIN / 2; // 除 2 防止溢出
+            }
+            if (i < 0) {
+                return hold ? INT_MIN / 2 : 0;
+            }
+
+            int& res = memo[i][j][hold]; // 注意这里是引用
+            if (res != INT_MIN) { // 之前计算过
+                return res;
+            }
+
+            if (hold) { // 今天结束时持有股票
+                // 今天没有操作，j 不变，昨天结束时持有股票
+                // 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+                return res = max(dfs(i - 1, j, true), dfs(i - 1, j - 1, false) - prices[i]);
+            }
+
+            // 今天结束时未持有股票
+            // 今天没有操作，j 不变，昨天结束时未持有股票
+            // 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+            return res = max(dfs(i - 1, j, false), dfs(i - 1, j, true) + prices[i]);
+        };
+
+        return dfs(n - 1, k, false);
+    }
+};
+```
+
+```go [sol-Go]
+func maxProfit(k int, prices []int) int {
+    n := len(prices)
+    memo := make([][][2]int, n)
+    for i := range memo {
+        memo[i] = make([][2]int, k+1)
+        for j := range memo[i] {
+            memo[i][j] = [2]int{math.MinInt, math.MinInt} // MinInt 表示还没有计算过
+        }
+    }
+
+    // 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=0 未持有，hold=1 持有）
+    var dfs func(int, int, int) int
+    dfs = func(i, j, hold int) (res int) {
+        if j < 0 {
+            return math.MinInt / 2 // 防止溢出
+        }
+        if i < 0 {
+            if hold == 1 {
+                return math.MinInt / 2
+            }
+            return
+        }
+
+        p := &memo[i][j][hold]
+        if *p != math.MinInt { // 之前计算过
+            return *p
+        }
+        defer func() { *p = res }() // 记忆化
+
+        if hold == 1 { // 今天结束时持有股票
+            // 今天没有操作，j 不变，昨天结束时持有股票
+            // 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+            return max(dfs(i-1, j, 1), dfs(i-1, j-1, 0)-prices[i])
+        }
+
+        // 今天结束时未持有股票
+        // 今天没有操作，j 不变，昨天结束时未持有股票
+        // 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+        return max(dfs(i-1, j, 0), dfs(i-1, j, 1)+prices[i])
+    }
+
+    return dfs(n-1, k, 0)
+}
+```
+
+```js [sol-JavaScript]
+var maxProfit = function(k, prices) {
+    const n = prices.length;
+    const memo = Array(n).fill(null).map(() => Array(k + 1).fill(null).map(() => [Infinity, Infinity])); // Infinity 表示还没有计算过
+
+    // 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=0 未持有，hold=1 持有）
+    function dfs(i, j, hold) {
+        if (j < 0) {
+            return -Infinity;
+        }
+        if (i < 0) {
+            return hold === 1 ? -Infinity : 0;
+        }
+
+        if (memo[i][j][hold] !== Infinity) { // 之前计算过
+            return memo[i][j][hold];
+        }
+
+        if (hold === 1) { // 今天结束时持有股票
+            // 今天没有操作，j 不变，昨天结束时持有股票
+            // 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+            memo[i][j][hold] = Math.max(dfs(i - 1, j, 1), dfs(i - 1, j - 1, 0) - prices[i]);
+        } else { // 今天结束时未持有股票
+            // 今天没有操作，j 不变，昨天结束时未持有股票
+            // 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+            memo[i][j][hold] = Math.max(dfs(i - 1, j, 0), dfs(i - 1, j, 1) + prices[i]);
+        }
+        return memo[i][j][hold];
+    }
+
+    return dfs(n - 1, k, 0);
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn max_profit(k: i32, prices: Vec<i32>) -> i32 {
+        // 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=0 未持有，hold=1 持有）
+        fn dfs(i: i32, j: i32, hold: bool, prices: &Vec<i32>, memo: &mut Vec<Vec<Vec<i32>>>) -> i32 {
+            if j < 0 {
+                return i32::MIN / 2; // 防止溢出
+            }
+            if i < 0 {
+                return if hold { i32::MIN / 2 } else { 0 };
+            }
+
+            let iu = i as usize;
+            let ju = j as usize;
+            let hu = hold as usize;
+            if memo[iu][ju][hu] != i32::MIN { // 之前计算过
+                return memo[iu][ju][hu];
+            }
+
+            if hold { // 今天结束时持有股票
+                // 今天没有操作，j 不变，昨天结束时持有股票
+                // 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+                memo[iu][ju][hu] = dfs(i - 1, j, true, prices, memo).max(dfs(i - 1, j - 1, false, prices, memo) - prices[iu]);
+            } else { // 今天结束时未持有股票
+                // 今天没有操作，j 不变，昨天结束时未持有股票
+                // 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+                memo[iu][ju][hu] = dfs(i - 1, j, false, prices, memo).max(dfs(i - 1, j, true, prices, memo) + prices[iu]);
+            }
+            memo[iu][ju][hu]
+        }
+
+        let n = prices.len();
+        let mut memo = vec![vec![vec![i32::MIN; 2]; k as usize + 1]; n]; // i32::MIN 表示没有计算过
+        dfs(n as i32 - 1, k, false, &prices, &mut memo)
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nk)$，其中 $n$ 为 $\textit{prices}$ 的长度。
+- 空间复杂度：$\mathcal{O}(nk)$。
+
+## 二、1:1 翻译成递推
+
+**问**：为什么第二维度的大小是 $k+2$？
+
+**答**：在记忆化搜索中，$j$ 的范围是 $[-1,k]$，这一共有 $k+2$ 个数。1:1 翻译成递推就需要 $k+2$ 的数组大小。
+
+**问**：$f$ 数组中的 $j=0$ 表示什么意思？
+
+**答**：这对应着记忆化搜索中的 $j=-1$ 的状态，也就是交易 $-1$ 次的状态。注意这是不合法的，所以初始值一定是 $-\infty$。
+
+**问**：$f$ 的初始值怎么确定？
+
+**答**：$f$ 的初始值来自记忆化搜索的递归边界，递归边界怎么写，初始值就怎么写。
+
+```py [sol-Python3]
+class Solution:
+    def maxProfit(self, k: int, prices: List[int]) -> int:
+        n = len(prices)
+        f = [[[-inf] * 2 for _ in range(k + 2)] for _ in range(n + 1)]
+        for j in range(1, k + 2):
+            f[0][j][0] = 0
+        for i, p in enumerate(prices):
+            for j in range(1, k + 2):
+                f[i + 1][j][0] = max(f[i][j][0], f[i][j][1] + p)
+                f[i + 1][j][1] = max(f[i][j][1], f[i][j - 1][0] - p)
+        return f[-1][-1][0]
+```
+
+```java [sol-Java]
+class Solution {
+    public int maxProfit(int k, int[] prices) {
+        int n = prices.length;
+        int[][][] f = new int[n + 1][k + 2][2];
+        for (int[][] mat : f) {
+            for (int[] row : mat) {
+                Arrays.fill(row, Integer.MIN_VALUE / 2); // 防止溢出
+            }
+        }
+        for (int j = 1; j <= k + 1; j++) {
+            f[0][j][0] = 0;
+        }
+        for (int i = 0; i < n; i++) {
+            for (int j = 1; j <= k + 1; j++) {
+                f[i + 1][j][0] = Math.max(f[i][j][0], f[i][j][1] + prices[i]);
+                f[i + 1][j][1] = Math.max(f[i][j][1], f[i][j - 1][0] - prices[i]);
+            }
+        }
+        return f[n][k + 1][0];
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxProfit(int k, vector<int>& prices) {
+        int n = prices.size();
+        vector f(n + 1, vector<array<int, 2>>(k + 2, {INT_MIN / 2, INT_MIN / 2}));
+        for (int j = 1; j <= k + 1; j++) {
+            f[0][j][0] = 0;
+        }
+        for (int i = 0; i < n; i++) {
+            for (int j = 1; j <= k + 1; j++) {
+                f[i + 1][j][0] = max(f[i][j][0], f[i][j][1] + prices[i]);
+                f[i + 1][j][1] = max(f[i][j][1], f[i][j - 1][0] - prices[i]);
+            }
+        }
+        return f[n][k + 1][0];
+    }
+};
+```
+
+```go [sol-Go]
+func maxProfit(k int, prices []int) int {
+    n := len(prices)
+    f := make([][][2]int, n+1)
+    for i := range f {
+        f[i] = make([][2]int, k+2)
+        for j := range f[i] {
+            f[i][j] = [2]int{math.MinInt / 2, math.MinInt / 2} // 防止溢出
+        }
+    }
+    for j := 1; j <= k+1; j++ {
+        f[0][j][0] = 0
+    }
+    for i, p := range prices {
+        for j := 1; j <= k+1; j++ {
+            f[i+1][j][0] = max(f[i][j][0], f[i][j][1]+p)
+            f[i+1][j][1] = max(f[i][j][1], f[i][j-1][0]-p)
+        }
+    }
+    return f[n][k+1][0]
+}
+```
+
+```js [sol-JavaScript]
+var maxProfit = function(k, prices) {
+    const n = prices.length;
+    const f = Array(n + 1).fill(null).map(() => Array(k + 2).fill(null).map(() => Array(2).fill(-Infinity)));
+    for (let j = 1; j < k + 2; j++) {
+        f[0][j][0] = 0;
+    }
+    for (let i = 0; i < n; i++) {
+        for (let j = 1; j < k + 2; j++) {
+            f[i + 1][j][0] = Math.max(f[i][j][0], f[i][j][1] + prices[i]);
+            f[i + 1][j][1] = Math.max(f[i][j][1], f[i][j - 1][0] - prices[i]);
+        }
+    }
+    return f[n][k + 1][0];
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn max_profit(k: i32, prices: Vec<i32>) -> i32 {
+        let n = prices.len();
+        let k = k as usize;
+        let mut f = vec![vec![vec![i32::MIN / 2; 2]; k + 2]; n + 1]; // 防止溢出
+        for j in 1..k + 2 {
+            f[0][j][0] = 0;
+        }
+        for (i, &p) in prices.iter().enumerate() {
+            for j in 1..k + 2 {
+                f[i + 1][j][0] = f[i][j][0].max(f[i][j][1] + p);
+                f[i + 1][j][1] = f[i][j][1].max(f[i][j - 1][0] - p);
+            }
+        }
+        f[n][k + 1][0]
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nk)$，其中 $n$ 为 $\textit{prices}$ 的长度。
+- 空间复杂度：$\mathcal{O}(nk)$。
+
+## 三、空间优化
+
+```py [sol-Python3]
+class Solution:
+    def maxProfit(self, k: int, prices: List[int]) -> int:
+        f = [[-inf] * 2 for _ in range(k + 2)]
+        for j in range(1, k + 2):
+            f[j][0] = 0
+        for p in prices:
+            for j in range(k + 1, 0, -1):
+                f[j][0] = max(f[j][0], f[j][1] + p)
+                f[j][1] = max(f[j][1], f[j - 1][0] - p)
+        return f[-1][0]
+```
+
+```java [sol-Java]
+class Solution {
+    public int maxProfit(int k, int[] prices) {
+        int[][] f = new int[k + 2][2];
+        for (int j = 1; j <= k + 1; j++) {
+            f[j][1] = Integer.MIN_VALUE / 2; // 防止溢出
+        }
+        f[0][0] = Integer.MIN_VALUE / 2;
+        for (int p : prices) {
+            for (int j = k + 1; j > 0; j--) {
+                f[j][0] = Math.max(f[j][0], f[j][1] + p);
+                f[j][1] = Math.max(f[j][1], f[j - 1][0] - p);
+            }
+        }
+        return f[k + 1][0];
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxProfit(int k, vector<int>& prices) {
+        vector<array<int, 2>> f(k + 2, {INT_MIN / 2, INT_MIN / 2});
+        for (int j = 1; j <= k + 1; j++) {
+            f[j][0] = 0;
+        }
+        for (int p : prices) {
+            for (int j = k + 1; j > 0; j--) {
+                f[j][0] = max(f[j][0], f[j][1] + p);
+                f[j][1] = max(f[j][1], f[j - 1][0] - p);
+            }
+        }
+        return f[k + 1][0];
+    }
+};
+```
+
+```go [sol-Go]
+func maxProfit(k int, prices []int) int {
+    f := make([][2]int, k+2)
+    for j := 1; j <= k+1; j++ {
+        f[j][1] = math.MinInt / 2 // 防止溢出
+    }
+    f[0][0] = math.MinInt / 2
+    for _, p := range prices {
+        for j := k + 1; j > 0; j-- {
+            f[j][0] = max(f[j][0], f[j][1]+p)
+            f[j][1] = max(f[j][1], f[j-1][0]-p)
+        }
+    }
+    return f[k+1][0]
+}
+```
+
+```js [sol-JavaScript]
+var maxProfit = function(k, prices) {
+    const f = Array(k + 2).fill(null).map(() => Array(2).fill(-Infinity));
+    for (let j = 1; j <= k + 1; j++) {
+        f[j][0] = 0;
+    }
+    for (const p of prices) {
+        for (let j = k + 1; j > 0; j--) {
+            f[j][0] = Math.max(f[j][0], f[j][1] + p);
+            f[j][1] = Math.max(f[j][1], f[j - 1][0] - p);
+        }
+    }
+    return f[k + 1][0];
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn max_profit(k: i32, prices: Vec<i32>) -> i32 {
+        let k = k as usize;
+        let mut f = vec![vec![0; 2]; k + 2];
+        for j in 1..=k + 1 {
+            f[j][1] = i32::MIN / 2; // 防止溢出
+        }
+        f[0][0] = i32::MIN / 2;
+        for p in prices {
+            for j in (1..=k + 1).rev() {
+                f[j][0] = f[j][0].max(f[j][1] + p);
+                f[j][1] = f[j][1].max(f[j - 1][0] - p);
+            }
+        }
+        f[k + 1][0]
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nk)$，其中 $n$ 为 $\textit{prices}$ 的长度。
+- 空间复杂度：$\mathcal{O}(k)$。
+
+## 思考题
+
+如果改成「恰好」完成 $k$ 笔交易要怎么做？
+
+递归到 $i<0$ 时，只有 $j=0$ 才是合法的，$j>0$ 是不合法的。
+
+```py
+# 恰好
+class Solution:
+    def maxProfit(self, k: int, prices: List[int]) -> int:
+        # 递推
+        n = len(prices)
+        f = [[[-inf] * 2 for _ in range(k + 2)] for _ in range(n + 1)]
+        f[0][1][0] = 0  # 只需改这里
+        for i, p in enumerate(prices):
+            for j in range(1, k + 2):
+                f[i + 1][j][0] = max(f[i][j][0], f[i][j][1] + p)
+                f[i + 1][j][1] = max(f[i][j][1], f[i][j - 1][0] - p)
+        return f[-1][-1][0]
+
+        # 记忆化搜索
+        # @cache
+        # def dfs(i: int, j: int, hold: bool) -> int:
+        #     if j < 0:
+        #         return -inf
+        #     if i < 0:
+        #         return -inf if hold or j > 0 else 0
+        #     if hold:
+        #         return max(dfs(i - 1, j, True), dfs(i - 1, j - 1, False) - prices[i])
+        #     return max(dfs(i - 1, j, False), dfs(i - 1, j, True) + prices[i])
+        # return dfs(n - 1, k, False)
+```
+
+如果改成「至少」完成 $k$ 笔交易要怎么做？
+
+递归到「至少 $0$ 次」时，它等价于「交易次数没有限制」，那么这个状态的计算方式和 [122. 买卖股票的最佳时机 II](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-ii/solution/shi-pin-jiao-ni-yi-bu-bu-si-kao-dong-tai-o3y4/) 是一样的。
+
+```py
+# 至少
+class Solution:
+    def maxProfit(self, k: int, prices: List[int]) -> int:
+        # 递推
+        n = len(prices)
+        f = [[[-inf] * 2 for _ in range(k + 1)] for _ in range(n + 1)]
+        f[0][0][0] = 0
+        for i, p in enumerate(prices):
+            f[i + 1][0][0] = max(f[i][0][0], f[i][0][1] + p)
+            f[i + 1][0][1] = max(f[i][0][1], f[i][0][0] - p)  # 无限次
+            for j in range(1, k + 1):
+                f[i + 1][j][0] = max(f[i][j][0], f[i][j][1] + p)
+                f[i + 1][j][1] = max(f[i][j][1], f[i][j - 1][0] - p)
+        return f[-1][-1][0]
+
+        # 记忆化搜索
+        # @cache
+        # def dfs(i: int, j: int, hold: bool) -> int:
+        #     if i < 0:
+        #         return -inf if hold or j > 0 else 0
+        #     if hold:
+        #         return max(dfs(i - 1, j, True), dfs(i - 1, j - 1, False) - prices[i])
+        #     return max(dfs(i - 1, j, False), dfs(i - 1, j, True) + prices[i])
+        # return dfs(n - 1, k, False)
+```
+
+## 股票买卖系列题目
+
+- [121. 买卖股票的最佳时机](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock/)
+- [122. 买卖股票的最佳时机 II](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-ii/)
+- [123. 买卖股票的最佳时机 III](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-iii/)
+- [188. 买卖股票的最佳时机 IV](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-iv/)
+- [309. 买卖股票的最佳时机含冷冻期](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-with-cooldown/)
+- [714. 买卖股票的最佳时机含手续费](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/)
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/discuss/post/3141566/ru-he-ke-xue-shua-ti-by-endlesscheng-q3yd/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/discuss/post/3578981/ti-dan-hua-dong-chuang-kou-ding-chang-bu-rzz7/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/discuss/post/3579164/ti-dan-er-fen-suan-fa-er-fen-da-an-zui-x-3rqn/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/discuss/post/3579480/ti-dan-dan-diao-zhan-ju-xing-xi-lie-zi-d-u4hk/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/discuss/post/3580195/fen-xiang-gun-ti-dan-wang-ge-tu-dfsbfszo-l3pa/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/discuss/post/3580371/fen-xiang-gun-ti-dan-wei-yun-suan-ji-chu-nth4/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/discuss/post/3581143/fen-xiang-gun-ti-dan-tu-lun-suan-fa-dfsb-qyux/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/discuss/post/3581838/fen-xiang-gun-ti-dan-dong-tai-gui-hua-ru-007o/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/discuss/post/3583665/fen-xiang-gun-ti-dan-chang-yong-shu-ju-j-bvmv/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/discuss/post/3584388/fen-xiang-gun-ti-dan-shu-xue-suan-fa-shu-gcai/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/discuss/post/3091107/fen-xiang-gun-ti-dan-tan-xin-ji-ben-tan-k58yb/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/discuss/post/3142882/fen-xiang-gun-ti-dan-lian-biao-er-cha-sh-6srp/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/discuss/post/3144832/fen-xiang-gun-ti-dan-zi-fu-chuan-kmpzhan-ugt4/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 视频讲解
+
+请看[【基础算法精讲 21】](https://www.bilibili.com/video/BV1ho4y1W7QK/)。如果这个视频对你有帮助，欢迎一键三连~
+
+## 一、递归搜索 + 保存计算结果 = 记忆化搜索
+
+在 [122. 买卖股票的最佳时机 II](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-ii/solution/shi-pin-jiao-ni-yi-bu-bu-si-kao-dong-tai-o3y4/) 的基础上，添加一个参数 $j$，表示当前可以至多交易 $j$ 次。
+
+⚠**注意**：买入 + 卖出才算一笔交易，不是两笔交易。
+
+⚠**注意**：由于最后未持有股票，手上的股票一定会卖掉，所以代码中的 `j-1` 可以写在买股票的时候，也可以写在卖股票的时候，这两种写法都是可以的。代码用的是「在买入时 `j-1`」的写法。
+
+```py [sol-Python3]
+class Solution:
+    def maxProfit(self, k: int, prices: List[int]) -> int:
+        # 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=False 未持有，hold=True 持有）
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int, hold: bool) -> int:
+            if j < 0:
+                return -inf
+            if i < 0:
+                return -inf if hold else 0
+
+            if hold:  # 今天结束时持有股票
+                # 今天没有操作，j 不变，昨天结束时持有股票
+                # 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+                return max(dfs(i - 1, j, True), dfs(i - 1, j - 1, False) - prices[i])
+
+            # 今天结束时未持有股票
+            # 今天没有操作，j 不变，昨天结束时未持有股票
+            # 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+            return max(dfs(i - 1, j, False), dfs(i - 1, j, True) + prices[i])
+
+        return dfs(len(prices) - 1, k, False)
+```
+
+```java [sol-Java]
+class Solution {
+    private int[] prices;
+    private int[][][] memo;
+
+    public int maxProfit(int k, int[] prices) {
+        this.prices = prices;
+        int n = prices.length;
+        memo = new int[n][k + 1][2];
+        for (int[][] mat : memo) {
+            for (int[] row : mat) {
+                Arrays.fill(row, Integer.MIN_VALUE); // MIN_VALUE 表示还没有计算过
+            }
+        }
+        return dfs(n - 1, k, 0);
+    }
+
+    // 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=0 未持有，hold=1 持有）
+    private int dfs(int i, int j, int hold) {
+        if (j < 0) {
+            return Integer.MIN_VALUE / 2; // 除 2 防止溢出
+        }
+        if (i < 0) {
+            return hold == 1 ? Integer.MIN_VALUE / 2 : 0;
+        }
+
+        if (memo[i][j][hold] != Integer.MIN_VALUE) { // 之前计算过
+            return memo[i][j][hold];
+        }
+
+        if (hold == 1) { // 今天结束时持有股票
+            // 今天没有操作，j 不变，昨天结束时持有股票
+            // 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+            return memo[i][j][hold] = Math.max(dfs(i - 1, j, 1), dfs(i - 1, j - 1, 0) - prices[i]);
+        }
+
+        // 今天结束时未持有股票
+        // 今天没有操作，j 不变，昨天结束时未持有股票
+        // 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+        return memo[i][j][hold] = Math.max(dfs(i - 1, j, 0), dfs(i - 1, j, 1) + prices[i]);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxProfit(int k, vector<int>& prices) {
+        int n = prices.size();
+        vector memo(n, vector<array<int, 2>>(k + 1, {INT_MIN, INT_MIN})); // INT_MIN 表示还没有计算过
+
+        // 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=false 未持有，hold=true 持有）
+        auto dfs = [&](this auto&& dfs, int i, int j, bool hold) -> int {
+            if (j < 0) {
+                return INT_MIN / 2; // 除 2 防止溢出
+            }
+            if (i < 0) {
+                return hold ? INT_MIN / 2 : 0;
+            }
+
+            int& res = memo[i][j][hold]; // 注意这里是引用
+            if (res != INT_MIN) { // 之前计算过
+                return res;
+            }
+
+            if (hold) { // 今天结束时持有股票
+                // 今天没有操作，j 不变，昨天结束时持有股票
+                // 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+                return res = max(dfs(i - 1, j, true), dfs(i - 1, j - 1, false) - prices[i]);
+            }
+
+            // 今天结束时未持有股票
+            // 今天没有操作，j 不变，昨天结束时未持有股票
+            // 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+            return res = max(dfs(i - 1, j, false), dfs(i - 1, j, true) + prices[i]);
+        };
+
+        return dfs(n - 1, k, false);
+    }
+};
+```
+
+```go [sol-Go]
+func maxProfit(k int, prices []int) int {
+    n := len(prices)
+    memo := make([][][2]int, n)
+    for i := range memo {
+        memo[i] = make([][2]int, k+1)
+        for j := range memo[i] {
+            memo[i][j] = [2]int{math.MinInt, math.MinInt} // MinInt 表示还没有计算过
+        }
+    }
+
+    // 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=0 未持有，hold=1 持有）
+    var dfs func(int, int, int) int
+    dfs = func(i, j, hold int) (res int) {
+        if j < 0 {
+            return math.MinInt / 2 // 防止溢出
+        }
+        if i < 0 {
+            if hold == 1 {
+                return math.MinInt / 2
+            }
+            return
+        }
+
+        p := &memo[i][j][hold]
+        if *p != math.MinInt { // 之前计算过
+            return *p
+        }
+        defer func() { *p = res }() // 记忆化
+
+        if hold == 1 { // 今天结束时持有股票
+            // 今天没有操作，j 不变，昨天结束时持有股票
+            // 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+            return max(dfs(i-1, j, 1), dfs(i-1, j-1, 0)-prices[i])
+        }
+
+        // 今天结束时未持有股票
+        // 今天没有操作，j 不变，昨天结束时未持有股票
+        // 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+        return max(dfs(i-1, j, 0), dfs(i-1, j, 1)+prices[i])
+    }
+
+    return dfs(n-1, k, 0)
+}
+```
+
+```js [sol-JavaScript]
+var maxProfit = function(k, prices) {
+    const n = prices.length;
+    const memo = Array(n).fill(null).map(() => Array(k + 1).fill(null).map(() => [Infinity, Infinity])); // Infinity 表示还没有计算过
+
+    // 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=0 未持有，hold=1 持有）
+    function dfs(i, j, hold) {
+        if (j < 0) {
+            return -Infinity;
+        }
+        if (i < 0) {
+            return hold === 1 ? -Infinity : 0;
+        }
+
+        if (memo[i][j][hold] !== Infinity) { // 之前计算过
+            return memo[i][j][hold];
+        }
+
+        if (hold === 1) { // 今天结束时持有股票
+            // 今天没有操作，j 不变，昨天结束时持有股票
+            // 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+            memo[i][j][hold] = Math.max(dfs(i - 1, j, 1), dfs(i - 1, j - 1, 0) - prices[i]);
+        } else { // 今天结束时未持有股票
+            // 今天没有操作，j 不变，昨天结束时未持有股票
+            // 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+            memo[i][j][hold] = Math.max(dfs(i - 1, j, 0), dfs(i - 1, j, 1) + prices[i]);
+        }
+        return memo[i][j][hold];
+    }
+
+    return dfs(n - 1, k, 0);
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn max_profit(k: i32, prices: Vec<i32>) -> i32 {
+        // 在 [0,i] 中至多买入 j 次，且 prices[i] 这一天结束时，是否持有股票（hold=0 未持有，hold=1 持有）
+        fn dfs(i: i32, j: i32, hold: bool, prices: &Vec<i32>, memo: &mut Vec<Vec<Vec<i32>>>) -> i32 {
+            if j < 0 {
+                return i32::MIN / 2; // 防止溢出
+            }
+            if i < 0 {
+                return if hold { i32::MIN / 2 } else { 0 };
+            }
+
+            let iu = i as usize;
+            let ju = j as usize;
+            let hu = hold as usize;
+            if memo[iu][ju][hu] != i32::MIN { // 之前计算过
+                return memo[iu][ju][hu];
+            }
+
+            if hold { // 今天结束时持有股票
+                // 今天没有操作，j 不变，昨天结束时持有股票
+                // 今天买入，那么在 [0,i-1] 中至多买入 j-1 次，且昨天结束时未持有股票
+                memo[iu][ju][hu] = dfs(i - 1, j, true, prices, memo).max(dfs(i - 1, j - 1, false, prices, memo) - prices[iu]);
+            } else { // 今天结束时未持有股票
+                // 今天没有操作，j 不变，昨天结束时未持有股票
+                // 今天卖出，那么在 [0,i-1] 中至多买入 j 次，且昨天结束时持有股票
+                memo[iu][ju][hu] = dfs(i - 1, j, false, prices, memo).max(dfs(i - 1, j, true, prices, memo) + prices[iu]);
+            }
+            memo[iu][ju][hu]
+        }
+
+        let n = prices.len();
+        let mut memo = vec![vec![vec![i32::MIN; 2]; k as usize + 1]; n]; // i32::MIN 表示没有计算过
+        dfs(n as i32 - 1, k, false, &prices, &mut memo)
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nk)$，其中 $n$ 为 $\textit{prices}$ 的长度。
+- 空间复杂度：$\mathcal{O}(nk)$。
+
+## 二、1:1 翻译成递推
+
+**问**：为什么第二维度的大小是 $k+2$？
+
+**答**：在记忆化搜索中，$j$ 的范围是 $[-1,k]$，这一共有 $k+2$ 个数。1:1 翻译成递推就需要 $k+2$ 的数组大小。
+
+**问**：$f$ 数组中的 $j=0$ 表示什么意思？
+
+**答**：这对应着记忆化搜索中的 $j=-1$ 的状态，也就是交易 $-1$ 次的状态。注意这是不合法的，所以初始值一定是 $-\infty$。
+
+**问**：$f$ 的初始值怎么确定？
+
+**答**：$f$ 的初始值来自记忆化搜索的递归边界，递归边界怎么写，初始值就怎么写。
+
+```py [sol-Python3]
+class Solution:
+    def maxProfit(self, k: int, prices: List[int]) -> int:
+        n = len(prices)
+        f = [[[-inf] * 2 for _ in range(k + 2)] for _ in range(n + 1)]
+        for j in range(1, k + 2):
+            f[0][j][0] = 0
+        for i, p in enumerate(prices):
+            for j in range(1, k + 2):
+                f[i + 1][j][0] = max(f[i][j][0], f[i][j][1] + p)
+                f[i + 1][j][1] = max(f[i][j][1], f[i][j - 1][0] - p)
+        return f[-1][-1][0]
+```
+
+```java [sol-Java]
+class Solution {
+    public int maxProfit(int k, int[] prices) {
+        int n = prices.length;
+        int[][][] f = new int[n + 1][k + 2][2];
+        for (int[][] mat : f) {
+            for (int[] row : mat) {
+                Arrays.fill(row, Integer.MIN_VALUE / 2); // 防止溢出
+            }
+        }
+        for (int j = 1; j <= k + 1; j++) {
+            f[0][j][0] = 0;
+        }
+        for (int i = 0; i < n; i++) {
+            for (int j = 1; j <= k + 1; j++) {
+                f[i + 1][j][0] = Math.max(f[i][j][0], f[i][j][1] + prices[i]);
+                f[i + 1][j][1] = Math.max(f[i][j][1], f[i][j - 1][0] - prices[i]);
+            }
+        }
+        return f[n][k + 1][0];
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxProfit(int k, vector<int>& prices) {
+        int n = prices.size();
+        vector f(n + 1, vector<array<int, 2>>(k + 2, {INT_MIN / 2, INT_MIN / 2}));
+        for (int j = 1; j <= k + 1; j++) {
+            f[0][j][0] = 0;
+        }
+        for (int i = 0; i < n; i++) {
+            for (int j = 1; j <= k + 1; j++) {
+                f[i + 1][j][0] = max(f[i][j][0], f[i][j][1] + prices[i]);
+                f[i + 1][j][1] = max(f[i][j][1], f[i][j - 1][0] - prices[i]);
+            }
+        }
+        return f[n][k + 1][0];
+    }
+};
+```
+
+```go [sol-Go]
+func maxProfit(k int, prices []int) int {
+    n := len(prices)
+    f := make([][][2]int, n+1)
+    for i := range f {
+        f[i] = make([][2]int, k+2)
+        for j := range f[i] {
+            f[i][j] = [2]int{math.MinInt / 2, math.MinInt / 2} // 防止溢出
+        }
+    }
+    for j := 1; j <= k+1; j++ {
+        f[0][j][0] = 0
+    }
+    for i, p := range prices {
+        for j := 1; j <= k+1; j++ {
+            f[i+1][j][0] = max(f[i][j][0], f[i][j][1]+p)
+            f[i+1][j][1] = max(f[i][j][1], f[i][j-1][0]-p)
+        }
+    }
+    return f[n][k+1][0]
+}
+```
+
+```js [sol-JavaScript]
+var maxProfit = function(k, prices) {
+    const n = prices.length;
+    const f = Array(n + 1).fill(null).map(() => Array(k + 2).fill(null).map(() => Array(2).fill(-Infinity)));
+    for (let j = 1; j < k + 2; j++) {
+        f[0][j][0] = 0;
+    }
+    for (let i = 0; i < n; i++) {
+        for (let j = 1; j < k + 2; j++) {
+            f[i + 1][j][0] = Math.max(f[i][j][0], f[i][j][1] + prices[i]);
+            f[i + 1][j][1] = Math.max(f[i][j][1], f[i][j - 1][0] - prices[i]);
+        }
+    }
+    return f[n][k + 1][0];
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn max_profit(k: i32, prices: Vec<i32>) -> i32 {
+        let n = prices.len();
+        let k = k as usize;
+        let mut f = vec![vec![vec![i32::MIN / 2; 2]; k + 2]; n + 1]; // 防止溢出
+        for j in 1..k + 2 {
+            f[0][j][0] = 0;
+        }
+        for (i, &p) in prices.iter().enumerate() {
+            for j in 1..k + 2 {
+                f[i + 1][j][0] = f[i][j][0].max(f[i][j][1] + p);
+                f[i + 1][j][1] = f[i][j][1].max(f[i][j - 1][0] - p);
+            }
+        }
+        f[n][k + 1][0]
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nk)$，其中 $n$ 为 $\textit{prices}$ 的长度。
+- 空间复杂度：$\mathcal{O}(nk)$。
+
+## 三、空间优化
+
+```py [sol-Python3]
+class Solution:
+    def maxProfit(self, k: int, prices: List[int]) -> int:
+        f = [[-inf] * 2 for _ in range(k + 2)]
+        for j in range(1, k + 2):
+            f[j][0] = 0
+        for p in prices:
+            for j in range(k + 1, 0, -1):
+                f[j][0] = max(f[j][0], f[j][1] + p)
+                f[j][1] = max(f[j][1], f[j - 1][0] - p)
+        return f[-1][0]
+```
+
+```java [sol-Java]
+class Solution {
+    public int maxProfit(int k, int[] prices) {
+        int[][] f = new int[k + 2][2];
+        for (int j = 1; j <= k + 1; j++) {
+            f[j][1] = Integer.MIN_VALUE / 2; // 防止溢出
+        }
+        f[0][0] = Integer.MIN_VALUE / 2;
+        for (int p : prices) {
+            for (int j = k + 1; j > 0; j--) {
+                f[j][0] = Math.max(f[j][0], f[j][1] + p);
+                f[j][1] = Math.max(f[j][1], f[j - 1][0] - p);
+            }
+        }
+        return f[k + 1][0];
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxProfit(int k, vector<int>& prices) {
+        vector<array<int, 2>> f(k + 2, {INT_MIN / 2, INT_MIN / 2});
+        for (int j = 1; j <= k + 1; j++) {
+            f[j][0] = 0;
+        }
+        for (int p : prices) {
+            for (int j = k + 1; j > 0; j--) {
+                f[j][0] = max(f[j][0], f[j][1] + p);
+                f[j][1] = max(f[j][1], f[j - 1][0] - p);
+            }
+        }
+        return f[k + 1][0];
+    }
+};
+```
+
+```go [sol-Go]
+func maxProfit(k int, prices []int) int {
+    f := make([][2]int, k+2)
+    for j := 1; j <= k+1; j++ {
+        f[j][1] = math.MinInt / 2 // 防止溢出
+    }
+    f[0][0] = math.MinInt / 2
+    for _, p := range prices {
+        for j := k + 1; j > 0; j-- {
+            f[j][0] = max(f[j][0], f[j][1]+p)
+            f[j][1] = max(f[j][1], f[j-1][0]-p)
+        }
+    }
+    return f[k+1][0]
+}
+```
+
+```js [sol-JavaScript]
+var maxProfit = function(k, prices) {
+    const f = Array(k + 2).fill(null).map(() => Array(2).fill(-Infinity));
+    for (let j = 1; j <= k + 1; j++) {
+        f[j][0] = 0;
+    }
+    for (const p of prices) {
+        for (let j = k + 1; j > 0; j--) {
+            f[j][0] = Math.max(f[j][0], f[j][1] + p);
+            f[j][1] = Math.max(f[j][1], f[j - 1][0] - p);
+        }
+    }
+    return f[k + 1][0];
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn max_profit(k: i32, prices: Vec<i32>) -> i32 {
+        let k = k as usize;
+        let mut f = vec![vec![0; 2]; k + 2];
+        for j in 1..=k + 1 {
+            f[j][1] = i32::MIN / 2; // 防止溢出
+        }
+        f[0][0] = i32::MIN / 2;
+        for p in prices {
+            for j in (1..=k + 1).rev() {
+                f[j][0] = f[j][0].max(f[j][1] + p);
+                f[j][1] = f[j][1].max(f[j - 1][0] - p);
+            }
+        }
+        f[k + 1][0]
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nk)$，其中 $n$ 为 $\textit{prices}$ 的长度。
+- 空间复杂度：$\mathcal{O}(k)$。
+
+## 思考题
+
+如果改成「恰好」完成 $k$ 笔交易要怎么做？
+
+递归到 $i<0$ 时，只有 $j=0$ 才是合法的，$j>0$ 是不合法的。
+
+```py
+# 恰好
+class Solution:
+    def maxProfit(self, k: int, prices: List[int]) -> int:
+        # 递推
+        n = len(prices)
+        f = [[[-inf] * 2 for _ in range(k + 2)] for _ in range(n + 1)]
+        f[0][1][0] = 0  # 只需改这里
+        for i, p in enumerate(prices):
+            for j in range(1, k + 2):
+                f[i + 1][j][0] = max(f[i][j][0], f[i][j][1] + p)
+                f[i + 1][j][1] = max(f[i][j][1], f[i][j - 1][0] - p)
+        return f[-1][-1][0]
+
+        # 记忆化搜索
+        # @cache
+        # def dfs(i: int, j: int, hold: bool) -> int:
+        #     if j < 0:
+        #         return -inf
+        #     if i < 0:
+        #         return -inf if hold or j > 0 else 0
+        #     if hold:
+        #         return max(dfs(i - 1, j, True), dfs(i - 1, j - 1, False) - prices[i])
+        #     return max(dfs(i - 1, j, False), dfs(i - 1, j, True) + prices[i])
+        # return dfs(n - 1, k, False)
+```
+
+如果改成「至少」完成 $k$ 笔交易要怎么做？
+
+递归到「至少 $0$ 次」时，它等价于「交易次数没有限制」，那么这个状态的计算方式和 [122. 买卖股票的最佳时机 II](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-ii/solution/shi-pin-jiao-ni-yi-bu-bu-si-kao-dong-tai-o3y4/) 是一样的。
+
+```py
+# 至少
+class Solution:
+    def maxProfit(self, k: int, prices: List[int]) -> int:
+        # 递推
+        n = len(prices)
+        f = [[[-inf] * 2 for _ in range(k + 1)] for _ in range(n + 1)]
+        f[0][0][0] = 0
+        for i, p in enumerate(prices):
+            f[i + 1][0][0] = max(f[i][0][0], f[i][0][1] + p)
+            f[i + 1][0][1] = max(f[i][0][1], f[i][0][0] - p)  # 无限次
+            for j in range(1, k + 1):
+                f[i + 1][j][0] = max(f[i][j][0], f[i][j][1] + p)
+                f[i + 1][j][1] = max(f[i][j][1], f[i][j - 1][0] - p)
+        return f[-1][-1][0]
+
+        # 记忆化搜索
+        # @cache
+        # def dfs(i: int, j: int, hold: bool) -> int:
+        #     if i < 0:
+        #         return -inf if hold or j > 0 else 0
+        #     if hold:
+        #         return max(dfs(i - 1, j, True), dfs(i - 1, j - 1, False) - prices[i])
+        #     return max(dfs(i - 1, j, False), dfs(i - 1, j, True) + prices[i])
+        # return dfs(n - 1, k, False)
+```
+
+## 股票买卖系列题目
+
+- [121. 买卖股票的最佳时机](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock/)
+- [122. 买卖股票的最佳时机 II](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-ii/)
+- [123. 买卖股票的最佳时机 III](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-iii/)
+- [188. 买卖股票的最佳时机 IV](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-iv/)
+- [309. 买卖股票的最佳时机含冷冻期](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-with-cooldown/)
+- [714. 买卖股票的最佳时机含手续费](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/)
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/discuss/post/3141566/ru-he-ke-xue-shua-ti-by-endlesscheng-q3yd/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/discuss/post/3578981/ti-dan-hua-dong-chuang-kou-ding-chang-bu-rzz7/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/discuss/post/3579164/ti-dan-er-fen-suan-fa-er-fen-da-an-zui-x-3rqn/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/discuss/post/3579480/ti-dan-dan-diao-zhan-ju-xing-xi-lie-zi-d-u4hk/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/discuss/post/3580195/fen-xiang-gun-ti-dan-wang-ge-tu-dfsbfszo-l3pa/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/discuss/post/3580371/fen-xiang-gun-ti-dan-wei-yun-suan-ji-chu-nth4/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/discuss/post/3581143/fen-xiang-gun-ti-dan-tu-lun-suan-fa-dfsb-qyux/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/discuss/post/3581838/fen-xiang-gun-ti-dan-dong-tai-gui-hua-ru-007o/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/discuss/post/3583665/fen-xiang-gun-ti-dan-chang-yong-shu-ju-j-bvmv/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/discuss/post/3584388/fen-xiang-gun-ti-dan-shu-xue-suan-fa-shu-gcai/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/discuss/post/3091107/fen-xiang-gun-ti-dan-tan-xin-ji-ben-tan-k58yb/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/discuss/post/3142882/fen-xiang-gun-ti-dan-lian-biao-er-cha-sh-6srp/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/discuss/post/3144832/fen-xiang-gun-ti-dan-zi-fu-chuan-kmpzhan-ugt4/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `六、状态机 DP / §6.1 买卖股票`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `六、状态机 DP / §6.1 买卖股票`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

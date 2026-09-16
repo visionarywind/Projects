@@ -48,7 +48,19 @@ benchmark 固定 seed、数据规模、重复次数和 checksum，输出 median/
 
 ## D13：采用 LevelDB-style 跳表层级参数
 
-benchmark 的 set-like 跳表采用 `MaxLevel=12` 和约 `1/4` 的逐层晋升概率，参考 LevelDB SkipList 的典型参数。该决策只复用层数和概率，不声称复刻 LevelDB：当前节点仍使用固定大小的 forward 数组、默认 `new/delete`，并提供逐节点 `erase`；Arena、按实际高度分配节点和不可变节点生命周期留待后续实验。
+benchmark 的 set-like 跳表采用 `MaxLevel=12` 和约 `1/4` 的逐层晋升概率，参考 LevelDB SkipList 和 Redis zskiplist 的典型概率设置。该决策只复用层数和概率，不声称复刻 LevelDB 或 Redis：当前节点仍使用默认 `new/delete`，提供逐节点 `erase`，没有 Arena、节点池、score/member 字典、span/rank 或 range API。
+
+## D14：跳表优先优化 set-like 热路径
+
+为了让当前 `ordered_benchmark` 中的 `skip_list<int>` 更接近甚至超过 `rb_tree<int>`，节点改为只分配实际高度的 forward link，并进一步移除 set-like 正向遍历不使用的 `backward`/`tail` 字段。随机层级生成改用 `mt19937` 原始输出的低两位做 `1/4` 晋升判断，避免分布对象开销；节点高度压缩为 `uint8_t`。这些优化不改变分配基线：每个真实节点仍是一次普通全局 `operator new` 和一次对应 `operator delete`。若后续实现 Redis-style reverse range、rank 或 span，需要作为新的能力单独 benchmark，因为它会重新增加节点元数据和更新成本。
+
+## D15：新增独立的左倾红黑树
+
+为了比较两种红黑树组织方式，新增 `llrb_tree<Key, Compare>`，不改写已有 parent-based `rb_tree`。LLRB 使用左倾红链接、递归 `balance` 和 Sedgewick 风格 top-down 删除；节点不保存 parent，迭代器从 root 搜索 successor/predecessor。该实现仍是单线程、唯一键、set-like，并保持每个真实节点一次普通 `new/delete`，明确不引入池化、Arena 或自定义 allocator。由于删除的双孩子路径复制 successor 的 key，当前 API 要求 `Key` 可赋值；这是后续支持不可赋值 key 时需要重新设计的边界。
+
+LLRB 必须通过与现有 `rb_tree` 相同的固定 seed 差分测试、红黑不变量检查、ASan/UBSan 和 ordered benchmark 后才能评价性能。benchmark 结论只针对 workload：无 parent 迭代器的额外 root 搜索和 top-down 删除的颜色调整成本不能从复杂度记号中忽略。
+
+
 
 ## 维护约定
 

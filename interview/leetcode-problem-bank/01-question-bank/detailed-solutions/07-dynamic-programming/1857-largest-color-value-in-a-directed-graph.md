@@ -1,0 +1,513 @@
+# 1857. 有向图中最大颜色值
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/largest-color-value-in-a-directed-graph/
+- 题目 slug：`largest-color-value-in-a-directed-graph`
+- 来源专题：动态规划
+- 来源分类路径：十三、图 DP
+- 难度分：2313
+- 外部题解来源：https://leetcode.cn/problems/largest-color-value-in-a-directed-graph/solutions/765871/an-zhao-tuo-bu-xu-dp-by-endlesscheng-2n4g/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[两种方法：记忆化搜索 / 拓扑排序（Python/Java/C++/Go）](https://leetcode.cn/problems/largest-color-value-in-a-directed-graph/solutions/765871/an-zhao-tuo-bu-xu-dp-by-endlesscheng-2n4g/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`an-zhao-tuo-bu-xu-dp-by-endlesscheng-2n4g`
+- topic id：`765871`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 方法一：记忆化搜索 + 三色标记法
+
+判断图中是否有环，可以用 [三色标记法](https://leetcode.cn/problems/course-schedule/solutions/2992884/san-se-biao-ji-fa-pythonjavacgojsrust-by-pll7/) 解决。
+
+如果图中无环，那么从一个节点 $x$ 出发，不可能又重新回到 $x$。任意路径中也不会有环。
+
+**核心思路**：设 $x$ 的邻居为 $y$，即 $x\to y$。如果 $x$ 的颜色是 $i$，那么从 $x$ 开始的路径中颜色 $i$ 的最大出现次数，等于从 $y$ 开始的路径中颜色 $i$ 的最大出现次数，加上 $1$。如果 $x$ 的颜色不是 $i$，则不加 $1$。
+
+据此定义 $\textit{dfs}(x)$ 表示从节点 $x$ 开始的路径中，每种颜色的最大出现次数。返回值是一个长为 $26$ 的数组 $\textit{res}$。
+
+遍历 $x$ 的邻居 $y$，设 $\textit{dfs}(y)$ 的返回值为 $\textit{cy}$，用 $\textit{cy}[i]$ 更新 $\textit{res}[i]$ 的最大值。最后加上节点 $x$ 的颜色 $\textit{colors}[x]$，也就是把 $\textit{res}[\textit{colors}[x]]$ 加一。
+
+状态转移方程为
+
+$$
+\textit{dfs}(x)[i] = \max_{y} \textit{dfs}(y)[i] + [\textit{colors}[x] = i]
+$$
+
+答案为 $\textit{dfs}(x)[i]$ 的最大值。
+
+实现时，可以在记忆化搜索的同时，使用三色标记法判环。具体见代码。
+
+实现时，可以只取 $\textit{dfs}(x)[\textit{colors}[x]]$ 的最大值。因为其他颜色 $j$ 的最大出现次数等于某个其他的 $\textit{dfs}(y)[j]$，其中 $\textit{color}[y]=j$。
+
+```py [sol-Python3]
+class Solution:
+    def largestPathValue(self, colors: str, edges: List[List[int]]) -> int:
+        n = len(colors)
+        g = [[] for _ in range(n)]
+        for x, y in edges:
+            if x == y:  # 自环
+                return -1
+            g[x].append(y)
+
+        memo = [None] * n
+        def dfs(x: int) -> Dict[str, int]:
+            if memo[x] is not None:  # x 计算中或者计算过
+                return memo[x]  # 如果是 0，表示有环
+            memo[x] = 0  # 用 0 表示计算中
+            res = defaultdict(int)
+            for y in g[x]:
+                cy = dfs(y)
+                if not cy:  # 有环
+                    return cy
+                for ch, c in cy.items():
+                    res[ch] = max(res[ch], c)
+            res[colors[x]] += 1
+            memo[x] = res  # 记忆化，同时也表示 x 计算完毕
+            return res
+
+        ans = 0
+        for x, c in enumerate(colors):
+            res = dfs(x)
+            if not res:  # 有环
+                return -1
+            ans = max(ans, res[c])
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int largestPathValue(String colors, int[][] edges) {
+        int n = colors.length();
+        List<Integer>[] g = new ArrayList[n];
+        Arrays.setAll(g, i -> new ArrayList<>());
+        for (int[] e : edges) {
+            int x = e[0];
+            int y = e[1];
+            if (x == y) { // 自环
+                return -1;
+            }
+            g[x].add(y);
+        }
+
+        int ans = 0;
+        char[] cs = colors.toCharArray();
+        int[][] memo = new int[n][];
+        for (int x = 0; x < n; x++) {
+            int[] res = dfs(x, g, cs, memo);
+            if (res.length == 0) { // 有环
+                return -1;
+            }
+            ans = Math.max(ans, res[cs[x] - 'a']);
+        }
+        return ans;
+    }
+
+    private int[] dfs(int x, List<Integer>[] g, char[] colors, int[][] memo) {
+        if (memo[x] != null) { // x 计算中或者计算过
+            return memo[x]; // 如果是空数组，表示有环
+        }
+        memo[x] = new int[]{}; // 表示计算中
+        int[] res = new int[26];
+        for (int y : g[x]) {
+            int[] cy = dfs(y, g, colors, memo);
+            if (cy.length == 0) { // 有环
+                return cy;
+            }
+            for (int i = 0; i < 26; i++) {
+                res[i] = Math.max(res[i], cy[i]);
+            }
+        }
+        res[colors[x] - 'a']++;
+        return memo[x] = res; // 记忆化，同时也表示 x 计算完毕
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int largestPathValue(string colors, vector<vector<int>>& edges) {
+        int n = colors.size();
+        vector<vector<int>> g(n);
+        for (auto& e : edges) {
+            int x = e[0], y = e[1];
+            if (x == y) { // 自环
+                return -1;
+            }
+            g[x].push_back(y);
+        }
+
+        vector<vector<int>> memo(n);
+        auto dfs = [&](this auto&& dfs, int x) -> vector<int> {
+            if (!memo[x].empty()) { // x 计算中或者计算过
+                return memo[x]; // 如果是空 vector，表示有环
+            }
+            memo[x] = {0}; // 表示计算中
+            vector<int> res(26);
+            for (int y : g[x]) {
+                auto cy = dfs(y);
+                if (cy.size() <= 1) { // 有环
+                    return cy;
+                }
+                for (int i = 0; i < 26; i++) {
+                    res[i] = max(res[i], cy[i]);
+                }
+            }
+            res[colors[x] - 'a']++;
+            return memo[x] = res; // 记忆化，同时也表示 x 计算完毕
+        };
+
+        int ans = 0;
+        for (int x = 0; x < n; x++) {
+            auto res = dfs(x);
+            if (res.size() <= 1) { // 有环
+                return -1;
+            }
+            ans = max(ans, res[colors[x] - 'a']);
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func largestPathValue(colors string, edges [][]int) (ans int) {
+	n := len(colors)
+	g := make([][]int, n)
+	for _, e := range edges {
+		x, y := e[0], e[1]
+		if x == y { // 自环
+			return -1
+		}
+		g[x] = append(g[x], y)
+	}
+
+	memo := make([][]int, n)
+	var dfs func(int) []int
+	dfs = func(x int) []int {
+		if memo[x] != nil { // x 计算中或者计算过
+			return memo[x] // 如果 memo[x] 是空列表，返回空列表，表示有环
+		}
+		memo[x] = []int{} // 用空列表表示计算中
+		res := make([]int, 26)
+		for _, y := range g[x] {
+			cy := dfs(y)
+			if len(cy) == 0 { // 有环
+				return cy
+			}
+			for i, c := range cy {
+				res[i] = max(res[i], c)
+			}
+		}
+		res[colors[x]-'a']++
+		memo[x] = res // 记忆化，同时也表示 x 计算完毕
+		return res
+	}
+
+	for x, ch := range colors {
+		res := dfs(x)
+		if len(res) == 0 { // 有环
+			return -1
+		}
+		ans = max(ans, res[ch-'a'])
+	}
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}((n+m)|\Sigma|)$，其中 $n$ 是 $\textit{nums}$ 的长度，$|\Sigma|=26$ 是字符集合的大小。有 $\mathcal{O}(n|\Sigma|)$ 个状态，$\mathcal{O}(m)$ 次状态转移，每次状态转移需要 $\mathcal{O}(|\Sigma|)$ 的时间。
+- 空间复杂度：$\mathcal{O}(m + n|\Sigma|)$。
+
+## 方法二：拓扑排序 + 刷表法
+
+方法一是以 $x$ 为起点定义状态，还可以以 $x$ 为终点定义状态。
+
+定义 $f[x][i]$ 表示终点为 $x$ 的路径中，颜色 $i$ 的最大出现次数。
+
+为了正确计算转移，必须先把 $x$ 的所有转移来源算出来，也就是按照拓扑序转移：
+
+1. 把入度为 $0$ 的点入队。
+2. 节点 $x$ 出队时，把 $f[x][\textit{colors}[x]]$ 增加 $1$。
+3. 遍历 $x$ 的邻居 $y$，考虑刷表法，用 $f[x][i]$ 更新 $f[y][i]$ 的最大值。
+4. 把 $y$ 的入度减一。如果 $y$ 的入度变成 $0$，则把 $y$ 入队。
+
+> 注：在动态规划中，用转移来源更新当前状态叫**查表法**，用当前状态更新其他状态叫**刷表法**。
+
+答案为所有 $f[x][i]$ 的最大值。
+
+如果有节点没有入队，说明有环，返回 $-1$。
+
+实现时，可以只取 $f[x][\textit{colors}[x]]$ 的最大值。因为其他颜色 $j$ 的最大出现次数等于某个其他的 $f[y][j]$，其中 $\textit{color}[y]=j$。
+
+```py [sol-Python3]
+class Solution:
+    def largestPathValue(self, colors: str, edges: List[List[int]]) -> int:
+        n = len(colors)
+        g = [[] for _ in range(n)]
+        deg = [0] * n
+        for x, y in edges:
+            if x == y:  # 自环
+                return -1
+            g[x].append(y)
+            deg[y] += 1
+
+        ans = visited = 0
+        q = deque(i for i, d in enumerate(deg) if d == 0)  # 入度为 0 的点入队
+        f = [defaultdict(int) for _ in range(n)]
+        while q:
+            x = q.popleft()  # x 的所有转移来源都计算完毕，也都更新到 f[x] 中
+            visited += 1
+            ch = colors[x]
+            f[x][ch] += 1
+            ans = max(ans, f[x][ch])
+            for y in g[x]:
+                for ch, c in f[x].items():
+                    f[y][ch] = max(f[y][ch], c)  # 刷表法，更新邻居的最大值
+                deg[y] -= 1
+                if deg[y] == 0:
+                    q.append(y)
+
+        return ans if visited == n else -1
+```
+
+```java [sol-Java]
+class Solution {
+    public int largestPathValue(String colors, int[][] edges) {
+        char[] cs = colors.toCharArray();
+        int n = cs.length;
+
+        List<Integer>[] g = new ArrayList[n];
+        Arrays.setAll(g, i -> new ArrayList<>());
+        int[] deg = new int[n];
+
+        for (int[] e : edges) {
+            int x = e[0];
+            int y = e[1];
+            if (x == y) { // 自环
+                return -1;
+            }
+            g[x].add(y);
+            deg[y]++;
+        }
+
+        Queue<Integer> q = new ArrayDeque<>();
+        for (int i = 0; i < n; i++) {
+            if (deg[i] == 0) {
+                q.add(i); // 入度为 0 的点入队
+            }
+        }
+
+        int ans = 0;
+        int visited = 0;
+        int[][] f = new int[n][26];
+
+        while (!q.isEmpty()) {
+            int x = q.poll(); // x 的所有转移来源都计算完毕，也都更新到 f[x] 中
+            visited++;
+            int ch = cs[x] - 'a';
+            f[x][ch]++;
+            ans = Math.max(ans, f[x][ch]);
+            for (int y : g[x]) {
+                for (int i = 0; i < 26; i++) {
+                    f[y][i] = Math.max(f[y][i], f[x][i]); // 刷表法，更新邻居的最大值
+                }
+                if (--deg[y] == 0) {
+                    q.add(y);
+                }
+            }
+        }
+
+        return visited < n ? -1 : ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int largestPathValue(string colors, vector<vector<int>>& edges) {
+        int n = colors.size();
+        vector<vector<int>> g(n);
+        vector<int> deg(n);
+        for (auto& e : edges) {
+            int x = e[0], y = e[1];
+            if (x == y) { // 自环
+                return -1;
+            }
+            g[x].push_back(y);
+            deg[y]++;
+        }
+
+        vector<int> q;
+        for (int i = 0; i < n; i++) {
+            if (deg[i] == 0) {
+                q.push_back(i); // 入度为 0 的点入队
+            }
+        }
+
+        int ans = 0;
+        vector<array<int, 26>> f(n);
+        for (int i = 0; i < q.size(); i++) { // 注意 q.size() 会变大
+            int x = q[i]; // x 的所有转移来源都计算完毕，也都更新到 f[x] 中
+            int ch = colors[x] - 'a';
+            f[x][ch]++;
+            ans = max(ans, f[x][ch]);
+            for (int y : g[x]) {
+                for (int j = 0; j < 26; j++) {
+                    f[y][j] = max(f[y][j], f[x][j]); // 刷表法，更新邻居的最大值
+                }
+                if (--deg[y] == 0) {
+                    q.push_back(y);
+                }
+            }
+        }
+
+        return q.size() < n ? -1 : ans;
+    }
+};
+```
+
+```go [sol-Go]
+func largestPathValue(colors string, edges [][]int) (ans int) {
+	n := len(colors)
+	g := make([][]int, n)
+	deg := make([]int, n)
+	for _, e := range edges {
+		x, y := e[0], e[1]
+		if x == y { // 自环
+			return -1
+		}
+		g[x] = append(g[x], y)
+		deg[y]++
+	}
+
+	q := make([]int, 0, n)
+	for i, d := range deg {
+		if d == 0 {
+			q = append(q, i) // 入度为 0 的点入队
+		}
+	}
+
+	f := make([][26]int, n)
+	for len(q) > 0 {
+		x := q[0] // x 的所有转移来源都计算完毕，也都更新到 f[x] 中
+		q = q[1:]
+		ch := colors[x] - 'a'
+		f[x][ch]++
+		ans = max(ans, f[x][ch])
+		for _, y := range g[x] {
+			for i, cnt := range f[x] {
+				f[y][i] = max(f[y][i], cnt) // 刷表法，更新邻居的最大值
+			}
+			deg[y]--
+			if deg[y] == 0 {
+				q = append(q, y)
+			}
+		}
+	}
+
+	if cap(q) > 0 { // 有节点没入队，说明有环
+		return -1
+	}
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}((n+m)|\Sigma|)$，其中 $n$ 是 $\textit{nums}$ 的长度，$|\Sigma|=26$ 是字符集合的大小。有 $\mathcal{O}(n|\Sigma|)$ 个状态，$\mathcal{O}(m)$ 次状态转移，每次状态转移需要 $\mathcal{O}(|\Sigma|)$ 的时间。
+- 空间复杂度：$\mathcal{O}(m + n|\Sigma|)$。
+
+## 相似题目
+
+[2050. 并行课程 III](https://leetcode.cn/problems/parallel-courses-iii/)
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `十三、图 DP`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `十三、图 DP`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

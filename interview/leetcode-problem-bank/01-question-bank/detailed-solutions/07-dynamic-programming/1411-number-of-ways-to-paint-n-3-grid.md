@@ -1,0 +1,1155 @@
+# 1411. 给 N x 3 网格图涂色的方案数
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/number-of-ways-to-paint-n-3-grid/
+- 题目 slug：`number-of-ways-to-paint-n-3-grid`
+- 来源专题：动态规划
+- 来源分类路径：九、状态压缩 DP（状压 DP） / §9.5 轮廓线 DP
+- 难度分：1845
+- 外部题解来源：https://leetcode.cn/problems/number-of-ways-to-paint-n-3-grid/solutions/3869310/san-chong-fang-fa-ji-yi-hua-sou-suo-di-t-tell/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[三种方法：记忆化搜索/递推/矩阵快速幂（Python/Java/C++/Go）](https://leetcode.cn/problems/number-of-ways-to-paint-n-3-grid/solutions/3869310/san-chong-fang-fa-ji-yi-hua-sou-suo-di-t-tell/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`san-chong-fang-fa-ji-yi-hua-sou-suo-di-t-tell`
+- topic id：`3869310`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 方法一：记忆化搜索（轮廓线 DP）
+
+考虑**暴力搜索**，枚举每个格子涂哪种颜色。
+
+从下往上涂色（这样可以在多组测试数据间复用记忆化的结果），我们需要知道：
+
+- 当前在给哪个格子涂色？用 $(i,j)$ 表示，即 $i$ 行 $j$ 列。
+- $i+1$ 行具体怎么涂色？用 $\textit{preRow}$ 表示。$(i,j)$ 的颜色不能等于 $(i+1,j)$ 的颜色。
+- $i$ 行具体怎么涂色？用 $\textit{curRow}$ 表示。$(i,j)$ 的颜色不能等于 $(i,j-1)$ 的颜色。
+
+三种颜色分别用 $0,1,2$ 表示，存储一个格子的颜色信息需要 $2$ 个比特位，一行的颜色就需要 $2\cdot 3 = 6$ 个比特位。
+
+注意取模。为什么可以在**中途取模**？原理见 [模运算的世界：当加减乘除遇上取模](https://leetcode.cn/circle/discuss/mDfnkW/)。
+
+```py [sol-Python3]
+MOD = 1_000_000_007
+
+# (i, j)：当前位置 
+# pre_row：上一行（i+1 行）的颜色
+# cur_row：当前这一行已填入的颜色
+@cache  # 缓存装饰器，避免重复计算 dfs（一行代码实现记忆化）
+def dfs(i: int, j: int, pre_row: int, cur_row: int) -> int:
+    if i == 0:  # 所有格子都已涂色
+        return 1  # 找到一个合法方案
+
+    if j == 3:  # i 行已涂色
+        # 开始对 i-1 行涂色，cur_row 变成 pre_row
+        return dfs(i - 1, 0, cur_row, 0)
+
+    res = 0
+    for color in range(3):  # 枚举 (i, j) 的颜色 color
+        # 不能和下面相邻格子 (i+1, j) 颜色相同
+        # 不能和左侧相邻格子 (i, j-1) 颜色相同
+        if pre_row and color == pre_row >> (j * 2) & 3 or \
+                 j and color == cur_row >> ((j - 1) * 2) & 3:
+            continue
+        res += dfs(i, j + 1, pre_row, cur_row | (color << (j * 2)))
+    return res % MOD
+
+class Solution:
+    def numOfWays(self, n: int) -> int:
+        return dfs(n, 0, 0, 0)  # 从最后一行开始涂色
+```
+
+```java [sol-Java]
+class Solution {
+	private static final int MOD = 1_000_000_007;
+
+	// 全局 memo，记忆化的内容可以在不同测试数据间共享
+	private static Map<Integer, Integer> memo = new HashMap<>();
+
+	public int numOfWays(int n) {
+		return dfs(n, 0, 0, 0);
+	}
+
+    // (i, j)：当前位置 
+    // preRow：上一行（i+1 行）的颜色
+    // curRow：当前这一行已填入的颜色
+	private int dfs(int i, int j, int preRow, int curRow) {
+		if (i == 0) { // 所有格子都已涂色
+			return 1; // 找到一个合法方案
+		}
+
+		if (j == 3) { // i 行已涂色
+		    // 开始对 i-1 行涂色，curRow 变成 preRow
+			return dfs(i - 1, 0, curRow, 0);
+		}
+
+        // 参数压缩到一个 int 中
+		int key = (i << 14) | (j << 12) | (preRow << 6) | curRow;
+		if (memo.containsKey(key)) { // 之前计算过
+			return memo.get(key);
+		}
+
+		int res = 0;
+		for (int color = 0; color < 3; color++) { // 枚举 (i, j) 的颜色 color
+			if (preRow > 0 && color == (preRow >> (j * 2) & 3) || // 不能和下面相邻格子 (i+1, j) 颜色相同
+				j > 0 && color == (curRow >> ((j - 1) * 2) & 3)) { // 不能和左侧相邻格子 (i, j-1) 颜色相同
+				continue;
+			}
+			res = (res + dfs(i, j + 1, preRow, curRow | (color << (j * 2)))) % MOD;
+		}
+
+		memo.put(key, res); // 记忆化
+		return res;
+	}
+}
+```
+
+```cpp [sol-C++]
+constexpr int MOD = 1'000'000'007;
+
+// 全局 memo，记忆化的内容可以在不同测试数据间共享
+unordered_map<int, int> memo;
+
+// (i, j)：当前位置 
+// pre_row：上一行（i+1 行）的颜色
+// cur_row：当前这一行已填入的颜色
+int dfs(int i, int j, int pre_row, int cur_row) {
+    if (i == 0) { // 所有格子都已涂色
+        return 1; // 找到一个合法方案
+    }
+
+    if (j == 3) { // i 行已涂色
+        // 开始对 i-1 行涂色，cur_row 变成 pre_row
+        return dfs(i - 1, 0, cur_row, 0);
+    }
+
+    // 参数压缩到一个 int 中
+    int key = (i << 14) | (j << 12) | (pre_row << 6) | cur_row;
+    if (memo.contains(key)) { // 之前计算过
+        return memo[key];
+    }
+
+    int res = 0;
+    for (int color = 0; color < 3; color++) { // 枚举 (i, j) 的颜色 color
+        if (pre_row > 0 && color == (pre_row >> (j * 2) & 3) || // 不能和下面相邻格子 (i+1, j) 颜色相同
+            j > 0 && color == (cur_row >> ((j - 1) * 2) & 3)) { // 不能和左侧相邻格子 (i, j-1) 颜色相同
+            continue;
+        }
+        res = (res + dfs(i, j + 1, pre_row, cur_row | (color << (j * 2)))) % MOD;
+    }
+
+    memo[key] = res; // 记忆化
+    return res;
+}
+
+class Solution {
+public:
+	int numOfWays(int n) {
+		return dfs(n, 0, 0, 0);
+	}
+};
+```
+
+```go [sol-Go]
+const mod = 1_000_000_007
+
+type tuple struct{ i, j, preRow, curRow int }
+
+// 全局 memo，记忆化的内容可以在不同测试数据间共享
+var memo = map[tuple]int{}
+
+// (i, j)：当前位置 
+// preRow：上一行（i+1 行）的颜色
+// curRow：当前这一行已填入的颜色
+func dfs(i, j, preRow, curRow int) int {
+	if i == 0 { // 所有格子都已涂色
+		return 1 // 找到一个合法方案
+	}
+
+	if j == 3 { // i 行已涂色
+		// 开始对 i-1 行涂色，curRow 变成 preRow
+		return dfs(i-1, 0, curRow, 0)
+	}
+
+	t := tuple{i, j, preRow, curRow}
+	if res, ok := memo[t]; ok { // 之前计算过
+		return res
+	}
+
+	res := 0
+	for color := range 3 { // 枚举 (i, j) 的颜色 color
+		if preRow > 0 && color == preRow>>(j*2)&3 || // 不能和下面相邻格子 (i+1, j) 颜色相同
+			j > 0 && color == curRow>>((j-1)*2)&3 { // 不能和左侧相邻格子 (i, j-1) 颜色相同
+			continue
+		}
+		res = (res + dfs(i, j+1, preRow, curRow|color<<(j*2))) % mod
+	}
+
+	memo[t] = res // 记忆化
+	return res
+}
+
+func numOfWays(n int) int {
+	return dfs(n, 0, 0, 0)
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nmk^{2m+1})$，其中 $m=3$ 是列数，$k=3$ 是颜色数。由于存在大量不合法的状态，复杂度不会跑满。
+- 空间复杂度：$\mathcal{O}(nmk^{2m})$。
+
+## 方法二：递推
+
+回顾方法一，总体上看，DP 过程是一个线性递推（从 $(n-1)\times 3$ 网格图最后一行的所有涂色方案线性转移到 $n\times 3$ 网格图的最后一行），所以必然有线性递推式。
+
+定义 $f[n]$ 表示给 $n\times 3$ 网格图涂色的方案数。
+
+根据 [Berlekamp-Massey 算法](https://zhuanlan.zhihu.com/p/1966417899825665440)，用方法一求出 $f$ 的连续若干项（具体多少在文章中有解释，本题只需 $4$ 项），就可以用 Berlekamp-Massey 算法直接得到线性递推式
+
+$$
+f[i] = 5\cdot f[i-1]-2\cdot f[i-2] \ \ (i \ge 3)
+$$
+
+初始值 $f[1] = 12,\ f[2] = 54$。
+
+也可以倒推出 $f[0]=3$，把 $f[0]$ 和 $f[1]$ 作为初始值。
+
+```py [sol-Python3]
+class Solution:
+    def numOfWays(self, n: int) -> int:
+        MOD = 1_000_000_007
+        f = [0] * (n + 1)
+        f[0] = 3
+        f[1] = 12
+        for i in range(2, n + 1):
+            f[i] = (f[i - 1] * 5 - f[i - 2] * 2) % MOD
+        return f[n]
+```
+
+```java [sol-Java]
+class Solution {
+    public int numOfWays(int n) {
+        final int MOD = 1_000_000_007;
+        int[] f = new int[n + 1];
+        f[0] = 3;
+        f[1] = 12;
+        for (int i = 2; i <= n; i++) {
+            f[i] = (int) ((f[i - 1] * 5L - f[i - 2] * 2L) % MOD); // 注意这里有减法，结果可能是负数
+        }
+        return (f[n] + MOD) % MOD; // 保证结果非负
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int numOfWays(int n) {
+        constexpr int MOD = 1'000'000'007;
+        vector<int> f(n + 1);
+        f[0] = 3;
+        f[1] = 12;
+        for (int i = 2; i <= n; i++) {
+            f[i] = (f[i - 1] * 5LL - f[i - 2] * 2LL) % MOD; // 注意这里有减法，结果可能是负数
+        }
+        return (f[n] + MOD) % MOD; // 保证结果非负
+    }
+};
+```
+
+```go [sol-Go]
+func numOfWays(n int) int {
+	const mod = 1_000_000_007
+	f := make([]int, n+1)
+	f[0] = 3
+	f[1] = 12
+	for i := 2; i <= n; i++ {
+		f[i] = (f[i-1]*5 - f[i-2]*2) % mod // 注意这里有减法，结果可能是负数
+	}
+	return (f[n] + mod) % mod // 保证结果非负
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$。
+- 空间复杂度：$\mathcal{O}(n)$。注：可以用滚动变量优化至 $\mathcal{O}(1)$。
+
+## 方法三：矩阵快速幂
+
+把方法二的递推式用矩阵乘法表示，即
+
+$$
+\begin{bmatrix}
+f[i] \\
+f[i-1] \\
+\end{bmatrix}
+= \begin{bmatrix}
+5 & -2 \\
+1 & 0 \\
+\end{bmatrix}
+\begin{bmatrix}
+f[i-1] \\
+f[i-2] \\
+\end{bmatrix}
+$$
+
+把上式中的三个矩阵分别记作 $F[i],M,F[i-1]$，即
+
+$$
+F[i] = M\times F[i-1]
+$$
+
+那么有
+
+$$
+\begin{aligned}
+F[n] &= M\times F[n-1]      \\
+&= M\times M\times F[n-2]        \\
+&= M\times M\times M\times  F[n-3]        \\
+&\ \ \vdots  \\
+&= M^{n-1}\times F[1] \\
+\end{aligned}
+$$
+
+其中 $M^{n-1}$ 可以用**快速幂**计算，原理请看[【图解】一张图秒懂快速幂](https://leetcode.cn/problems/powx-n/solution/tu-jie-yi-zhang-tu-miao-dong-kuai-su-mi-ykp3i/)。
+
+初始值
+
+$$
+F[1] = \begin{bmatrix}
+f[1] \\
+f[0] \\
+\end{bmatrix}
+= \begin{bmatrix}
+12 \\
+3 \\
+\end{bmatrix}
+$$
+
+答案为 $f[n]$，即 $F[n]$ 的第一项。
+
+```py [sol-Python3]
+MOD = 1_000_000_007
+
+# a @ b，其中 @ 是矩阵乘法
+def mul(a: List[List[int]], b: List[List[int]]) -> List[List[int]]:
+    return [[sum(x * y for x, y in zip(row, col)) % MOD for col in zip(*b)]
+            for row in a]
+
+# a^n @ f0
+def pow_mul(a: List[List[int]], n: int, f0: List[List[int]]) -> List[List[int]]:
+    res = f0
+    while n:
+        if n & 1:
+            res = mul(a, res)
+        a = mul(a, a)
+        n >>= 1
+    return res
+
+class Solution:
+    def numOfWays(self, n: int) -> int:
+        m = [[5, -2], [1, 0]]
+        f1 = [[12], [3]]
+        fn = pow_mul(m, n - 1, f1)
+        return fn[0][0]
+```
+
+```py [sol-NumPy]
+import numpy as np
+
+class Solution:
+    def numOfWays(self, n: int) -> int:
+        MOD = 1_000_000_007
+        m = np.array([[5, -2], [1, 0]], dtype=object)
+        f1 = np.array([12, 3], dtype=object)
+        fn = np.linalg.matrix_power(m, n - 1) @ f1
+        return fn[0] % MOD
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public int numOfWays(int n) {
+        int[][] m = {
+            {5, -2},
+            {1, 0},
+        };
+        int[][] f1 = {{12}, {3}};
+        int[][] fn = powMul(m, n - 1, f1);
+        return (fn[0][0] + MOD) % MOD; // 保证结果非负
+    }
+
+    // a^n * f0
+    private int[][] powMul(int[][] a, int n, int[][] f0) {
+        int[][] res = f0;
+        while (n > 0) {
+            if ((n & 1) > 0) {
+                res = mul(a, res);
+            }
+            a = mul(a, a);
+            n >>= 1;
+        }
+        return res;
+    }
+
+    // 返回矩阵 a 和矩阵 b 相乘的结果
+    private int[][] mul(int[][] a, int[][] b) {
+        int[][] c = new int[a.length][b[0].length];
+        for (int i = 0; i < a.length; i++) {
+            for (int k = 0; k < a[i].length; k++) {
+                if (a[i][k] == 0) {
+                    continue;
+                }
+                for (int j = 0; j < b[k].length; j++) {
+                    c[i][j] = (int) ((c[i][j] + (long) a[i][k] * b[k][j]) % MOD);
+                }
+            }
+        }
+        return c;
+    }
+}
+```
+
+```cpp [sol-C++]
+constexpr int MOD = 1'000'000'007;
+
+using matrix = vector<vector<int>>;
+
+// 返回矩阵 a 和矩阵 b 相乘的结果
+matrix mul(matrix& a, matrix& b) {
+    int n = a.size(), m = b[0].size();
+    matrix c = matrix(n, vector<int>(m));
+    for (int i = 0; i < n; i++) {
+        for (int k = 0; k < a[i].size(); k++) {
+            if (a[i][k] == 0) {
+                continue;
+            }
+            for (int j = 0; j < m; j++) {
+                c[i][j] = (c[i][j] + 1LL * a[i][k] * b[k][j]) % MOD;
+            }
+        }
+    }
+    return c;
+}
+
+// a^n * f0
+matrix pow_mul(matrix a, int n, matrix& f0) {
+    matrix res = f0;
+    while (n) {
+        if (n & 1) {
+            res = mul(a, res);
+        }
+        a = mul(a, a);
+        n >>= 1;
+    }
+    return res;
+}
+
+class Solution {
+public:
+    int numOfWays(int n) {
+        matrix m = {
+            {5, -2},
+            {1, 0},
+        };
+        matrix f1 = {{12}, {3}};
+        matrix fn = pow_mul(m, n - 1, f1);
+        return (fn[0][0] + MOD) % MOD; // 保证结果非负
+    }
+};
+```
+
+```go [sol-Go]
+const mod = 1_000_000_007
+
+type matrix [][]int
+
+func newMatrix(n, m int) matrix {
+	a := make(matrix, n)
+	for i := range a {
+		a[i] = make([]int, m)
+	}
+	return a
+}
+
+// 返回矩阵 a 和矩阵 b 相乘的结果
+func (a matrix) mul(b matrix) matrix {
+	c := newMatrix(len(a), len(b[0]))
+	for i, row := range a {
+		for k, x := range row {
+			if x == 0 {
+				continue
+			}
+			for j, y := range b[k] {
+				c[i][j] = (c[i][j] + x*y) % mod
+			}
+		}
+	}
+	return c
+}
+
+// a^n * f0
+func (a matrix) powMul(n int, f0 matrix) matrix {
+	res := f0
+	for ; n > 0; n /= 2 {
+		if n%2 > 0 {
+			res = a.mul(res)
+		}
+		a = a.mul(a)
+	}
+	return res
+}
+
+func numOfWays(n int) int {
+	m := matrix{
+		{5, -2},
+		{1, 0},
+	}
+	f1 := matrix{{12}, {3}}
+	fn := m.powMul(n-1, f1)
+	return (fn[0][0] + mod) % mod // 保证结果非负
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(\log n)$。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+注：也可以用 [Kitamasa 算法](https://zhuanlan.zhihu.com/p/1964051212304364939) 计算，在矩阵更大（递推式更长）时有优势。
+
+## 相似题目
+
+- [1931. 用三种不同颜色为网格涂色](https://leetcode.cn/problems/painting-a-grid-with-three-different-colors/) 2170
+- [1659. 最大化网格幸福感](https://leetcode.cn/problems/maximize-grid-happiness/) 2655
+
+## 专题训练
+
+见下面动态规划题单的「**§9.5 轮廓线 DP**」和「**§11.6 矩阵快速幂优化 DP**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 方法一：记忆化搜索（轮廓线 DP）
+
+考虑**暴力搜索**，枚举每个格子涂哪种颜色。
+
+从下往上涂色（这样可以在多组测试数据间复用记忆化的结果），我们需要知道：
+
+- 当前在给哪个格子涂色？用 $(i,j)$ 表示，即 $i$ 行 $j$ 列。
+- $i+1$ 行具体怎么涂色？用 $\textit{preRow}$ 表示。$(i,j)$ 的颜色不能等于 $(i+1,j)$ 的颜色。
+- $i$ 行具体怎么涂色？用 $\textit{curRow}$ 表示。$(i,j)$ 的颜色不能等于 $(i,j-1)$ 的颜色。
+
+三种颜色分别用 $0,1,2$ 表示，存储一个格子的颜色信息需要 $2$ 个比特位，一行的颜色就需要 $2\cdot 3 = 6$ 个比特位。
+
+注意取模。为什么可以在**中途取模**？原理见 [模运算的世界：当加减乘除遇上取模](https://leetcode.cn/circle/discuss/mDfnkW/)。
+
+```py [sol-Python3]
+MOD = 1_000_000_007
+
+# (i, j)：当前位置 
+# pre_row：上一行（i+1 行）的颜色
+# cur_row：当前这一行已填入的颜色
+@cache  # 缓存装饰器，避免重复计算 dfs（一行代码实现记忆化）
+def dfs(i: int, j: int, pre_row: int, cur_row: int) -> int:
+    if i == 0:  # 所有格子都已涂色
+        return 1  # 找到一个合法方案
+
+    if j == 3:  # i 行已涂色
+        # 开始对 i-1 行涂色，cur_row 变成 pre_row
+        return dfs(i - 1, 0, cur_row, 0)
+
+    res = 0
+    for color in range(3):  # 枚举 (i, j) 的颜色 color
+        # 不能和下面相邻格子 (i+1, j) 颜色相同
+        # 不能和左侧相邻格子 (i, j-1) 颜色相同
+        if pre_row and color == pre_row >> (j * 2) & 3 or \
+                 j and color == cur_row >> ((j - 1) * 2) & 3:
+            continue
+        res += dfs(i, j + 1, pre_row, cur_row | (color << (j * 2)))
+    return res % MOD
+
+class Solution:
+    def numOfWays(self, n: int) -> int:
+        return dfs(n, 0, 0, 0)  # 从最后一行开始涂色
+```
+
+```java [sol-Java]
+class Solution {
+	private static final int MOD = 1_000_000_007;
+
+	// 全局 memo，记忆化的内容可以在不同测试数据间共享
+	private static Map<Integer, Integer> memo = new HashMap<>();
+
+	public int numOfWays(int n) {
+		return dfs(n, 0, 0, 0);
+	}
+
+    // (i, j)：当前位置 
+    // preRow：上一行（i+1 行）的颜色
+    // curRow：当前这一行已填入的颜色
+	private int dfs(int i, int j, int preRow, int curRow) {
+		if (i == 0) { // 所有格子都已涂色
+			return 1; // 找到一个合法方案
+		}
+
+		if (j == 3) { // i 行已涂色
+		    // 开始对 i-1 行涂色，curRow 变成 preRow
+			return dfs(i - 1, 0, curRow, 0);
+		}
+
+        // 参数压缩到一个 int 中
+		int key = (i << 14) | (j << 12) | (preRow << 6) | curRow;
+		if (memo.containsKey(key)) { // 之前计算过
+			return memo.get(key);
+		}
+
+		int res = 0;
+		for (int color = 0; color < 3; color++) { // 枚举 (i, j) 的颜色 color
+			if (preRow > 0 && color == (preRow >> (j * 2) & 3) || // 不能和下面相邻格子 (i+1, j) 颜色相同
+				j > 0 && color == (curRow >> ((j - 1) * 2) & 3)) { // 不能和左侧相邻格子 (i, j-1) 颜色相同
+				continue;
+			}
+			res = (res + dfs(i, j + 1, preRow, curRow | (color << (j * 2)))) % MOD;
+		}
+
+		memo.put(key, res); // 记忆化
+		return res;
+	}
+}
+```
+
+```cpp [sol-C++]
+constexpr int MOD = 1'000'000'007;
+
+// 全局 memo，记忆化的内容可以在不同测试数据间共享
+unordered_map<int, int> memo;
+
+// (i, j)：当前位置 
+// pre_row：上一行（i+1 行）的颜色
+// cur_row：当前这一行已填入的颜色
+int dfs(int i, int j, int pre_row, int cur_row) {
+    if (i == 0) { // 所有格子都已涂色
+        return 1; // 找到一个合法方案
+    }
+
+    if (j == 3) { // i 行已涂色
+        // 开始对 i-1 行涂色，cur_row 变成 pre_row
+        return dfs(i - 1, 0, cur_row, 0);
+    }
+
+    // 参数压缩到一个 int 中
+    int key = (i << 14) | (j << 12) | (pre_row << 6) | cur_row;
+    if (memo.contains(key)) { // 之前计算过
+        return memo[key];
+    }
+
+    int res = 0;
+    for (int color = 0; color < 3; color++) { // 枚举 (i, j) 的颜色 color
+        if (pre_row > 0 && color == (pre_row >> (j * 2) & 3) || // 不能和下面相邻格子 (i+1, j) 颜色相同
+            j > 0 && color == (cur_row >> ((j - 1) * 2) & 3)) { // 不能和左侧相邻格子 (i, j-1) 颜色相同
+            continue;
+        }
+        res = (res + dfs(i, j + 1, pre_row, cur_row | (color << (j * 2)))) % MOD;
+    }
+
+    memo[key] = res; // 记忆化
+    return res;
+}
+
+class Solution {
+public:
+	int numOfWays(int n) {
+		return dfs(n, 0, 0, 0);
+	}
+};
+```
+
+```go [sol-Go]
+const mod = 1_000_000_007
+
+type tuple struct{ i, j, preRow, curRow int }
+
+// 全局 memo，记忆化的内容可以在不同测试数据间共享
+var memo = map[tuple]int{}
+
+// (i, j)：当前位置 
+// preRow：上一行（i+1 行）的颜色
+// curRow：当前这一行已填入的颜色
+func dfs(i, j, preRow, curRow int) int {
+	if i == 0 { // 所有格子都已涂色
+		return 1 // 找到一个合法方案
+	}
+
+	if j == 3 { // i 行已涂色
+		// 开始对 i-1 行涂色，curRow 变成 preRow
+		return dfs(i-1, 0, curRow, 0)
+	}
+
+	t := tuple{i, j, preRow, curRow}
+	if res, ok := memo[t]; ok { // 之前计算过
+		return res
+	}
+
+	res := 0
+	for color := range 3 { // 枚举 (i, j) 的颜色 color
+		if preRow > 0 && color == preRow>>(j*2)&3 || // 不能和下面相邻格子 (i+1, j) 颜色相同
+			j > 0 && color == curRow>>((j-1)*2)&3 { // 不能和左侧相邻格子 (i, j-1) 颜色相同
+			continue
+		}
+		res = (res + dfs(i, j+1, preRow, curRow|color<<(j*2))) % mod
+	}
+
+	memo[t] = res // 记忆化
+	return res
+}
+
+func numOfWays(n int) int {
+	return dfs(n, 0, 0, 0)
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nmk^{2m+1})$，其中 $m=3$ 是列数，$k=3$ 是颜色数。由于存在大量不合法的状态，复杂度不会跑满。
+- 空间复杂度：$\mathcal{O}(nmk^{2m})$。
+
+## 方法二：递推
+
+回顾方法一，总体上看，DP 过程是一个线性递推（从 $(n-1)\times 3$ 网格图最后一行的所有涂色方案线性转移到 $n\times 3$ 网格图的最后一行），所以必然有线性递推式。
+
+定义 $f[n]$ 表示给 $n\times 3$ 网格图涂色的方案数。
+
+根据 [Berlekamp-Massey 算法](https://zhuanlan.zhihu.com/p/1966417899825665440)，用方法一求出 $f$ 的连续若干项（具体多少在文章中有解释，本题只需 $4$ 项），就可以用 Berlekamp-Massey 算法直接得到线性递推式
+
+$$
+f[i] = 5\cdot f[i-1]-2\cdot f[i-2] \ \ (i \ge 3)
+$$
+
+初始值 $f[1] = 12,\ f[2] = 54$。
+
+也可以倒推出 $f[0]=3$，把 $f[0]$ 和 $f[1]$ 作为初始值。
+
+```py [sol-Python3]
+class Solution:
+    def numOfWays(self, n: int) -> int:
+        MOD = 1_000_000_007
+        f = [0] * (n + 1)
+        f[0] = 3
+        f[1] = 12
+        for i in range(2, n + 1):
+            f[i] = (f[i - 1] * 5 - f[i - 2] * 2) % MOD
+        return f[n]
+```
+
+```java [sol-Java]
+class Solution {
+    public int numOfWays(int n) {
+        final int MOD = 1_000_000_007;
+        int[] f = new int[n + 1];
+        f[0] = 3;
+        f[1] = 12;
+        for (int i = 2; i <= n; i++) {
+            f[i] = (int) ((f[i - 1] * 5L - f[i - 2] * 2L) % MOD); // 注意这里有减法，结果可能是负数
+        }
+        return (f[n] + MOD) % MOD; // 保证结果非负
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int numOfWays(int n) {
+        constexpr int MOD = 1'000'000'007;
+        vector<int> f(n + 1);
+        f[0] = 3;
+        f[1] = 12;
+        for (int i = 2; i <= n; i++) {
+            f[i] = (f[i - 1] * 5LL - f[i - 2] * 2LL) % MOD; // 注意这里有减法，结果可能是负数
+        }
+        return (f[n] + MOD) % MOD; // 保证结果非负
+    }
+};
+```
+
+```go [sol-Go]
+func numOfWays(n int) int {
+	const mod = 1_000_000_007
+	f := make([]int, n+1)
+	f[0] = 3
+	f[1] = 12
+	for i := 2; i <= n; i++ {
+		f[i] = (f[i-1]*5 - f[i-2]*2) % mod // 注意这里有减法，结果可能是负数
+	}
+	return (f[n] + mod) % mod // 保证结果非负
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$。
+- 空间复杂度：$\mathcal{O}(n)$。注：可以用滚动变量优化至 $\mathcal{O}(1)$。
+
+## 方法三：矩阵快速幂
+
+把方法二的递推式用矩阵乘法表示，即
+
+$$
+\begin{bmatrix}
+f[i] \\
+f[i-1] \\
+\end{bmatrix}
+= \begin{bmatrix}
+5 & -2 \\
+1 & 0 \\
+\end{bmatrix}
+\begin{bmatrix}
+f[i-1] \\
+f[i-2] \\
+\end{bmatrix}
+$$
+
+把上式中的三个矩阵分别记作 $F[i],M,F[i-1]$，即
+
+$$
+F[i] = M\times F[i-1]
+$$
+
+那么有
+
+$$
+\begin{aligned}
+F[n] &= M\times F[n-1]      \\
+&= M\times M\times F[n-2]        \\
+&= M\times M\times M\times  F[n-3]        \\
+&\ \ \vdots  \\
+&= M^{n-1}\times F[1] \\
+\end{aligned}
+$$
+
+其中 $M^{n-1}$ 可以用**快速幂**计算，原理请看[【图解】一张图秒懂快速幂](https://leetcode.cn/problems/powx-n/solution/tu-jie-yi-zhang-tu-miao-dong-kuai-su-mi-ykp3i/)。
+
+初始值
+
+$$
+F[1] = \begin{bmatrix}
+f[1] \\
+f[0] \\
+\end{bmatrix}
+= \begin{bmatrix}
+12 \\
+3 \\
+\end{bmatrix}
+$$
+
+答案为 $f[n]$，即 $F[n]$ 的第一项。
+
+```py [sol-Python3]
+MOD = 1_000_000_007
+
+# a @ b，其中 @ 是矩阵乘法
+def mul(a: List[List[int]], b: List[List[int]]) -> List[List[int]]:
+    return [[sum(x * y for x, y in zip(row, col)) % MOD for col in zip(*b)]
+            for row in a]
+
+# a^n @ f0
+def pow_mul(a: List[List[int]], n: int, f0: List[List[int]]) -> List[List[int]]:
+    res = f0
+    while n:
+        if n & 1:
+            res = mul(a, res)
+        a = mul(a, a)
+        n >>= 1
+    return res
+
+class Solution:
+    def numOfWays(self, n: int) -> int:
+        m = [[5, -2], [1, 0]]
+        f1 = [[12], [3]]
+        fn = pow_mul(m, n - 1, f1)
+        return fn[0][0]
+```
+
+```py [sol-NumPy]
+import numpy as np
+
+class Solution:
+    def numOfWays(self, n: int) -> int:
+        MOD = 1_000_000_007
+        m = np.array([[5, -2], [1, 0]], dtype=object)
+        f1 = np.array([12, 3], dtype=object)
+        fn = np.linalg.matrix_power(m, n - 1) @ f1
+        return fn[0] % MOD
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public int numOfWays(int n) {
+        int[][] m = {
+            {5, -2},
+            {1, 0},
+        };
+        int[][] f1 = {{12}, {3}};
+        int[][] fn = powMul(m, n - 1, f1);
+        return (fn[0][0] + MOD) % MOD; // 保证结果非负
+    }
+
+    // a^n * f0
+    private int[][] powMul(int[][] a, int n, int[][] f0) {
+        int[][] res = f0;
+        while (n > 0) {
+            if ((n & 1) > 0) {
+                res = mul(a, res);
+            }
+            a = mul(a, a);
+            n >>= 1;
+        }
+        return res;
+    }
+
+    // 返回矩阵 a 和矩阵 b 相乘的结果
+    private int[][] mul(int[][] a, int[][] b) {
+        int[][] c = new int[a.length][b[0].length];
+        for (int i = 0; i < a.length; i++) {
+            for (int k = 0; k < a[i].length; k++) {
+                if (a[i][k] == 0) {
+                    continue;
+                }
+                for (int j = 0; j < b[k].length; j++) {
+                    c[i][j] = (int) ((c[i][j] + (long) a[i][k] * b[k][j]) % MOD);
+                }
+            }
+        }
+        return c;
+    }
+}
+```
+
+```cpp [sol-C++]
+constexpr int MOD = 1'000'000'007;
+
+using matrix = vector<vector<int>>;
+
+// 返回矩阵 a 和矩阵 b 相乘的结果
+matrix mul(matrix& a, matrix& b) {
+    int n = a.size(), m = b[0].size();
+    matrix c = matrix(n, vector<int>(m));
+    for (int i = 0; i < n; i++) {
+        for (int k = 0; k < a[i].size(); k++) {
+            if (a[i][k] == 0) {
+                continue;
+            }
+            for (int j = 0; j < m; j++) {
+                c[i][j] = (c[i][j] + 1LL * a[i][k] * b[k][j]) % MOD;
+            }
+        }
+    }
+    return c;
+}
+
+// a^n * f0
+matrix pow_mul(matrix a, int n, matrix& f0) {
+    matrix res = f0;
+    while (n) {
+        if (n & 1) {
+            res = mul(a, res);
+        }
+        a = mul(a, a);
+        n >>= 1;
+    }
+    return res;
+}
+
+class Solution {
+public:
+    int numOfWays(int n) {
+        matrix m = {
+            {5, -2},
+            {1, 0},
+        };
+        matrix f1 = {{12}, {3}};
+        matrix fn = pow_mul(m, n - 1, f1);
+        return (fn[0][0] + MOD) % MOD; // 保证结果非负
+    }
+};
+```
+
+```go [sol-Go]
+const mod = 1_000_000_007
+
+type matrix [][]int
+
+func newMatrix(n, m int) matrix {
+	a := make(matrix, n)
+	for i := range a {
+		a[i] = make([]int, m)
+	}
+	return a
+}
+
+// 返回矩阵 a 和矩阵 b 相乘的结果
+func (a matrix) mul(b matrix) matrix {
+	c := newMatrix(len(a), len(b[0]))
+	for i, row := range a {
+		for k, x := range row {
+			if x == 0 {
+				continue
+			}
+			for j, y := range b[k] {
+				c[i][j] = (c[i][j] + x*y) % mod
+			}
+		}
+	}
+	return c
+}
+
+// a^n * f0
+func (a matrix) powMul(n int, f0 matrix) matrix {
+	res := f0
+	for ; n > 0; n /= 2 {
+		if n%2 > 0 {
+			res = a.mul(res)
+		}
+		a = a.mul(a)
+	}
+	return res
+}
+
+func numOfWays(n int) int {
+	m := matrix{
+		{5, -2},
+		{1, 0},
+	}
+	f1 := matrix{{12}, {3}}
+	fn := m.powMul(n-1, f1)
+	return (fn[0][0] + mod) % mod // 保证结果非负
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(\log n)$。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+注：也可以用 [Kitamasa 算法](https://zhuanlan.zhihu.com/p/1964051212304364939) 计算，在矩阵更大（递推式更长）时有优势。
+
+## 相似题目
+
+- [1931. 用三种不同颜色为网格涂色](https://leetcode.cn/problems/painting-a-grid-with-three-different-colors/) 2170
+- [1659. 最大化网格幸福感](https://leetcode.cn/problems/maximize-grid-happiness/) 2655
+
+## 专题训练
+
+见下面动态规划题单的「**§9.5 轮廓线 DP**」和「**§11.6 矩阵快速幂优化 DP**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `九、状态压缩 DP（状压 DP） / §9.5 轮廓线 DP`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `九、状态压缩 DP（状压 DP） / §9.5 轮廓线 DP`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

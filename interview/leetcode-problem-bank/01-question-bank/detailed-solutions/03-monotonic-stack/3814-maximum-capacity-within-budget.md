@@ -1,0 +1,478 @@
+# 3814. 预算下的最大总容量
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/maximum-capacity-within-budget/
+- 题目 slug：`maximum-capacity-within-budget`
+- 来源专题：单调栈
+- 来源分类路径：一、单调栈 / §1.2 进阶
+- 难度分：1796
+- 外部题解来源：https://leetcode.cn/problems/maximum-capacity-within-budget/solutions/3883296/pai-xu-qian-zhui-zui-da-zhi-dan-diao-zha-zz22/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[三种方法：二分查找/双指针/单调栈（Python/Java/C++/Go）](https://leetcode.cn/problems/maximum-capacity-within-budget/solutions/3883296/pai-xu-qian-zhui-zui-da-zhi-dan-diao-zha-zz22/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`pai-xu-qian-zhui-zui-da-zhi-dan-diao-zha-zz22`
+- topic id：`3883296`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 方法一：排序 + 前缀最大值 + 二分查找 / 相向双指针
+
+考虑枚举其中一台机器 $i$，那么另一台机器的价格必须严格小于 $\textit{budget} - \textit{costs}[i]$。
+
+如果把机器按照价格从小到大**排序**，那么价格小于 $\textit{budget} - \textit{costs}[i]$ 的机器在数组中是**连续**的，方便处理。我们可以在 $[0,i-1]$ 中**二分查找**最后一台价格小于 $\textit{budget} - \textit{costs}[i]$ 的机器 $j$。在 $[0,i-1]$ 中二分是为了避免选同一台机器。关于二分查找的原理，请看 [二分查找 红蓝染色法【基础算法精讲 04】](https://www.bilibili.com/video/BV1AP41137w7/)。
+
+然而，最后一台机器 $j$ 的容量并不是最大的，我们要计算 $[0,j]$ 中的最大容量。
+
+这启发我们维护一个关于机器容量的**前缀最大值**数组 $\textit{preMax}$。
+
+具体地，定义 $\textit{preMax}[j+1]$ 表示 $[0,j]$ 中的最大容量。$\textit{preMax}[0]=0$ 当作哨兵。
+
+那么有
+
+$$
+\textit{preMax}[j+1] = \max(\textit{preMax}[j], \textit{capacity}[j])
+$$
+
+这样二分之后，$\textit{preMax}[j+1]$ 就是另一台机器的最大容量了。如果这台机器不存在，那么我们会取 $\textit{preMax}[0] = 0$，相当于不买另一台机器。
+
+### 答疑
+
+**问**：对于机器 $A$，如果另一台要买的机器 $B$ 在 $A$ 的右边呢？我们会漏掉这种情况吗？
+
+**答**：继续往后遍历，遍历到 $B$ 时，在左边二分找到 $A$。所以不会漏掉最优解。
+
+[本题视频讲解](https://www.bilibili.com/video/BV1PskxBnEP7/)，欢迎点赞关注~
+
+### 优化前：二分查找
+
+```py [sol-Python3]
+class Solution:
+    def maxCapacity(self, costs: List[int], capacity: List[int], budget: int) -> int:
+        # 把 costs[i] 和 capacity[i] 绑在一起排序
+        a = [(cost, cap) for cost, cap in zip(costs, capacity) if cost < budget]  # 太贵的机器直接忽略
+        a.sort(key=lambda p: p[0])  # 按照价格从小到大排序
+
+        pre_max = [0] * (len(a) + 1)
+        ans = 0
+        for i, (cost, cap) in enumerate(a):
+            # 二分第一台价格 >= budget-cost 的机器，下标减一，就是最后一台价格 < budget-cost 的机器
+            j = bisect_left(range(i), budget - cost, key=lambda j: a[j][0])
+            # (j - 1) + 1 == j
+            ans = max(ans, cap + pre_max[j])  # j=0 的情况对应单选一台机器
+            pre_max[i + 1] = max(pre_max[i], cap)
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int maxCapacity(int[] costs, int[] capacity, int budget) {
+        int n = costs.length;
+        Integer[] idx = new Integer[n];
+        for (int i = 0; i < n; i++) {
+            idx[i] = i;
+        }
+        Arrays.sort(idx, (i, j) -> costs[i] - costs[j]); // 按照价格从小到大排序
+
+        int[] preMax = new int[n + 1];
+        int ans = 0;
+        for (int k = 0; k < n && costs[idx[k]] < budget; k++) { // 太贵的机器直接忽略
+            int i = idx[k];
+            // 二分找到第一台价格 >= budget-costs[i] 的机器，下标减一，就是最后一台价格 < budget-costs[i] 的机器
+            int j = lowerBound(idx, k, costs, budget - costs[i]);
+            // (j - 1) + 1 == j
+            ans = Math.max(ans, capacity[i] + preMax[j]); // j=0 的情况对应单选一台机器
+            preMax[k + 1] = Math.max(preMax[k], capacity[i]);
+        }
+        return ans;
+    }
+
+    // 原理见 https://www.bilibili.com/video/BV1AP41137w7/
+    private int lowerBound(Integer[] idx, int right, int[] costs, int target) {
+        int left = -1;
+        while (left + 1 < right) {
+            int mid = left + (right - left) / 2;
+            if (costs[idx[mid]] >= target) {
+                right = mid;
+            } else {
+                left = mid;
+            }
+        }
+        return right;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxCapacity(vector<int>& costs, vector<int>& capacity, int budget) {
+        // 把 costs[i] 和 capacity[i] 绑在一起排序
+        vector<pair<int, int>> a;
+        for (int i = 0; i < costs.size(); i++) {
+            if (costs[i] < budget) { // 太贵的机器直接忽略
+                a.emplace_back(costs[i], capacity[i]);
+            }
+        }
+        ranges::sort(a, {}, &pair<int, int>::first); // 按照价格从小到大排序
+
+        vector<int> pre_max(a.size() + 1);
+        int ans = 0;
+        for (int i = 0; i < a.size(); i++) {
+            auto& [cost, cap] = a[i];
+            // 二分第一台价格 >= budget-cost 的机器，下标减一，就是最后一台价格 < budget-cost 的机器
+            int j = lower_bound(a.begin(), a.begin() + i, pair(budget - cost, 0)) - a.begin();
+            ans = max(ans, cap + pre_max[j]); // j=0 的情况对应单选一台机器
+            pre_max[i + 1] = max(pre_max[i], cap);
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func maxCapacity(costs, capacity []int, budget int) (ans int) {
+	// 把 costs[i] 和 capacity[i] 绑在一起排序
+	type pair struct{ cost, cap int }
+	a := make([]pair, 0, len(costs))
+	for i, cost := range costs {
+		if cost < budget { // 太贵的机器直接忽略
+			a = append(a, pair{cost, capacity[i]})
+		}
+	}
+	slices.SortFunc(a, func(a, b pair) int { return a.cost - b.cost }) // 按照价格从小到大排序
+
+	preMax := make([]int, len(a)+1)
+	for i, p := range a {
+		// 二分第一台价格 >= budget-p.cost 的机器，下标减一，就是最后一台价格 < budget-p.cost 的机器
+		j := sort.Search(i, func(j int) bool { return a[j].cost >= budget-p.cost })
+		// (j - 1) + 1 == j
+		ans = max(ans, p.cap+preMax[j]) // j=0 的情况对应单选一台机器
+		preMax[i+1] = max(preMax[i], p.cap)
+	}
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\log n)$，其中 $n$ 是 $\textit{costs}$ 的长度。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+### 优化：相向双指针
+
+类似 [2824. 统计和小于目标的下标对数目](https://leetcode.cn/problems/count-pairs-whose-sum-is-less-than-target/)，用相向双指针处理「两个价格之和小于 $\textit{budget}$」的问题。
+
+注意本题的机器容量并不是有序的，需要枚举所有的机器作为第二台机器。
+
+```py [sol-Python3]
+class Solution:
+    def maxCapacity(self, costs: List[int], capacity: List[int], budget: int) -> int:
+        # 把 costs[i] 和 capacity[i] 绑在一起排序
+        a = [(cost, cap) for cost, cap in zip(costs, capacity) if cost < budget]  # 太贵的机器直接忽略
+        a.sort(key=lambda p: p[0])  # 按照价格从小到大排序
+
+        pre_max = [0] * (len(a) + 1)
+        ans = l = 0
+        # 枚举买机器 r
+        for r in range(len(a) - 1, -1, -1):
+            while l < r and a[l][0] + a[r][0] < budget:
+                pre_max[l + 1] = max(pre_max[l], a[l][1])
+                l += 1
+            # 循环结束后，下标在范围 [0, min(l-1, r-1)] 中的机器都可以买
+            ans = max(ans, pre_max[min(l, r)] + a[r][1])
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int maxCapacity(int[] costs, int[] capacity, int budget) {
+        int n = costs.length;
+        Integer[] idx = new Integer[n];
+        for (int i = 0; i < n; i++) {
+            idx[i] = i;
+        }
+        Arrays.sort(idx, (i, j) -> costs[i] - costs[j]); // 按照价格从小到大排序
+
+        int[] preMax = new int[n + 1];
+        int l = 0;
+        int ans = 0;
+        // 枚举买机器 r
+        for (int r = n - 1; r >= 0; r--) {
+            if (costs[idx[r]] >= budget) {
+                continue; // 太贵的机器直接忽略
+            }
+            while (l < r && costs[idx[l]] + costs[idx[r]] < budget) {
+                preMax[l + 1] = Math.max(preMax[l], capacity[idx[l]]);
+                l++;
+            }
+            // 循环结束后，下标在范围 [0, min(l-1, r-1)] 中的机器都可以买
+            ans = Math.max(ans, preMax[Math.min(l, r)] + capacity[idx[r]]);
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxCapacity(vector<int>& costs, vector<int>& capacity, int budget) {
+        // 把 costs[i] 和 capacity[i] 绑在一起排序
+        vector<pair<int, int>> a;
+        for (int i = 0; i < costs.size(); i++) {
+            if (costs[i] < budget) { // 太贵的机器直接忽略
+                a.emplace_back(costs[i], capacity[i]);
+            }
+        }
+        ranges::sort(a, {}, &pair<int, int>::first); // 按照价格从小到大排序
+
+        int n = a.size();
+        vector<int> pre_max(n + 1);
+        int ans = 0, l = 0;
+        // 枚举买机器 r
+        for (int r = n - 1; r >= 0; r--) {
+            while (l < r && a[l].first + a[r].first < budget) {
+                pre_max[l + 1] = max(pre_max[l], a[l].second);
+                l++;
+            }
+            // 循环结束后，下标在范围 [0, min(l-1, r-1)] 中的机器都可以买
+            ans = max(ans, pre_max[min(l, r)] + a[r].second);
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func maxCapacity(costs, capacity []int, budget int) (ans int) {
+	type pair struct{ cost, cap int }
+	a := make([]pair, 0, len(costs))
+	for i, cost := range costs {
+		if cost < budget {
+			a = append(a, pair{cost, capacity[i]})
+		}
+	}
+	slices.SortFunc(a, func(a, b pair) int { return a.cost - b.cost })
+
+	preMax := make([]int, len(a)+1)
+	l := 0
+	// 枚举买机器 r
+	for r := len(a) - 1; r >= 0; r-- {
+		for l < r && a[l].cost+a[r].cost < budget {
+			preMax[l+1] = max(preMax[l], a[l].cap)
+			l++
+		}
+		// 循环结束后，下标在范围 [0, min(l-1, r-1)] 中的机器都可以买
+		ans = max(ans, preMax[min(l, r)]+a[r].cap)
+	}
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\log n)$，其中 $n$ 是 $\textit{costs}$ 的长度。瓶颈在排序上。虽然写了个二重循环，但是内层循环中对 $l$ 加一的**总**执行次数不会超过 $n$ 次，所以二重循环的时间复杂度为 $\mathcal{O}(n)$。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 方法二：排序 + 单调栈
+
+对于两台机器 $A$ 和 $B$，如果机器 $B$ 又贵，容量又小，全方面不如机器 $A$，那么机器 $B$ 就是垃圾数据，直接忽略。
+
+这启发我们在遍历的同时，用一个栈维护遍历过的机器，只有当新遍历到的机器的容量比栈顶大时，才入栈。注意价格已经从小到大排序了，无需比较。
+
+此外，如果当前机器价格加上栈顶机器价格 $\ge \textit{budget}$，由于后面遍历的机器价格只会更大，所以栈顶是个无用数据，直接弹出。
+
+```py [sol-Python3]
+class Solution:
+    def maxCapacity(self, costs: List[int], capacity: List[int], budget: int) -> int:
+        a = [(cost, cap) for cost, cap in zip(costs, capacity) if cost < budget]
+        a.sort(key=lambda p: p[0])
+
+        st = [(0, 0)]  # 栈底加个哨兵
+        ans = 0
+        for cost, cap in a:
+            while cost + st[-1][0] >= budget:
+                st.pop()  # 弹出太贵的机器
+            ans = max(ans, cap + st[-1][1])
+            if cap > st[-1][1]:
+                st.append((cost, cap))
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int maxCapacity(int[] costs, int[] capacity, int budget) {
+        int n = costs.length;
+        Integer[] idx = new Integer[n];
+        for (int i = 0; i < n; i++) {
+            idx[i] = i;
+        }
+        Arrays.sort(idx, (i, j) -> costs[i] - costs[j]);
+
+        ArrayDeque<int[]> st = new ArrayDeque<>();
+        st.push(new int[]{0, 0}); // 栈底加个哨兵
+        int ans = 0;
+        for (int k = 0; k < n && costs[idx[k]] < budget; k++) {
+            int i = idx[k];
+            while (costs[i] + st.peek()[0] >= budget) {
+                st.pop(); // 弹出太贵的机器
+            }
+            ans = Math.max(ans, capacity[i] + st.peek()[1]);
+            if (capacity[i] > st.peek()[1]) {
+                st.push(new int[]{costs[i], capacity[i]});
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxCapacity(vector<int>& costs, vector<int>& capacity, int budget) {
+        vector<pair<int, int>> a;
+        for (int i = 0; i < costs.size(); i++) {
+            if (costs[i] < budget) {
+                a.emplace_back(costs[i], capacity[i]);
+            }
+        }
+        ranges::sort(a, {}, &pair<int, int>::first);
+
+        stack<pair<int, int>> st;
+        st.emplace(0, 0); // 栈底加个哨兵
+        int ans = 0;
+        for (auto& [cost, cap] : a) {
+            while (cost + st.top().first >= budget) {
+                st.pop(); // 弹出太贵的机器
+            }
+            ans = max(ans, cap + st.top().second);
+            if (cap > st.top().second) {
+                st.emplace(cost, cap);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func maxCapacity(costs, capacity []int, budget int) (ans int) {
+	type pair struct{ cost, cap int }
+	a := make([]pair, 0, len(costs))
+	for i, cost := range costs {
+		if cost < budget {
+			a = append(a, pair{cost, capacity[i]})
+		}
+	}
+	slices.SortFunc(a, func(a, b pair) int { return a.cost - b.cost })
+
+	st := []pair{{}} // 栈底加个哨兵
+	for _, p := range a {
+		for p.cost+st[len(st)-1].cost >= budget {
+			st = st[:len(st)-1] // 弹出太贵的机器
+		}
+		ans = max(ans, p.cap+st[len(st)-1].cap)
+		if p.cap > st[len(st)-1].cap {
+			st = append(st, p)
+		}
+	}
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\log n)$，其中 $n$ 是 $\textit{costs}$ 的长度。瓶颈在排序上。虽然写了个二重循环，但站在每个元素的视角看，这个元素在二重循环中最多入栈出栈各一次，因此循环次数**之和**是 $\mathcal{O}(n)$，所以二重循环的时间复杂度是 $\mathcal{O}(n)$。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 专题训练
+
+1. 单调栈题单的「**一、单调栈**」。
+2. 双指针题单的「**§3.2 相向双指针**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `一、单调栈 / §1.2 进阶`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `一、单调栈 / §1.2 进阶`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

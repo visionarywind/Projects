@@ -18,6 +18,7 @@ template <typename Key, typename Compare = std::less<Key>,
           std::size_t MaxLevel = 16>
 class skip_list {
     static_assert(MaxLevel > 0, "MaxLevel must be positive");
+    static_assert(MaxLevel <= 255, "MaxLevel must fit in node height");
 
 private:
     static constexpr std::uint32_t default_seed = 0x5EED1234U;
@@ -27,7 +28,7 @@ private:
             node* forward = nullptr;
         };
 
-        explicit node(const Key& value, std::size_t node_height)
+        explicit node(const Key& value, std::uint8_t node_height)
             : key(value), height(node_height) {}
 
         static node* create(const Key& value, std::size_t node_height) {
@@ -35,7 +36,8 @@ private:
                 sizeof(node) + (node_height - 1) * sizeof(level_link);
             void* storage = ::operator new(bytes);
             try {
-                node* result = new (storage) node(value, node_height);
+                node* result =
+                    new (storage) node(value, static_cast<std::uint8_t>(node_height));
                 for (std::size_t index = 0; index < node_height; ++index) {
                     result->levels[index] = level_link{};
                 }
@@ -57,18 +59,15 @@ private:
         }
 
         Key key;
-        node* backward = nullptr;
-        std::size_t height;
+        std::uint8_t height;
         level_link levels[1];
     };
 
     // The header is an embedded sentinel without a Key.  Its arrays are
     // bounded by MaxLevel, while real nodes carry only their actual height.
     std::array<node*, MaxLevel> header_{};
-    node* tail_ = nullptr;
     Compare compare_{};
     std::mt19937 generator_{};
-    std::uniform_int_distribution<unsigned> promotion_distribution_{0U, 3U};
     std::size_t level_ = 1;
     std::size_t size_ = 0;
 
@@ -80,17 +79,12 @@ private:
         return current == nullptr ? header_[index] : current->link(index).forward;
     }
 
-    static bool equivalent(const Compare& compare, const Key& left,
-                           const Key& right) {
-        return !compare(left, right) && !compare(right, left);
-    }
-
-    std::size_t random_level() {
-        // Redis-style geometric distribution: approximately 1/4 of nodes
-        // reach each successive level.  MaxLevel remains a hard upper bound.
+    std::size_t random_level() noexcept {
+        // A raw engine draw avoids distribution bookkeeping for every
+        // promotion attempt.  The low two bits provide the 1/4 promotion
+        // decision used by this fixed-seed benchmark.
         std::size_t result = 1;
-        while (result < MaxLevel &&
-               promotion_distribution_(generator_) == 0U) {
+        while (result < MaxLevel && (generator_() & 3U) == 0U) {
             ++result;
         }
         return result;
@@ -109,9 +103,7 @@ private:
             }
         }
         node* result = next(current, 0);
-        return result != nullptr && equivalent(compare_, result->key, key)
-                   ? result
-                   : nullptr;
+        return result != nullptr && !compare_(key, result->key) ? result : nullptr;
     }
 
     const node* find_node(const Key& key) const {
@@ -124,9 +116,7 @@ private:
             }
         }
         const node* result = next(current, 0);
-        return result != nullptr && equivalent(compare_, result->key, key)
-                   ? result
-                   : nullptr;
+        return result != nullptr && !compare_(key, result->key) ? result : nullptr;
     }
 
 public:
@@ -223,7 +213,7 @@ public:
     // Search once and reuse the predecessor of every level for insertion.
     // Duplicate keys return before randomization and allocation.
     bool insert(const Key& key) {
-        std::array<node*, MaxLevel> update{};
+        std::array<node*, MaxLevel> update;
         if (find_node(key, &update) != nullptr) {
             return false;
         }
@@ -246,16 +236,6 @@ public:
                 predecessor->link(index).forward = inserted;
             }
         }
-
-        inserted->backward = update[0];
-        if (inserted->link(0).forward != nullptr) {
-            inserted->link(0).forward->backward = inserted;
-        } else {
-            tail_ = inserted;
-        }
-        if (tail_ == nullptr) {
-            tail_ = inserted;
-        }
         ++size_;
         return true;
     }
@@ -264,7 +244,7 @@ public:
     // one allocation belonging to that node.  The predecessor path is rebuilt
     // by the same top-down search used by insert.
     size_type erase(const Key& key) {
-        std::array<node*, MaxLevel> update{};
+        std::array<node*, MaxLevel> update;
         node* target = find_node(key, &update);
         if (target == nullptr) {
             return 0;
@@ -278,12 +258,6 @@ public:
                 predecessor->link(index).forward = target->link(index).forward;
             }
         }
-        if (target->link(0).forward != nullptr) {
-            target->link(0).forward->backward = target->backward;
-        } else {
-            tail_ = target->backward;
-        }
-
         node::destroy(target);
         --size_;
         while (level_ > 1 && header_[level_ - 1] == nullptr) {
@@ -315,7 +289,6 @@ public:
             current = following;
         }
         header_.fill(nullptr);
-        tail_ = nullptr;
         level_ = 1;
         size_ = 0;
     }
@@ -332,8 +305,7 @@ public:
     const_iterator cbegin() const noexcept { return begin(); }
     const_iterator cend() const noexcept { return end(); }
 
-    // Verify ordering, level membership, backward links, cycle freedom, and
-    // consistency of the cached tail and logical size.
+    // Verify ordering, level membership, cycle freedom, and logical size.
     bool verify_invariants() const {
         if (level_ == 0 || level_ > MaxLevel) {
             return false;
@@ -344,9 +316,9 @@ public:
             }
         }
         if (size_ == 0) {
-            return level_ == 1 && tail_ == nullptr && header_[0] == nullptr;
+            return level_ == 1 && header_[0] == nullptr;
         }
-        if (header_[0] == nullptr || tail_ == nullptr) {
+        if (header_[0] == nullptr) {
             return false;
         }
 
@@ -356,15 +328,14 @@ public:
         while (current != nullptr && bottom_count <= size_) {
             if (current->height == 0 || current->height > MaxLevel ||
                 (previous != nullptr &&
-                 !compare_(previous->key, current->key)) ||
-                current->backward != previous) {
+                 !compare_(previous->key, current->key))) {
                 return false;
             }
             previous = current;
             current = current->link(0).forward;
             ++bottom_count;
         }
-        if (current != nullptr || bottom_count != size_ || previous != tail_) {
+        if (current != nullptr || bottom_count != size_) {
             return false;
         }
 

@@ -1,0 +1,316 @@
+# 2999. 统计强大整数的数目
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/count-the-number-of-powerful-integers/
+- 题目 slug：`count-the-number-of-powerful-integers`
+- 来源专题：动态规划
+- 来源分类路径：十、数位 DP / §10.1 统计合法元素的数目
+- 难度分：2351
+- 外部题解来源：https://leetcode.cn/problems/count-the-number-of-powerful-integers/solutions/2595149/shu-wei-dp-shang-xia-jie-mo-ban-fu-ti-da-h6ci/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[【模板】上下界数位 DP（Python/Java/C++/Go）](https://leetcode.cn/problems/count-the-number-of-powerful-integers/solutions/2595149/shu-wei-dp-shang-xia-jie-mo-ban-fu-ti-da-h6ci/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`shu-wei-dp-shang-xia-jie-mo-ban-fu-ti-da-h6ci`
+- topic id：`2595149`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+[v1.0 视频讲解](https://www.bilibili.com/video/BV1rS4y1s721/)
+
+[v2.0 视频讲解](https://www.bilibili.com/video/BV1Fg4y1Q7wv/)
+
+定义 $\textit{dfs}(i,\textit{limitLow},\textit{limitHigh})$ 表示构造第 $i$ 位及其之后数位的合法方案数，其余参数的含义为：
+
+- $\textit{limitHigh}$ 表示当前是否受到了 $\textit{finish}$ 的约束（我们要构造的数字不能超过 $\textit{finish}$）。若为真，则第 $i$ 位填入的数字至多为 $\textit{finish}[i]$，否则至多为 $9$，这个数记作 $\textit{hi}$。如果在受到约束的情况下填了 $\textit{finish}[i]$，那么后续填入的数字仍会受到 $\textit{finish}$ 的约束。例如 $\textit{finish}=123$，那么 $i=0$ 填的是 $1$ 的话，$i=1$ 的这一位至多填 $2$。
+- $\textit{limitLow}$ 表示当前是否受到了 $\textit{start}$ 的约束（我们要构造的数字不能低于 $\textit{start}$）。若为真，则第 $i$ 位填入的数字至少为 $\textit{start}[i]$，否则至少为 $0$，这个数记作 $\textit{lo}$。如果在受到约束的情况下填了 $\textit{start}[i]$，那么后续填入的数字仍会受到 $\textit{start}$ 的约束。
+
+枚举第 $i$ 位填什么数字。
+
+如果 $i< n - |s|$，那么可以填 $[\textit{lo}, \min(\textit{hi}, \textit{limit})]$ 内的数，否则只能填 $s[i-(n-|s|)]$。这里 $|s|$ 表示 $s$ 的长度。
+
+为什么不能把 $\textit{hi}$ 置为 $\min(\textit{hi}, \textit{limit})$？请看 [视频](https://www.bilibili.com/video/BV1Fg4y1Q7wv/) 中举的反例。
+
+递归终点：$\textit{dfs}(n,*,*)=1$，表示成功构造出一个合法数字。
+
+递归入口：$\textit{dfs}(0, \texttt{true}, \texttt{true})$，表示：
+
+- 从最高位开始枚举。
+- 一开始要受到 $\textit{start}$ 和 $\textit{finish}$ 的约束（否则就可以随意填了，这肯定不行）。
+
+### 答疑
+
+**问**：记忆化三个状态有点麻烦，能不能只记忆化 $i$ 这个状态？
+
+**答**：是可以的。比如 $\textit{finish}=234$，第一位填 $2$，第二位填 $3$，后面无论怎么递归，都不会再次递归到第一位填 $2$，第二位填 $3$ 的情况，所以不需要记录。（注：想象我们在写一个三重循环，枚举每一位填什么数字。第一位填 $2$，第二位填 $3$ 已经是快要结束循环的情况了，不可能再次枚举到。）对于 $\textit{start}$ 也同理。
+
+根据这个例子，我们可以只记录不受到 $\textit{limitLow}$ 或 $\textit{limitHigh}$ 约束时的状态 $i$。相当于记忆化的是 $(i,\texttt{false},\texttt{false})$ 这个状态，因为其它状态只会递归访问一次。
+
+```py [sol-Python3]
+class Solution:
+    def numberOfPowerfulInt(self, start: int, finish: int, limit: int, s: str) -> int:
+        high = list(map(int, str(finish)))  # 避免在 dfs 中频繁调用 int()
+        n = len(high)
+        low = list(map(int, str(start).zfill(n)))  # 补前导零，和 high 对齐
+        diff = n - len(s)
+
+        @cache
+        def dfs(i: int, limit_low: bool, limit_high: bool) -> int:
+            if i == n:
+                return 1
+
+            # 第 i 个数位可以从 lo 枚举到 hi
+            # 如果对数位还有其它约束，应当只在下面的 for 循环做限制，不应修改 lo 或 hi
+            lo = low[i] if limit_low else 0
+            hi = high[i] if limit_high else 9
+
+            res = 0
+            if i < diff:  # 枚举这个数位填什么
+                for d in range(lo, min(hi, limit) + 1):
+                    res += dfs(i + 1, limit_low and d == lo, limit_high and d == hi)
+            else:  # 这个数位只能填 s[i-diff]
+                x = int(s[i - diff])
+                if lo <= x <= hi:  # 题目保证 x <= limit，无需判断
+                    res = dfs(i + 1, limit_low and x == lo, limit_high and x == hi)
+            return res
+
+        return dfs(0, True, True)
+```
+
+```java [sol-Java]
+class Solution {
+    public long numberOfPowerfulInt(long start, long finish, int limit, String s) {
+        String low = Long.toString(start);
+        String high = Long.toString(finish);
+        int n = high.length();
+        low = "0".repeat(n - low.length()) + low; // 补前导零，和 high 对齐
+        long[] memo = new long[n];
+        Arrays.fill(memo, -1);
+        return dfs(0, true, true, low.toCharArray(), high.toCharArray(), limit, s.toCharArray(), memo);
+    }
+
+    private long dfs(int i, boolean limitLow, boolean limitHigh, char[] low, char[] high, int limit, char[] s, long[] memo) {
+        if (i == high.length) {
+            return 1;
+        }
+
+        if (!limitLow && !limitHigh && memo[i] != -1) {
+            return memo[i]; // 之前计算过
+        }
+
+        // 第 i 个数位可以从 lo 枚举到 hi
+        // 如果对数位还有其它约束，应当只在下面的 for 循环做限制，不应修改 lo 或 hi
+        int lo = limitLow ? low[i] - '0' : 0;
+        int hi = limitHigh ? high[i] - '0' : 9;
+
+        long res = 0;
+        if (i < high.length - s.length) { // 枚举这个数位填什么
+            for (int d = lo; d <= Math.min(hi, limit); d++) {
+                res += dfs(i + 1, limitLow && d == lo, limitHigh && d == hi, low, high, limit, s, memo);
+            }
+        } else { // 这个数位只能填 s[i-diff]
+            int x = s[i - (high.length - s.length)] - '0';
+            if (lo <= x && x <= hi) { // 题目保证 x <= limit，无需判断
+                res = dfs(i + 1, limitLow && x == lo, limitHigh && x == hi, low, high, limit, s, memo);
+            }
+        }
+
+        if (!limitLow && !limitHigh) {
+            memo[i] = res; // 记忆化 (i,false,false)
+        }
+        return res;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    long long numberOfPowerfulInt(long long start, long long finish, int limit, string s) {
+        string low = to_string(start);
+        string high = to_string(finish);
+        int n = high.size();
+        low = string(n - low.size(), '0') + low; // 补前导零，和 high 对齐
+        int diff = n - s.size();
+
+        vector<long long> memo(n, -1);
+        auto dfs = [&](this auto&& dfs, int i, bool limit_low, bool limit_high) -> long long {
+            if (i == low.size()) {
+                return 1;
+            }
+
+            if (!limit_low && !limit_high && memo[i] != -1) {
+                return memo[i]; // 之前计算过
+            }
+
+            // 第 i 个数位可以从 lo 枚举到 hi
+            // 如果对数位还有其它约束，应当只在下面的 for 循环做限制，不应修改 lo 或 hi
+            int lo = limit_low ? low[i] - '0' : 0;
+            int hi = limit_high ? high[i] - '0' : 9;
+
+            long long res = 0;
+            if (i < diff) { // 枚举这个数位填什么
+                for (int d = lo; d <= min(hi, limit); d++) {
+                    res += dfs(i + 1, limit_low && d == lo, limit_high && d == hi);
+                }
+            } else { // 这个数位只能填 s[i-diff]
+                int x = s[i - diff] - '0';
+                if (lo <= x && x <= hi) { // 题目保证 x <= limit，无需判断
+                    res = dfs(i + 1, limit_low && x == lo, limit_high && x == hi);
+                }
+            }
+
+            if (!limit_low && !limit_high) {
+                memo[i] = res; // 记忆化 (i,false,false)
+            }
+            return res;
+        };
+        return dfs(0, true, true);
+    }
+};
+```
+
+```go [sol-Go]
+func numberOfPowerfulInt(start, finish int64, limit int, s string) int64 {
+	low := strconv.FormatInt(start, 10)
+	high := strconv.FormatInt(finish, 10)
+	n := len(high)
+	low = strings.Repeat("0", n-len(low)) + low // 补前导零，和 high 对齐
+	diff := n - len(s)
+
+	memo := make([]int64, n)
+	for i := range memo {
+		memo[i] = -1
+	}
+	var dfs func(int, bool, bool) int64
+	dfs = func(i int, limitLow, limitHigh bool) (res int64) {
+		if i == n {
+			return 1
+		}
+		
+		if !limitLow && !limitHigh {
+			p := &memo[i]
+			if *p >= 0 {
+				return *p
+			}
+			defer func() { *p = res }()
+		}
+
+		// 第 i 个数位可以从 lo 枚举到 hi
+		// 如果对数位还有其它约束，应当只在下面的 for 循环做限制，不应修改 lo 或 hi
+		lo := 0
+		if limitLow {
+			lo = int(low[i] - '0')
+		}
+		hi := 9
+		if limitHigh {
+			hi = int(high[i] - '0')
+		}
+
+		if i < diff { // 枚举这个数位填什么
+			for d := lo; d <= min(hi, limit); d++ {
+				res += dfs(i+1, limitLow && d == lo, limitHigh && d == hi)
+			}
+		} else { // 这个数位只能填 s[i-diff]
+			x := int(s[i-diff] - '0')
+			if lo <= x && x <= hi { // 题目保证 x <= limit，无需判断
+				res += dfs(i+1, limitLow && x == lo, limitHigh && x == hi)
+			}
+		}
+		return
+	}
+	return dfs(0, true, true)
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nD)$，其中 $n=\mathcal{O}(\log \textit{finish})$，$D=10$。由于每个状态只会计算一次，动态规划的时间复杂度 $=$ 状态个数 $\times$ 单个状态的计算时间。本题状态个数等于 $\mathcal{O}(n)$，单个状态的计算时间为 $\mathcal{O}(D)$，所以动态规划的时间复杂度为 $\mathcal{O}(nD)$。
+- 空间复杂度：$\mathcal{O}(n)$。即状态个数。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/最短路/最小生成树/二分图/基环树/欧拉路径）](https://leetcode.cn/circle/discuss/01LUak/)
+7. 【本题相关】[动态规划（入门/背包/状态机/划分/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `十、数位 DP / §10.1 统计合法元素的数目`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `十、数位 DP / §10.1 统计合法元素的数目`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

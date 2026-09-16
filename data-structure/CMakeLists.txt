@@ -30,6 +30,7 @@ if(RBTREE_BUILD_TESTS)
         tests/rb_map_test.cpp
         tests/rb_map_differential_test.cpp
         tests/skip_list_test.cpp
+        tests/llrb_tree_test.cpp
     )
     target_link_libraries(rbtree_tests PRIVATE rbtree)
     target_compile_options(rbtree_tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)

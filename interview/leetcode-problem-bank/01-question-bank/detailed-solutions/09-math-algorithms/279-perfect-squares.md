@@ -1,0 +1,827 @@
+# 279. 完全平方数
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/perfect-squares/
+- 题目 slug：`perfect-squares`
+- 来源专题：数学算法
+- 来源分类路径：一、数论 / §1.12 其他
+- 难度分：Unknown
+- 外部题解来源：https://leetcode.cn/problems/perfect-squares/solutions/2830762/dong-tai-gui-hua-cong-ji-yi-hua-sou-suo-3kz1g/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[两种方法：完全背包 / BFS 最短路（Python/Java/C++/Go/JS/Rust）](https://leetcode.cn/problems/perfect-squares/solutions/2830762/dong-tai-gui-hua-cong-ji-yi-hua-sou-suo-3kz1g/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`dong-tai-gui-hua-cong-ji-yi-hua-sou-suo-3kz1g`
+- topic id：`2830762`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 一、记忆化搜索
+
+把 $1,4,9,16,\cdots$ 这些完全平方数视作物品体积，物品价值都是 $1$。由于每个数（物品）选的次数没有限制，所以本题是一道标准的**完全背包**问题。原理见[【基础算法精讲 18】](https://www.bilibili.com/video/BV16Y411v7Y6/)。
+
+按照视频中的做法，定义 $\textit{dfs}(i,j)$ 表示从前 $i$ 个完全平方数中选一些数（可以重复选），满足元素和**恰好**等于 $j$，最少要选的数字个数。
+
+考虑第 $i$ 个完全平方数 $i^2$ 选或不选：
+
+- 不选：问题变成从前 $i-1$ 个完全平方数中选一些数（可以重复选），满足元素和**恰好**等于 $j$，最少要选的数字个数，即 $\textit{dfs}(i,j) = \textit{dfs}(i-1, j)$。
+- 选：前提是 $j\ge i^2$。问题变成从前 $i$ 个完全平方数中选一些数（可以重复选），满足元素和**恰好**等于 $j-i^2$，最少要选的数字个数，即 $\textit{dfs}(i,j) = \textit{dfs}(i, j-i^2) + 1$。注意这里是 $i$ 而不是 $i-1$，因为我们可以**继续选**第 $i$ 个完全平方数。 
+
+这两种情况取最小值，就得到了 $\textit{dfs}(i,j)$，即
+
+$$
+\textit{dfs}(i,j) =
+\begin{cases}
+\textit{dfs}(i-1, j), & j < i^2     \\
+\min(\textit{dfs}(i-1, j), \textit{dfs}(i, j-i^2) + 1), & j\ge i^2      \\
+\end{cases}
+$$
+
+**递归边界**：$\textit{dfs}(0,0)=0$，因为没有数可以选了，且要得到的数等于 $0$，那么答案为 $0$。如果 $j>0$，那么 $\textit{dfs}(0,j)=\infty$，这里用 $\infty$ 表示不合法的状态，从而保证上式中的 $\min$ 取到合法的状态。注意本题是一定有解的，因为 $1$ 是完全平方数。
+
+**递归入口**：由于 $i^2 \le n$，所以 $i \le \left\lfloor\sqrt n\right\rfloor$，所以递归入口为 $\textit{dfs}(\left\lfloor\sqrt n\right\rfloor, n)$，也就是答案。
+
+在计算 $n=7$ 的时候，如果选了 $4$，会递归到 $n=3$ 的情况。这个例子意味着**多个测试数据之间可以共享记忆化搜索的结果**。因此，把记忆化搜索的 $\textit{memo}$ 数组声明为全局变量，这样可以在多个测试数据之间共享，从而**减少计算量**。Python 可以把 $\textit{dfs}$ 写在类外面。
+
+不用全局变量的写法见 [322. 零钱兑换（我的题解）](https://leetcode.cn/problems/coin-change/solutions/2119065/jiao-ni-yi-bu-bu-si-kao-dong-tai-gui-hua-21m5/)，那道题和本题一样，也是完全背包求最小。
+
+### 答疑
+
+**问**：为什么本题的递归边界是 $i=0$？我之前做的那些 DP 题的递归边界都是 $i<0$。
+
+**答**：本题最小的完全平方数是 $1^2$，递归到 $i=0$ 就说明所有完全平方数都考虑完了。其他题目最小的数一般是下标为 $0$ 的数，递归到 $i<0$ 就说明所有的数都考虑完了。
+
+**问**：在 Java 等语言中，为什么可以返回 `Integer.MAX_VALUE`，这不会导致加法溢出吗？
+
+**答**：通常来说要返回 `Integer.MAX_VALUE / 2`。如果从非法状态转移过来，这样写可以避免加法溢出。但本题比较特殊，由于 $1$ 是完全平方数，一个数一定可以分解为若干完全平方数的和。顺着 `dfs(i, j - i * i)` 往下递归，一定可以递归到 $j=0$ 的合法状态。如果实在无法理解，写 `Integer.MAX_VALUE / 2` 也没问题。
+
+```py [sol-Python3]
+# 写在外面，多个测试数据之间可以共享，减少计算量
+@cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+def dfs(i: int, j: int) -> int:
+    if i == 0:
+        return inf if j else 0
+    if j < i * i:
+        return dfs(i - 1, j)  # 只能不选
+    return min(dfs(i - 1, j), dfs(i, j - i * i) + 1)  # 不选 vs 选
+
+class Solution:
+    def numSquares(self, n: int) -> int:
+        return dfs(isqrt(n), n)
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int[][] memo = new int[101][10001];
+
+    static {
+        for (int[] row : memo) {
+            Arrays.fill(row, -1); // -1 表示没有计算过
+        }
+    }
+
+    private static int dfs(int i, int j) {
+        if (i == 0) {
+            return j == 0 ? 0 : Integer.MAX_VALUE;
+        }
+        if (memo[i][j] != -1) { // 之前计算过
+            return memo[i][j];
+        }
+        if (j < i * i) {
+            return memo[i][j] = dfs(i - 1, j); // 只能不选
+        }
+        return memo[i][j] = Math.min(dfs(i - 1, j), dfs(i, j - i * i) + 1); // 不选 vs 选
+    }
+
+    public int numSquares(int n) {
+        return dfs((int) Math.sqrt(n), n);
+    }
+}
+```
+
+```cpp [sol-C++]
+// 写在外面，多个测试数据之间可以共享，减少计算量
+int memo[101][10001];
+
+auto init = [] {
+    memset(memo, -1, sizeof(memo)); // -1 表示没有计算过
+    return 0;
+}();
+
+int dfs(int i, int j) {
+    if (i == 0) {
+        return j == 0 ? 0 : INT_MAX;
+    }
+    int& res = memo[i][j]; // 注意这里是引用
+    if (res != -1) { // 之前计算过
+        return res;
+    }
+    if (j < i * i) {
+        res = dfs(i - 1, j); // 只能不选
+    } else {
+        res = min(dfs(i - 1, j), dfs(i, j - i * i) + 1); // 不选 vs 选
+    }
+    return res;
+}
+
+class Solution {
+public:
+    int numSquares(int n) {
+        return dfs(sqrt(n), n);
+    }
+};
+```
+
+```go [sol-Go]
+// 写在外面，多个测试数据之间可以共享，减少计算量
+var memo [101][10001]int
+
+func init() {
+    for i := range memo {
+        for j := range memo[i] {
+            memo[i][j] = -1
+        }
+    }
+}
+
+func dfs(i, j int) int {
+    if i == 0 {
+        if j == 0 {
+            return 0
+        }
+        return math.MaxInt
+    }
+    p := &memo[i][j]
+    if *p != -1 { // 之前计算过
+        return *p
+    }
+    if j < i*i {
+        *p = dfs(i-1, j) // 只能不选
+    } else {
+        *p = min(dfs(i-1, j), dfs(i, j-i*i)+1) // 不选 vs 选
+    }
+    return *p
+}
+
+func numSquares(n int) int {
+    return dfs(int(math.Sqrt(float64(n))), n)
+}
+```
+
+```js [sol-JavaScript]
+// 写在外面，多个测试数据之间可以共享，减少计算量
+const memo = Array.from({ length: 101 }, () => Array(10001).fill(-1)); // -1 表示没有计算过
+
+function dfs(i, j) {
+    if (i === 0) {
+        return j === 0 ? 0 : Infinity;
+    }
+    if (memo[i][j] !== -1) { // 之前计算过
+        return memo[i][j];
+    }
+    if (j < i * i) {
+        memo[i][j] = dfs(i - 1, j); // 只能不选
+    } else {
+        memo[i][j] = Math.min(dfs(i - 1, j), dfs(i, j - i * i) + 1); // 不选 vs 选
+    }
+    return memo[i][j];
+}
+
+const numSquares = function(n) {
+    return dfs(Math.floor(Math.sqrt(n)), n);
+};
+```
+
+```rust [sol-Rust]
+// 写在外面，多个测试数据之间可以共享，减少计算量
+static mut memo: [[i32; 10001]; 101] = [[-1; 10001]; 101];
+
+unsafe fn dfs(i: usize, j: usize) -> i32 {
+    if i == 0 {
+        return if j == 0 { 0 } else { i32::MAX };
+    }
+    if memo[i][j] != -1 { // 之前计算过
+        return memo[i][j];
+    }
+    if j < i * i {
+        memo[i][j] = dfs(i - 1, j); // 只能不选
+    } else {
+        memo[i][j] = dfs(i - 1, j).min(dfs(i, j - i * i) + 1); // 不选 vs 选
+    }
+    memo[i][j]
+}
+
+impl Solution {
+    pub fn num_squares(n: i32) -> i32 {
+        unsafe { dfs((n as f64).sqrt() as usize, n as usize) }
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\sqrt n)$。由于每个状态只会计算一次，动态规划的时间复杂度 $=$ 状态个数 $\times$ 单个状态的计算时间。本题状态个数等于 $\mathcal{O}(n\sqrt n)$，单个状态的计算时间为 $\mathcal{O}(1)$，所以动态规划的时间复杂度为 $\mathcal{O}(n\sqrt n)$。
+- 空间复杂度：$\mathcal{O}(n\sqrt n)$。保存多少状态，就需要多少空间。
+
+## 二、1:1 翻译成递推
+
+按照视频中的方法，我们可以去掉递归中的「递」，只保留「归」的部分，即自底向上计算。
+
+具体来说，$f[i][j]$ 的定义和 $\textit{dfs}(i,j)$ 的定义是一样的，都表示从前 $i$ 个完全平方数中选一些数（可以重复选），满足元素和**恰好**等于 $j$，最少要选的数字个数。
+
+相应的递推式（状态转移方程）也和 $\textit{dfs}$ 一样：
+
+$$
+f[i][j] =
+\begin{cases}
+f[i - 1][j], & j < i^2     \\
+\min(f[i - 1][j], f[i][j - i^2] + 1), & j\ge i^2     \\
+\end{cases}
+$$
+
+初始值 $f[0][0]=0,\ f[0][j]=\infty\ (j>0)$，翻译自递归边界 $\textit{dfs}(0,0)=0$ 和 $\textit{dfs}(0,j) = \infty\ (j>0)$。
+
+答案为 $f[\left\lfloor\sqrt n\right\rfloor][n]$，翻译自递归入口 $\textit{dfs}(\left\lfloor\sqrt n\right\rfloor, n)$。
+
+```py [sol-Python3]
+MX = 10000
+f = [[0] * (MX + 1) for _ in range(isqrt(MX) + 1)]
+f[0] = [0] + [inf] * MX
+for i in range(1, len(f)):
+    for j in range(MX + 1):
+        if j < i * i:
+            f[i][j] = f[i - 1][j]  # 只能不选
+        else:
+            f[i][j] = min(f[i - 1][j], f[i][j - i * i] + 1)  # 不选 vs 选
+
+class Solution:
+    def numSquares(self, n: int) -> int:
+        return f[isqrt(n)][n]  # 也可以写 f[-1][n]
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MX = 10001;
+    private static final int[][] f = new int[101][MX];
+
+    static {
+        Arrays.fill(f[0], Integer.MAX_VALUE);
+        f[0][0] = 0;
+        for (int i = 1; i * i < MX; i++) {
+            for (int j = 0; j < MX; j++) {
+                if (j < i * i) {
+                    f[i][j] = f[i - 1][j]; // 只能不选
+                } else {
+                    f[i][j] = Math.min(f[i - 1][j], f[i][j - i * i] + 1); // 不选 vs 选
+                }
+            }
+        }
+    }
+
+    public int numSquares(int n) {
+        return f[(int) Math.sqrt(n)][n]; // 也可以写 f[100][n]
+    }
+}
+```
+
+```cpp [sol-C++]
+constexpr int MX = 10001;
+int f[101][MX];
+
+auto init = [] {
+    ranges::fill(f[0], INT_MAX);
+    f[0][0] = 0;
+    for (int i = 1; i * i < MX; i++) {
+        for (int j = 0; j < MX; j++) {
+            if (j < i * i) {
+                f[i][j] = f[i - 1][j]; // 只能不选
+            } else {
+                f[i][j] = min(f[i - 1][j], f[i][j - i * i] + 1); // 不选 vs 选
+            }
+        }
+    }
+    return 0;
+}();
+
+class Solution {
+public:
+    int numSquares(int n) {
+        return f[(int) sqrt(n)][n]; // 也可以写 f[100][n]
+    }
+};
+```
+
+```go [sol-Go]
+const mx = 10001
+var f [101][mx]int
+
+func init() {
+    for i := 1; i < mx; i++ {
+        f[0][i] = math.MaxInt
+    }
+    for i := 1; i*i < mx; i++ {
+        for j := 0; j < mx; j++ {
+            if j < i*i {
+                f[i][j] = f[i-1][j] // 只能不选
+            } else {
+                f[i][j] = min(f[i-1][j], f[i][j-i*i]+1) // 不选 vs 选
+            }
+        }
+    }
+}
+
+func numSquares(n int) int {
+    return f[int(math.Sqrt(float64(n)))][n] // 也可以写 f[100][n]
+}
+```
+
+```js [sol-JavaScript]
+const MX = 10001;
+const f = Array.from({ length: 101 }, () => Array(MX).fill(Infinity));
+f[0][0] = 0;
+for (let i = 1; i * i < MX; i++) {
+    for (let j = 0; j < MX; j++) {
+        if (j < i * i) {
+            f[i][j] = f[i - 1][j]; // 只能不选
+        } else {
+            f[i][j] = Math.min(f[i - 1][j], f[i][j - i * i] + 1); // 不选 vs 选
+        }
+    }
+}
+
+var numSquares = function(n) {
+    return f[Math.floor(Math.sqrt(n))][n]; // 也可以写 f[100][n]
+};
+```
+
+```rust [sol-Rust]
+const MX: usize = 10001;
+static mut initialized: bool = false;
+static mut dp: [[i32; MX]; 101] = [[i32::MAX; MX]; 101]; // 变量名 f 被评测机占用了
+
+unsafe fn init_once() {
+    if initialized {
+        return;
+    }
+    initialized = true;
+    dp[0][0] = 0;
+    for i in 1..=100 {
+        for j in 0..MX {
+            if j < i * i {
+                dp[i][j] = dp[i - 1][j]; // 只能不选
+            } else {
+                dp[i][j] = dp[i - 1][j].min(dp[i][j - i * i] + 1); // 不选 vs 选
+            }
+        }
+    }
+}
+
+impl Solution {
+    pub fn num_squares(n: i32) -> i32 {
+        unsafe {
+            init_once();
+            dp[(n as f64).sqrt() as usize][n as usize] // 也可以写 dp[100][n as usize]
+        }
+    }
+}
+```
+
+#### 复杂度分析
+
+- 预处理的时间复杂度：$\mathcal{O}(N\sqrt N)$。其中 $N=10^4$。
+- 预处理的空间复杂度：$\mathcal{O}(N\sqrt N)$。
+
+## 三、空间优化
+
+观察上面的状态转移方程，在计算 $f[i]$ 时，只会用到 $f[i-1]$，不会用到比 $i-1$ 更早的状态。
+
+因此可以去掉第一个维度，反复利用同一个长为 $N+1$ 的一维数组。
+
+递推式简化为，当 $j\ge i^2$ 时，计算
+
+$$
+f[j] = \min(f[j], f[j - i^2] + 1)
+$$
+
+注意 $j<i^2$ 的递推式简化为 $f[j]=f[j]$，无需计算。
+
+初始值 $f[0]=0,\ f[j]=\infty\ (j>0)$。
+
+答案为 $f[n]$。
+
+关于循环的顺序，见 [视频讲解](https://www.bilibili.com/video/BV16Y411v7Y6/)。
+
+```py [sol-Python3]
+MX = 10000
+f = [0] + [inf] * MX
+for i in range(1, isqrt(MX) + 1):
+    for j in range(i * i, MX + 1):
+        f[j] = min(f[j], f[j - i * i] + 1)  # 不选 vs 选
+
+class Solution:
+    def numSquares(self, n: int) -> int:
+        return f[n]
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MX = 10001;
+    private static final int[] f = new int[MX];
+    private static boolean initialized = false;
+
+    // 这样写比 static block 更快
+    public Solution() {
+        if (initialized) {
+            return;
+        }
+        initialized = true;
+
+        Arrays.fill(f, Integer.MAX_VALUE);
+        f[0] = 0;
+        for (int i = 1; i * i < MX; i++) {
+            for (int j = i * i; j < MX; j++) {
+                f[j] = Math.min(f[j], f[j - i * i] + 1); // 不选 vs 选
+            }
+        }
+    }
+
+    public int numSquares(int n) {
+        return f[n];
+    }
+}
+```
+
+```java [sol-Java 不预处理]
+class Solution {
+    public int numSquares(int n) {
+        int[] f = new int[n + 1];
+        Arrays.fill(f, Integer.MAX_VALUE);
+        f[0] = 0;
+        for (int i = 1; i * i <= n; i++) {
+            for (int j = i * i; j <= n; j++) {
+                f[j] = Math.min(f[j], f[j - i * i] + 1); // 不选 vs 选
+            }
+        }
+        return f[n];
+    }
+}
+```
+
+```cpp [sol-C++]
+constexpr int MX = 10001;
+int f[MX];
+
+auto init = [] {
+    ranges::fill(f, INT_MAX);
+    f[0] = 0;
+    for (int i = 1; i * i < MX; i++) {
+        for (int j = i * i; j < MX; j++) {
+            f[j] = min(f[j], f[j - i * i] + 1); // 不选 vs 选
+        }
+    }
+    return 0;
+}();
+
+class Solution {
+public:
+    int numSquares(int n) {
+        return f[n];
+    }
+};
+```
+
+```go [sol-Go]
+const mx = 10001
+var f [mx]int
+
+func init() {
+    for i := 1; i < mx; i++ {
+        f[i] = math.MaxInt
+    }
+    for i := 1; i*i < mx; i++ {
+        for j := i * i; j < mx; j++ {
+            f[j] = min(f[j], f[j-i*i]+1) // 不选 vs 选
+        }
+    }
+}
+
+func numSquares(n int) int {
+    return f[n]
+}
+```
+
+```js [sol-JS]
+const MX = 10001;
+const f = Array(MX).fill(Infinity);
+f[0] = 0;
+for (let i = 1; i * i < MX; i++) {
+    for (let j = i * i; j < MX; j++) {
+        f[j] = Math.min(f[j], f[j - i * i] + 1); // 不选 vs 选
+    }
+}
+
+var numSquares = function(n) {
+    return f[n];
+};
+```
+
+```rust [sol-Rust]
+const MX: usize = 10001;
+static mut initialized: bool = false;
+static mut dp: [i32; MX] = [i32::MAX; MX]; // 变量名 f 被评测机占用了
+
+unsafe fn init_once() {
+    if initialized {
+        return;
+    }
+    initialized = true;
+    dp[0] = 0;
+    for i in 1..=100 {
+        for j in i * i..MX {
+            dp[j] = dp[j].min(dp[j - i * i] + 1); // 不选 vs 选
+        }
+    }
+}
+
+impl Solution {
+    pub fn num_squares(n: i32) -> i32 {
+        unsafe {
+            init_once();
+            dp[n as usize]
+        }
+    }
+}
+```
+
+#### 复杂度分析
+
+- 预处理的时间复杂度：$\mathcal{O}(N\sqrt N)$。其中 $N=10^4$。
+- 预处理的空间复杂度：$\mathcal{O}(N)$。
+
+## 四、BFS 最短路
+
+设当前组成的完全平方数之和为 $s$。添加一个完全平方数 $x^2$ 后，$s$ 变成了 $s + x^2$。
+
+把完全平方数之和当作节点编号，从 $s$ 到 $s + x^2$ 连一条有向边，我们可以得到一张有向图。
+
+本题相当于：
+
+- 计算从起点 $0$ 到终点 $n$ 的**最短路长度**。
+
+这可以用 **BFS** 解决。
+
+下面代码用双数组实现 BFS，原理请看[【基础算法精讲 13】](https://www.bilibili.com/video/BV1hG4y1277i/)。
+
+```py [sol-Python3]
+class Solution:
+    def numSquares(self, n: int) -> int:
+        q = [0]
+        vis = [True] + [False] * n
+        step = 0
+
+        while True:  # 也可以写 for step in count(0)
+            nxt = []
+            for s in q:
+                if s == n:
+                    return step
+                i = 1
+                while (t := s + i * i) <= n:
+                    if not vis[t]:  # 之前没有访问过
+                        vis[t] = True  # 避免重复访问
+                        nxt.append(t)
+                    i += 1
+            q = nxt
+            step += 1
+```
+
+```java [sol-Java]
+class Solution {
+    public int numSquares(int n) {
+        List<Integer> q = List.of(0);
+        boolean[] vis = new boolean[n + 1];
+        vis[0] = true;
+
+        for (int step = 0; ; step++) {
+            List<Integer> nxt = new ArrayList<>();
+            for (int s : q) {
+                if (s == n) {
+                    return step;
+                }
+                for (int i = 1; s + i * i <= n; i++) {
+                    int t = s + i * i;
+                    if (!vis[t]) { // 之前没有访问过
+                        vis[t] = true; // 避免重复访问
+                        nxt.add(t);
+                    }
+                }
+            }
+            q = nxt;
+        }
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int numSquares(int n) {
+        vector<int> q = {0};
+        vector<int8_t> vis(n + 1);
+        vis[0] = true;
+
+        for (int step = 0; ; step++) {
+            auto tmp = move(q);
+            for (int s : tmp) {
+                if (s == n) {
+                    return step;
+                }
+                for (int i = 1; s + i * i <= n; i++) {
+                    int t = s + i * i;
+                    if (!vis[t]) { // 之前没有访问过
+                        vis[t] = true; // 避免重复访问
+                        q.push_back(t);
+                    }
+                }
+            }
+        }
+    }
+};
+```
+
+```go [sol-Go]
+func numSquares(n int) int {
+	q := []int{0}
+	vis := make([]bool, n+1)
+	vis[0] = true
+
+	for step := 0; ; step++ {
+		nxt := []int{}
+		for _, s := range q {
+			if s == n {
+				return step
+			}
+			for i := 1; s+i*i <= n; i++ {
+				t := s + i*i
+				if !vis[t] { // 之前没有访问过
+					vis[t] = true // 避免重复访问
+					nxt = append(nxt, t)
+				}
+			}
+		}
+		q = nxt
+	}
+}
+```
+
+```js [sol-JavaScript]
+var numSquares = function(n) {
+    const vis = Array(n + 1).fill(false);
+    vis[0] = true;
+    let q = [0];
+
+    for (let step = 0; ; step++) {
+        const nxt = [];
+        for (const s of q) {
+            if (s === n) {
+                return step;
+            }
+            for (let i = 1; s + i * i <= n; i++) {
+                const t = s + i * i;
+                if (!vis[t]) { // 之前没有访问过
+                    vis[t] = true; // 避免重复访问
+                    nxt.push(t);
+                }
+            }
+        }
+        q = nxt;
+    }
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn num_squares(n: i32) -> i32 {
+        let mut q = vec![0];
+        let mut vis = vec![false; n as usize + 1];
+        vis[0] = true;
+
+        for step in 0.. {
+            let mut nxt = vec![];
+            for s in q {
+                if s == n {
+                    return step;
+                }
+                let mut i = 1;
+                while s + i * i <= n {
+                    let t = s + i * i;
+                    if !vis[t as usize] { // 之前没有访问过
+                        vis[t as usize] = true; // 避免重复访问
+                        nxt.push(t);
+                    }
+                    i += 1;
+                }
+            }
+            q = nxt;
+        }
+
+        unreachable!()
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\sqrt n)$。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 专题训练
+
+1. 动态规划题单的「**§3.2 完全背包**」。
+2. 图论题单的「**§1.3 图论建模 + BFS 最短路**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/discuss/post/3141566/ru-he-ke-xue-shua-ti-by-endlesscheng-q3yd/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/discuss/post/3578981/ti-dan-hua-dong-chuang-kou-ding-chang-bu-rzz7/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/discuss/post/3579164/ti-dan-er-fen-suan-fa-er-fen-da-an-zui-x-3rqn/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/discuss/post/3579480/ti-dan-dan-diao-zhan-ju-xing-xi-lie-zi-d-u4hk/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/discuss/post/3580195/fen-xiang-gun-ti-dan-wang-ge-tu-dfsbfszo-l3pa/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/discuss/post/3580371/fen-xiang-gun-ti-dan-wei-yun-suan-ji-chu-nth4/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/discuss/post/3581143/fen-xiang-gun-ti-dan-tu-lun-suan-fa-dfsb-qyux/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/discuss/post/3581838/fen-xiang-gun-ti-dan-dong-tai-gui-hua-ru-007o/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/discuss/post/3583665/fen-xiang-gun-ti-dan-chang-yong-shu-ju-j-bvmv/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/discuss/post/3584388/fen-xiang-gun-ti-dan-shu-xue-suan-fa-shu-gcai/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/discuss/post/3091107/fen-xiang-gun-ti-dan-tan-xin-ji-ben-tan-k58yb/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/discuss/post/3142882/fen-xiang-gun-ti-dan-lian-biao-er-cha-sh-6srp/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/discuss/post/3144832/fen-xiang-gun-ti-dan-zi-fu-chuan-kmpzhan-ugt4/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `一、数论 / §1.12 其他`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `一、数论 / §1.12 其他`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

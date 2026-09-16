@@ -2,7 +2,7 @@
 
 - 主题：大模型推理中的 KV cache 池化、动态显存池、静态显存池划分与跨层资源管理。
 - 适用读者：准备推理系统、SGLang/vLLM、长上下文、GPU 显存管理和系统设计面试的工程师。
-- 证据基线：本仓库 SGLang 知识库锚定 `source/sglang` HEAD `78be4b50af`；外部论文以 arXiv 页面为索引。未执行 GPU、模型、RDMA、压测或端到端服务。
+- 证据基线：本仓库 SGLang 知识库锚定 `source/sglang` HEAD `78be4b50af`；外部论文以 arXiv 页面、原始 PDF 解析材料和中文详译为索引。PDF、`pdftotext` 抽取文本、元数据和中文译文保存在 [`arxiv-pdf/`](arxiv-pdf/)。未执行 GPU、模型、RDMA、压测或端到端服务。
 - 状态约定：`[已确认]` 来自当前仓库文档/源码引用；`[推断]` 为基于证据的工程推导；`[待验证]` 需要实验或线上指标；`[建议]` 为设计建议；`[存在争议]` 表示不同系统或论文方案取舍不同。
 
 ## 阅读顺序
@@ -10,7 +10,7 @@
 1. [概念与分类轴](00-concepts-and-taxonomy.md)：先把“静态/动态池”这组词拆开，避免把 CUDA allocator、KV slot allocator 和 prefix cache 混为一谈。
 2. [静态、动态与混合池方案](01-static-dynamic-hybrid-pools.md)：比较启动预留、按需分配、分页/虚拟化和异构内存方案。
 3. [KV pool 生命周期与 ownership](02-kv-pool-lifecycle-and-ownership.md)：结合 SGLang 三层池模型追踪分配、命中、淘汰、retraction 和 flush。
-4. [arXiv 论文阅读笔记](03-arxiv-reading-notes.md)：梳理 PagedAttention、vAttention、NEO、P/D-Serve、eLLM 等论文能直接支持的结论。
+4. [arXiv PDF 原文解析](03-arxiv-reading-notes.md)：梳理 PagedAttention、vAttention、NEO、P/D-Serve、eLLM 等论文 PDF 原文中可确认的机制、实验边界和不能外推的结论；中文详译见 [`arxiv-pdf/zh/`](arxiv-pdf/zh/)。
 5. [设计决策与验证路线](04-design-decision-and-validation.md)：给出容量公式、指标、故障注入和面试复盘问题。
 
 ## 专题核心结论

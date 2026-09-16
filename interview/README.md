@@ -13,6 +13,7 @@
 | AI Infra | 400 题 | 400 题 | 四级各 100 题，十类题型静态计数完成 | 硬件、集群、网络、RDMA 和性能结果尚未执行 |
 | AI 辅助软件工程与质量 | 404 题 | 404 题 | 四级各 101 题；前 100 题十类题型，第 101 题为综合题 | 模型、代码、安全、测试和发布效果需目标项目验证 |
 | 异构资源稳定性 | 0 篇题目正文 | 规划四级题库 | 当前仅有 HRS-B001–HRS-B004 状态记录 | 设备、驱动、固件、网络和故障实验尚未执行 |
+| LeetCode 算法刷题 | 2817 道去重题；36 题详解 preview | 外部题单索引 + 分批详解 | 按灵神 12 个来源专题及其原始分类层级生成；已建 12 个分类解析文件 | 单题完整题解正文为 pending-fetch；C++ 代码仅完成 preview 结构校验 |
 
 表中“当前交付”表示工作区正文或明确状态记录的静态数量，不等同于真实运行验证；所有未执行的模型、硬件、网络、多进程、压测、安全或部署实验均保持 `[待验证]`。详细状态以各方向 `00-overview/generation-state.md` 和 `04-review/quality-audit.md` 为准。
 
@@ -24,6 +25,8 @@
 - [AI Agent 开发方向](agent/README.md)：覆盖 Agent 架构、工具调用、记忆、规划、多 Agent、评估、安全、可靠性、部署和平台演进。
 - [AI Infra 方向](ai-infra-interview-bank/README.md)：覆盖硬件、运行时、集群、训练、推理、性能、可靠性和平台治理的 400 题题库。
 - [AI 辅助软件工程与质量方向](ai-software-quality-interview-bank/README.md)：将 vibe-coding、Agent 协作、代码生成与测试、审查、发布、安全和质量治理结合为 404 题题库。
+- [字节 / 阿里 / 腾讯算法方向](byte-alibaba-tencent-algorithm-interview-bank/README.md)：目录化算法题库，按难度、知识域和公司训练标签组织；每道已完成题目包含思路、C++17 实现、例子、测试和追问。
+- [LeetCode 算法刷题题库](leetcode-problem-bank/README.md)：基于灵神公开题单生成的刷题索引，按来源链接中的 12 个专题及其原始分类层级组织；当前已建立分类解析和 36 题详解 preview。
 - [训练知识地图](training/00-overview/knowledge-map.md) / [推理知识地图](inference/00-overview/knowledge-map.md)
 - [质量审计](04-review/quality-audit.md)：题数、ID、字段、重复和证据规则。
 
@@ -33,6 +36,7 @@
 PyTorch 题目使用 `B###`、`I###`、`A###`、`E###`，分别对应入门、中等、高级和专家级；事实状态使用 `[已确认]`、`[推断]`、`[待验证]`、`[建议]` 和 `[存在争议]`。
 AI Infra 题目同样使用 `B###`、`I###`、`A###`、`E###`；涉及 GPU、网络、集群、云平台或性能的结论，必须附环境、版本、指标和验证状态。
 AI 辅助软件工程与质量题目使用 `AQ-B/I/A/E###`，分别对应四个难度；生成代码、模型能力、测试、安全和质量提升结论必须附 oracle、证据和验证状态。
+LeetCode 算法刷题题库使用 LeetCode 题号、slug 和来源分类路径定位题目；题目链接、标题、分类和难度分来自外部题单时标为 `external-index`。详解内容分为按用户授权前提导入的 `authorized-import` 和本地生成的 `local-original`；未稳定抓取的单题题解正文保持 `pending-fetch`，未运行的 C++ 保持 `[待验证]`。
 
 ## 推荐路线
 

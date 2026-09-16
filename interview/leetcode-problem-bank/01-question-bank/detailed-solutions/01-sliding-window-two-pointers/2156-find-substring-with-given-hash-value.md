@@ -1,0 +1,435 @@
+# 2156. 查找给定哈希值的子串
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/find-substring-with-given-hash-value/
+- 题目 slug：`find-substring-with-given-hash-value`
+- 来源专题：滑动窗口与双指针
+- 来源分类路径：一、定长滑动窗口 / §1.2 进阶（选做）
+- 难度分：2063
+- 外部题解来源：https://leetcode.cn/problems/find-substring-with-given-hash-value/solutions/1239542/dao-xu-hua-dong-chuang-kou-o1-kong-jian-xpgkp/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[倒序滑动窗口 + O(1) 额外空间（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/find-substring-with-given-hash-value/solutions/1239542/dao-xu-hua-dong-chuang-kou-o1-kong-jian-xpgkp/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`dao-xu-hua-dong-chuang-kou-o1-kong-jian-xpgkp`
+- topic id：`1239542`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+比如 $s=\texttt{abcd}$，$k=3$：
+
+- 第一个子串是 $\texttt{abc}$，哈希值为 $1 + 2\cdot p + 3\cdot p^2$。
+- 第二个子串是 $\texttt{bcd}$，哈希值为 $2 + 3\cdot p + 4\cdot p^2$。
+
+从第一个子串滑到第二个子串，要添加 $4\cdot p^2$，去掉 $1$，中间的 $2\cdot p + 3\cdot p^2$ 要除以 $p$ 得到 $2 + 3\cdot p$。
+
+在有取模的情况下，计算除法要用逆元，但本题不保证 $p$ 是质数，所以计算除法不方便。
+
+倒着滑窗呢？
+
+从第二个子串滑到第一个子串，要添加 $1$，去掉 $4\cdot p^2$，中间的 $2 + 3\cdot p$ 要乘以 $p$ 得到 $2\cdot p + 3\cdot p^2$。
+
+可见，**倒着滑窗**更好计算。
+
+> 注：在本题的哈希函数中，第一个字母的 $p$ 的幂次是最小的，这和通常字符串哈希中的定义是**相反**的。所以在计算哈希值时，要**倒序遍历**。其它的和字符串哈希无异了。
+
+本题涉及到模运算，请看 [模运算的世界：当加减乘除遇上取模](https://leetcode.cn/circle/discuss/mDfnkW/)。
+
+```py [sol-Python3]
+class Solution:
+    def subStrHash(self, s: str, power: int, mod: int, k: int, hashValue: int) -> str:
+        n = len(s)
+        p = pow(power, k - 1, mod)
+        h = ans_left = 0  # 题目保证答案存在
+
+        for i in range(n - 1, -1, -1):  # 倒着滑窗
+            # 1. 左端点进入窗口
+            h = (h * power + (ord(s[i]) & 31)) % mod
+
+            right = i + k - 1  # 窗口右端点
+            if right >= n:  # 窗口大小不足 k，尚未形成第一个窗口
+                continue
+
+            # 2. 更新答案
+            if h == hashValue:
+                ans_left = i
+
+            # 3. 右端点离开窗口，为下一个循环做准备
+            h = (h - (ord(s[right]) & 31) * p) % mod
+
+        return s[ans_left: ans_left + k]
+```
+
+```java [sol-Java]
+class Solution {
+    public String subStrHash(String S, int power, int mod, int k, int hashValue) {
+        char[] s = S.toCharArray();
+        int n = s.length;
+
+        long p = qpow(power, k - 1, mod);
+        long hash = 0;
+        int ansLeft = 0; // 题目保证答案存在
+
+        for (int i = n - 1; i >= 0; i--) { // 倒着滑窗
+            // 1. 左端点进入窗口
+            hash = (hash * power + (s[i] & 31)) % mod;
+
+            int right = i + k - 1; // 窗口右端点
+            if (right >= n) { // 窗口大小不足 k，尚未形成第一个窗口
+                continue;
+            }
+
+            // 2. 更新答案
+            if (hash == hashValue) {
+                ansLeft = i;
+            }
+
+            // 3. 右端点离开窗口，为下一个循环做准备
+            hash = (hash - (s[right] & 31) * p % mod + mod) % mod; // +mod 保证结果非负
+        }
+
+        return S.substring(ansLeft, ansLeft + k);
+    }
+
+    // 快速幂
+    // https://leetcode.cn/problems/powx-n/
+    private long qpow(long x, int n, int mod) {
+        long res = 1 % mod;
+        for (; n > 0; n /= 2) {
+            if (n % 2 > 0) {
+                res = res * x % mod;
+            }
+            x = x * x % mod;
+        }
+        return res;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+    // 快速幂
+    // https://leetcode.cn/problems/powx-n/
+    long long qpow(long long x, int n, int mod) {
+        long long res = 1 % mod;
+        for (; n > 0; n /= 2) {
+            if (n % 2 > 0) {
+                res = res * x % mod;
+            }
+            x = x * x % mod;
+        }
+        return res;
+    }
+
+public:
+    string subStrHash(string s, int power, int mod, int k, int hashValue) {
+        int n = s.size();
+        long long p = qpow(power, k - 1, mod);
+        long long hash = 0;
+        int ans_left; // 题目保证答案存在
+
+        for (int i = n - 1; i >= 0; i--) { // 倒着滑窗
+            // 1. 左端点进入窗口
+            hash = (hash * power + (s[i] & 31)) % mod;
+
+            int right = i + k - 1; // 窗口右端点
+            if (right >= n) { // 窗口大小不足 k，尚未形成第一个窗口
+                continue;
+            }
+
+            // 2. 更新答案
+            if (hash == hashValue) {
+                ans_left = i;
+            }
+
+            // 3. 右端点离开窗口，为下一个循环做准备
+            hash = (hash - (s[right] & 31) * p % mod + mod) % mod; // +mod 保证结果非负
+        }
+
+        return s.substr(ans_left, k);
+    }
+};
+```
+
+```c [sol-C]
+// 快速幂
+// https://leetcode.cn/problems/powx-n/
+long long qpow(long long x, int n, int mod) {
+    long long res = 1 % mod;
+    for ( ; n > 0; n /= 2 ) {
+        if (n % 2 > 0) {
+            res = res * x % mod;
+        }
+        x = x * x % mod;
+    }
+    return res;
+}
+
+char* subStrHash(char* s, int power, int mod, int k, int hashValue) {
+    int n = strlen(s);
+    long long p = qpow(power, k - 1, mod);
+    long long hash = 0;
+    int ans_left; // 题目保证答案存在
+
+    for (int i = n - 1; i >= 0; i--) { // 倒着滑窗
+        // 1. 左端点进入窗口
+        hash = (hash * power + (s[i] & 31)) % mod;
+
+        int right = i + k - 1; // 窗口右端点
+        if (right >= n) { // 窗口大小不足 k，尚未形成第一个窗口
+            continue;
+        }
+
+        // 2. 更新答案
+        if (hash == hashValue) {
+            ans_left = i;
+        }
+
+        // 3. 右端点离开窗口，为下一个循环做准备
+        hash = (hash - (s[right] & 31) * p % mod + mod) % mod; // +mod 保证非负
+    }
+
+    char* ans = malloc(k + 1);
+    strncpy(ans, s + ans_left, k);
+    ans[k] = '\0';
+    return ans;
+}
+```
+
+```go [sol-Go]
+func subStrHash(s string, power, mod, k, hashValue int) (ans string) {
+	n := len(s)
+	p := pow(power, k-1, mod)
+	hash := 0
+
+	for i := n - 1; i >= 0; i-- { // 倒着滑窗
+		// 1. 左端点进入窗口
+		hash = (hash*power + int(s[i]&31)) % mod
+
+		right := i + k - 1 // 窗口右端点
+		if right >= n { // 窗口大小不足 k，尚未形成第一个窗口
+			continue
+		}
+
+		// 2. 更新答案
+		if hash == hashValue {
+			ans = s[i : right+1]
+		}
+
+		// 3. 右端点离开窗口，为下一个循环做准备
+		hash = (hash - int(s[right]&31)*p%mod + mod) % mod // +mod 保证结果非负
+	}
+
+	return
+}
+
+// 快速幂
+// https://leetcode.cn/problems/powx-n/
+func pow(x, n, mod int) int {
+	res := 1 % mod
+	for ; n > 0; n /= 2 {
+		if n%2 > 0 {
+			res = res * x % mod
+		}
+		x = x * x % mod
+	}
+	return res
+}
+```
+
+```js [sol-JavaScript]
+// 快速幂
+// https://leetcode.cn/problems/powx-n/
+var qpow = function(x, n, mod) {
+    let res = 1n % mod;
+    for (; n > 0; n = Math.floor(n / 2)) {
+        if (n % 2 > 0) {
+            res = res * x % mod;
+        }
+        x = x * x % mod;
+    }
+    return res;
+};
+
+var subStrHash = function(s, power, modulo, k, hashValue) {
+    const n = s.length;
+    power = BigInt(power);
+    mod = BigInt(modulo);
+    hashValue = BigInt(hashValue);
+    const p = qpow(power, k - 1, mod);
+    let hash = 0n;
+    let ansLeft = 0; // 题目保证答案存在
+
+    for (let i = n - 1; i >= 0; i--) { // 倒着滑窗
+        // 1. 左端点进入窗口
+        hash = (hash * power + BigInt(s[i].charCodeAt(0) & 31)) % mod;
+
+        const right = i + k - 1; // 窗口右端点
+        if (right >= n) { // 窗口大小不足 k，尚未形成第一个窗口
+            continue;
+        }
+
+        // 2. 更新答案
+        if (hash === hashValue) {
+            ansLeft = i;
+        }
+
+        // 3. 右端点离开窗口，为下一个循环做准备
+        hash = (hash - BigInt(s[right].charCodeAt(0) & 31) * p % mod + mod) % mod; // +mod 保证结果非负
+    }
+
+    return s.substring(ansLeft, ansLeft + k);
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    // 快速幂
+    // https://leetcode.cn/problems/powx-n/
+    fn qpow(mut x: i64, mut n: i32, m: i64) -> i64 {
+        let mut res = 1 % m;
+        while n > 0 {
+            if n % 2 == 1 {
+                res = res * x % m;
+            }
+            x = x * x % m;
+            n /= 2;
+        }
+        res
+    }
+
+    pub fn sub_str_hash(S: String, power: i32, modulo: i32, k: i32, hash_value: i32) -> String {
+        let s = S.as_bytes();
+        let n = s.len();
+        let power = power as i64;
+        let m = modulo as i64;
+        let p = Self::qpow(power, k - 1, m);
+        let k = k as usize;
+        let mut hash = 0;
+        let mut ans_left = 0; // 题目保证答案存在
+
+        for i in (0..n).rev() { // 倒着滑窗
+            // 1. 左端点进入窗口
+            hash = (hash * power + (s[i] & 31) as i64) % m;
+
+            let right = i + k - 1; // 窗口右端点
+            if right >= n { // 窗口大小不足 k，尚未形成第一个窗口
+                continue;
+            }
+
+            // 2. 更新答案
+            if hash == hash_value as i64 {
+                ans_left = i;
+            }
+
+            // 3. 右端点离开窗口，为下一个循环做准备
+            hash = (hash - (s[right] & 31) as i64 * p % m + m) % m; // +m 保证结果非负
+        }
+
+        S[ans_left..ans_left + k].to_string()
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 为 $s$ 的长度。
+- 空间复杂度：$\mathcal{O}(1)$。返回值不计入。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `一、定长滑动窗口 / §1.2 进阶（选做）`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    int maxVowels(string s, int k) {
+        auto isVowel = [](char c) {
+            return c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u';
+        };
+        int cur = 0, ans = 0;
+        for (int i = 0; i < (int)s.size(); ++i) {
+            cur += isVowel(s[i]);
+            if (i >= k) cur -= isVowel(s[i - k]);
+            if (i + 1 >= k) ans = max(ans, cur);
+        }
+        return ans;
+    }
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `一、定长滑动窗口 / §1.2 进阶（选做）`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

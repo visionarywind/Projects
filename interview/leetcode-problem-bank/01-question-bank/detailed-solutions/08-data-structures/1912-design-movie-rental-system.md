@@ -1,0 +1,485 @@
+# 1912. 设计电影租借系统
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/design-movie-rental-system/
+- 题目 slug：`design-movie-rental-system`
+- 来源专题：常用数据结构
+- 来源分类路径：五、堆（优先队列） / §5.2 进阶
+- 难度分：2182
+- 外部题解来源：https://leetcode.cn/problems/design-movie-rental-system/solutions/3781946/you-xu-ji-he-pythonjavacgo-by-endlessche-mkek/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[有序集合（Python/Java/C++/Go/JS/Rust）](https://leetcode.cn/problems/design-movie-rental-system/solutions/3781946/you-xu-ji-he-pythonjavacgo-by-endlessche-mkek/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`you-xu-ji-he-pythonjavacgo-by-endlessche-mkek`
+- topic id：`3781946`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+根据题意：
+
+1. 为了实现 $\texttt{search}$，需要对每部**未借出电影**维护对应的 $(\textit{price},\textit{shop})$ 有序集合。这可以用哈希表套有序集合维护。
+2. 为了实现 $\texttt{report}$，需要维护**已借出电影**的 $(\textit{price},\textit{shop},\textit{movie})$ 有序集合。
+3. 为了实现 $\texttt{rent}$ 和 $\texttt{drop}$，需要获取 $(\textit{shop},\textit{movie})$ 对应的租借价格 $\textit{price}$，从而更新有序集合中的信息。这可以用一个哈希表维护。
+
+```py [sol-Python3]
+class MovieRentingSystem:
+    def __init__(self, _, entries: List[List[int]]):
+        self.shop_movie_to_price = {}  # (shop, movie) -> price
+        self.unrented_movie_to_price_shop = defaultdict(SortedList)  # movie -> [(price, shop)]
+        self.rented_movies = SortedList()  # [(price, shop, movie)]
+
+        for shop, movie, price in entries:
+            self.shop_movie_to_price[(shop, movie)] = price
+            self.unrented_movie_to_price_shop[movie].add((price, shop))
+
+    # 获取 unrented_movie_to_price_shop[movie] 的前 5 个 shop
+    def search(self, movie: int) -> List[int]:
+        return [shop for _, shop in self.unrented_movie_to_price_shop[movie][:5]]
+
+    # 借电影
+    def rent(self, shop: int, movie: int) -> None:
+        price = self.shop_movie_to_price[(shop, movie)]
+        # 从 unrented_movie_to_price_shop 移到 rented_movies
+        self.unrented_movie_to_price_shop[movie].discard((price, shop))
+        self.rented_movies.add((price, shop, movie))
+
+    # 还电影
+    def drop(self, shop: int, movie: int) -> None:
+        price = self.shop_movie_to_price[(shop, movie)]
+        # 从 rented_movies 移到 unrented_movie_to_price_shop
+        self.rented_movies.discard((price, shop, movie))
+        self.unrented_movie_to_price_shop[movie].add((price, shop))
+
+    # 获取 rented_movies 的前 5 个 shop 和 movie
+    def report(self) -> List[List[int]]:
+        return [[shop, movie] for _, shop, movie in self.rented_movies[:5]]
+```
+
+```java [sol-Java]
+class MovieRentingSystem {
+    // (shop, movie) -> price
+    private final Map<Long, Integer> shopMovieToPrice = new HashMap<>();
+
+    // movie -> {(price, shop)}
+    private final Map<Integer, TreeSet<int[]>> unrentedMovieToPriceShop = new HashMap<>();
+
+    // {(price, shop, movie)}
+    private final TreeSet<int[]> rentedMovies = new TreeSet<>((a, b) -> {
+        if (a[0] != b[0]) {
+            return a[0] - b[0];
+        }
+        if (a[1] != b[1]) {
+            return a[1] - b[1];
+        }
+        return a[2] - b[2];
+    });
+
+    public MovieRentingSystem(int n, int[][] entries) {
+        for (int[] e : entries) {
+            int shop = e[0], movie = e[1], price = e[2];
+            // 把 shop 和 movie 存储到一个 long 中，方便作为 HashMap 的 key
+            shopMovieToPrice.put((long) shop << 32 | movie, price);
+            unrentedMovieToPriceShop
+                .computeIfAbsent(movie, _ -> new TreeSet<>((a, b) -> a[0] != b[0] ? a[0] - b[0] : a[1] - b[1]))
+                .add(new int[]{price, shop});
+        }
+    }
+
+    // 获取 unrentedMovieToPriceShop[movie] 的前 5 个 shop
+    public List<Integer> search(int movie) {
+        if (!unrentedMovieToPriceShop.containsKey(movie)) {
+            return List.of();
+        }
+        List<Integer> ans = new ArrayList<>(5); // 预分配空间
+        for (int[] ps : unrentedMovieToPriceShop.get(movie)) {
+            ans.add(ps[1]);
+            if (ans.size() == 5) {
+                break;
+            }
+        }
+        return ans;
+    }
+
+    // 借电影
+    public void rent(int shop, int movie) {
+        int price = shopMovieToPrice.get((long) shop << 32 | movie);
+        // 从 unrentedMovieToPriceShop 移到 rentedMovies
+        unrentedMovieToPriceShop.get(movie).remove(new int[]{price, shop});
+        rentedMovies.add(new int[]{price, shop, movie});
+    }
+
+    // 还电影
+    public void drop(int shop, int movie) {
+        int price = shopMovieToPrice.get((long) shop << 32 | movie);
+        // 从 rentedMovies 移到 unrentedMovieToPriceShop
+        rentedMovies.remove(new int[]{price, shop, movie});
+        unrentedMovieToPriceShop.get(movie).add(new int[]{price, shop});
+    }
+
+    // 获取 rentedMovies 的前 5 个 shop 和 movie
+    public List<List<Integer>> report() {
+        List<List<Integer>> ans = new ArrayList<>(5); // 预分配空间
+        for (int[] e : rentedMovies) {
+            ans.add(List.of(e[1], e[2]));
+            if (ans.size() == 5) {
+                break;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class MovieRentingSystem {
+    unordered_map<long long, int> shop_movie_to_price;
+    unordered_map<int, set<pair<int, int>>> unrented_movie_to_price_shop;
+    set<tuple<int, int, int>> rented_movies;
+
+public:
+    MovieRentingSystem(int, vector<vector<int>>& entries) {
+        for (auto& e : entries) {
+            int shop = e[0], movie = e[1], price = e[2];
+            // 把 shop 和 movie 存储到一个 long long 中，方便作为 unordered_map 的 key
+            shop_movie_to_price[1LL * shop << 32 | movie] = price;
+            unrented_movie_to_price_shop[movie].emplace(price, shop);
+        }
+    }
+
+    // 获取 unrented_movie_to_price_shop[movie] 的前 5 个 shop
+    vector<int> search(int movie) {
+        auto it = unrented_movie_to_price_shop.find(movie);
+        if (it == unrented_movie_to_price_shop.end()) {
+            return {};
+        }
+        vector<int> ans;
+        for (auto& [_, shop] : it->second) {
+            ans.push_back(shop);
+            if (ans.size() == 5) {
+                break;
+            }
+        }
+        return ans;
+    }
+
+    // 借电影
+    void rent(int shop, int movie) {
+        int price = shop_movie_to_price[1LL * shop << 32 | movie];
+        // 从 unrented_movie_to_price_shop 移到 rented_movies
+        unrented_movie_to_price_shop[movie].erase({price, shop});
+        rented_movies.emplace(price, shop, movie);
+    }
+
+    // 还电影
+    void drop(int shop, int movie) {
+        int price = shop_movie_to_price[1LL * shop << 32 | movie];
+        // 从 rented_movies 移到 unrented_movie_to_price_shop
+        rented_movies.erase({price, shop, movie});
+        unrented_movie_to_price_shop[movie].emplace(price, shop);
+    }
+
+    // 获取 rented_movies 的前 5 个 shop 和 movie
+    vector<vector<int>> report() {
+        vector<vector<int>> ans;
+        for (auto& [_, shop, movie] : rented_movies) {
+            ans.push_back({shop, movie});
+            if (ans.size() == 5) {
+                break;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+import "github.com/emirpasic/gods/v2/trees/redblacktree"
+
+type shopMovie struct{ shop, movie int }
+type priceShop struct{ price, shop int }
+type entry struct{ price, shop, movie int }
+
+type MovieRentingSystem struct {
+	shopMovieToPrice         map[shopMovie]int
+	unrentedMovieToPriceShop map[int]*redblacktree.Tree[priceShop, struct{}]
+	rentedMovies             *redblacktree.Tree[entry, struct{}]
+}
+
+func Constructor(_ int, entries [][]int) MovieRentingSystem {
+	shopMovieToPrice := map[shopMovie]int{}
+	unrentedMovieToPriceShop := map[int]*redblacktree.Tree[priceShop, struct{}]{}
+
+	for _, e := range entries {
+		shop, movie, price := e[0], e[1], e[2]
+		shopMovieToPrice[shopMovie{shop, movie}] = price
+		if _, ok := unrentedMovieToPriceShop[movie]; !ok {
+			unrentedMovieToPriceShop[movie] = redblacktree.NewWith[priceShop, struct{}](func(a, b priceShop) int {
+				return cmp.Or(a.price-b.price, a.shop-b.shop)
+			})
+		}
+		unrentedMovieToPriceShop[movie].Put(priceShop{price, shop}, struct{}{})
+	}
+
+	rentedMovies := redblacktree.NewWith[entry, struct{}](func(a, b entry) int {
+		return cmp.Or(a.price-b.price, a.shop-b.shop, a.movie-b.movie)
+	})
+	return MovieRentingSystem{shopMovieToPrice, unrentedMovieToPriceShop, rentedMovies}
+}
+
+// 获取 unrentedMovieToPriceShop[movie] 的前 5 个 shop
+func (m *MovieRentingSystem) Search(movie int) (ans []int) {
+	t := m.unrentedMovieToPriceShop[movie]
+	if t == nil {
+		return
+	}
+	for it := t.Iterator(); len(ans) < 5 && it.Next(); {
+		ans = append(ans, it.Key().shop)
+	}
+	return
+}
+
+// 借电影
+func (m *MovieRentingSystem) Rent(shop, movie int) {
+	price := m.shopMovieToPrice[shopMovie{shop, movie}]
+	// 从 unrentedMovieToPriceShop 移到 rentedMovies
+	m.unrentedMovieToPriceShop[movie].Remove(priceShop{price, shop})
+	m.rentedMovies.Put(entry{price, shop, movie}, struct{}{})
+}
+
+// 还电影
+func (m *MovieRentingSystem) Drop(shop, movie int) {
+	price := m.shopMovieToPrice[shopMovie{shop, movie}]
+	// 从 rentedMovies 移到 unrentedMovieToPriceShop
+	m.rentedMovies.Remove(entry{price, shop, movie})
+	m.unrentedMovieToPriceShop[movie].Put(priceShop{price, shop}, struct{}{})
+}
+
+// 获取 rentedMovies 的前 5 个 shop 和 movie
+func (m *MovieRentingSystem) Report() (ans [][]int) {
+	for it := m.rentedMovies.Iterator(); len(ans) < 5 && it.Next(); {
+		ans = append(ans, []int{it.Key().shop, it.Key().movie})
+	}
+	return
+}
+```
+
+```js [sol-JavaScript]
+const { AvlTree } = require('datastructures-js');
+
+class MovieRentingSystem {
+    constructor(_, entries) {
+        // (shop, movie) -> price
+        this.shopMovieToPrice = new Map();
+
+        // movie -> {(price, shop)}
+        this.unrentedMovieToPriceShop = new Map();
+
+        // {(price, shop, movie)}
+        this.rentedMovies = new AvlTree((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+
+        for (const [shop, movie, price] of entries) {
+            this.shopMovieToPrice.set(`${shop},${movie}`, price);
+            if (!this.unrentedMovieToPriceShop.has(movie)) {
+                this.unrentedMovieToPriceShop.set(movie, new AvlTree((a, b) => a[0] - b[0] || a[1] - b[1]));
+            }
+            this.unrentedMovieToPriceShop.get(movie).insert([price, shop]);
+        }
+    }
+
+    // 获取 unrentedMovieToPriceShop[movie] 的前 5 个 shop
+    search(movie) {
+        const t = this.unrentedMovieToPriceShop.get(movie);
+        if (t === undefined) {
+            return [];
+        }
+        const ans = [];
+        t.traverseInOrder(
+            node => ans.push(node.getValue()[1]),
+            () => ans.length === 5,
+        );
+        return ans;
+    }
+
+    // 借电影
+    rent(shop, movie) {
+        const price = this.shopMovieToPrice.get(`${shop},${movie}`);
+        // 从 unrentedMovieToPriceShop 移到 rentedMovies
+        this.unrentedMovieToPriceShop.get(movie).remove([price, shop]);
+        this.rentedMovies.insert([price, shop, movie]);
+    }
+
+    // 还电影
+    drop(shop, movie) {
+        const price = this.shopMovieToPrice.get(`${shop},${movie}`);
+        // 从 rentedMovies 移到 unrentedMovieToPriceShop
+        this.rentedMovies.remove([price, shop, movie]);
+        this.unrentedMovieToPriceShop.get(movie).insert([price, shop]);
+    }
+
+    // 获取 rentedMovies 的前 5 个 shop 和 movie
+    report() {
+        const ans = [];
+        this.rentedMovies.traverseInOrder(
+            node => ans.push(node.getValue().slice(1)),
+            () => ans.length === 5,
+        );
+        return ans;
+    }
+}
+```
+
+```rust [sol-Rust]
+use std::collections::{BTreeSet, HashMap};
+
+struct MovieRentingSystem {
+    shop_movie_to_price: HashMap<(i32, i32), i32>, // (shop, movie) -> price
+    unrented_movie_to_price_shop: HashMap<i32, BTreeSet<(i32, i32)>>, // movie -> {(price, shop)}
+    rented_movies: BTreeSet<(i32, i32, i32)>, // {(price, shop, movie)}
+}
+
+impl MovieRentingSystem {
+    fn new(_: i32, entries: Vec<Vec<i32>>) -> Self {
+        let mut shop_movie_to_price = HashMap::new();
+        let mut unrented_movie_to_price_shop = HashMap::new();
+
+        for e in entries {
+            let shop = e[0];
+            let movie = e[1];
+            let price = e[2];
+            shop_movie_to_price.insert((shop, movie), price);
+            unrented_movie_to_price_shop.entry(movie).or_insert_with(BTreeSet::new).insert((price, shop));
+        }
+
+        Self { shop_movie_to_price, unrented_movie_to_price_shop, rented_movies: BTreeSet::new() }
+    }
+
+    // 获取 unrented_movie_to_price_shop[movie] 的前 5 个 shop
+    fn search(&self, movie: i32) -> Vec<i32> {
+        self.unrented_movie_to_price_shop.get(&movie)
+            .map_or_else(Vec::new, |set|
+                set.iter()
+                    .take(5)
+                    .map(|&(_, shop)| shop)
+                    .collect(),
+            )
+    }
+
+    // 借电影
+    fn rent(&mut self, shop: i32, movie: i32) {
+        let price = self.shop_movie_to_price[&(shop, movie)];
+        self.unrented_movie_to_price_shop.get_mut(&movie).unwrap().remove(&(price, shop));
+        self.rented_movies.insert((price, shop, movie));
+    }
+
+    // 还电影
+    fn drop(&mut self, shop: i32, movie: i32) {
+        let price = self.shop_movie_to_price[&(shop, movie)];
+        self.rented_movies.remove(&(price, shop, movie));
+        self.unrented_movie_to_price_shop.get_mut(&movie).unwrap().insert((price, shop));
+    }
+
+    // 获取 rented_movies 的前 5 个 shop 和 movie
+    fn report(&self) -> Vec<Vec<i32>> {
+        self.rented_movies.iter()
+            .take(5)
+            .map(|&(_, shop, movie)| vec![shop, movie])
+            .collect()
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：
+  - 初始化 $\mathcal{O}(m\log m)$，其中 $m$ 是 $\textit{entries}$ 的长度。
+  - $\texttt{search}$ 和 $\texttt{report}$：$\mathcal{O}(\log m)$ 或 $\mathcal{O}(1)$，取决于有序集合的实现。
+  - $\texttt{rent}$ 和 $\texttt{drop}$：$\mathcal{O}(\log m)$。
+- 空间复杂度：$\mathcal{O}(m)$。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `五、堆（优先队列） / §5.2 进阶`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `五、堆（优先队列） / §5.2 进阶`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

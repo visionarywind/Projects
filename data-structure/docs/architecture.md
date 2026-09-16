@@ -1,15 +1,16 @@
 # 红黑树与跳表架构设计和运行流程
 
-> 本文对应 `include/rbtree/rb_tree.hpp`、`include/rbtree/rb_map.hpp` 和 `benchmark/rb_map_benchmark.cpp`。代码注释解释“这一行为什么存在”，本文解释“这些对象如何组成一个系统”。图使用 Mermaid；如果 Markdown 阅读器不渲染 Mermaid，图下的文字说明仍然给出同样的结构。
+> 本文对应 `include/rbtree/rb_tree.hpp`、`include/rbtree/llrb_tree.hpp`、`include/rbtree/rb_map.hpp`、`include/rbtree/skip_list.hpp` 和两个 benchmark。代码注释解释“这一行为什么存在”，本文解释“这些对象如何组成一个系统”。图使用 Mermaid；如果 Markdown 阅读器不渲染 Mermaid，图下的文字说明仍然给出同样的结构。
 
 ## 1. 设计目标与实现分层
 
-项目包含两种有意分开的实现：
+项目包含三种有意分开的 set/map 实现：
 
 - **教学版 `rb_tree<Key, Compare>`**：set-like，只存储 `Key`，使用 `nullptr` 表示外部叶子。它把红黑树算法、父子链接和所有权暴露得更清楚，适合逐步学习。
+- **左倾红黑树 `llrb_tree<Key, Compare>`**：set-like，只存储 `Key`，用左倾红链接表达 2-3 树，不保存 parent 指针；插入和删除采用递归 top-down 算法，适合与 parent-based 实现比较。
 - **性能实验版 `rb_map<Key, T, Compare, Allocator>`**：map-like，存储 `std::pair<const Key, T>`，使用每棵树独有的黑色 `nil_` 哨兵、节点 allocator 和最左/最右节点缓存，适合与 `std::map` 做可复现比较。
 
-两者的核心平衡思想相同：普通 BST 搜索、左/右旋转、插入修复和删除修复。差异集中在空叶表示、节点 value、内存生命周期和边界缓存，不应把两者当作完全相同的对象布局。
+三者的核心有序容器思想相同：普通 BST 搜索（跳表则为分层搜索）、结构调整和中序访问。差异集中在空叶表示、节点 value、内存生命周期、平衡机制和迭代器边界，不应把它们当作完全相同的对象布局。
 
 ## 2. 总体组件架构
 
@@ -18,6 +19,7 @@ flowchart TB
     User[用户代码]
     API[容器公共 API\ninsert/find/erase/iterate]
     Set[rb_tree\n教学版 set-like]
+    LLRB[llrb_tree\n左倾 set-like]
     Map[rb_map\n性能版 map-like]
     Search[BST 搜索\nfind_node / find_link]
     Balance[平衡核心\n旋转 + insert_fixup + erase_fixup]
@@ -33,6 +35,7 @@ flowchart TB
 
     User --> API
     API --> Set
+    API --> LLRB
     API --> Map
     Set --> Search
     Set --> Balance
@@ -43,12 +46,18 @@ flowchart TB
     Map --> Iter
     Map --> Life
     Set --> Null
+    LLRB --> Search
+    LLRB --> Balance
+    LLRB --> Iter
+    LLRB --> Life
     Map --> Nil
     Life --> Alloc
     Tests --> Set
+    Tests --> LLRB
     Tests --> Map
     Tests --> San
     Bench --> Set
+    Bench --> LLRB
     Bench --> Map
     Bench --> CSV
 ```
@@ -59,9 +68,9 @@ flowchart TB
 |---|---|---|
 | 公共 API | 暴露容器语义 | key 唯一；map 的 key 不可修改 |
 | BST 搜索 | 沿比较器决定左/右路径 | 等价 key 必须停止，不能重复分配 |
-| 旋转 | 改变局部形状而不改变中序顺序 | 必须同步更新中间子树、parent、祖父链接和 root |
-| 插入修复 | 消除红父红子 | 根最终必须为黑 |
-| 删除修复 | 恢复删除黑节点造成的黑高差异 | sibling 的四种情况必须左右对称 |
+| 旋转/结构调整 | 改变局部形状而不改变中序顺序 | `rb_tree`/`rb_map` 必须同步 parent；LLRB 必须同步中间子树和颜色 |
+| 插入修复 | 消除红父红子或临时红右链接 | 根最终必须为黑 |
+| 删除修复 | 恢复删除黑节点造成的黑高差异 | `rb_tree`/`rb_map` 使用 sibling cases；LLRB 使用 top-down 借红链接 |
 | 迭代器 | 按中序访问 | 不返回 `nullptr` 或 `nil_`；旋转不移动节点地址 |
 | 生命周期 | 分配、构造、销毁和清空 | 每个真实节点恰好销毁一次 |
 | 验证器 | 检查结构而非优化性能 | 不放入 benchmark 热路径 |
@@ -117,15 +126,45 @@ flowchart TB
 - 删除修复结束后强制 `nil_` 为黑，根的 parent 指向 `nil_`；
 - `leftmost_` 和 `rightmost_` 分别缓存最小、最大真实节点，空树时都指向 `nil_`。
 
+### 3.3 左倾红黑树：无 parent 的 set-like 实现
+
+```mermaid
+flowchart LR
+    Tree[llrb_tree\nroot_ + size_]
+    Root[node\nkey/color/left/right]
+    Left[左红链接\n或黑链接]
+    Right[黑链接\n或 nullptr]
+    Insert[insert_node\nbalance]
+    Erase[erase_node\nmove_red_left/right]
+    Iterate[successor/predecessor\n从 root_ 搜索]
+
+    Tree -->|root_| Root
+    Root --> Left
+    Root --> Right
+    Tree --> Insert
+    Tree --> Erase
+    Tree --> Iterate
+```
+
+- LLRB 只允许红链接指向左孩子；红右链接和连续左红链接都是非法状态；
+- `rotate_left`、`rotate_right` 在提升节点时交换颜色，使局部结构继续表示 2-3 树；`balance` 在递归返回阶段消除临时右红链接；
+- 删除前把根临时染红，在向下路径上通过 `move_red_left`/`move_red_right` 保证待访问方向拥有可借用的红链接，删除后再把根染黑；
+- 每个真实节点仍由一次普通 `new` 创建、由一次 `delete` 销毁，不使用池化、Arena 或自定义 allocator；
+- 因为节点没有 parent，迭代器不能沿父链上爬，`++`/`--` 每次从 `root_` 搜索 successor/predecessor，复杂度为 `O(log n)`；旋转仍不移动节点地址。
+
+### 3.4 三种 set-like 容器的边界
+
+`rb_tree` 是 parent-based 的教学实现，`llrb_tree` 是无 parent 的 top-down LLRB 实现，`skip_list` 是随机多层链表。它们共享唯一键、比较器和普通 `new/delete` 的语义，但节点布局、删除路径和迭代器成本不同；benchmark 必须把它们作为独立容器分别测量。
+
 ## 4. 红黑树不变量
 
-对两种实现都成立的逻辑约束：
+对三种树实现都成立的逻辑约束：
 
 1. 根为黑色；
 2. 红节点不能有红色孩子；
 3. 从任意节点到所有后代外部叶子的黑节点数相同；
 4. BST 顺序严格成立：左 `<` 当前 `<` 右；
-5. 每个真实孩子的 `parent` 指回父节点；
+5. 每个真实孩子的 `parent` 指回父节点（仅 `rb_tree`/`rb_map`；LLRB 不保存 parent）；
 6. `size_` 等于真实节点数量；
 7. 中序遍历严格有序且无重复。
 
@@ -134,7 +173,7 @@ flowchart TB
 - `rb_tree` 的外部叶子是 `nullptr`，顶层 root 的 parent 是 `nullptr`；
 - `rb_map` 的外部叶子是 `&nil_`，顶层 root 的 parent 是 `&nil_`，`nil_` 永远黑且不计数。
 
-`verify_invariants()` 递归检查边界 key、parent 链接、颜色约束、黑高和节点数；它是诊断工具，不是 benchmark 操作。
+`verify_invariants()` 递归检查边界 key、（适用实现的）parent 链接、颜色约束、黑高和节点数；它是诊断工具，不是 benchmark 操作。LLRB 额外检查红链接左倾且没有连续左红链接。
 
 ## 5. 插入流程
 
@@ -376,7 +415,7 @@ flowchart LR
 
 - `header_` 是嵌入容器的多层入口，不存储假的 `Key`；
 - `forward[0]` 是完整有序链表，迭代器只沿这一层前进；
-- 节点高度为 `height`，只有 `[0, height)` 的 forward 指针有效，其余必须为 `nullptr`；
+- 节点高度为 `height`，真实节点只为 `[0, height)` 的 forward 指针分配空间；
 - `level_` 是当前最高有效层，范围为 `[1, MaxLevel]`；
 - 真实节点由 level-0 链表唯一拥有，`clear()` 依次删除它们；header 和 forward 指针不拥有额外节点。
 
@@ -413,4 +452,4 @@ flowchart TD
 
 `verify_invariants()` 检查底层 key 严格有序、每层无环、高层节点也存在于 level 0、节点高度和 forward 范围合法、空的高层已被裁掉，以及 `size_` 与底层节点数量一致。当前跳表只提供 set-like API、前向迭代器和 `new/delete` 生命周期，不提供 map value、并发、节点池、完整 STL 兼容 API 或 benchmark 结论。
 
-`skip_list_test.cpp` 使用固定 seed 与 `std::set<int>` 做随机差分，验证插入、删除、查找、size、有序遍历和不变量。当前 Release benchmark 仍只比较 `rb_map` 与 `std::map`；如果未来加入跳表 benchmark，必须同时固定 `MaxLevel`、随机策略、seed、数据集和计时边界。
+`skip_list_test.cpp` 使用固定 seed 与 `std::set<int>` 做随机差分，验证插入、删除、查找、size、有序遍历和不变量。`ordered_benchmark` 比较 `rb_tree<int>`、`skip_list<int>` 与 `std::set<int>`；记录结果时必须同时固定 `MaxLevel`、随机策略、seed、数据集和计时边界。

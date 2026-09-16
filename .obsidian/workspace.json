@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "interview-prompt.md",
+                "file": "sglang/03-model-loading/01-模型加载与并行初始化.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "interview-prompt"
+              "title": "01-模型加载与并行初始化"
             }
           }
         ]
@@ -99,7 +99,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "interview-prompt.md",
+                "file": "sglang/03-model-loading/01-模型加载与并行初始化.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -118,7 +118,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "interview-prompt.md",
+                "file": "sglang/03-model-loading/01-模型加载与并行初始化.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
@@ -161,7 +161,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "interview-prompt.md",
+                "file": "sglang/03-model-loading/01-模型加载与并行初始化.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -185,46 +185,47 @@
       "daily-notes:打开/创建今天的日记": false,
       "templates:插入模板": false,
       "command-palette:打开命令面板": false,
-      "bases:新建数据库": false
+      "bases:新建数据库": false,
+      "workspaces:管理工作区布局": false
     }
   },
-  "active": "bf00cdda55a5aaf0",
+  "active": "59b9001952c7792f",
   "lastOpenFiles": [
-    "data-structure/benchmark/README.md.tmp.3429090.739e97629999",
-    "data-structure/build/ordered-release/ordered-redis-layout.csv",
-    "data-structure/build/asan/Testing/Temporary/LastTest.log.tmp",
-    "data-structure/build/asan/CMakeFiles/Progress/3",
-    "data-structure/build/asan/CMakeFiles/Progress/12",
-    "data-structure/build/asan/CMakeFiles/Progress/2",
-    "data-structure/build/asan/CMakeFiles/Progress/11",
-    "data-structure/build/asan/CMakeFiles/Progress/1",
-    "data-structure/build/asan/CMakeFiles/Progress/count.txt",
-    "data-structure/build/asan/CMakeFiles/Progress",
-    "data-structure/build/ordered-release/Testing/Temporary/LastTest.log.tmp",
-    "insights/README.md",
-    "insights/04-design-decision-and-validation.md",
-    "insights/03-arxiv-reading-notes.md",
-    "insights/02-kv-pool-lifecycle-and-ownership.md",
-    "insights/01-static-dynamic-hybrid-pools.md",
-    "insights/00-concepts-and-taxonomy.md",
-    "interview/inference/insights/04-design-decision-and-validation.md",
-    "interview/inference/insights/03-arxiv-reading-notes.md",
-    "interview/inference/insights/02-kv-pool-lifecycle-and-ownership.md",
-    "interview/inference/insights/01-static-dynamic-hybrid-pools.md",
-    "interview/inference/insights/00-concepts-and-taxonomy.md",
-    "interview/inference/insights/README.md",
-    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K12-production-evolution.md",
-    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K11-performance-capacity.md",
-    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K10-observability-slo.md",
-    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K09-failure-recovery.md",
-    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K08-collective-communication.md",
-    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K07-transfer-topology.md",
-    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K06-scheduling-isolation.md",
-    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K05-async-completion.md",
-    "interview/heterogeneous-resource-stability-interview-bank/02-knowledge-domains/K04-memory-pools.md",
-    "interview/heterogeneous-resource-stability-interview-bank/01-question-bank/expert.md",
-    "interview/heterogeneous-resource-stability-interview-bank/01-question-bank/advanced.md",
-    "interview/heterogeneous-resource-stability-interview-bank/01-question-bank/intermediate.md",
-    "interview/ai-software-quality-interview-bank/04-review/quality-audit.md"
+    "musa/90-cross-module/cross-module-call-chains.md.tmp.1103509.57f78a15efd2",
+    "musa/README.md.tmp.1103509.c70ebe56b8a7",
+    "musa/00-overview/evidence-index.md.tmp.1103509.7e5dc7015be2",
+    "musa/90-cross-module/cross-module-call-chains.md.tmp.1103509.3fbb6f11a55c",
+    "cuda/90-cross-module/architecture-design.md",
+    "cuda/90-cross-module/architecture-design.md.tmp.1122695.3ec068645776",
+    "musa/01-modules/M05-memory-mempool/risks-and-debt.md.tmp.1103509.823dce29884e",
+    "musa/01-modules/M05-memory-mempool/diagrams.md.tmp.1103509.e3dd42db828f",
+    "musa/01-modules/M05-memory-mempool/call-chains.md.tmp.1103509.c3e99748142f",
+    "interview/leetcode-problem-bank/scripts/import_authorized_solutions.py.tmp.1091242.8ce56c3e961b",
+    "interview/leetcode-problem-bank/scripts/import_authorized_solutions.py.tmp.1091242.438aee869133",
+    "interview/leetcode-problem-bank/scripts/import_authorized_solutions.py.tmp.1091242.c23c89db61c7",
+    "sglang/01-modules/M19-deepseek-models/source-map.md",
+    "sglang/01-modules/M19-deepseek-models/parallel-strategies.md",
+    "sglang/01-modules/M19-deepseek-models/model-family.md",
+    "sglang/01-modules/M19-deepseek-models/README.md",
+    "cuda/90-cross-module/end-to-end-kernel-launch.md",
+    "sglang/02-request-flow/01-启动链路.md",
+    "sglang/01-modules/M04-scheduler-batching/README.md",
+    "cann/memory_graph_analysis.md",
+    "concurrency-queue/01-modules/M02-blocking-queue/README.md",
+    "concurrency-queue/01-modules/M02-blocking-queue/line-level-analysis.md",
+    "concurrency-queue/01-modules/M02-blocking-queue/execution-flows.md",
+    "concurrency-queue/01-modules/M02-blocking-queue/design.md",
+    "cuda/01-modules/M04-memory-uvm/gpu-memory-pooling.md",
+    "cuda/00-overview/analysis-state.md",
+    "cuda/01-modules/M04-memory-uvm/design.md",
+    "cuda/01-modules/M04-memory-uvm/data-structures.md",
+    "musa/00-overview/runtime-model.md",
+    "musa/90-cross-module/performance-critical-paths.md",
+    "musa/90-cross-module/interface-contracts.md",
+    "musa/90-cross-module/error-boundaries.md",
+    "musa/90-cross-module/end-to-end-flows.md",
+    "musa/01-modules/M05-memory-mempool/call-chains.md",
+    "musa/00-overview/analysis-state.md",
+    "musa/00-overview/architecture.md"
   ]
 }

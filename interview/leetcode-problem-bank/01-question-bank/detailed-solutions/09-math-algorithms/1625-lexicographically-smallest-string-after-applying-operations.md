@@ -1,0 +1,500 @@
+# 1625. 执行操作后字典序最小的字符串
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/lexicographically-smallest-string-after-applying-operations/
+- 题目 slug：`lexicographically-smallest-string-after-applying-operations`
+- 来源专题：数学算法
+- 来源分类路径：一、数论 / §1.6 最大公约数（GCD）
+- 难度分：1992
+- 外部题解来源：https://leetcode.cn/problems/lexicographically-smallest-string-after-applying-operations/solutions/3797297/mei-ju-lun-zhuan-dao-zui-zuo-bian-de-xia-wuu3/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[枚举轮转到最左边的下标 + 裴蜀定理（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/lexicographically-smallest-string-after-applying-operations/solutions/3797297/mei-ju-lun-zhuan-dao-zui-zuo-bian-de-xia-wuu3/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`mei-ju-lun-zhuan-dao-zui-zuo-bian-de-xia-wuu3`
+- topic id：`3797297`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+**注**：题干中的「数字一旦超过 $9$ 就会变成 $0$」的意思是，数字 $x$ 加上 $a$ 后，会变成 $(x+a)\bmod 10$。
+
+## 不轮转
+
+**从特殊到一般**，先考虑只累加、不轮转的情况。
+
+为了让字典序尽量小，第一个奇数下标 $1$ 上的数字 $s_1$，越小越好。一旦我们确定了 $s_1$ 的最终值，就确定了一共累加的值。由于所有奇数下标都要累加同一个数，所以也就确定了其余奇数下标的值。
+
+那么，$s_1$ 最小可以是多少？可以是 $0$ 吗？
+
+比如 $s_1 = 5$，$a=2$。不断累加 $a$，$s_1$ 的变化情况如下：
+
+$$
+5\to 7\to 9\to 1\to 3\to 5\to \cdots
+$$
+
+这种情况 $s_1$ 只能是奇数，最小是 $1$。
+
+而如果 $s_1 = 5$，$a=3$，$s_1$ 的变化情况如下：
+
+$$
+5\to 8\to 1\to 4\to 7\to 0\to 3\to 6\to 9\to 2\to 5 \cdots
+$$
+
+这种情况 $s_1$ 可以变成 $[0,9]$ 中的任意整数，最小是 $0$。
+
+一般地，设累加操作执行了 $k\ (k\ge 0)$ 次，那么 $s_1$ 变成
+
+$$
+r = (s_1 + ak)\bmod 10
+$$
+
+也就是 $s_1 + ak$ 减去若干个 $10$ 等于 $r$，即
+
+$$
+s_1 + ak - 10q = r
+$$
+
+变形得
+
+$$
+ak - 10q = r-s_1
+$$
+
+[裴蜀定理](https://oi-wiki.org/math/number-theory/bezouts/) 指出，该方程有解，当且仅当 $r-s_1$ 是 $g = \gcd(a,10)$ 的倍数，即
+
+$$
+r \equiv s_1 \pmod g
+$$
+
+其中 $\equiv$ 是同余符号，详细解释见 [模运算的世界：当加减乘除遇上取模](https://leetcode.cn/circle/discuss/mDfnkW/)。
+
+上式表明，$s_1$ 通过累加操作变成的数，必须与 $s_1$ 关于模 $g$ 同余，所以 $s_1$ 可以变成的最小值为
+
+$$
+s_1\bmod g
+$$
+
+从 $s_1$ 到 $s_1\bmod g$，一共要累加的值为
+
+$$
+s_1\bmod g - s_1 + 10
+$$
+
+其中 $+10$ 保证减法结果非负。
+
+## 枚举轮转到最左边的下标
+
+例如 $s=\texttt{012345}$，$b=4$，执行轮转操作，得到
+
+$$
+\texttt{012345}\to\texttt{234501}\to\texttt{450123}\to\texttt{012345}\to\cdots
+$$
+
+只有 $s_0,s_2,s_4$ 可以轮转到最左边。
+
+类似上文的思路，根据裴蜀定理，可以轮转到最左边的下标，必须是 $\textit{step} = \gcd(b,n)$ 的倍数，其中 $n$ 是 $s$ 的长度。
+
+枚举 $i = 0,\textit{step},2\cdot \textit{step}, 3\cdot \textit{step},\dots$ 作为轮转到最左边的下标。
+
+分类讨论：
+
+- 如果 $\gcd(b,n)$ 是偶数，无论如何轮转，我们只能对奇数下标执行累加操作。
+- 如果 $\gcd(b,n)$ 是奇数，轮转一次后，原来的偶数下标变成奇数下标。可以先轮转一次，执行累加，再轮转到我们想要的位置。可以视作我们拥有了「对偶数下标执行累加操作」的能力。
+
+```py [sol-Python3]
+class Solution:
+    def findLexSmallestString(self, s: str, a: int, b: int) -> str:
+        s = list(map(int, s))
+        n = len(s)
+        step = gcd(b, n)
+        g = gcd(a, 10)
+        ans = [inf]
+
+        def modify(start: int) -> None:
+            ch = t[start]  # 最靠前的数字，越小越好
+            # ch 可以变成的最小值为 ch%g
+            # 例如 ch=5，g=2，那么 ch+2+2+2（模 10）后变成 1，不可能变得更小
+            # 从 ch 到 ch%g，需要增加 inc（循环中会 %10 保证结果在 [0,9] 中）
+            inc = ch % g - ch
+            if inc:  # 优化：inc 为 0 时，t[j] 不变，无需执行 for 循环
+                for j in range(start, n, 2):
+                    t[j] = (t[j] + inc) % 10
+
+        for i in range(0, n, step):      
+            t = s[i:] + s[:i]  # 轮转
+            modify(1)  # 累加操作（所有奇数下标）
+            if step % 2:  # 能对偶数下标执行累加操作
+                modify(0)  # 累加操作（所有偶数下标）
+            ans = min(ans, t)
+
+        return ''.join(map(str, ans))
+```
+
+```java [sol-Java]
+class Solution {
+    public String findLexSmallestString(String S, int a, int b) {
+        char[] s = S.toCharArray();
+        int n = s.length;
+        char[] t = new char[n];
+        int step = gcd(b, n);
+        int g = gcd(a, 10);
+        String ans = null;
+
+        for (int i = 0; i < n; i += step) {
+            // t = s[i,n) + s[0,i)
+            System.arraycopy(s, i, t, 0, n - i);
+            System.arraycopy(s, 0, t, n - i, i);
+
+            modify(t, 1, g); // 累加操作（所有奇数下标）
+            if (step % 2 > 0) { // 能对偶数下标执行累加操作
+                modify(t, 0, g); // 累加操作（所有偶数下标）
+            }
+
+            String str = new String(t);
+            if (ans == null || str.compareTo(ans) < 0) {
+                ans = str;
+            }
+        }
+
+        return ans;
+    }
+
+    private void modify(char[] t, int start, int g) {
+        int ch = t[start] - '0'; // 最靠前的数字，越小越好
+        // ch 可以变成的最小值为 ch%g
+        // 例如 ch=5，g=2，那么 ch+2+2+2（模 10）后变成 1，不可能变得更小
+        // 从 ch 到 ch%g，需要增加 inc，其中 +10 保证 inc 非负（循环中会 %10 保证结果在 [0,9] 中）
+        int inc = ch % g - ch + 10;
+        for (int j = start; j < t.length; j += 2) {
+            t[j] = (char) ('0' + (t[j] - '0' + inc) % 10);
+        }
+    }
+
+    private int gcd(int a, int b) {
+        while (a != 0) {
+            int tmp = a;
+            a = b % a;
+            b = tmp;
+        }
+        return b;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    string findLexSmallestString(string s, int a, int b) {
+        int n = s.size();
+        int step = gcd(b, n);
+        int g = gcd(a, 10);
+        string ans;
+
+        for (int i = 0; i < n; i += step) {
+            string t = s.substr(i) + s.substr(0, i); // 轮转
+
+            auto modify = [&](int start) -> void {
+                int ch = t[start] - '0'; // 最靠前的数字，越小越好
+                // ch 可以变成的最小值为 ch%g
+                // 例如 ch=5，g=2，那么 ch+2+2+2（模 10）后变成 1，不可能变得更小
+                // 从 ch 到 ch%g，需要增加 inc，其中 +10 保证 inc 非负（循环中会 %10 保证结果在 [0,9] 中）
+                int inc = ch % g - ch + 10;
+                for (int j = start; j < n; j += 2) {
+                    t[j] = '0' + (t[j] - '0' + inc) % 10;
+                }
+            };
+
+            modify(1); // 累加操作（所有奇数下标）
+            if (step % 2) { // 能对偶数下标执行累加操作
+                modify(0); // 累加操作（所有偶数下标）
+            }
+
+            if (ans.empty() || t < ans) {
+                ans = move(t);
+            }
+        }
+
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+int gcd(int a, int b) {
+    while (a) {
+        int tmp = a;
+        a = b % a;
+        b = tmp;
+    }
+    return b;
+}
+
+void modify(char* t, int n, int start, int g) {
+    int ch = t[start] - '0'; // 最靠前的数字，越小越好
+    // ch 可以变成的最小值为 ch%g
+    // 例如 ch=5，g=2，那么 ch+2+2+2（模 10）后变成 1，不可能变得更小
+    // 从 ch 到 ch%g，需要增加 inc，其中 +10 保证 inc 非负（循环中会 %10 保证结果在 [0,9] 中）
+    int inc = ch % g - ch + 10;
+    for (int j = start; j < n; j += 2) {
+        t[j] = '0' + (t[j] - '0' + inc) % 10;
+    }
+}
+
+char* findLexSmallestString(char* s, int a, int b) {
+    int n = strlen(s);
+    int step = gcd(b, n);
+    int g = gcd(a, 10);
+
+    char* ans = malloc((n + 1) * sizeof(char));
+    ans[0] = CHAR_MAX;
+    ans[1] = '\0';
+
+    char* t = malloc((n + 1) * sizeof(char));
+    t[n] = '\0';
+
+    for (int i = 0; i < n; i += step) {
+        // t = s[i,n) + s[0,i)
+        strncpy(t, s + i, n - i);
+        strncpy(t + n - i, s, i);
+
+        modify(t, n, 1, g); // 累加操作（所有奇数下标）
+        if (step % 2) { // 能对偶数下标执行累加操作
+            modify(t, n, 0, g); // 累加操作（所有偶数下标）
+        }
+
+        if (strcmp(t, ans) < 0) {
+            strcpy(ans, t);
+        }
+    }
+
+    free(t);
+    return ans;
+}
+```
+
+```go [sol-Go]
+func findLexSmallestString(s string, a int, b int) string {
+	n := len(s)
+	step := gcd(b, n)
+	g := gcd(a, 10)
+	var ans []byte
+
+	for i := 0; i < n; i += step {
+		t := []byte(s[i:] + s[:i]) // 轮转
+		modify := func(start int) {
+			ch := t[start] - '0' // 最靠前的数字，越小越好
+			// ch 可以变成的最小值为 ch%g
+			// 例如 ch=5，g=2，那么 ch+2+2+2（模 10）后变成 1，不可能变得更小
+			// 从 ch 到 ch%g，需要增加 inc，其中 +10 保证 inc 非负（循环中会 %10 保证结果在 [0,9] 中）
+			inc := ch%byte(g) + 10 - ch
+			for j := start; j < n; j += 2 {
+				t[j] = '0' + (t[j]-'0'+inc)%10
+			}
+		}
+		modify(1) // 累加操作（所有奇数下标）
+		if step%2 > 0 { // 能对偶数下标执行累加操作
+			modify(0) // 累加操作（所有偶数下标）
+		}
+		if ans == nil || bytes.Compare(t, ans) < 0 {
+			ans = t
+		}
+	}
+
+	return string(ans)
+}
+
+func gcd(a, b int) int {
+	for a != 0 {
+		a, b = b%a, a
+	}
+	return b
+}
+```
+
+```js [sol-JavaScript]
+var findLexSmallestString = function(s, a, b) {
+    const arr = s.split('').map(ch => parseInt(ch));
+    const n = arr.length;
+    const step = gcd(b, n);
+    const g = gcd(a, 10);
+    let ans = null;
+
+    function modify(t, start) {
+        const ch = t[start]; // 最靠前的数字，越小越好
+        // ch 可以变成的最小值为 ch%g
+        // 例如 ch=5，g=2，那么 ch+2+2+2（模 10）后变成 1，不可能变得更小
+        // 从 ch 到 ch%g，需要增加 inc（循环中会 %10 保证结果在 [0,9] 中）
+        let inc = ch % g - ch + 10;
+        if (inc === 0) { // 优化：inc 为 0 时，t[j] 不变，无需执行 for 循环
+            return;
+        }
+        for (let j = start; j < n; j += 2) {
+            t[j] = (t[j] + inc) % 10;
+        }
+    }
+
+    for (let i = 0; i < n; i += step) {
+        const t = arr.slice(i).concat(arr.slice(0, i)); // 轮转
+        modify(t, 1); // 累加操作（所有奇数下标）
+        if (step % 2) { // 能对偶数下标执行累加操作
+            modify(t, 0); // 累加操作（所有偶数下标）
+        }
+        if (ans === null || compareArray(t, ans) < 0) {
+            ans = t;
+        }
+    }
+
+    return ans.join('');
+};
+
+function gcd(a, b) {
+    while (a) {
+        [a, b] = [b % a, a];
+	}
+	return b;
+}
+
+function compareArray(a, b) {
+    const n = a.length;
+    for (let i = 0; i < n; i++) {
+        if (a[i] !== b[i]) {
+            return a[i] - b[i];
+        }
+    }
+    return 0;
+}
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn find_lex_smallest_string(s: String, a: i32, b: i32) -> String {
+        let n = s.len();
+        let step = gcd(b, n as i32) as usize;
+        let g = gcd(a, 10) as u8;
+        let mut ans = vec![u8::MAX];
+
+        let modify = |t: &mut [u8], start: usize| {
+            let ch = t[start] - b'0'; // 最靠前的数字，越小越好
+            // ch 可以变成的最小值为 ch%g
+            // 例如 ch=5，g=2，那么 ch+2+2+2（模 10）后变成 1，不可能变得更小
+            // 从 ch 到 ch%g，需要增加 inc，其中 +10 保证 inc 非负（循环中会 %10 保证结果在 [0,9] 中）
+            let inc = ch % g + 10 - ch;
+            for j in (start..n).step_by(2) {
+                t[j] = b'0' + (t[j] - b'0' + inc) % 10;
+            }
+        };
+
+        for i in (0..n).step_by(step) {
+            let mut t = format!("{}{}", &s[i..], &s[..i]).into_bytes(); // 轮转
+            modify(&mut t, 1); // 累加操作（所有奇数下标）
+            if step % 2 != 0 { // 能对偶数下标执行累加操作
+                modify(&mut t, 0); // 累加操作（所有偶数下标）
+            }
+            ans = ans.min(t);
+        }
+
+        unsafe { String::from_utf8_unchecked(ans) }
+    }
+}
+
+fn gcd(mut a: i32, mut b: i32) -> i32 {
+    while a != 0 {
+        (a, b) = (b % a, a);
+    }
+    b
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}\left(\dfrac{n^2}{\gcd(b,n)}\right)$，其中 $n$ 是 $s$ 的长度。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+**注**：还可以枚举奇数下标累加值，枚举偶数下标累加值，然后用类似 [最小表示法](https://oi-wiki.org/string/minimal-string/) 的思想，计算在固定累加值的情况下，轮转后的最小字典序。时间复杂度 $\mathcal{O}(D^2n)$，$D=10$。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `一、数论 / §1.6 最大公约数（GCD）`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `一、数论 / §1.6 最大公约数（GCD）`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

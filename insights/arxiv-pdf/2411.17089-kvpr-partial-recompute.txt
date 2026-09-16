@@ -1,0 +1,949 @@
+                                                                 KVPR: Efficient LLM Inference
+                                                         with I/O-Aware KV Cache Partial Recomputation
+
+                                                   Chaoyi Jiang∗ , Lei Gao* , Hossein Entezari Zarch, Murali Annavarm
+                                                                      University of Southern California
+                                                           {chaoyij, leig, entezari, annavara}@usc.edu
+
+
+
+                                                             Abstract                         1   Introduction
+                                         Inference for Large Language Models (LLMs)           Large language models (LLMs) have made remark-
+arXiv:2411.17089v2 [cs.LG] 4 Jun 2025
+
+
+
+
+                                         is computationally demanding. To reduce the          able progress in recent years, demonstrating their
+                                         cost of auto-regressive decoding, Key-Value          ability to power diverse applications such as ma-
+                                         (KV) cache is used to store intermediate acti-
+                                                                                              chine translation (Zhu et al., 2024), summarization
+                                         vations, which significantly lowers the compu-
+                                         tational overhead for token generation. How-         (OpenAI et al., 2024), creative content generation
+                                         ever, the memory required for the KV cache           (Gemini Team, 2024), and personalized recommen-
+                                         grows rapidly, often exceeding the capacity of       dations (Geng et al., 2022). Real-time applications,
+                                         GPU memory. A cost-effective alternative is          including conversational agents and live translation
+                                         to offload KV cache to CPU memory, which             (Li et al., 2023), depend on low latency to provide
+                                         alleviates GPU memory pressure, but shifts           seamless user interaction, while large-scale deploy-
+                                         the bottleneck to the limited bandwidth of the
+                                                                                              ments require high throughput to support concur-
+                                         PCIe connection between the CPU and GPU.
+                                         Existing methods attempt to address these is-
+                                                                                              rent users and process substantial data efficiently
+                                         sues by overlapping GPU computation with I/O         (Kwon et al., 2023).
+                                         or employing CPU-GPU heterogeneous execu-                Key-Value (KV) cache is essential in auto-
+                                         tion, but they are hindered by excessive data        regressive decoding for LLMs, as it stores the in-
+                                         movement and dependence on CPU capabili-             termediate key and value activations from earlier
+                                         ties. Fully overlapping PCIe communication           steps in the attention mechanism. This reduces
+                                         latency gets challenging as the size of the KV
+                                                                                              the computational complexity of generating each
+                                         cache grows and/or the GPU compute capabili-
+                                         ties increase. In this paper, we introduce KVPR,     token from quadratic to linear by eliminating the
+                                         an efficient I/O-aware LLM inference method          need to recompute these activations for every gen-
+                                         where the CPU first transfers a partial set of ac-   erated token. However, this comes at a cost: the
+                                         tivations, from which the GPU can start recom-       size of the KV cache grows linearly with batch
+                                         puting the KV cache values. While the GPU            size, sequence length, and model size, leading to
+                                         recomputes the partial KV cache, the remaining       substantial memory demands (Wan et al., 2024).
+                                         portion of the KV cache is transferred concur-
+                                                                                                  GPU memory, while optimized for high-
+                                         rently from the CPU. This approach overlaps
+                                         GPU recomputation with KV cache transfer to          bandwidth access by computation units, is inher-
+                                         minimize idle GPU time and maximize infer-           ently limited and often insufficient to handle the
+                                         ence performance. KVPR is fully automated            large and growing size of the KV cache. One
+                                         by integrating a profiler module that utilizes       cost-effective approach to address this limitation
+                                         input characteristics and system hardware in-        is to offload the KV cache to cheaper and plentiful
+                                         formation, a scheduler module to optimize the        CPU memory, and could be further offloaded to
+                                         distribution of computation and communica-
+                                                                                              hard disks and network storage (Liu et al., 2024a).
+                                         tion workloads, and a runtime module to effi-
+                                         ciently execute the derived execution plan. Ex-      While offloading reduces GPU memory pressure,
+                                         perimental results show that KVPR achieves           it introduces a new bottleneck: the slow PCIe bus
+                                         up to 35.8% lower latency and 46.2% higher           becomes a limiting factor when transferring the KV
+                                         throughput during decoding compared to state-        cache from CPU to GPU for computation. Due to
+                                         of-the-art approaches. The code is available at      the long PCIe transfer time, the overall decoding la-
+                                         https://github.com/chaoyij/KVPR.                     tency increases and token generation throughput de-
+                                        * These authors contributed equally.                  creases, hindering the overall inference efficiency
+                                                                   However, as demonstrated later in our results, such
+                                                                   an approach puts a burden on the CPU to satisfy
+                                                                   the KV cache computation demands from multi-
+                                                                   ple GPUs attached to a CPU host, thereby limiting
+                                                                   scalability.
+Figure 1: LLM inference system with an A100 GPU.
+                                                                      In this paper, we propose KVPR, a novel ap-
+                                                                   proach for efficient LLM inference that balances
+of the system (Zhao et al., 2024a).
+                                                                   the GPU computation and PCIe bandwidth trade-
+ Model      Hidden Dim
+                         KV Cache   PCIe Latency   Comp. Latency   offs. Instead of transferring the entire KV cache
+                          (MB)          (ms)           (ms)
+ OPT-6.7B     4,096        512          15.6          0.3509       from CPU to GPU to compute an attention score,
+ OPT-13B      5,120        640          19.5          0.4388       the CPU transfers a partial set of activations, which
+ OPT-30B      7,168        896          27.3          0.6143
+                                                                   are smaller in size and are required to generate part
+Table 1: PCIe latency and computation latency for dif-             of the KV cache, to the GPU. The GPU then starts
+ferent KV cache sizes based on the system in Figure 1.             recomputing the partial KV cache from the input
+                                                                   activations. Concurrently, the CPU transfers the
+   To evaluate the impact of communication over-                   remaining KV cache over PCIe. KVPR ensures
+head, we set up an LLM inference serving system                    the computation of exact attention scores without
+(shown in Figure 1) using an NVIDIA A100 GPU.                      approximation, while minimizing GPU idle time
+Data transfer between the CPU DRAM and GPU                         and improving overall latency and throughput.
+HBM occurs over a PCIe 4.0 16 lanes with a band-
+width of 32 GB/s. Table 1 shows the hidden di-                        KVPR achieves a near-perfect overlap of PCIe
+mension, KV cache size, PCIe transfer time, and                    transfer time and GPU recomputation time by deter-
+GPU computation latency for KV pair computa-                       mining the optimal fraction of activations that need
+tion. Note that the end-to-end decoding latency                    to be recomputed. KVPR is fully automated in de-
+includes other components, such as feed-forward                    termining the recomputation and communication
+layers, which are not shown in this table for clar-                split. It includes a profiler module that collects sys-
+ity. We use FP16 precision with a batch size of 32                 tem hardware information, a scheduler module that
+and a sequence length of 1024. The results show                    formulates the problem as a linear programming
+that PCIe latency exceeds KV cache recomputa-                      problem to determine the optimal split point, and a
+tion latency by over an order of magnitude. Hence,                 runtime module that manages memory allocation
+in systems where the KV cache is stored on CPU                     on both devices and coordinates data transfer be-
+DRAM the long transfer time leads to GPU idle                      tween them. Experimental results show significant
+time, which is detrimental to inference efficiency.                improvements in inference latency or throughput,
+   To mitigate the issue of low latency and band-                  depending on workload. In summary, our contribu-
+width of PCIe, FlexGen (Sheng et al., 2023) and                    tions are as follows:
+PipeSwitch (Bai et al., 2020) attempt to overlap
+GPU computation of the current layer with KV
+                                                                      • We propose an efficient CPU-GPU I/O-
+cache loading for the next layer. However, the ef-
+                                                                        aware LLM inference method that leverages
+fectiveness of such an overlap is capped by the
+                                                                        KV cache partial recomputation with asyn-
+task that takes the longest time. In most systems,
+                                                                        chronous KV cache transfer that overlaps com-
+PCIe transfer time overshadows GPU computation
+                                                                        pute and communication to address the system
+latency, particularly with large batch and context
+                                                                        bottleneck of loading large KV cache from
+sizes. Hence, fully overlapping GPU computation
+                                                                        CPU memories.
+with PCIe transfer time is infeasible. FastDecode
+(He and Zhai, 2024) suggests computing attention                      • We develop a framework based on linear
+scores directly on the CPU, which has faster ac-                        integer programming that achieves optimal
+cess to the KV cache compared to the GPU. Sim-                          computation-communication distribution.
+ilarly, HeteGen (Zhao et al., 2024a), TwinPilots                      • Our experimental results show that KVPR
+(Yu et al., 2024), and Park and Egger employ CPU-                       outperforms the current state-of-the-art ap-
+GPU heterogeneous execution to hide data transfer                       proaches up to 35.8% in terms of latency and
+overhead by performing computations on the CPU.                         46.2% in terms of throughput.
+2   Background                                                      3     Proposed Method
+LLM inference process. The inference process                        LLM inference scheduling. Our approach aims
+of decoder-only LLMs employs an auto-regressive                     at LLM inference systems with large KV caches
+approach, generating tokens sequentially. It con-                   that are stored on CPU DRAM and fetched into
+sists of two stages: the prefilling stage and the                   GPU memory as needed. Since LLMs have many
+decoding stage. In the prefilling stage, the input to               layers and many batches of inputs to process, there
+the i-th decoder layer is denoted as X i ∈ Rb×s×h ,                 are different scheduling strategies to determine how
+where i ∈ {1, . . . , n}, b is the batch size, s is the             computations are performed across batches and lay-
+prompt length, and h is the input embedding di-                     ers to optimize for specific performance goals, such
+mension. The Multi-Head Attention (MHA) block                       as minimizing latency or maximizing throughput.
+computes a set of queries (Q), keys (K), and values                 Row-by-row schedule (as shown in Appendix A.1)
+(V ) through linear projections of X i :                            processes one batch at a time, using layer-wise ex-
+                                                                    ecution. In this scenario, model weights are kept
+                                                                    in GPU memory whenever feasible. If the model
+ Qi = X i · WQ
+             i
+               ,   K i = X i · WK
+                                i
+                                  ,         V i = X i · WVi , (1)
+                                                                    weights are also offloaded to the CPU, both the KV
+where WQi , WK  i , W i ∈ Rh×h are the projection                   cache and the model weights for a single layer are
+                     V
+                                                                    transferred to the GPU, processed for the current
+matrices. The generated K i and V i are stored in
+                                                                    batch, and then cleared. This process is repeated
+the KV cache.
+                                                                    layer by layer until a token is generated. When min-
+The self-attention score in MHA is computed as:
+                                                                    imizing latency is the primary goal, this approach
+                           
+                               Qi (K i )T
+                                            
+                                                                    is preferred because all prompts in a batch are fully
+           Z i = softmax        √               · V i,        (2)
+                                   dhead                            processed to generate their complete context before
+                                                                    proceeding to the next batch.
+where dhead represents the dimension of each atten-
+tion head. Finally, the attention score is applied                     Column-by-column scheduling (Appendix A.1)
+with a linear projection to produce the output of the               is more effective for maximizing throughput by in-
+MHA block:                                                          creasing the effective batch size (number of batches
+                                                                    times batch size) to process more sequences in par-
+                    Oi = Z i · WOi ,                          (3)   allel, at the cost of longer latency. In this approach,
+                                                                    the model weights are offloaded to CPU memory
+where WOi ∈ Rh×h is the projection matrix.                          to accommodate a large batch size. The model
+   The feedforward network (FFN) is followed after                  weights and KV cache for a single layer are trans-
+the MHA block, which consists of two fully con-                     ferred to GPU memory and processed for the first
+nected layers with a non-linear activation function                 batch. Instead of moving to the next layer for the
+applied between them. It processes the attention                    current batch, subsequent batches are processed
+output Oi to generate the input for the next decoder                using the same layer while keeping the weights sta-
+layer as follows:                                                   tionary in GPU memory. Once a group of batches
+               X i+1 = σ(Oi · W1i ) · W2i ,                   (4)
+                                                                    is processed for the first layer, the process moves
+                                                                    to the second layer for each batch. Note that the
+where W1i ∈ Rh×dFFN and W2i ∈ RdFFN ×h are the                      effective batch size is limited by the available stor-
+weight matrices of the two linear layers, and σ(·)                  age for activations and KV cache, as they must still
+denotes the activation function.                                    be stored in CPU memory or external storage once
+   In the decoding stage, the i-th decoder layer re-                they exceed the GPU memory capacity.
+ceives a single token xi ∈ Rb×1×h . The KV cache                       Our proposed design is independent of the
+is updated by concatenating the newly computed                      scheduling strategy, whether row-by-row or
+key and value pairs with the existing ones:                         column-by-column, and aims to overlap the ma-
+                                                                    jority of the PCIe transfer time with GPU computa-
+              K i = concat(K i , xi · WK
+                                       i
+                                         ),
+                                                              (5)   tions, thereby improving overall efficiency.
+              V i = concat(V i , xi · WVi ).
+
+   The remaining attention and feedforward compu-                   3.1    Design Overview
+tations in the decoding stage are identical to those                To relieve PCIe pressure and improve GPU com-
+in the prefilling stage.                                            putation utilization, we propose a novel method,
+Figure 2: Design overview of KVPR. User configuration and profiling inform the scheduler, which computes an
+optimal KV cache recompute ratio. The runtime then overlaps data transfer and GPU computation to improve
+inference efficiency.
+
+
+KVPR, that recomputes partial KV cache on the           PCIe to the GPU for executing the MHA and FFN
+GPU while transferring the rest of the KV cache to      blocks. Storing newly generated KV pairs to CPU
+the GPU. As shown in Figure 2, KVPR comprises           memory is omitted from the figure for simplicity.
+three main modules: the profiler, scheduler, and        Since the KV cache is larger in size compared to
+runtime. User configuration includes performance        the MHA weights, it arrives at the GPU later during
+objective (i.e., latency or throughput), data parame-   the asynchronous transfer. The pipeline is slightly
+ters such as prompt length, generation length, batch    different if model weights are not offloaded to the
+size, and model information like input embedding        CPU. In this case, only the MHA block will wait
+dimension and number of layers. The profiler mod-       for the KV cache data to be transferred to the GPU
+ule gathers system statistics, which provide insights   before starting the computation.
+into hardware characteristics like PCIe bandwidth
+and GPU processing speed. For example, the pro-
+filer module utilizes the batch size, model infor-
+mation, and sequence length to characterize PCIe
+                                                        (a) Naive offloading pipeline for row-wise scheduling with
+bandwidth. Using this information along with the        asynchronous data transfer. GPU and PCIe denote GPU com-
+user configuration, the scheduler module calcu-         putation and data transfer, with arrows indicating data depen-
+                                                        dencies.
+lates the best KV cache split point for recompu-
+tation by solving a linear programming problem,
+aiming to maximize the overlap between the com-
+putation and communication operations and utiliza-      (b) Offloading pipeline for row-wise scheduling with KV
+tion of both GPU and PCIe bandwidth during the          cache partial recomputation.
+inference process. The runtime module, in turn,
+                                                          Figure 3: Comparison of two offloading pipelines.
+utilizes this execution strategy to process user in-
+puts and manage the memory allocation and data
+transfer streams.                                          In KVPR, rather than transferring the entire KV
+                                                        cache from CPU memory to GPU memory, the
+                                                        GPU recomputes partial KV cache using corre-
+3.2   Scheduler Module
+                                                        sponding input activations that are transferred from
+In this section, we describe how KVPR is adopted        CPU first, while the remaining KV cache is asyn-
+to either the row-by-row or column-by-column            chronously transferred to the GPU, as illustrated
+schedule.                                               in Figure 3(b). The GPU then merges the recom-
+Row-by-row schedule with KV cache partial re-           puted KV cache with the transferred KV cache to
+computation. If the performance objective is to         perform MHA computations.
+minimize latency, the scheduler module will initiate    Column-by-column schedule with KV cache par-
+a row-by-row execution plan. The naive offload-         tial recomputation. When the performance ob-
+ing pipeline of a row-by-row schedule is shown in       jective is to maximize throughput, the scheduler
+Figure 3(a), where both the KV cache and model          module adopts a column-by-column execution plan.
+weights are offloaded to CPU memory. The re-            This approach, illustrated in Figure 4, accommo-
+quired data are transferred asynchronously over         dates large batch size inference by reusing model
+weights across multiple batches. As soon as the
+                                                                                              NKV i [0:l]
+KV cache for batch 0 is fully transmitted, the acti-                             tirecomp =               ,              (9)
+                                                                                               vgpu
+vations for batch 1 are transferred. Simultaneously,
+the GPU begins computing the MHA for batch 0.              where vgpu denotes the GPU processing speed. The
+Unlike the row-by-row schedule, which processes            total time ti for processing is as follows:
+all layers sequentially within a single batch before
+moving to the next batch, the column-by-column                          MX i [0:l]
+                                                                                        
+                                                                                                    MKV i [l:s′ ]
+                                                                                                                  
+                                                                 ti =              + max tirecomp ,                 ,   (10)
+schedule processes multiple batches on the same                          vcom                        vcom
+layer. As a result, activations corresponding to the
+recomputed KV cache must be stored until genera-           where vcom represents the data transmission speed
+tion for that batch is complete.                           for activations and KV cache.
+                                                              The objective is to determine the optimal l that
+                                                           minimizes this total processing time ti , which be-
+                                                           comes a linear programming problem:
+                                                                          min ti
+Figure 4: Offloading pipeline for column-wise schedul-                      l                                           (11)
+ing with KV cache partial recomputation to maximize                        s.t. 0 ≤ l ≤ s ∀i ∈ {1, . . . , n}.
+throughput.
+                                                              The optimal split point l depends on the current
+                                                           sequence length s′ , which increases during genera-
+Determining the optimal KV cache split point.
+                                                           tion and must therefore be determined adaptively.
+In both scheduling methods, the objective is to
+                                                           Fortunately, solving this linear programming prob-
+identify the optimal split point, which defines the
+                                                           lem is computationally negligible because there
+division of the KV cache between the portion re-
+                                                           is only one integer variable. If the first term in
+computed on the GPU and the portion transferred
+                                                           Eq. (10) is omitted, the problem simplifies to the
+from CPU memory. This problem can be formu-
+                                                           row-by-row schedule.
+lated as a linear programming problem. The row-
+by-row schedule can be viewed as a special case of         3.3     Runtime Module
+the column-by-column schedule, where activations
+                                                           Asynchronous overlapping. To enable concur-
+for recomputing the KV cache are not transferred.
+                                                           rent execution of GPU computation and CPU-GPU
+We first formulate the problem for the column-by-
+                                                           communication, the runtime module employs a
+column schedule and then demonstrate how it sim-
+                                                           communication parallelism strategy with six pro-
+plifies to the row-by-row schedule.
+                                                           cesses: weight loading, KV cache loading, activa-
+   Given the current sequence length s′ , which is
+                                                           tion loading, recomputed activation loading, KV
+greater than the prompt length s, the activation
+                                                           cache storing, and activation storing, as detailed in
+transferred to the GPU in the i-th layer is repre-
+                                                           Appendix A.2. By incorporating double buffering
+sented by X i [0 : l], where 0 ≤ l ≤ s′ . The remain-
+                                                           and prefetching techniques, it simultaneously loads
+ing KV cache for the subsequent tokens is denoted
+                                                           weights for the next layer, and retrieves activations
+by K i [l : s′ ] and V i [l : s′ ]. The memory usage of
+                                                           for KV cache recomputation and KV cache for
+these activations is:
+                                                           the next batch, while storing cache and activations
+           MX i [0:l] = b × l × h × p,                     from the previous batch and processing the current
+                                                     (6)
+         MKV i [l:s′ ] = 2 × b × (s′ − l) × h × p.         batch.
+                                                           Pinned memory. To optimize data transfer, like
+Recomputing the KV cache for X i [0 : l] requires:         prior works (Sheng et al., 2023; Yu et al., 2024),
+               K i [0 : l] = X i [0 : l] · WK
+                                            i
+                                              ,            we utilize pinned CPU memory for recomputed
+                                                     (7)   activation and the weights that are transferred to
+               V i [0 : l] = X i [0 : l] · WVi .
+                                                           the GPU. Using pinned memory enables faster and
+This recomputation on the GPU requires floating-           asynchronous transfer, as it avoids the need to page
+point operations of                                        data in and out.
+              NKV i [0:l] = 4 × b × l × h2 .         (8)
+                                                           Hiding KV cache partial recomputation. If both
+                                                           the KV cache and model weights are offloaded, and
+Consequently, the recomputation time tigpu for the         the size of the transferred KV cache is smaller than
+KV cache is given by                                       the size of the model weights, a coarse-grained
+computation pipeline with KV cache partial recom-              of workloads: latency-oriented and throughput-
+putation may degrade inference performance. This               oriented. In the latency-oriented workload, the
+occurs because recomputation waits until all MHA               model weights are retained in GPU memory to
+weights (WQ , WK , WV , and WO ) are fully loaded,             avoid the costly repeated loading. Due to the
+as shown in Figure 5(a), which delays the MHA                  limited memory size of a GPU, experiments are
+computation. However, KV cache recomputation                   conducted using OPT-6.7B and OPT-13B. In the
+only requires WK and WV (Eq. (7)), making it un-               throughput-oriented workload, model weights are
+necessary to wait for the complete weight loading              offloaded to the CPU after computation to free
+process. To address this, we implement a fine-                 more GPU memory for handling larger batches.
+grained MHA pipeline that prioritizes loading WK               This setup is evaluated using OPT-6.7B, OPT-13B,
+and WV first. Once these weights are available, KV             and OPT-30B.
+cache recomputation can begin immediately. As                      To provide accurate comparisons, we use the
+illustrated in Figure 5(b), WK and WV are used for             same datasets as those in FlexGen (Sheng et al.,
+KV cache partial recomputation, followed by the                2023) with prompts uniformly padded to the same
+use of WQ and WO for MHA computation. This                     length, with models configured to generate 32 or
+approach effectively overlaps KV cache recompu-                128 tokens per prompt. To evaluate performance
+tation with weight loading, ensuring that in the               across different input scenarios, our evaluation uses
+worst-case scenario, the method performs no worse              prompt lengths of 256, 512, and 1024 tokens. Per-
+than the baseline bottlenecked by weight loading.              formance metrics include decoding latency (time
+                                                               taken to generate tokens) for latency-oriented work-
+                                                               loads and decoding throughput (tokens generated
+                                                               per second) for throughput-oriented workloads, as
+(a) Coarse-grained offloading pipeline with delayed KV cache   KVPR does not impact prefilling performance. We
+partial recomputation.                                         report an average decoding latency and throughput
+                                                               across five test runs, respectively.
+                                                               Baseline. In our experiments, we use DeepSpeed
+(b) Fine-grained offloading pipeline overlapping KV cache
+                                                               Inference (Aminabadi et al., 2022), Hugging Face
+recomputation with weights loading.                            Accelerate (Gugger et al., 2022) as the baseline
+                                                               for latency-oriented workload experiments, as Hug-
+Figure 5: Comparison of offloading pipelines with dif-         ging Face Transformers library currently supports
+ferent levels of granularity in the MHA layer.
+                                                               KV cache offloading to CPU memory while still
+                                                               retaining the model weights in GPU memory. We
+4    Experiments                                               use FlexGen (Sheng et al., 2023) as the baseline
+                                                               for throughput-oriented workload experiments, as
+Hardware. In our experiments, we utilize an                    it supports column-by-column schedule by offload-
+NVIDIA A100 GPU with 40 GB of memory, con-                     ing both model weights and KV cache to the CPU.
+nected to the CPU through a PCIe 4.0 x16 interface,            Implementation. KVPR is implemented on top of
+which provides a bandwidth of 32 GB/s. The CPU                 Hugging Face Transformers (v4.46.1) (Wolf et al.,
+is an AMD EPYC processor with 64 cores, operat-                2020) and FlexGen (Sheng et al., 2023) frameworks
+ing at 2.6 GHz. Our method and implementation                  to ensure fair comparison with baselines. In the
+automatically adapt to the underlying hardware,                Transformers implementation, we utilize double
+which allows for flexible deployment across diverse            buffering in GPU memory to overlap KV cache
+system architectures.                                          transfer across decoder layers. For both the Trans-
+Model. We evaluate KVPR using OPT models                       formers and FlexGen implementations, we utilize
+(Zhang et al., 2022) with parameter sizes ranging              CUDA streams to enable asynchronous overlap-
+from 6.7B to 30B. While our experiments focus                  ping as described in Algorithm 1.
+on OPT models, the recomputation technique pre-
+sented in this work is compatible with other LLM               4.1   Latency-oriented Experiments
+architectures, such as LLaMa (Touvron et al., 2023)            We evaluate the decoding latency required to com-
+and GPT-3 (Brown et al., 2020), due to their similar           plete a single batch for settings of different se-
+attention mechanisms (Vaswani et al., 2017).                   quence lengths. Figure 7 shows that KVPR consis-
+Workload. We evaluate KVPR on two types                        tently outperforms the baselines, DeepSpeed Infer-
+   Throughput (tokens/s)                   OPT-6.7B                                             OPT-13B                                       OPT-30B
+
+
+
+
+                                                                                                                                                                        Effective bs = 32 x 8
+                                                               FlexGen     50                                               25
+                            80
+                                                               KVPR        40                                               20
+                            60
+                                                                           30                                               15
+                            40
+                                                                           20                                               10
+                            20                                             10                                                5
+                             0                                                 0                                             0
+                                 256   256    512       512 1024 1024              256    256    512       512 1024 1024          256   256    512   512 1024 1024
+                                 32    128    32        128 32 128                 32     128    32        128 32 128             32    128    32    128 32 128
+                                       Sequence length                                   Sequence length                                Sequence length
+   Throughput (tokens/s)
+
+
+
+
+                                                                                                                                                                          Seq length=1024+32
+                            25                                                                                              10
+                                                                           15
+                            20                                                                                              7.5
+                            15                                             10
+                                                                                                                             5
+                            10
+                                                                               5                                            2.5
+                             5
+                             0                                                 0                                             0
+                                 1     2      4     8     16   32   48              1     2     4      8     16   32   48          1     2     4     8   16   32   48
+                                           Batch size                                         Batch size                                      Batch size
+
+                                              Figure 6: Throughput comparison for various models and configurations.
+
+
+ence and Hugging Face Accelerate, for both OPT-                                                        quentially before moving to the next layer. The
+6.7B and OPT-13B. The experimental results show                                                        first row of Figure 6 shows the results, demonstrat-
+that KVPR reduces decoding latency, especially                                                         ing that KVPR consistently outperforms FlexGen
+at longer generation lengths. For instance, OPT                                                        under settings of all sequence lengths for different
+6.7B at a prompt length of 128 with 128 tokens                                                         models. It achieves up to 15.1%, 46.2%, and 29.0%
+generated, the latency is reduced by approximately                                                     speedup in throughput for OPT-6.7B, OPT-13B,
+35.8% compared to Hugging Face Accelerate. De-                                                         and OPT-30B, respectively. Additional experimen-
+tailed experiential results including KV cache size,                                                   tal results on a low-end GPU system are provided
+GPU peak memory usage, and optimal recompu-                                                            in Appendix A.5.
+tation split points over the generation process are                                                       We also compare KVPR with FlexGen for vary-
+provided in Appendix A.3 and A.4.                                                                      ing batch sizes from 1 to 48 with a fixed prompt
+                                                                                                       length of 1,024 and a generation length of 32, as
+                                 DS (OPT-6.7B)             Accel. (OPT-6.7B)
+                                                                                                       shown in the second row of Figure 6. KVPR
+  Latency (seconds)
+
+
+
+
+                           175   KVPR (OPT-6.7B)           DS (OPT-13B)
+                           150   Accel. (OPT-13B)          KVPR (OPT-13B)                              consistently outperforms FlexGen across all batch
+                           125                                                                         sizes. As the KV cache grows larger, KVPR shows
+                           100                                                                         greater performance benefits due to reduced KV
+                            75
+                                                                                                       cache transfer over the PCIe bus.
+                            50
+                            25
+                            0
+                                 128         128         256        256    512          512            4.3        GPU Utilization
+                                 32          128          32        128    32           128
+                                                   Sequence length
+                                                                                                       To evaluate the efficiency improvement, we ana-
+Figure 7: Decoding latency for a single batch of size 64                                               lyze the temporal resource utilization of KVPR
+across different sequence lengths.                                                                     and FlexGen as shown in Figure 8. At first in the
+                                                                                                       prefilling stage, both methods reach full GPU uti-
+                                                                                                       lization since the prefilling stage is compute-bound.
+4.2                        Throughput-oriented Experiments                                             However, in the decoding stage, in contrast to Flex-
+We also evaluate throughput performance during                                                         Gen, KVPR enhances GPU utilization, increasing
+the decoding stage, as KVPR does not affect the                                                        it from 85% to 99% on average by overlapping
+prefilling stage. To maximize throughput, we set                                                       GPU computations with CPU-GPU data transfer,
+the effective batch size to be 32 by 8, meaning                                                        while maintaining the same peak memory usage
+each layer computes on 8 batches of size 32 se-                                                        indicated by the black lines.
+                                    KVPR (C)         FlexGen (C)       KVPR (M)    FlexGen (M)   overlapping the transfer of MHA weights with KV
+                              100                                                                cache recomputation, KVPR ensures performance
+  Percentage
+                              75                                                                 that is no worse than FlexGen under this scenario,
+                              50                                                                 particularly when weight loading is the primary
+                              25
+                                                                                                 bottleneck. This result shows that KVPR works
+                                                                                                 well for both small and large batch size settings,
+                               0
+                                      0         40         80     120     160     200   240      thereby providing a unified approach to improve
+                                                                Time (s)                         decoding performance.
+
+Figure 8: Computation and memory resource usage of                                                Batch size           1      2          4        8       16       32
+                                                                                                  KV cache (MB)        3      6         12       24       48       64
+KVPR and FlexGen during decoding stage.                                                           FlexGen             1.761 3.488     6.646    12.826   23.795   41.210
+                                                                                                  KVPR (w/o. hiding
+                                                                                                                      1.749 3.461     6.766    12.930   23.613   43.462
+                                                                                                  KV recomputation)
+                                                                                                  KVPR (w. hiding
+4.4                           KV Cache Compression                                                KV recomputation)
+                                                                                                                      1.774 3.586     6.696    12.986   24.557   43.945
+
+We apply group-wise 4-bit quantization to com-
+                                                                                                 Table 2: OPT-6.7B model with prompt and generation
+press the KV cache, which has been shown to
+                                                                                                 lengths of 256 and 64, respectively. Each MHA block
+have minimal impact on model accuracy (Sheng                                                     (WQ , WK , WV , and WO ) requires 128 MB of memory.
+et al., 2023). Figure 9 shows that applying compres-
+sion reduces the amount of data transferred to the                                               Runtime breakdown. Figure 10 presents the
+GPU, leading to further improvements in decoding                                                 runtime breakdown of an MHA block in KVPR
+throughput. These results showcase the compatibil-                                               and FlexGen during the decoding stage. KVPR
+ity of KVPR with KV cache compression and its                                                    achieves a substantial reduction in KV cache trans-
+potential to achieve additional performance gains                                                fer time, decreasing it from 58% to 38%, with acti-
+by alleviating PCIe bandwidth bottlenecks.                                                       vation transfer contributing only 8% of the total run-
+                                                                                                 time. By recomputing the partial KV cache from
+      Throughput (tokens/s)
+
+
+
+
+                                                                                                 the transferred activations, GPU computation time
+                                                                      w/o KV cache compression
+                               60
+                                                                      w/ KV cache compression
+                                                                                                 increases from 2.3% to 13.3%. This demonstrates
+                                                                                                 that KVPR effectively overlaps GPU computation
+                               40
+                                                                                                 with CPU-GPU communication, substantially re-
+                               20                                                                ducing the data transfer volume from CPU to GPU
+                                                                                                 and alleviating the PCIe bottleneck that limits LLM
+                                0                                                                inference performance.
+                                          256        256        512     512     1024    1024
+                                          32         128         32     128      32     128
+                                                      Sequence length                                              load-weight   load-cache        load-activation
+                                                                                                                   compute       store-cache       store-activation
+Figure 9: Decoding throughput improvement with KV
+cache compression enabled on OPT-13B model.                                                          FlexGen
+                                                                                                      KVPR
+
+                                                                                                               0       20        40           60        80            100
+4.5                           Ablation Study                                                                                Per-unit percentage
+Hiding KV cache partial recomputation. To eval-
+uate the effectiveness of the fine-grained offload-                                              Figure 10: Runtime breakdown of KVPR and FlexGen.
+ing pipeline that overlaps KV cache recomputation
+with weight loading, we conduct experiments us-
+                                                                                                 5     Related Works
+ing the OPT-6.7B model. In this ablation, we use a
+small KV cache size to ensure that MHA weights                                                   To address the memory demands of LLMs in
+always arrive at the GPU later than the KV cache.                                                resource-constrained settings, offloading tech-
+Table 2 presents decoding latency across varying                                                 niques aim to minimize the latency of data transfer
+smaller batch sizes, comparing three configura-                                                  between CPUs and GPUs. FlexGen (Sheng et al.,
+tions: FlexGen, KVPR without hiding KV cache                                                     2023) proposes to offload weights, activations, and
+recomputation, and KVPR with hiding. When the                                                    KV cache to CPU memory or external storage and
+batch size is 1 and the KV cache size is the smallest,                                           maximizes throughput for larger batch sizes by
+FlexGen can outperform KVPR without hiding. By                                                   formulating the optimization as a graph traversal
+problem. HeteGen (Zhao et al., 2024a) uses the          leveraging KV cache partial recomputation. How-
+CPU for partial computation on offloaded weights        ever, KVPR has certain limitations that suggest
+while transferring the remaining workload to the        avenues for future research. First, our methodology
+GPU. TwinPilots (Yu et al., 2024) further optimizes     is currently limited to single-GPU and data-parallel
+workload balancing between the CPU and GPU at           multi-GPU inference. It does not yet extend to
+the operator level. FastDecode (He and Zhai, 2024)      advanced distributed systems, such as model or
+reduces KV cache data movement by offloading the        tensor parallelism. Expanding this approach to
+KV cache and attention computation entirely to the      these paradigms could enable support for larger
+CPU. Park and Egger and Neo (Jiang et al., 2024)        model sizes. Second, while we address PCIe band-
+overlap GPU linear projection computations with         width bottlenecks in CPU-GPU communication,
+CPU-based attention computations across multiple        we do not consider scenarios where the KV cache is
+batches to improve resource utilization.                loaded from disk or network storage. Nevertheless,
+   ALISA (Zhao et al., 2024b) compresses the KV         KVPR could potentially be adapted to accelerate
+cache based on sparsity and offloads KV cache ex-       the prefilling stage in such setups. Third, the cur-
+ceeding GPU memory capacity. When loading the           rent implementation performs system profiling only
+KV cache to the GPU, ALISA recomputes a portion         at the start of inference, assuming static hardware
+of the KV cache first and then transfers the remain-    conditions throughout the process. Incorporating
+der, where we propose overlapping the recompu-          dynamic profiling and runtime adaptive optimiza-
+tation and transfer by adaptively determining the       tion could enhance the robustness and efficiency
+optimal split point. Furthermore, ALISA addresses       of the approach, particularly in heterogeneous or
+only the row-by-row schedule, while KVPR ex-            multi-tenant environments.
+tends to the column-by-column schedule. KVPR
+is orthogonal to CPU-assisted and KV cache com-         8   Acknowledgment
+pression approaches, making it compatible for in-
+                                                        We sincerely thank all the reviewers for their
+tegration with these techniques to further improve
+                                                        time and constructive comments. This material is
+overall system performance. As shown in the addi-
+                                                        based upon work supported by NSF award number
+tional experiments provided in Appendix A.7, we
+                                                        2224319, REAL@USC-Meta center, and VMware
+demonstrate that the CPU can become a bottleneck
+                                                        gift. The views, opinions, and/or findings ex-
+in certain distributed system configurations. In con-
+                                                        pressed are those of the author(s) and should not
+trast, KVPR optimizes GPU utilization and data
+                                                        be interpreted as representing the official views or
+transfer efficiency without relying on additional
+                                                        policies of the U.S. Government.
+CPU resources or approximations of the KV cache.
+
+6   Conclusion
+                                                        References
+In this paper, we introduce KVPR, an efficient          Reza Yazdani Aminabadi, Samyam Rajbhandari, Am-
+CPU-GPU I/O-aware LLM inference method de-                mar Ahmad Awan, Cheng Li, Du Li, Elton Zheng,
+signed to accelerate KV cache loading. KVPR min-          Olatunji Ruwase, Shaden Smith, Minjia Zhang, Jeff
+imizes the data transfer between the CPU and GPU          Rasley, et al. 2022. Deepspeed-inference: enabling
+                                                          efficient inference of transformer models at unprece-
+by leveraging KV cache partial recomputation. By          dented scale. In SC22: International Conference for
+overlapping this recomputation with data transmis-        High Performance Computing, Networking, Storage
+sion, KVPR significantly reduces idle GPU time            and Analysis, pages 1–15. IEEE.
+and enhances overall inference performance. Fu-
+                                                        Zhihao Bai, Zhen Zhang, Yibo Zhu, and Xin Jin. 2020.
+ture work could extend our method to tolerate KV          PipeSwitch: Fast pipelined context switching for
+cache loading from remote network storage or scale        deep learning applications. In 14th USENIX Sym-
+to large multi-GPU infrastructure, further enhanc-        posium on Operating Systems Design and Implemen-
+ing its applicability and performance in diverse          tation (OSDI 20), pages 499–514.
+deployment scenarios.
+                                                        Tom Brown, Benjamin Mann, Nick Ryder, Melanie
+                                                          Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind
+7   Limitations                                           Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+                                                          Askell, Sandhini Agarwal, Ariel Herbert-Voss,
+Our study represents an important step towards            Gretchen Krueger, Tom Henighan, Rewon Child,
+optimizing the efficiency of LLM inference by             Aditya Ramesh, Daniel Ziegler, Jeffrey Wu, Clemens
+  Winter, Chris Hesse, Mark Chen, Eric Sigler, Ma-         Wonbeom Lee, Jungi Lee, Junghwan Seo, and Jaewoong
+  teusz Litwin, Scott Gray, Benjamin Chess, Jack             Sim. 2024. InfiniGen: Efficient generative inference
+  Clark, Christopher Berner, Sam McCandlish, Alec            of large language models with dynamic KV cache
+  Radford, Ilya Sutskever, and Dario Amodei. 2020.           management. In 18th USENIX Symposium on Op-
+  Language models are few-shot learners. In Ad-              erating Systems Design and Implementation (OSDI
+  vances in Neural Information Processing Systems,          24), pages 155–172.
+  volume 33, pages 1877–1901.
+                                                           Guohao Li, Hasan Abed Al Kader Hammoud, Hani
+Tri Dao, Daniel Y. Fu, Stefano Ermon, Atri Rudra,            Itani, Dmitrii Khizbullin, and Bernard Ghanem. 2023.
+   and Christopher Ré. 2024. Flashattention: fast and        Camel: Communicative agents for "mind" explo-
+   memory-efficient exact attention with io-awareness.       ration of large language model society. Preprint,
+   In Proceedings of the 36th International Conference       arXiv:2303.17760.
+   on Neural Information Processing Systems, NIPS
+                                                           Yuhan Liu, Hanchen Li, Yihua Cheng, Siddhant Ray,
+  ’22.
+                                                             Yuyang Huang, Qizheng Zhang, Kuntai Du, Jiayi
+Tri Dao, Daniel Haziza, Francisco Massa, and Grigory         Yao, Shan Lu, Ganesh Ananthanarayanan, Michael
+   Sizov. 2023. Flash decoding: Advances in efficient        Maire, Henry Hoffmann, Ari Holtzman, and Junchen
+   text generation.                                          Jiang. 2024a. Cachegen: Kv cache compression and
+                                                             streaming for fast large language model serving. In
+Shiwei Gao, Youmin Chen, and Jiwu Shu. 2025. Fast            Proceedings of the ACM SIGCOMM 2024 Confer-
+  state restoration in llm serving with hcache. In Pro-      ence, ACM SIGCOMM ’24, page 38–56.
+  ceedings of the Twentieth European Conference on
+  Computer Systems, pages 128–143.                         Zirui Liu, Jiayi Yuan, Hongye Jin, Shaochen Zhong,
+                                                              Zhaozhuo Xu, Vladimir Braverman, Beidi Chen, and
+Google Gemini Team. 2024. Gemini: A family                   Xia Hu. 2024b. KIVI: A tuning-free asymmetric 2bit
+  of highly capable multimodal models. Preprint,              quantization for KV cache. In Proceedings of the
+  arXiv:2312.11805.                                          41st International Conference on Machine Learning,
+                                                             volume 235 of Proceedings of Machine Learning
+Shijie Geng, Shuchang Liu, Zuohui Fu, Yingqiang Ge,          Research, pages 32332–32344.
+  and Yongfeng Zhang. 2022. Recommendation as
+  language processing (rlp): A unified pretrain, person-   OpenAI, Josh Achiam, Steven Adler, Sandhini Agarwal,
+  alized prompt & predict paradigm (p5). In Proceed-         Lama Ahmad, and et al. 2024. Gpt-4 technical report.
+  ings of the 16th ACM Conference on Recommender             Preprint, arXiv:2303.08774.
+  Systems, RecSys ’22, page 299–315.                       Daon Park and Bernhard Egger. 2024. Improving
+                                                             throughput-oriented llm inference with cpu compu-
+Sylvain Gugger, Lysandre Debut, Thomas Wolf, Philipp
+                                                             tations. In Proceedings of the 2024 International
+  Schmid, Zachary Mueller, Sourab Mangrulkar, Marc
+                                                             Conference on Parallel Architectures and Compila-
+  Sun, and Benjamin Bossan. 2022. Accelerate: Train-
+                                                             tion Techniques, pages 233–245.
+  ing and inference at scale made simple, efficient and
+  adaptable. https://github.com/huggingface/               Ying Sheng, Lianmin Zheng, Binhang Yuan, Zhuohan
+  accelerate.                                                Li, Max Ryabinin, Beidi Chen, Percy Liang, Christo-
+                                                             pher Ré, Ion Stoica, and Ce Zhang. 2023. Flexgen:
+Jiaao He and Jidong Zhai. 2024. Fastdecode: High-            high-throughput generative inference of large lan-
+   throughput gpu-efficient llm serving using heteroge-      guage models with a single gpu. In Proceedings of
+   neous pipelines. Preprint, arXiv:2403.11421.              the 40th International Conference on Machine Learn-
+Coleman Richard Charles Hooper, Sehoon Kim, Hiva             ing, ICML’23.
+  Mohammadzadeh, Michael W. Mahoney, Sophia                Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+  Shao, Kurt Keutzer, and Amir Gholami. 2024.                Martinet, Marie-Anne Lachaux, Timothée Lacroix,
+  KVQuant: Towards 10 million context length LLM             Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal
+  inference with KV cache quantization. In The Thirty-       Azhar, Aurelien Rodriguez, Armand Joulin, Edouard
+  eighth Annual Conference on Neural Information             Grave, and Guillaume Lample. 2023. Llama: Open
+  Processing Systems.                                        and efficient foundation language models. Preprint,
+                                                             arXiv:2302.13971.
+Xuanlin Jiang, Yang Zhou, Shiyi Cao, Ion Stoica, and
+  Minlan Yu. 2024. Neo: Saving gpu memory cri-             Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob
+  sis with cpu offloading for online llm inference.          Uszkoreit, Llion Jones, Aidan N Gomez, Ł ukasz
+  Preprint, arXiv:2411.01142.                                Kaiser, and Illia Polosukhin. 2017. Attention is all
+                                                             you need. In Advances in Neural Information Pro-
+Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying                 cessing Systems, volume 30.
+ Sheng, Lianmin Zheng, Cody Hao Yu, Joseph Gon-
+ zalez, Hao Zhang, and Ion Stoica. 2023. Efficient         Zhongwei Wan, Xin Wang, Che Liu, Samiul Alam,
+ memory management for large language model serv-            Yu Zheng, Jiachen Liu, Zhongnan Qu, Shen Yan,
+ ing with pagedattention. In Proceedings of the 29th         Yi Zhu, Quanlu Zhang, Mosharaf Chowdhury, and
+ Symposium on Operating Systems Principles, SOSP             Mi Zhang. 2024. Efficient large language models: A
+ ’23, page 611–626.                                          survey. Transactions on Machine Learning Research.
+Thomas Wolf, Lysandre Debut, Victor Sanh, Julien             large language models: Empirical results and analy-
+  Chaumond, Clement Delangue, Anthony Moi, Pier-             sis. In Findings of the Association for Computational
+  ric Cistac, Tim Rault, Rémi Louf, Morgan Funtowicz,        Linguistics: NAACL 2024, pages 2765–2781.
+  Joe Davison, Sam Shleifer, Patrick von Platen, Clara
+  Ma, Yacine Jernite, Julien Plu, Canwen Xu, Teven Le
+  Scao, Sylvain Gugger, Mariama Drame, Quentin
+  Lhoest, and Alexander M. Rush. 2020. Transform-
+  ers: State-of-the-art natural language processing. In
+  Proceedings of the 2020 Conference on Empirical
+  Methods in Natural Language Processing: System
+  Demonstrations.
+
+Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song
+  Han, and Mike Lewis. 2024. Efficient streaming lan-
+  guage models with attention sinks. In The Twelfth
+  International Conference on Learning Representa-
+  tions.
+
+Chengye Yu, Tianyu Wang, Zili Shao, Linjie Zhu,
+  Xu Zhou, and Song Jiang. 2024. Twinpilots: A new
+  computing paradigm for gpu-cpu parallel llm infer-
+  ence. In Proceedings of the 17th ACM International
+  Systems and Storage Conference, SYSTOR ’24, page
+  91–103.
+
+Gyeong-In Yu, Joo Seong Jeong, Geon-Woo Kim, Soo-
+  jeong Kim, and Byung-Gon Chun. 2022. Orca: A
+  distributed serving system for Transformer-Based
+  generative models. In 16th USENIX Symposium
+  on Operating Systems Design and Implementation
+  (OSDI 22), pages 521–538.
+
+Susan Zhang, Stephen Roller, Naman Goyal, Mikel
+  Artetxe, Moya Chen, Shuohui Chen, Christopher De-
+  wan, Mona Diab, Xian Li, Xi Victoria Lin, Todor Mi-
+  haylov, Myle Ott, Sam Shleifer, Kurt Shuster, Daniel
+  Simig, Punit Singh Koura, Anjali Sridhar, Tianlu
+  Wang, and Luke Zettlemoyer. 2022. Opt: Open
+  pre-trained transformer language models. Preprint,
+  arXiv:2205.01068.
+
+Zhenyu Zhang, Ying Sheng, Tianyi Zhou, Tianlong
+  Chen, Lianmin Zheng, Ruisi Cai, Zhao Song, Yuan-
+  dong Tian, Christopher Re, Clark Barrett, Zhangyang
+  Wang, and Beidi Chen. 2023. H2o: Heavy-hitter ora-
+  cle for efficient generative inference of large language
+  models. In Thirty-seventh Conference on Neural In-
+  formation Processing Systems.
+
+Xuanlei Zhao, Bin Jia, Haotian Zhou, Ziming Liu,
+  Shenggan Cheng, and Yang You. 2024a. Hetegen:
+  Efficient heterogeneous parallel inference for large
+  language models on resource-constrained devices. In
+  MLSys.
+
+Youpeng Zhao, Di Wu, and Jun Wang. 2024b. ALISA:
+  Accelerating Large Language Model Inference via
+  Sparsity-Aware KV Caching . In 2024 ACM/IEEE
+  51st Annual International Symposium on Computer
+  Architecture (ISCA), pages 1005–1017.
+
+Wenhao Zhu, Hongyi Liu, Qingxiu Dong, Jingjing Xu,
+  Shujian Huang, Lingpeng Kong, Jiajun Chen, and
+  Lei Li. 2024. Multilingual machine translation with
+A     Appendix                                          Algorithm 1 KV Cache Partial Recomputation
+                                                        with Overlapping
+A.1    Scheduling Methods                                 for i = 1 to generation_length do
+Figures 11 illustrates two decoding schedules for           for j = 1 to num_layers do
+generating 2 tokens from a model with three layers              for k = 1 to num_GPU_batches do
+(L0 , L1 , and L2 ) during the decoding stage. In                 // Load the weight of the next layer
+Figure 11(a), the row-by-row schedule processes                   load_weight(i, j + 1, k)
+each batch across all layers before moving to the                 // Load the activation for KV cache re-
+next batch. In contrast, Figure 11(b) shows the                   computation of the next batch
+column-by-column schedule, where each layer is                    load_activation_recompute(i, j, k +
+reused to process a group of batches before moving                1)
+to the next layer.                                                // Load the KV cache and activation of
+                                                                  the next batch
+                                                                  load_cache(i, j, k + 1)
+                                                                  load_activation(i, j, k + 1)
+                                                                  // Compute this batch
+                                                                  compute(i, j, k)
+                                                                  // Store the KV cache and activation of
+                                                                  the previous batch
+                                                                  store_activation(i, j, k − 1)
+                                                                  store_cache(i, j, k − 1)
+               (a) row-wise scheduling.                           // Synchronize all devices
+                                                                  synchronize()
+                                                                end for
+                                                            end for
+                                                          end for
+
+
+
+                                                        A.3   Detailed Experimental Results
+             (b) column-wise scheduling.
+                                                        Table 3 and 4 present detailed experimental results
+Figure 11: Two different scheduling methods, with ar-   for latency-oriented workloads using OPT-6.7B
+rows indicating the scheduling order.                   and OPT-13B. The results show the performance
+                                                        differences between KVPR and the baseline (Hug-
+                                                        ging Face Transformer with KV cache offloading)
+A.2    KV Cache Partial Recomputation with              in terms of GPU peak memory, decode latency, and
+       Overlapping                                      throughput across various configurations. Notably,
+                                                        KVPR consistently achieves lower latency while
+Built on FlexGen (Sheng et al., 2023)’s computa-        maintaining comparable memory usage.
+tion and communication overlapping technique, we
+adapt it to support KV cache partial recomputa-
+tion. Algorithm 1 enables simultaneous execution        A.4   Optimal KV Cache Split Points
+of tasks within the innermost loop, including load-
+ing weights for the next layer, loading activations     Figure 12 presents the optimal KV cache split
+for KV cache recomputation, recomputing the par-        points l, obtained by solving the linear program-
+tial KV cache, loading the rest of the KV cache and     ming problem defined in Eq. (11), for the first set-
+activations for the next batch, storing the KV cache    ting of the latency-oriented workload experiments
+and activations for the previous batch, and perform-    in Section 4 (prompt length of 128 and generation
+ing computation for the current batch. Although         length of 32). Based on system profiling statistics
+the algorithm is designed for column-by-column          and KV cache size, the optimal split point l is 182
+scheduling, the row-by-row schedule with a single       when the generation length is 1, and l increases to
+batch is a special case of it.                          128 when the generation length is 32.
+                                                   Prompt   Generation   Cache size   GPU peak mem        Decode latency        Decode throughput
+ Method                           Batch size
+                                                   length     length       (GB)           (GB)                 (sec)                (tokens/s)
+                                     64             128         32          5.0          14.427                8.905                 222.788
+                                     64             128        128          8.0          14.708               71.327                 113.954
+                                     64             256         32          9.0          16.337               26.825                  73.961
+ Accel.
+                                     64             256        128         12.0          16.618               88.354                  91.993
+                                     64             512         32         17.0          20.154               24.390                  81.344
+                                     64             512        128         20.0          20.576              110.277                  73.705
+                                     64             128         32          5.0          14.364                6.651                 298.284
+                                     64             128        128          8.0          14.645               45.766                 177.598
+                                     64             256         32          9.0          16.212               19.138                 103.666
+ KVPR
+                                     64             256        128         12.0          16.493               61.597                 131.955
+                                     64             512         32         17.0          19.904               20.349                  97.501
+                                     64             512        128         20.0          20.951               93.932                  86.531
+
+                                        Table 3: Detailed experimental results for OPT-6.7B corresponding to Figure 7.
+
+                                                   Prompt   Generation   Cache size   GPU peak mem        Decode latency        Decode throughput
+ Method                           Batch size
+                                                   length     length       (GB)           (GB)                 (sec)                (tokens/s)
+                                     64             128         32         7.812         26.083               11.409                 173.891
+                                     64             128        128        12.500         26.434               73.896                 109.993
+                                     64             256         32        14.062         28.087               19.381                 102.368
+ Accel.
+                                     64             256        128        18.750         28.439              104.115                  78.068
+                                     64             512         32        26.562         32.851               35.066                  56.579
+                                     64             512        128        31.250         34.146              168.155                  48.336
+                                     64             128         32         7.812         26.005               9.148                  216.867
+                                     64             128        128        12.500         26.356               66.119                 122.929
+                                     64             256         32        14.062         27.931               16.654                 119.127
+ KVPR
+                                     64             256        128        18.750         28.337               88.492                  91.850
+                                     64             512         32        26.562         33.203               29.215                  67.911
+                                     64             512        128        31.250         34.615              138.377                  58.738
+
+                                          Table 4: Detailed experimental results for OPT-13B corresponding to Figure 7.
+
+
+                                                                                      PCIe bandwidth are lower in this system setting
+   Recomputation length l
+
+
+
+
+                            205                                                       than those in the default system we used earlier.
+                            200                                                       Despite the reduced GPU speed and bandwidth,
+                            195                                                       KVPR achieves up to 15% higher throughput than
+                            190                                                       FlexGen for OPT-6.7B in the same throughput-
+                            185                                                       oriented workload, as shown in Table 5.
+                            180                                                       Seq len   256/32   256/128   512/32   512/128   1024/32   1024/128
+                                    1 4        8    12 16 20 24 28 32                 FlexGen   50.057    46.779   29.614    28.650    15.778    16.194
+                                                                                       KVPR     53.976    49.860   33.666    32.277    18.285    18.108
+                                      Number of tokens generated
+                                                                                      Table 5: Throughput (tokens/s) comparison on a low-
+Figure 12: Optimal KV cache split points l over the                                   end GPU system.
+generation process.
+
+                                                                                      A.6   Additional Experimental Results on
+A.5                         System Performance with a Low-end                               LLaMa Models
+                            GPU
+                                                                                      In addition to the OPT models discussed in Sec-
+To further demonstrate the adaptability of KVPR,                                      tion 4, we conduct further experiments on the more
+we evaluate it on a low-end system with an AMD                                        recent LLaMa2-7B and LLaMa2-13B models. Us-
+EPYC 32-Core CPU and an NVIDIA Quadro RTX                                             ing the same experimental setup, we measure de-
+5000 GPU (16 GB HBM, 89.2 TFLOPS FP16 peak                                            coding throughput while processing a single batch
+performance) connected via PCIe 4.0 x8 (16 GB/s                                       of size 64 across varying prompt and generation
+bandwidth). GPU TFLOPS, GPU memory, and                                               lengths. As shown in Figure 13, KVPR consis-
+tently achieves higher throughput than the baselines                      suffers a significant decline in throughput as the
+(DeepSpeed Inference and Hugging Face Acceler-                            number of processes increases, KVPR exhibits bet-
+ate) on both LLaMa2 models.                                               ter scalability, maintaining stable performance in
+                                                                          systems with a single CPU and multiple GPUs.
+                                            Llama2-7B
+  Throughput (tokens/s)
+
+
+
+
+                                                                             Throughput (tokens/s)
+                                                     DS   Accel.   KVPR
+                          200
+                                                                                                     40
+                          150
+
+                          100                                                                        30
+
+                           50
+                                                                                                                KVPR
+                                                                                                     20         FastDecode
+                           0                                                                                1          2       4        8
+                                256   256    512   512    1024     1024
+                                32    128     32   128     32       128
+                                        Sequence length                                                   Number of concurrent GPU processes
+
+                                            Llama2-13B                    Figure 14: Throughput comparison between KVPR and
+  Throughput (tokens/s)
+
+
+
+
+                                                     DS   Accel.   KVPR   FastDecode with different GPU workload.
+                          150
+
+
+                          100                                             A.8                        Extended Related Works
+                                                                          GPU-efficient LLM inference. Maximizing GPU
+                           50
+                                                                          utilization is crucial for serving LLMs efficiently to
+                                                                          achieve low latency and high throughput. Orca (Yu
+                           0
+                                256   256    512   512    1024     1024   et al., 2022) employs iteration-level scheduling to
+                                32    128     32   128     32       128
+                                        Sequence length                   handle batches with varying output lengths, return-
+                                                                          ing completed sequences immediately to serve new
+Figure 13: Decoding throughput for a single batch of                      ones. PagedAttention (Kwon et al., 2023) observes
+size 64 across different sequence lengths.                                that the KV cache grows and shrinks dynamically
+                                                                          as tokens are generated, though the sequence life-
+                                                                          time and length are not predetermined. It addresses
+A.7                       Comparing with CPU-assisted                     this by managing the KV cache as non-contiguous
+                          Approaches in Distributed System Setup          memory blocks. FlashAttention (Dao et al., 2024)
+In this experiment, we compare the performance of                         combines attention operations into a single kernel
+the CPU-assisted offloading approach, FastDecode                          and tiles QKV matrices into smaller blocks to opti-
+(He and Zhai, 2024), with KVPR on a GPU node                              mize GPU SRAM usage and reduce HBM access
+equipped with 8 NVIDIA A100 GPUs and a single                             overhead, while our work mainly focuses on op-
+CPU, which is the same AMD EPYC processor                                 timizing PCIe bandwidth. DeepSpeed-Inference
+(64 cores with PCIe 4.0 128 lanes), as described in                       (Aminabadi et al., 2022) enhances multi-GPU infer-
+Section 4.                                                                ence for both dense and sparse Transformer mod-
+   We run multiple concurrent processes of FastDe-                        els by combining GPU memory and employing a
+code and KVPR on the available GPUs, with each                            hybrid inference technique with CPU and NVMe
+GPU dedicated to a single process. This setup sim-                        memory. Flash-Decoding (Dao et al., 2023) ac-
+ulates scenarios where either multiple users share                        celerates long-context inference by splitting keys
+a single computing node or a single user performs                         and values into smaller chunks, enabling parallel
+data-parallel inference. FastDecode relies on the                         attention computations and combining results for
+CPU for attention computations, resulting in a per-                       the final output. HCache (Gao et al., 2025) focuses
+formance drop as the CPU becomes a bottleneck                             on restoring contextual states across user requests
+when managing multiple concurrent inference pro-                          for reuse in online inference, balancing latency,
+cesses. In contrast, KVPR eliminates CPU depen-                           capacity, and persistence for robust LLM serving.
+dency entirely and instead optimizes data transfer                        KV cache optimization. Efficient KV cache man-
+over the PCIe bus.                                                        agement enhances inference performance through
+   Figure 14 demonstrates that while FastDecode                           compression or eviction strategies. KIVI (Liu
+et al., 2024b) introduces a tuning-free 2-bit quanti-
+zation method to compress key cache per channel
+and value cache per token. Similarly, KVQuant
+(Hooper et al., 2024) applies 3-bit compres-
+sion by combining per-channel quantization with
+pre-rotary positional embedding quantization for
+LLaMA. For eviction, H2O (Zhang et al., 2023)
+formulates KV cache eviction as a dynamic sub-
+modular problem, prioritizing critical and recent to-
+kens to improve throughput. StreamingLLM (Xiao
+et al., 2024) uses window attention with a fixed-
+size sliding window to retain the most recent KV
+caches, maintaining constant memory usage and
+decoding speed once the cache reaches capacity. In-
+finiGen (Lee et al., 2024) stores low-rank key cache
+in GPU memory, offloads value cache to the CPU,
+and selectively retrieves important values based on
+approximate attention scores.
+

@@ -1,0 +1,313 @@
+# 3445. 奇偶频次间的最大差值 II
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/maximum-difference-between-even-and-odd-frequency-ii/
+- 题目 slug：`maximum-difference-between-even-and-odd-frequency-ii`
+- 来源专题：常用数据结构
+- 来源分类路径：一、前缀和 / §1.5 进阶
+- 难度分：2694
+- 外部题解来源：https://leetcode.cn/problems/maximum-difference-between-even-and-odd-frequency-ii/solutions/3061845/mei-ju-qian-zhui-he-hua-dong-chuang-kou-6cwsm/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[枚举+前缀和+滑动窗口（Python/Java/C++/Go）](https://leetcode.cn/problems/maximum-difference-between-even-and-odd-frequency-ii/solutions/3061845/mei-ju-qian-zhui-he-hua-dong-chuang-kou-6cwsm/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`mei-ju-qian-zhui-he-hua-dong-chuang-kou-6cwsm`
+- topic id：`3061845`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 前置知识
+
+1. [前缀和](https://leetcode.cn/problems/range-sum-query-immutable/solution/qian-zhui-he-ji-qi-kuo-zhan-fu-ti-dan-py-vaar/)，推荐先完成 [1371. 每个元音包含偶数次的最长子字符串](https://leetcode.cn/problems/find-the-longest-substring-containing-vowels-in-even-counts/)，对本题做法有一定启发。
+2. [滑动窗口【基础算法精讲 03】](https://www.bilibili.com/video/BV1hd4y1r7Gq/)。
+
+## 引入前缀和
+
+枚举数字 $x$ 和 $y$，分别表示子串中出现奇数次的数字和出现偶数次的数字。
+
+定义 $\textit{sum}[i+1][j]$ 表示 $s[0]$ 到 $s[i]$ 中的 $j$ 的出现次数。为什么是 $i+1$ 而不是 $i$，见 [前缀和](https://leetcode.cn/problems/range-sum-query-immutable/solution/qian-zhui-he-ji-qi-kuo-zhan-fu-ti-dan-py-vaar/)。
+
+设子串对应的下标区间为 $[l,r)$。那么子串中有 $\textit{sum}[r][x] - \textit{sum}[l][x]$ 个 $x$，以及 $\textit{sum}[r][y] - \textit{sum}[l][y]$ 个 $y$。
+
+我们要计算的是
+
+$$
+\begin{aligned}
+    & (\textit{sum}[r][x] - \textit{sum}[l][x]) - (\textit{sum}[r][y] - \textit{sum}[l][y])      \\
+={} & (\textit{sum}[r][x] - \textit{sum}[r][y]) - (\textit{sum}[l][x] - \textit{sum}[l][y])      \\
+\end{aligned}
+$$
+
+的最大值，且必须满足：
+
+- $r-l\ge k$
+- 子串必须包含正奇数个 $x$，那么至少要满足 $\textit{sum}[r][x] > \textit{sum}[l][x]$。
+- 子串必须包含正偶数个 $y$，那么至少要满足 $\textit{sum}[r][y] > \textit{sum}[l][y]$。
+
+枚举 $r$（枚举右），问题变成计算满足上述约束的
+
+$$
+\textit{sum}[l][x] - \textit{sum}[l][y]
+$$
+
+的最小值（维护左）。
+
+如果没有奇偶性的要求，我们只需维护上式最小值。如何处理奇偶性呢？
+
+## 处理奇偶性
+
+题目奇偶性的要求，等价于：
+
+- $\textit{sum}[r][x]$ 的奇偶性必须与 $\textit{sum}[l][x]$ **不同**，这样 $\textit{sum}[r][x] - \textit{sum}[l][x]$ 才是奇数。
+- $\textit{sum}[r][y]$ 的奇偶性必须与 $\textit{sum}[l][y]$ **相同**，这样 $\textit{sum}[r][y] - \textit{sum}[l][y]$ 才是偶数。
+
+比如 $\textit{sum}[r][x]=6$，$\textit{sum}[r][y]=8$，那么 $\textit{sum}[l][x]$ 必须是奇数，$\textit{sum}[l][y]$ 必须是偶数。我们要维护的是在这个条件下的 $\textit{sum}[l][x] - \textit{sum}[l][y]$ 的最小值。
+
+一般地，奇偶性两两组合，需要维护 $4$ 种 $\textit{sum}[l][x] - \textit{sum}[l][y]$ 的最小值。
+
+定义 $\textit{minS}[p][q]$ 表示最小的 $\textit{sum}[l][x] - \textit{sum}[l][y]$，其中
+
+- $\textit{sum}[l][x]$ 的奇偶性为 $p$。其中 $p=0$ 表示偶，$p=1$ 表示奇。
+- $\textit{sum}[l][y]$ 的奇偶性为 $q$。其中 $q=0$ 表示偶，$q=1$ 表示奇。
+
+比如 $\textit{sum}[r][x]=6$，$\textit{sum}[r][y]=8$，相应的最小值就是 $\textit{minS}[1][0]$。
+
+## 滑动窗口
+
+此外，我们还要满足以下条件（枚举 $r$，然后把 $r$ 当作定值）：
+
+- $r-l\ge k$
+- $\textit{sum}[r][x] > \textit{sum}[l][x]$
+- $\textit{sum}[r][y] > \textit{sum}[l][y]$
+
+子串越长，越能满足上述要求，反之越不能。所以用**滑动窗口**维护 $l+1$ 的最大值 $\textit{left}$，同时维护相应的 $\textit{minS}[p][q]$。
+
+⚠**注意**：我们要维护的是窗口左边的 $4$ 种最小前缀和，并不关心窗口内的东西。
+
+滑窗内层循环结束后，在 $[0,\textit{left}-1]$ 中的左端点 $l$ 都是符合要求的，并且相应的最小前缀和也已保存到 $\textit{minS}[p][q]$ 中。
+
+此时用
+
+$$
+(\textit{sum}[r][x] - \textit{sum}[r][y]) - \textit{minS}[p][q]
+$$
+
+更新答案的最大值，其中 $p=1-(\textit{sum}[r][x]\bmod 2)$，$q = \textit{sum}[r][y]\bmod 2$。
+
+代码实现时，可以一边滑窗，一边计算前缀和。
+
+具体请看 [视频讲解](https://www.bilibili.com/video/BV1D5F6eRECp/?t=49m08s)，欢迎点赞关注~
+
+```py [sol-Python3]
+class Solution:
+    def maxDifference(self, s: str, k: int) -> int:
+        s = list(map(int, s))
+        ans = -inf
+        for x in range(5):
+            for y in range(5):
+                if y == x:
+                    continue
+                cur_s = [0] * 5
+                pre_s = [0] * 5
+                min_s = [[inf, inf], [inf, inf]]
+                left = 0
+                for i, v in enumerate(s):
+                    cur_s[v] += 1
+                    r = i + 1
+                    while r - left >= k and cur_s[x] > pre_s[x] and cur_s[y] > pre_s[y]:
+                        p, q = pre_s[x] & 1, pre_s[y] & 1
+                        min_s[p][q] = min(min_s[p][q], pre_s[x] - pre_s[y])
+                        pre_s[s[left]] += 1
+                        left += 1
+                    if r >= k:
+                        ans = max(ans, cur_s[x] - cur_s[y] - min_s[cur_s[x] & 1 ^ 1][cur_s[y] & 1])
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int maxDifference(String S, int k) {
+        final int INF = Integer.MAX_VALUE / 2;
+        char[] s = S.toCharArray();
+        int ans = -INF;
+        for (int x = 0; x < 5; x++) {
+            for (int y = 0; y < 5; y++) {
+                if (y == x) {
+                    continue;
+                }
+                int[] curS = new int[5];
+                int[] preS = new int[5];
+                int[][] minS = {{INF, INF}, {INF, INF}};
+                int left = 0;
+                for (int i = 0; i < s.length; i++) {
+                    curS[s[i] - '0']++;
+                    int r = i + 1;
+                    while (r - left >= k && curS[x] > preS[x] && curS[y] > preS[y]) {
+                        int p = preS[x] & 1;
+                        int q = preS[y] & 1;
+                        minS[p][q] = Math.min(minS[p][q], preS[x] - preS[y]);
+                        preS[s[left] - '0']++;
+                        left++;
+                    }
+                    ans = Math.max(ans, curS[x] - curS[y] - minS[curS[x] & 1 ^ 1][curS[y] & 1]);
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxDifference(string s, int k) {
+        const int inf = INT_MAX / 2;
+        int ans = -inf;
+        for (int x = 0; x < 5; x++) {
+            for (int y = 0; y < 5; y++) {
+                if (y == x) {
+                    continue;
+                }
+                int cur_s[5]{}, pre_s[5]{};
+                int min_s[2][2] = {{inf, inf}, {inf, inf}};
+                int left = 0;
+                for (int i = 0; i < s.size(); i++) {
+                    cur_s[s[i] - '0']++;
+                    int r = i + 1;
+                    while (r - left >= k && cur_s[x] > pre_s[x] && cur_s[y] > pre_s[y]) {
+                        int& p = min_s[pre_s[x] & 1][pre_s[y] & 1];
+                        p = min(p, pre_s[x] - pre_s[y]);
+                        pre_s[s[left] - '0']++;
+                        left++;
+                    }
+                    ans = max(ans, cur_s[x] - cur_s[y] - min_s[cur_s[x] & 1 ^ 1][cur_s[y] & 1]);
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func maxDifference(s string, k int) int {
+	const inf = math.MaxInt / 2
+	ans := -inf
+	for x := range 5 {
+		for y := range 5 {
+			if y == x {
+				continue
+			}
+			curS := [5]int{}
+			preS := [5]int{}
+			minS := [2][2]int{{inf, inf}, {inf, inf}}
+			left := 0
+			for i, b := range s {
+				curS[b-'0']++
+				r := i + 1
+				for r-left >= k && curS[x] > preS[x] && curS[y] > preS[y] {
+					p := &minS[preS[x]&1][preS[y]&1]
+					*p = min(*p, preS[x]-preS[y])
+					preS[s[left]-'0']++
+					left++
+				}
+                ans = max(ans, curS[x]-curS[y]-minS[curS[x]&1^1][curS[y]&1])
+			}
+		}
+	}
+	return ans
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n|\Sigma|^2)$，其中 $n$ 是 $s$ 的长度，$|\Sigma|=5$ 是字符集合的大小。
+- 空间复杂度：$\mathcal{O}(|\Sigma|)$。
+
+更多相似题目，见下面数据结构题单中的「**§1.2 前缀和与哈希表**」和「**§1.4 前缀异或和**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/最短路/最小生成树/二分图/基环树/欧拉路径）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/状态机/划分/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. 【本题相关】[常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `一、前缀和 / §1.5 进阶`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `一、前缀和 / §1.5 进阶`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

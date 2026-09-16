@@ -1,0 +1,598 @@
+# 3629. 通过质数传送到达终点的最少跳跃次数
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/minimum-jumps-to-reach-end-via-prime-teleportation/
+- 题目 slug：`minimum-jumps-to-reach-end-via-prime-teleportation`
+- 来源专题：数学算法
+- 来源分类路径：一、数论 / §1.3 质因数分解
+- 难度分：2139
+- 外部题解来源：https://leetcode.cn/problems/minimum-jumps-to-reach-end-via-prime-teleportation/solutions/3734792/bfspythonjavacgo-by-endlesscheng-bu60/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[两种方法：正向 BFS / 逆向 BFS（Python/Java/C++/Go）](https://leetcode.cn/problems/minimum-jumps-to-reach-end-via-prime-teleportation/solutions/3734792/bfspythonjavacgo-by-endlesscheng-bu60/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`bfspythonjavacgo-by-endlesscheng-bu60`
+- topic id：`3734792`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 方法一：正向思维
+
+整体是个 BFS 的框架。
+
+设 $v=\textit{nums}[i]$。
+
+- 如果 $v$ 不是质数，只能往 $i-1$ 和 $i+1$ 走一步。
+- 如果 $v$ 是质数，除了能往 $i-1$ 和 $i+1$ 走一步，还能往 $v$ 在 $\textit{nums}$ 中的倍数那走一步。
+
+怎么知道 $v$ 的倍数在哪？
+
+预处理。在执行 BFS 之前，对于 $\textit{nums}$ 中的每个数 $x=\textit{nums}[i]$，把 $x$ 的的质因子 $p$ 和下标 $i$ 插入哈希表。哈希表的 key 是质数，value 是下标列表。
+
+预处理后，从哈希表中可以直接获取到 $v$ 的倍数的下标。
+
+注意遍历完下标列表后，要把列表从哈希表中删除（或者清空），避免反复遍历列表。比如一个有很多质数 $2$ 的数组，我们把这些 $2$ 的下标入队，出队的时候，不能重复遍历 $2$ 的倍数的下标列表。
+
+代码实现时：
+
+1. 预处理每个数的质因子列表，思路和**埃氏筛**是一样的。
+2. 用双列表实现 BFS，原理请看[【基础算法精讲 13】](https://www.bilibili.com/video/BV1hG4y1277i/)。当然，用队列也可以。
+
+```py [sol-Python3]
+# 预处理每个数的质因子列表，思路同埃氏筛
+MX = 1_000_001
+prime_factors = [[] for _ in range(MX)]
+for i in range(2, MX):
+    if not prime_factors[i]:  # i 是质数
+        for j in range(i, MX, i):  # i 的倍数有质因子 i
+            prime_factors[j].append(i)
+
+class Solution:
+    def minJumps(self, nums: List[int]) -> int:
+        n = len(nums)
+        groups = defaultdict(list)
+        for i, x in enumerate(nums):
+            for p in prime_factors[x]:
+                groups[p].append(i)  # 对于质数 p，可以跳到下标 i
+
+        vis = [False] * n
+        vis[0] = True
+        q = [0]
+
+        for ans in count(0):
+            tmp = q
+            q = []
+            for i in tmp:
+                if i == n - 1:
+                    return ans
+                idx = groups[nums[i]]
+                idx.append(i + 1)
+                if i:
+                    idx.append(i - 1)
+                for j in idx:  # 可以从 i 跳到 j
+                    if not vis[j]:
+                        vis[j] = True
+                        q.append(j)
+                idx.clear()  # 避免重复访问下标列表
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MX = 1_000_001;
+    private static final List<Integer>[] primeFactors = new ArrayList[MX];
+    private static boolean initialized = false;
+
+    // 这样写比 static block 更快
+    public Solution() {
+        if (initialized) {
+            return;
+        }
+        initialized = true;
+
+        Arrays.setAll(primeFactors, _ -> new ArrayList<>());
+        // 预处理每个数的质因子列表，思路同埃氏筛
+        for (int i = 2; i < MX; i++) {
+            if (primeFactors[i].isEmpty()) { // i 是质数
+                for (int j = i; j < MX; j += i) { // i 的倍数有质因子 i
+                    primeFactors[j].add(i);
+                }
+            }
+        }
+    }
+
+    public int minJumps(int[] nums) {
+        int n = nums.length;
+        Map<Integer, List<Integer>> groups = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            for (int p : primeFactors[nums[i]]) {
+                // 对于质数 p，可以跳到下标 i
+                groups.computeIfAbsent(p, _ -> new ArrayList<>()).add(i);
+            }
+        }
+
+        boolean[] vis = new boolean[n];
+        vis[0] = true;
+        List<Integer> q = List.of(0);
+
+        for (int ans = 0; ; ans++) {
+            List<Integer> tmp = q;
+            q = new ArrayList<>();
+            for (int i : tmp) {
+                if (i == n - 1) {
+                    return ans;
+                }
+                List<Integer> idx = groups.computeIfAbsent(nums[i], _ -> new ArrayList<>());
+                idx.add(i + 1);
+                if (i > 0) {
+                    idx.add(i - 1);
+                }
+                for (int j : idx) { // 可以从 i 跳到 j
+                    if (!vis[j]) {
+                        vis[j] = true;
+                        q.add(j);
+                    }
+                }
+                idx.clear(); // 避免重复访问下标列表
+            }
+        }
+    }
+}
+```
+
+```cpp [sol-C++]
+const int MX = 1'000'001;
+vector<int> prime_factors[MX];
+
+int init = [] {
+    // 预处理每个数的质因子列表，思路同埃氏筛
+    for (int i = 2; i < MX; i++) {
+        if (prime_factors[i].empty()) { // i 是质数
+            for (int j = i; j < MX; j += i) { // i 的倍数有质因子 i
+                prime_factors[j].push_back(i);
+            }
+        }
+    }
+    return 0;
+}();
+
+class Solution {
+public:
+    int minJumps(vector<int>& nums) {
+        int n = nums.size();
+        unordered_map<int, vector<int>> groups;
+        for (int i = 0; i < n; i++) {
+            for (int p : prime_factors[nums[i]]) {
+                groups[p].push_back(i); // 对于质数 p，可以跳到下标 i
+            }
+        }
+
+        vector<int8_t> vis(n);
+        vis[0] = true;
+        vector<int> q = {0};
+
+        for (int ans = 0; ; ans++) {
+            auto tmp = move(q); // move 后 q 为空
+            for (int i : tmp) {
+                if (i == n - 1) {
+                    return ans;
+                }
+                auto& idx = groups[nums[i]];
+                idx.push_back(i + 1);
+                if (i > 0) {
+                    idx.push_back(i - 1);
+                }
+                for (int j : idx) { // 可以从 i 跳到 j
+                    if (!vis[j]) {
+                        vis[j] = true;
+                        q.push_back(j);
+                    }
+                }
+                idx.clear(); // 避免重复访问下标列表
+            }
+        }
+    }
+};
+```
+
+```go [sol-Go]
+const mx = 1_000_001
+
+var primeFactors = [mx][]int{}
+
+func init() {
+	// 预处理每个数的质因子列表，思路同埃氏筛
+	for i := 2; i < mx; i++ {
+		if primeFactors[i] == nil { // i 是质数
+			for j := i; j < mx; j += i { // i 的倍数有质因子 i
+				primeFactors[j] = append(primeFactors[j], i)
+			}
+		}
+	}
+}
+
+func minJumps(nums []int) (ans int) {
+	n := len(nums)
+	groups := map[int][]int{}
+	for i, x := range nums {
+		for _, p := range primeFactors[x] {
+			groups[p] = append(groups[p], i) // 对于质数 p，可以跳到下标 i
+		}
+	}
+
+	vis := make([]bool, n)
+	vis[0] = true
+	q := []int{0}
+
+	for ; ; ans++ {
+		tmp := q
+		q = nil
+		for _, i := range tmp {
+			if i == n-1 {
+				return
+			}
+			idx := groups[nums[i]]
+			idx = append(idx, i+1)
+			if i > 0 {
+				idx = append(idx, i-1)
+			}
+			for _, j := range idx { // 可以从 i 跳到 j
+				if !vis[j] {
+					vis[j] = true
+					q = append(q, j)
+				}
+			}
+			delete(groups, nums[i]) // 避免重复访问下标列表
+		}
+	}
+}
+```
+
+#### 复杂度分析
+
+预处理的时间和空间不计入。
+
+- 时间复杂度：$\mathcal{O}(n\log U)$，其中 $n$ 是 $\textit{nums}$ 的长度，$U=\max(\textit{nums})$。循环次数取决于下标列表的总长度（这决定了 BFS 的循环次数）。在最坏情况下，构造这样一个 $\textit{nums}$ 数组，它含有 $\mathcal{O}(\log U)$ 个不同的质数，以及 $\mathcal{O}(n-\log U)$ 个有 $\mathcal{O}(\log U)$ 个质因子的数。此时下标列表的总长度为 $\mathcal{O}(n\log U)$，且 BFS 的循环次数也为 $\mathcal{O}(n\log U)$。
+- 空间复杂度：$\mathcal{O}(n\log U)$。
+
+## 方法二：逆向思维
+
+从终点 $n-1$ 跳到起点 $0$。
+
+跳跃规则反过来，从 $i$ 跳到 $\textit{nums}[i]$ 的质因子 $p$ 的下标。
+
+在执行 BFS 之前，对于 $\textit{nums}$ 中的每个数 $x=\textit{nums}[i]$，如果 $x$ 是质数，把 $x$ 和下标 $i$ 插入哈希表。哈希表的 key 是质数，value 是下标列表。
+
+```py [sol-Python3]
+# 预处理每个数的质因子列表，思路同埃氏筛
+MX = 1_000_001
+prime_factors = [[] for _ in range(MX)]
+for i in range(2, MX):
+    if not prime_factors[i]:  # i 是质数
+        for j in range(i, MX, i):  # i 的倍数有质因子 i
+            prime_factors[j].append(i)
+
+class Solution:
+    def minJumps(self, nums: List[int]) -> int:
+        n = len(nums)
+        groups = defaultdict(list)
+        for i, x in enumerate(nums):
+            if prime_factors[x] and prime_factors[x][0] == x:  # x 是质数
+                groups[x].append(i)
+
+        ans = 0
+        vis = [False] * n
+        vis[-1] = True
+        q = [n - 1]
+
+        for ans in count(0):
+            tmp = q
+            q = []
+            for i in tmp:
+                if i == 0:
+                    return ans
+                if not vis[i - 1]:
+                    vis[i - 1] = True
+                    q.append(i - 1)
+                if i < n - 1 and not vis[i + 1]:
+                    vis[i + 1] = True
+                    q.append(i + 1)
+                # 逆向思维：从 i 倒着跳到 nums[i] 的质因子 p 的下标 j
+                for p in prime_factors[nums[i]]:
+                    idx = groups[p]
+                    for j in idx:
+                        if not vis[j]:
+                            vis[j] = True
+                            q.append(j)
+                    idx.clear()  # 避免重复访问下标列表
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MX = 1_000_001;
+    private static final List<Integer>[] primeFactors = new ArrayList[MX];
+    private static boolean initialized = false;
+
+    // 这样写比 static block 更快
+    public Solution() {
+        if (initialized) {
+            return;
+        }
+        initialized = true;
+
+        Arrays.setAll(primeFactors, _ -> new ArrayList<>());
+        // 预处理每个数的质因子列表，思路同埃氏筛
+        for (int i = 2; i < MX; i++) {
+            if (primeFactors[i].isEmpty()) { // i 是质数
+                for (int j = i; j < MX; j += i) { // i 的倍数有质因子 i
+                    primeFactors[j].add(i);
+                }
+            }
+        }
+    }
+
+    public int minJumps(int[] nums) {
+        int n = nums.length;
+        Map<Integer, List<Integer>> groups = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            int x = nums[i];
+            if (!primeFactors[x].isEmpty() && primeFactors[x].get(0) == x) { // x 是质数
+                groups.computeIfAbsent(x, _ -> new ArrayList<>()).add(i);
+            }
+        }
+
+        boolean[] vis = new boolean[n];
+        vis[n - 1] = true;
+        List<Integer> q = List.of(n - 1);
+
+        for (int ans = 0; ; ans++) {
+            List<Integer> tmp = q;
+            q = new ArrayList<>();
+            for (int i : tmp) {
+                if (i == 0) {
+                    return ans;
+                }
+                if (!vis[i - 1]) {
+                    vis[i - 1] = true;
+                    q.add(i - 1);
+                }
+                if (i + 1 < n && !vis[i + 1]) {
+                    vis[i + 1] = true;
+                    q.add(i + 1);
+                }
+                // 逆向思维：从 i 倒着跳到 nums[i] 的质因子 p 的下标 j
+                for (int p : primeFactors[nums[i]]) {
+                    List<Integer> idx = groups.remove(p); // 避免重复访问下标列表
+                    if (idx != null) {
+                        for (int j : idx) {
+                            if (!vis[j]) {
+                                vis[j] = true;
+                                q.add(j);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+```cpp [sol-C++]
+const int MX = 1'000'001;
+vector<int> prime_factors[MX];
+
+int init = [] {
+    // 预处理每个数的质因子列表，思路同埃氏筛
+    for (int i = 2; i < MX; i++) {
+        if (prime_factors[i].empty()) { // i 是质数
+            for (int j = i; j < MX; j += i) { // i 的倍数有质因子 i
+                prime_factors[j].push_back(i);
+            }
+        }
+    }
+    return 0;
+}();
+
+class Solution {
+public:
+    int minJumps(vector<int>& nums) {
+        int n = nums.size();
+        unordered_map<int, vector<int>> groups;
+        for (int i = 0; i < n; i++) {
+            int x = nums[i];
+            if (!prime_factors[x].empty() && prime_factors[x][0] == x) { // x 是质数
+                groups[x].push_back(i);
+            }
+        }
+
+        vector<int8_t> vis(n);
+        vis[n - 1] = true;
+        vector<int> q = {n - 1};
+
+        for (int ans = 0; ; ans++) {
+            auto tmp = move(q); // move 后 q 为空
+            for (int i : tmp) {
+                if (i == 0) {
+                    return ans;
+                }
+                if (!vis[i - 1]) {
+                    vis[i - 1] = true;
+                    q.push_back(i - 1);
+                }
+                if (i < n - 1 && !vis[i + 1]) {
+                    vis[i + 1] = true;
+                    q.push_back(i + 1);
+                }
+                // 逆向思维：从 i 倒着跳到 nums[i] 的质因子 p 的下标 j
+                for (int p : prime_factors[nums[i]]) {
+                    auto it = groups.find(p);
+                    if (it != groups.end()) {
+                        for (int j : it->second) {
+                            if (!vis[j]) {
+                                vis[j] = true;
+                                q.push_back(j);
+                            }
+                        }
+                        groups.erase(it); // 避免重复访问下标列表
+                    }
+                }
+            }
+        }
+    }
+};
+```
+
+```go [sol-Go]
+const mx = 1_000_001
+
+var primeFactors = [mx][]int{}
+
+func init() {
+	// 预处理每个数的质因子列表，思路同埃氏筛
+	for i := 2; i < mx; i++ {
+		if primeFactors[i] == nil { // i 是质数
+			for j := i; j < mx; j += i { // i 的倍数有质因子 i
+				primeFactors[j] = append(primeFactors[j], i)
+			}
+		}
+	}
+}
+
+func minJumps(nums []int) (ans int) {
+	n := len(nums)
+	groups := map[int][]int{}
+	for i, x := range nums {
+		if len(primeFactors[x]) > 0 && primeFactors[x][0] == x { // x 是质数
+			groups[x] = append(groups[x], i)
+		}
+	}
+
+	vis := make([]bool, n)
+	vis[n-1] = true
+	q := []int{n - 1}
+
+	for ; ; ans++ {
+		tmp := q
+		q = nil
+		for _, i := range tmp {
+			if i == 0 {
+				return
+			}
+			if !vis[i-1] {
+				vis[i-1] = true
+				q = append(q, i-1)
+			}
+			if i < n-1 && !vis[i+1] {
+				vis[i+1] = true
+				q = append(q, i+1)
+			}
+			// 逆向思维：从 i 倒着跳到 nums[i] 的质因子 p 的下标 j
+			for _, p := range primeFactors[nums[i]] {
+				for _, j := range groups[p] {
+					if !vis[j] {
+						vis[j] = true
+						q = append(q, j)
+					}
+				}
+				delete(groups, p) // 避免重复访问下标列表
+			}
+		}
+	}
+}
+```
+
+#### 复杂度分析
+
+预处理的时间和空间不计入。
+
+- 时间复杂度：$\mathcal{O}(n\log U)$，其中 $n$ 是 $\textit{nums}$ 的长度，$U=\max(\textit{nums})$。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 相似题目
+
+- [1345. 跳跃游戏 IV](https://leetcode.cn/problems/jump-game-iv/) 1810
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `一、数论 / §1.3 质因数分解`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `一、数论 / §1.3 质因数分解`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

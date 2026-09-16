@@ -1,0 +1,1041 @@
+# 3984. 可整除游戏
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/divisible-game/
+- 题目 slug：`divisible-game`
+- 来源专题：数学算法
+- 来源分类路径：一、数论 / §1.3 质因数分解
+- 难度分：1944
+- 外部题解来源：https://leetcode.cn/problems/divisible-game/solutions/3991837/mei-ju-yin-zi-ji-suan-zui-da-zi-shu-zu-h-ph5x/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[三种方法计算最大子数组和：枚举/线段树/前缀和（Python/Java/C++/Go）](https://leetcode.cn/problems/divisible-game/solutions/3991837/mei-ju-yin-zi-ji-suan-zui-da-zi-shu-zu-h-ph5x/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`mei-ju-yin-zi-ji-suan-zui-da-zi-shu-zu-h-ph5x`
+- topic id：`3991837`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 方法一：枚举质因子 + 最大子数组和
+
+由于题目要求 $k>1$，我们先特判 $\textit{nums}$ 只包含 $1$ 的情况，此时最优解是只选一个 $1$，分数差为 $-1$，最小 $k$ 为 $2$（见示例 3）。
+
+否则，选 $\textit{nums}[i]$ 的因子作为 $k$ 更好（否则分数差一定是负数）。我们可以先收集所有因子，去重，再枚举因子，这样可以避免重复计算。
+
+进一步地，如果一个数是 $x$ 的倍数，那么也是 $x$ 的质因子的倍数，所以我们**只需枚举质因子**，这样倍数更多。即使倍数相同，质因子作为 $k$ 也更小，符合题目要求。
+
+对于一个固定的 $k$，设 $x=\textit{nums}[i]$，如果 $x$ 不是 $k$ 的倍数，则视作 $-x$（减去 Bob 的分数）。问题变成 [53. 最大子数组和](https://leetcode.cn/problems/maximum-subarray/)，请看 [我的题解](https://leetcode.cn/problems/maximum-subarray/solutions/2533977/qian-zhui-he-zuo-fa-ben-zhi-shi-mai-mai-abu71/)。
+
+[本题视频讲解](https://www.bilibili.com/video/BV1ioTC6BECj/?t=13m11s)，欢迎点赞关注~
+
+```py [sol-Python3]
+# 预处理每个数的质因子
+MX = 1_000_001
+prime_divisors = [[] for _ in range(MX)]
+for i in range(2, MX):
+    if not prime_divisors[i]:  # i 是质数
+        for j in range(i, MX, i):  # 枚举 i 的倍数 j
+            prime_divisors[j].append(i)  # i 是 j 的质因子
+
+
+class Solution:
+    # 53. 最大子数组和（如果 nums[i] 不是 k 的倍数，则视作 -nums[i]）
+    def maxSubArray(self, nums: list[int], k: int) -> int:
+        ans = -inf
+        f = 0
+        for x in nums:
+            f = max(f, 0) + (-x if x % k else x)
+            ans = max(ans, f)
+        return ans
+
+    def divisibleGame(self, nums: list[int]) -> int:
+        MOD = 1_000_000_007
+
+        # 收集所有质因子
+        all_prime_divisors = []
+        for x in nums:
+            all_prime_divisors += prime_divisors[x]
+
+        if not all_prime_divisors:
+            # 每个数都是 1
+            # 最优是只选一个 1（分数差为 -1），最小 k 为 2（见示例 3）
+            return MOD - 2
+
+        # 排序去重
+        all_prime_divisors = sorted(set(all_prime_divisors))
+
+        max_diff = -inf
+        best_k = 0
+        # 枚举质因子作为 k，计算最大子数组和
+        for k in all_prime_divisors:
+            diff = self.maxSubArray(nums, k)
+            if diff > max_diff:
+                max_diff = diff
+                best_k = k
+
+        return max_diff * best_k % MOD
+```
+
+```java [sol-Java]
+class Solution {
+    public int divisibleGame(int[] nums) {
+        final int MOD = 1_000_000_007;
+
+        // 收集所有质因子
+        // 预处理有些慢，改成不预处理的写法
+        List<Integer> allPrimeDivisors = new ArrayList<>();
+        for (int x : nums) {
+            for (int p = 2; p * p <= x; p++) {
+                if (x % p == 0) {
+                    allPrimeDivisors.add(p);
+                    do {
+                        x /= p;
+                    } while (x % p == 0);
+                }
+            }
+            if (x > 1) {
+                allPrimeDivisors.add(x);
+            }
+        }
+
+        if (allPrimeDivisors.isEmpty()) {
+            // 每个数都是 1
+            // 最优是只选一个 1（分数差为 -1），最小 k 为 2（见示例 3）
+            return MOD - 2;
+        }
+
+        Collections.sort(allPrimeDivisors);
+
+        int maxDiff = Integer.MIN_VALUE;
+        int bestK = 0;
+        int preK = 0;
+        // 枚举质因子作为 k，计算最大子数组和
+        for (int k : allPrimeDivisors) {
+            if (k == preK) {
+                continue;
+            }
+            int diff = maxSubArray(nums, k);
+            if (diff > maxDiff) {
+                maxDiff = diff;
+                bestK = k;
+            }
+            preK = k;
+        }
+
+        return (int) ((long) maxDiff * bestK % MOD);
+    }
+
+    // 53. 最大子数组和（如果 nums[i] 不是 k 的倍数，则视作 -nums[i]）
+    private int maxSubArray(int[] nums, int k) {
+        int ans = Integer.MIN_VALUE;
+        int f = 0;
+        for (int x : nums) {
+            f = Math.max(f, 0) + (x % k == 0 ? x : -x);
+            ans = Math.max(ans, f);
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+constexpr int MX = 1'000'001;
+vector<int> prime_divisors[MX];
+
+// 预处理每个数的质因子
+int init = [] {
+    for (int i = 2; i < MX; i++) {
+        if (prime_divisors[i].empty()) { // i 是质数
+            for (int j = i; j < MX; j += i) { // 枚举 i 的倍数 j
+                prime_divisors[j].push_back(i); // i 是 j 的因子
+            }
+        }
+    }
+    return 0;
+}();
+
+class Solution {
+    // 53. 最大子数组和（如果 nums[i] 不是 k 的倍数，则视作 -nums[i]）
+    int maxSubArray(vector<int>& nums, int k) {
+        int ans = INT_MIN;
+        int f = 0;
+        for (int x : nums) {
+            f = max(f, 0) + (x % k ? -x : x);
+            ans = max(ans, f);
+        }
+        return ans;
+    }
+
+public:
+    int divisibleGame(vector<int>& nums) {
+        constexpr int MOD = 1'000'000'007;
+
+        // 收集所有质因子
+        vector<int> all_prime_divisors;
+        for (int x : nums) {
+            auto& pd = prime_divisors[x];
+            all_prime_divisors.insert(all_prime_divisors.end(), pd.begin(), pd.end());
+        }
+
+        if (all_prime_divisors.empty()) {
+            // 每个数都是 1
+            // 最优是只选一个 1（分数差为 -1），最小 k 为 2（见示例 3）
+            return MOD - 2;
+        }
+
+        // 排序去重
+        ranges::sort(all_prime_divisors);
+        all_prime_divisors.erase(ranges::unique(all_prime_divisors).begin(), all_prime_divisors.end());
+
+        int max_diff = INT_MIN;
+        int best_k = 0;
+        // 枚举质因子作为 k，计算最大子数组和
+        for (int k : all_prime_divisors) {
+            int diff = maxSubArray(nums, k);
+            if (diff > max_diff) {
+                max_diff = diff;
+                best_k = k;
+            }
+        }
+
+        return 1LL * max_diff * best_k % MOD;
+    }
+};
+```
+
+```go [sol-Go]
+const mx = 1_000_001
+var primeDivisors [mx][]int32
+
+// 预处理每个数的质因子
+func init() {
+	for i := int32(2); i < mx; i++ {
+		if primeDivisors[i] == nil { // i 是质数
+			for j := i; j < mx; j += i { // 枚举 i 的倍数 j
+				primeDivisors[j] = append(primeDivisors[j], i) // i 是 j 的质因子
+			}
+		}
+	}
+}
+
+// 53. 最大子数组和（如果 nums[i] 不是 k 的倍数，则视作 -nums[i]）
+func maxSubArray(nums []int, k int) int {
+	ans := math.MinInt
+	f := 0
+	for _, x := range nums {
+		if x%k != 0 {
+			x = -x
+		}
+		f = max(f, 0) + x
+		ans = max(ans, f)
+	}
+	return ans
+}
+
+func divisibleGame(nums []int) (ans int) {
+	const mod = 1_000_000_007
+
+	// 收集所有质因子
+	allPrimeDivisors := []int32{}
+	for _, x := range nums {
+		allPrimeDivisors = append(allPrimeDivisors, primeDivisors[x]...)
+	}
+
+	if len(allPrimeDivisors) == 0 {
+		// 每个数都是 1
+		// 最优是只选一个 1（分数差为 -1），最小 k 为 2（见示例 3）
+		return mod - 2
+	}
+
+	// 排序去重
+	slices.Sort(allPrimeDivisors)
+	allPrimeDivisors = slices.Compact(allPrimeDivisors)
+
+	maxDiff, bestK := math.MinInt, 0
+	// 枚举质因子作为 k，计算最大子数组和
+	for _, d := range allPrimeDivisors {
+		k := int(d)
+		diff := maxSubArray(nums, k)
+		if diff > maxDiff {
+			maxDiff, bestK = diff, k
+		}
+	}
+
+	return maxDiff * bestK % mod
+}
+```
+
+#### 复杂度分析
+
+忽略预处理的时间和空间。
+
+- 时间复杂度：$\mathcal{O}(n^2\log\log U)$，其中 $n$ 是 $\textit{nums}$ 的长度，$U=\max(\textit{nums})$。由于我们去重了，最坏情况是 $\textit{nums}$ 的所有元素互不相同。在 $n$ 个不同元素的情况下，平均每个数有 $\mathcal{O}(\log\log U)$ 个质因子（理由同埃式筛），一共有 $\mathcal{O}(n\log\log U)$ 个质因子。这是宽松的估计，重复统计了相同的质因子，去重后可能更小。
+- 空间复杂度：$\mathcal{O}(n\log\log U)$。
+
+## 方法二：线段树维护动态最大子数组和
+
+先把所有 $\textit{nums}[i]$ 都变成 $-\textit{nums}[i]$。
+
+还是枚举质因子作为 $k$。对于一个固定的 $k$，我们需要把 $\textit{nums}$ 中是 $k$ 的倍数的那些数，从 $-\textit{nums}[i]$ 还原成 $\textit{nums}[i]$，然后计算 $\textit{nums}$ 的最大子数组和。
+
+这是一个单点修改的**动态最大子数组和**问题，见 [P4513 小白逛公园](https://www.luogu.com.cn/problem/P4513)。
+
+```py [sol-Python3]
+# 预处理每个数的质因子
+MX = 1_000_001
+prime_divisors = [[] for _ in range(MX)]
+for i in range(2, MX):
+    if not prime_divisors[i]:  # i 是质数
+        for j in range(i, MX, i):  # 枚举 i 的倍数 j
+            prime_divisors[j].append(i)  # i 是 j 的质因子
+
+
+class Data:
+    __slots__ = "sum", "pre", "suf", "ans"
+
+    def __init__(self, v=0):
+        self.sum = self.pre = self.suf = self.ans = v
+
+
+class SegmentTree:
+    def __init__(self, a: list[int]) -> None:
+        n = len(a)
+        self.t = [Data() for _ in range(2 << (n - 1).bit_length())]
+        self.build(a, 1, 0, n - 1)
+
+    def set(self, node: int, v: int) -> None:
+        self.t[node] = Data(v)
+
+    def maintain(self, node: int) -> None:
+        lo, ro = self.t[node * 2], self.t[node * 2 + 1]
+        cur = self.t[node]
+        cur.sum = lo.sum + ro.sum
+        cur.pre = max(lo.pre, lo.sum + ro.pre)
+        cur.suf = max(ro.suf, ro.sum + lo.suf)
+        cur.ans = max(lo.ans, ro.ans, lo.suf + ro.pre)
+
+    def build(self, a: list[int], node: int, l: int, r: int) -> None:
+        if l == r:
+            self.set(node, -a[l])
+            return
+        m = (l + r) // 2
+        self.build(a, node * 2, l, m)
+        self.build(a, node * 2 + 1, m + 1, r)
+        self.maintain(node)
+
+    def update(self, node: int, l: int, r: int, i: int, val: int) -> None:
+        if l == r:
+            self.set(node, val)
+            return
+        m = (l + r) // 2
+        if i <= m:
+            self.update(node * 2, l, m, i, val)
+        else:
+            self.update(node * 2 + 1, m + 1, r, i, val)
+        self.maintain(node)
+
+
+class Solution:
+    def divisibleGame(self, nums: list[int]) -> int:
+        MOD = 1_000_000_007
+        prime_to_indices = defaultdict(list)
+        for i, x in enumerate(nums):
+            for p in prime_divisors[x]:
+                prime_to_indices[p].append(i)
+
+        if not prime_to_indices:
+            # 每个数都是 1
+            # 最优是只选一个 1（分数差为 -1），最小 k 为 2（见示例 3）
+            return MOD - 2
+
+        n = len(nums)
+        t = SegmentTree(nums)
+        max_diff = -inf
+        best_k = 0
+
+        # 枚举质因子作为 k，计算最大子数组和
+        for k, indices in prime_to_indices.items():
+            for i in indices:
+                # nums[i] 是质因子 k 的倍数
+                t.update(1, 0, n - 1, i, nums[i])
+
+            diff = t.t[1].ans
+            if diff > max_diff or diff == max_diff and k < best_k:
+                max_diff = diff
+                best_k = k
+
+            for i in indices:
+                t.update(1, 0, n - 1, i, -nums[i])
+
+        return max_diff * best_k % MOD
+```
+
+```java [sol-Java]
+class SegmentTree {
+    private static class Data {
+        int sum, pre, suf, ans;
+
+        Data() {
+        }
+
+        Data(int v) {
+            this.sum = v;
+            this.pre = v;
+            this.suf = v;
+            this.ans = v;
+        }
+    }
+
+    private final Data[] tree;
+
+    public SegmentTree(int[] a) {
+        int n = a.length;
+        int size = 2 << (32 - Integer.numberOfLeadingZeros(n - 1));
+        tree = new Data[size];
+        Arrays.setAll(tree, _ -> new Data());
+        build(a, 1, 0, n - 1);
+    }
+
+    private void maintain(int node) {
+        Data cur = tree[node];
+        Data lo = tree[node * 2];
+        Data ro = tree[node * 2 + 1];
+        cur.sum = lo.sum + ro.sum;
+        cur.pre = Math.max(lo.pre, lo.sum + ro.pre);
+        cur.suf = Math.max(ro.suf, ro.sum + lo.suf);
+        cur.ans = Math.max(Math.max(lo.ans, ro.ans), lo.suf + ro.pre);
+    }
+
+    private void build(int[] a, int node, int l, int r) {
+        if (l == r) {
+            tree[node] = new Data(-a[l]);
+            return;
+        }
+        int m = (l + r) >>> 1;
+        build(a, node * 2, l, m);
+        build(a, node * 2 + 1, m + 1, r);
+        maintain(node);
+    }
+
+    public void update(int node, int l, int r, int i, int val) {
+        if (l == r) {
+            tree[node] = new Data(val);
+            return;
+        }
+        int m = (l + r) >>> 1;
+        if (i <= m) {
+            update(node * 2, l, m, i, val);
+        } else {
+            update(node * 2 + 1, m + 1, r, i, val);
+        }
+        maintain(node);
+    }
+
+    public int query() {
+        return tree[1].ans;
+    }
+}
+
+class Solution {
+    public int divisibleGame(int[] nums) {
+        final int MOD = 1_000_000_007;
+
+        int n = nums.length;
+        Map<Integer, List<Integer>> primeToIndices = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            int x = nums[i];
+            for (int p = 2; p * p <= x; p++) {
+                if (x % p == 0) {
+                    primeToIndices.computeIfAbsent(p, _ -> new ArrayList<>()).add(i);
+                    do {
+                        x /= p;
+                    } while (x % p == 0);
+                }
+            }
+            if (x > 1) {
+                primeToIndices.computeIfAbsent(x, _ -> new ArrayList<>()).add(i);
+            }
+        }
+
+        if (primeToIndices.isEmpty()) {
+            // 每个数都是 1
+            // 最优是只选一个 1（分数差为 -1），最小 k 为 2（见示例 3）
+            return MOD - 2;
+        }
+
+        SegmentTree t = new SegmentTree(nums);
+        int maxDiff = Integer.MIN_VALUE;
+        int bestK = 0;
+
+        // 枚举质因子作为 k，计算最大子数组和
+        for (Map.Entry<Integer, List<Integer>> e : primeToIndices.entrySet()) {
+            int k = e.getKey();
+            List<Integer> indices = e.getValue();
+
+            for (int i : indices) {
+                // nums[i] 是质因子 k 的倍数
+                t.update(1, 0, n - 1, i, nums[i]);
+            }
+
+            int diff = t.query();
+            if (diff > maxDiff || diff == maxDiff && k < bestK) {
+                maxDiff = diff;
+                bestK = k;
+            }
+
+            for (int i : indices) {
+                t.update(1, 0, n - 1, i, -nums[i]);
+            }
+        }
+
+        return (int) ((long) maxDiff * bestK % MOD);
+    }
+}
+```
+
+```cpp [sol-C++]
+constexpr int MX = 1'000'001;
+vector<int> prime_divisors[MX];
+
+// 预处理每个数的质因子
+int init = [] {
+    for (int i = 2; i < MX; i++) {
+        if (prime_divisors[i].empty()) { // i 是质数
+            for (int j = i; j < MX; j += i) { // 枚举 i 的倍数 j
+                prime_divisors[j].push_back(i); // i 是 j 的因子
+            }
+        }
+    }
+    return 0;
+}();
+
+class SegmentTree {
+    struct Data {
+        int sum, pre, suf, ans;
+
+        Data(int v = 0) : sum(v), pre(v), suf(v), ans(v) {}
+    };
+
+    vector<Data> tree;
+
+    void maintain(int node) {
+        Data& cur = tree[node];
+        Data& lo = tree[node * 2];
+        Data& ro = tree[node * 2 + 1];
+        cur.sum = lo.sum + ro.sum;
+        cur.pre = max(lo.pre, lo.sum + ro.pre);
+        cur.suf = max(ro.suf, ro.sum + lo.suf);
+        cur.ans = max(max(lo.ans, ro.ans), lo.suf + ro.pre);
+    }
+
+public:
+    SegmentTree(const vector<int>& a) : tree(2 << bit_width(a.size() - 1)) {
+        build(a, 1, 0, a.size() - 1);
+    }
+
+    void build(const vector<int>& a, int node, int l, int r) {
+        if (l == r) {
+            tree[node] = Data(-a[l]);
+            return;
+        }
+        int m = (l + r) >> 1;
+        build(a, node * 2, l, m);
+        build(a, node * 2 + 1, m + 1, r);
+        maintain(node);
+    }
+
+    void update(int node, int l, int r, int i, int val) {
+        if (l == r) {
+            tree[node] = Data(val);
+            return;
+        }
+        int m = (l + r) >> 1;
+        if (i <= m) {
+            update(node * 2, l, m, i, val);
+        } else {
+            update(node * 2 + 1, m + 1, r, i, val);
+        }
+        maintain(node);
+    }
+
+    int query() const {
+        return tree[1].ans;
+    }
+};
+
+class Solution {
+public:
+    int divisibleGame(vector<int>& nums) {
+        constexpr int MOD = 1'000'000'007;
+
+        int n = nums.size();
+        unordered_map<int, vector<int>> prime_to_indices;
+        for (int i = 0; i < n; i++) {
+            for (int p : prime_divisors[nums[i]]) {
+                prime_to_indices[p].push_back(i);
+            }
+        }
+
+        if (prime_to_indices.empty()) {
+            // 每个数都是 1
+            // 最优是只选一个 1（分数差为 -1），最小 k 为 2（见示例 3）
+            return MOD - 2;
+        }
+
+        SegmentTree t(nums);
+        int max_diff = INT_MIN;
+        int best_k = 0;
+
+        // 枚举质因子作为 k，计算最大子数组和
+        for (auto& [k, indices] : prime_to_indices) {
+            for (int i : indices) {
+                // nums[i] 是质因子 k 的倍数
+                t.update(1, 0, n - 1, i, nums[i]);
+            }
+
+            int diff = t.query();
+            if (diff > max_diff || diff == max_diff && k < best_k) {
+                max_diff = diff;
+                best_k = k;
+            }
+
+            for (int i : indices) {
+                t.update(1, 0, n - 1, i, -nums[i]);
+            }
+        }
+
+        return 1LL * max_diff * best_k % MOD;
+    }
+};
+```
+
+```go [sol-Go]
+const mx = 1_000_001
+var primeDivisors [mx][]int32
+
+// 预处理每个数的质因子
+func init() {
+	for i := int32(2); i < mx; i++ {
+		if primeDivisors[i] == nil { // i 是质数
+			for j := i; j < mx; j += i { // 枚举 i 的倍数 j
+				primeDivisors[j] = append(primeDivisors[j], i) // i 是 j 的质因子
+			}
+		}
+	}
+}
+
+type data struct {
+	sum, pre, suf, ans int
+}
+
+type seg []data
+
+func (t seg) set(node, v int) {
+	t[node] = data{v, v, v, v}
+}
+
+func (t seg) maintain(node int) {
+	lo, ro := t[node*2], t[node*2+1]
+	t[node].sum = lo.sum + ro.sum
+	t[node].pre = max(lo.pre, lo.sum+ro.pre)
+	t[node].suf = max(ro.suf, ro.sum+lo.suf)
+	t[node].ans = max(lo.ans, ro.ans, lo.suf+ro.pre)
+}
+
+func (t seg) build(a []int, node, l, r int) {
+	if l == r {
+		t.set(node, -a[l])
+		return
+	}
+	m := (l + r) >> 1
+	t.build(a, node*2, l, m)
+	t.build(a, node*2+1, m+1, r)
+	t.maintain(node)
+}
+
+func (t seg) update(node, l, r, i, val int) {
+	if l == r {
+		t.set(node, val)
+		return
+	}
+	m := (l + r) >> 1
+	if i <= m {
+		t.update(node*2, l, m, i, val)
+	} else {
+		t.update(node*2+1, m+1, r, i, val)
+	}
+	t.maintain(node)
+}
+
+func divisibleGame(nums []int) (ans int) {
+	const mod = 1_000_000_007
+
+	primeToIndices := map[int32][]int{}
+	for i, x := range nums {
+		for _, p := range primeDivisors[x] {
+			primeToIndices[p] = append(primeToIndices[p], i)
+		}
+	}
+
+	if len(primeToIndices) == 0 {
+		// 每个数都是 1
+		// 最优是只选一个 1（分数差为 -1），最小 k 为 2
+		return mod - 2
+	}
+
+	n := len(nums)
+	t := make(seg, 2<<bits.Len(uint(n-1)))
+	t.build(nums, 1, 0, n-1)
+	maxDiff, bestK := math.MinInt, int32(0)
+
+	// 枚举质因子作为 k，计算最大子数组和
+	for k, indices := range primeToIndices {
+		for _, i := range indices {
+			// nums[i] 是质因子 k 的倍数
+			t.update(1, 0, n-1, i, nums[i])
+		}
+
+		diff := t[1].ans
+		if diff > maxDiff || diff == maxDiff && k < bestK {
+			maxDiff, bestK = diff, k
+		}
+
+		for _, i := range indices {
+			t.update(1, 0, n-1, i, -nums[i])
+		}
+	}
+
+	return maxDiff * int(bestK) % mod
+}
+```
+
+#### 复杂度分析
+
+忽略预处理的时间和空间。
+
+- 时间复杂度：$\mathcal{O}\left(\dfrac{n\log n\log U}{\log\log U} \right)$，其中 $n$ 是 $\textit{nums}$ 的长度，$U=\max(\textit{nums})$。最坏情况是所有元素都相同，每个数至多有 $\mathcal{O}\left(\dfrac{\log U}{\log\log U}\right)$ 个不同的质因子。
+- 空间复杂度：$\mathcal{O}\left(\dfrac{n\log U}{\log\log U}\right)$。
+
+## 方法三：前缀和 + 最大子数组和
+
+回顾最大子数组和的计算过程：
+
+- 对于一个固定的 $k$，夹在 $\textit{nums}$ 中的两个 $k$ 的倍数之间的数，都是负数。我们可以把这些负数合在一起，当作一个大负数。
+- 对于最大子数组和的 DP 算法（见 53 题），只有在当前元素是正数的情况下，我们才可能得到更大的子数组和。
+
+在遍历 $\textit{nums}$ 的同时，计算与 $\textit{nums}[i]$ 的质因子有关的最大子数组和。
+
+对每个质因子 $p$：
+
+- 记录其上一次算出的 DP 值 $f[p]$。
+- 记录其上一次出现的下标加一 $\textit{last}[p]$。
+
+设 $\textit{nums}$ 的**前缀和**数组为 $s$。关于 $s$ 数组的定义，请看 [前缀和](https://leetcode.cn/problems/range-sum-query-immutable/solution/qian-zhui-he-ji-qi-kuo-zhan-fu-ti-dan-py-vaar/)。
+
+从 $\textit{last}[p]$ 到 $i-1$ 之间（含）的元素之和为 $s[i] - s[\textit{last}[p]]$。其相反数就是我们合并的大负数。
+
+在下标 $i$ 遍历到质因子 $p$ 时，新的 DP 值为
+
+$$
+\max(f[p] - (s[i] - s[\textit{last}[p]]), 0) + \textit{nums}[i]
+$$
+
+记录到 $f[p]$ 中。
+
+```py [sol-Python3]
+# 预处理每个数的质因子
+MX = 1_000_001
+prime_divisors = [[] for _ in range(MX)]
+for i in range(2, MX):
+    if not prime_divisors[i]:  # i 是质数
+        for j in range(i, MX, i):  # 枚举 i 的倍数 j
+            prime_divisors[j].append(i)  # i 是 j 的质因子
+
+
+class Solution:
+    def divisibleGame(self, nums: list[int]) -> int:
+        MOD = 1_000_000_007
+
+        n = len(nums)
+        s = list(accumulate(nums, initial=0))
+
+        if s[n] == n:
+            # 每个数都是 1
+            # 最优是只选一个 1（分数差为 -1），最小 k 为 2
+            return MOD - 2
+
+        f = defaultdict(int)
+        last = defaultdict(int)
+        max_diff = -inf
+        best_k = 0
+
+        for i, x in enumerate(nums):
+            for p in prime_divisors[x]:
+                diff = f[p] = max(f[p] - s[i] + s[last[p]], 0) + x
+                if diff > max_diff or diff == max_diff and p < best_k:
+                    max_diff = diff
+                    best_k = p
+                last[p] = i + 1
+
+        return max_diff * best_k % MOD
+```
+
+```java [sol-Java]
+class Solution {
+    public int divisibleGame(int[] nums) {
+        final int MOD = 1_000_000_007;
+
+        int n = nums.length;
+        int[] sum = new int[n + 1];
+        for (int i = 0; i < n; i++) {
+            sum[i + 1] = sum[i] + nums[i];
+        }
+
+        if (sum[n] == n) {
+            // 每个数都是 1
+            // 最优是只选一个 1（分数差为 -1），最小 k 为 2
+            return MOD - 2;
+        }
+
+        HashMap<Integer, Integer> f = new HashMap<>();
+        HashMap<Integer, Integer> last = new HashMap<>();
+        int maxDiff = Integer.MIN_VALUE;
+        int bestK = 0;
+
+        for (int i = 0; i < n; i++) {
+            int x = nums[i];
+            for (int p : getPrimeDivisors(x)) {
+                int midSum = sum[i] - sum[last.getOrDefault(p, 0)];
+                int diff = Math.max(f.getOrDefault(p, 0) - midSum, 0) + x;
+                f.put(p, diff);
+                if (diff > maxDiff || diff == maxDiff && p < bestK) {
+                    maxDiff = diff;
+                    bestK = p;
+                }
+                last.put(p, i + 1);
+            }
+        }
+
+        return (int) ((long) maxDiff * bestK % MOD);
+    }
+
+    private List<Integer> getPrimeDivisors(int x) {
+        List<Integer> divisors = new ArrayList<>();
+        for (int i = 2; i <= x / i; i++) {
+            if (x % i == 0) {
+                divisors.add(i);
+                while (x % i == 0) {
+                    x /= i;
+                }
+            }
+        }
+        if (x > 1) {
+            divisors.add(x);
+        }
+        return divisors;
+    }
+}
+```
+
+```cpp [sol-C++]
+constexpr int MX = 1'000'001;
+vector<int> prime_divisors[MX];
+
+// 预处理每个数的质因子
+int init = [] {
+    for (int i = 2; i < MX; i++) {
+        if (prime_divisors[i].empty()) { // i 是质数
+            for (int j = i; j < MX; j += i) { // 枚举 i 的倍数 j
+                prime_divisors[j].push_back(i); // i 是 j 的因子
+            }
+        }
+    }
+    return 0;
+}();
+
+class Solution {
+public:
+    int divisibleGame(vector<int>& nums) {
+        constexpr int MOD = 1'000'000'007;
+
+        int n = nums.size();
+        vector<int> sum(n + 1);
+        partial_sum(nums.begin(), nums.end(), sum.begin() + 1); // nums 的前缀和
+
+        if (sum[n] == n) {
+            // 每个数都是 1
+            // 最优是只选一个 1（分数差为 -1），最小 k 为 2
+            return MOD - 2;
+        }
+
+        unordered_map<int, int> f;
+        unordered_map<int, int> last;
+        int max_diff = INT_MIN;
+        int best_k = 0;
+
+        for (int i = 0; i < n; i++) {
+            int x = nums[i];
+            for (int p : prime_divisors[x]) {
+                int diff = max(f[p] - sum[i] + sum[last[p]], 0) + x;
+                f[p] = diff;
+                if (diff > max_diff || diff == max_diff && p < best_k) {
+                    max_diff = diff;
+                    best_k = p;
+                }
+                last[p] = i + 1;
+            }
+        }
+
+        return 1LL * max_diff * best_k % MOD;
+    }
+};
+```
+
+```go [sol-Go]
+const mx = 1_000_001
+var primeDivisors [mx][]int32
+
+// 预处理每个数的质因子
+func init() {
+	for i := int32(2); i < mx; i++ {
+		if primeDivisors[i] == nil { // i 是质数
+			for j := i; j < mx; j += i { // 枚举 i 的倍数 j
+				primeDivisors[j] = append(primeDivisors[j], i) // i 是 j 的质因子
+			}
+		}
+	}
+}
+
+func divisibleGame(nums []int) (ans int) {
+	const mod = 1_000_000_007
+
+	n := len(nums)
+	sum := make([]int, n+1)
+	for i, x := range nums {
+		sum[i+1] = sum[i] + x
+	}
+
+	if sum[n] == n {
+		// 每个数都是 1
+		// 最优是只选一个 1（分数差为 -1），最小 k 为 2
+		return mod - 2
+	}
+
+	f := map[int32]int{}
+	last := map[int32]int{}
+	maxDiff, bestK := math.MinInt, int32(0)
+
+	for i, x := range nums {
+		for _, p := range primeDivisors[x] {
+			diff := max(f[p]-sum[i]+sum[last[p]], 0) + x
+			f[p] = diff
+			if diff > maxDiff || diff == maxDiff && p < bestK {
+				maxDiff, bestK = diff, p
+			}
+			last[p] = i + 1
+		}
+	}
+
+	return maxDiff * int(bestK) % mod
+}
+```
+
+#### 复杂度分析
+
+忽略预处理的时间和空间。
+
+- 时间复杂度：$\mathcal{O}\left(\dfrac{n\log U}{\log\log U} \right)$，其中 $n$ 是 $\textit{nums}$ 的长度，$U=\max(\textit{nums})$。最坏情况同方法二。
+- 空间复杂度：$\mathcal{O}(n\log\log U)$。最坏情况同方法一。
+
+## 专题训练
+
+1. 数学题单的「**§1.3 质因数分解**」和「**§1.5 因子**」。
+2. 动态规划题单的「**§1.3 最大子数组和**」。
+3. 数据结构题单的「**§8.3 线段树**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `一、数论 / §1.3 质因数分解`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `一、数论 / §1.3 质因数分解`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

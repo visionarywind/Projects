@@ -1,0 +1,757 @@
+                                            Robust KV Cache Management for LLM Serving
+                                                under Output Token Length Uncertainty
+                                                                             Jiaming Cheng, Duong The Do, Duong Tung Nguyen
+                                                             Arizona State University, Tempe, AZ 85281, USA, {jiaming, dtdo4, duongnt}@asu.edu
+
+
+
+                                            Abstract—KV cache memory is a primary bottleneck in                admitted-and-on-time requests—below the configured capac-
+                                         modern LLM serving systems deployed on GPU clusters. A                ity. Because continuous-batching admission in modern serving
+                                         fundamental challenge is that the KV cache must be reserved           runtimes is constrained by aggregate KV residency, the per-
+                                         upon request arrival, while the output token length remains
+                                         unknown until generation completes. Under-reservation triggers        class reservation decisions directly determine both throughput
+                                         preemption—forcing termination and recomputation of requests          and service quality.
+                                         and incurring significant overhead—whereas over-reservation
+                                         wastes memory and reduces throughput. This creates a central             This problem is challenging for three reasons. (C1) Work-
+                                         trade-off between memory efficiency and preemption risk. We           load heterogeneity. Output lengths vary by orders of mag-
+                                         present a robust KV cache management framework for LLM                nitude across application classes: tens of tokens for chat,
+                                         serving that jointly optimizes GPU parallelism configuration, KV      hundreds for retrieval-augmented question answering, and
+                                         cache reservation per request class, request routing across hetero-   thousands for code generation. A single global quantile-based
+arXiv:2607.16892v1 [cs.NI] 18 Jul 2026
+
+
+
+
+                                         geneous serving groups, and prefix caching for shared prompts.
+                                         The framework incorporates latency SLO constraints and cap-           reservation cannot therefore be optimal for all classes simul-
+                                         tures the interaction between memory allocation, throughput,          taneously. (C2) Non-stationarity. Workload distributions drift
+                                         and queueing delay. To address output token length uncertainty        over time as user behavior, prompt templates, and traffic mix
+                                         and workload distribution shift, we develop a Wasserstein dis-        evolve; reservation policies fitted to historical traces degrade as
+                                         tributionally robust optimization (DRO) formulation together          the empirical tail shifts. (C3) System heterogeneity. Modern
+                                         with a scalable block coordinate descent algorithm for the
+                                         resulting mixed-integer problem. Our analysis reveals a critical      serving stacks partition GPUs into multiple groups under
+                                         fractile structure that automatically adapts reservation quantiles    different tensor parallelism (TP) and pipeline parallelism (PP)
+                                         to different preemption and memory cost regimes without manual        configurations, employ iteration-level continuous batching,
+                                         tuning. Trace-driven evaluation on production LLM workloads,          and may disaggregate the prefill and decode phases onto
+                                         including BurstGPT, Azure, and ShareGPT traces, demonstrates          separate engines [3], [24], producing a discrete set of operating
+                                         up to 56% lower cost than fixed-quantile reservation baselines
+                                         while maintaining competitive P99 latency, goodput, and SLO           points that trade KV capacity, throughput, and tail latency.
+                                         violation rates across diverse operating regimes.                     The cluster operator must therefore jointly determine the GPU
+                                            Index Terms—LLM inference, KV cache, token length uncer-           partition, the per-class reservation, and the request routing in
+                                         tainty, memory management, distributionally robust optimization       advance of any per-request output realization.
+                                                                                                                  Existing work primarily improves LLM serving efficiency
+                                                                                                               through runtime mechanisms such as KV-cache paging, con-
+                                                                I. I NTRODUCTION
+                                                                                                               tinuous batching, and prefill/decode disaggregation [1]–[3],
+                                            Cloud-hosted large language model (LLM) inference has              [24]. These systems focus on efficient execution once memory
+                                         become a dominant workload on modern GPU clusters, with               allocations are determined, but leave reservation and routing
+                                         batched autoregressive decoding driving aggregate utilization         decisions largely to operator-defined heuristics. Other ap-
+                                         at major providers. A central operational challenge in this           proaches either reduce KV memory through token eviction [4],
+                                         setting is the management of the per-request key-value (KV)           [5] or rely on fixed reservation heuristics (Mean, P90, P95,
+                                         cache, which grows by one entry per generated token and must          P99, Max), which are sensitive to workload drift and effective
+                                         be allocated at request admission time, before the decoder            only under limited operating regimes. Meanwhile, distribution-
+                                         has emitted any output. For a 70B-parameter model, the KV             ally robust optimization (DRO) [14] has been developed for
+                                         cache consumes approximately 2.5 MB per token, so a 2,000-            stochastic decision-making, but has not been applied to KV-
+                                         token response requires 5 GB and may exceed the memory                cache reservation in LLM serving systems. Classical DRO
+                                         of a single accelerator [1]. Under-reservation triggers mid-          inventory models also do not capture the in-flight memory
+                                         generation preemption: the request is evicted from the running        growth and recomputation overhead specific to LLM serving.
+                                         batch, completed tokens are discarded, and the request is             Putting these threads together, no existing work supplies the
+                                         recomputed from scratch, inflating time-to-first-token (TTFT),        decision policy that jointly chooses parallelism, reservation,
+                                         inter-token latency (ITL), and tail-percentile SLO violations.        routing, and prefix caching under output-length uncertainty
+                                         Over-reservation, conversely, leaves KV memory idle, reduces          with robustness guarantees. Section II expands this analysis;
+                                         the achievable batch size, and lowers goodput—the rate of             the gap motivates two research questions:
+RQ1: How should we reserve KV cache under output length
+uncertainty to minimize the combined cost of preemption
+(under-reservation) and wasted capacity (over-reservation)?
+RQ2: What reservation policy is optimal, and how does it
+adapt to different cost structures without manual tuning?
+   To address these challenges, we formulate a joint
+reservation-routing optimization using distributionally robust
+optimization (DRO) with Wasserstein ambiguity sets. The
+single-request reservation reduces to the classical newsvendor
+problem [15], [16]; what makes our setting distinct is that
+memory demand grows during execution as tokens are gen-
+erated, under-reservation triggers costly recomputation, and
+over-reservation reduces concurrent serving capacity—and the
+reservation is coupled across concurrent requests through a
+shared GPU-memory pool rather than solved per request in
+isolation. Fig. 1 illustrates the proposed system architecture
+and the interaction between the control and execution layers.
+   Our analysis reveals that the optimal reservation follows a
+critical fractile structure—the system automatically becomes
+more conservative when preemption is expensive and more
+aggressive when over-reservation is costly, eliminating the
+need for manual quantile tuning. Our contributions include:
+   • We develop a unified optimization framework that jointly
+      coordinates GPU parallelism configuration, KV cache
+      reservation, request routing, and prefix caching under out-
+      put token length uncertainty and latency SLO constraints.
+   • We formulate the problem as a Wasserstein DRO model
+                                                                    Fig. 1. System model: BCD-DRO (purple, this work) is a control-plane policy
+      and derive a critical fractile structure for the optimal      that ingests historical samples, cost parameters, and a Wasserstein radius
+      reservation policy, enabling automatic adaptation to dif-     and produces four control variables (z ∗ , r∗ , π ∗ , δ ∗ ) per re-optimization tick.
+                                                                    The data plane—PagedAttention, continuous batching, optional P/D split—
+      ferent preemption and memory cost regimes without man-        consumes these variables unchanged; the GPU cluster executes decoding; the
+      ual quantile tuning. We design a scalable block coordinate    dashed arrow closes the rolling-horizon loop with telemetry feedback.
+      descent algorithm (BCD-DRO) that supports periodic re-
+      optimization under workload drift.
+   • Through trace-driven evaluation on production LLM
+                                                                    workload characteristics. Orca-style continuous batching [2]
+      workloads (BurstGPT, Azure, ShareGPT), we demon-
+                                                                    interleaves requests at iteration granularity to maximize GPU
+      strate that no single fixed-quantile heuristic is optimal
+                                                                    utilization while treating per-request memory allocation as
+      across cost regimes—each is optimal only in a narrow
+                                                                    an exogenous input. DistServe [24] disaggregates prefill and
+      regime, while DRO automatically adapts to any cost
+                                                                    decode execution to improve goodput and tail latency, while
+      structure.
+                                                                    Sarathi-Serve [3] reduces latency through chunked prefill
+                     II. R ELATED W ORK                             scheduling. These systems focus on runtime execution once
+   We organize prior work into two main categories: runtime         deployment parameters are fixed but leave the key control
+KV-cache management and output-length-aware reservation             decisions—per-class reservation, GPU partitioning, request
+policies. While existing work has advanced these directions         routing, and prefix caching—to the operator. In contrast, our
+largely independently, our work integrates them into a unified      work operates at the decision-policy layer: it jointly determines
+framework for uncertainty-aware LLM serving.                        all four under output-length uncertainty with Wasserstein
+Runtime KV-Cache Management and Scheduling. Recent                  robustness, and the resulting policies are directly executable by
+LLM serving systems primarily address the KV-cache bottle-          the runtimes above without data-plane modifications (Table I).
+neck through runtime execution mechanisms rather than reser-        Output-Length-Aware Reservation and Robust Optimiza-
+vation policies. PagedAttention [1], the memory management          tion. Another line of work addresses uncertainty in output
+mechanism underlying vLLM, replaces contiguous KV alloca-           length and KV-cache growth. Eviction-based methods such
+tion with page-table indirection to improve memory utilization      as H2 O [4] and SnapKV [5] reduce the per-token KV-cache
+and reduce fragmentation. However, it reacts to memory pres-        footprint by dropping tokens deemed unimportant, trading
+sure only after KV capacity is exhausted, preempting and later      accuracy for memory efficiency. These methods are orthogonal
+resuming requests without explicitly determining reservation        to our reservation policy and can be combined with it; im-
+sizes in advance or optimizing the KV block pool relative to        proved reservation decisions reduce the amount of KV eviction
+                                            TABLE I                                                                   configuration has derived KV cache capacity Mk (in tokens)
+                                     S UMMARY OF LITERATURE                                                           and effective compute/bandwidth (Ck , Bk ).
+ System                             Mem.              Res.          Joint           Len.             Robust.          Request Classes. Requests are partitioned into classes i ∈ I
+                                    layout           policy         decis.          model             guar.           based on application type (chat, code generation, QA). Each
+ PagedAttn/vLLM [1]     paged      reactive      –                                  none                 –            class i has: arrival rate λi , input length Liin (known), shared
+ Orca [2]             cont. batch     –          –                                  none                 –
+ DistServe [24]        P/D split      –      topology                               none                 –            prefix Lipre (cacheable), latency SLO Di , and output length
+ Sarathi-Serve [3]     chunked        –          –                                  none                 –            ξi (uncertain until generation completes). This class structure
+ H2 O [4], SnapKV [5]  eviction       –          –                                post-hoc               –
+ Length predictors       any      point est.     –                               regression              –            is motivated by two observations: (i) requests within each
+ BCD-DRO (ours)∗                      any         DRO-opt.            ✓         Wasserstein Wasserstein
+                                                                                                                      class exhibit similar output distributions—enabling learning
+∗ Only BCD-DRO co-optimizes the four control knobs jointly under an explicit robustness guarantee. “Mem.” denotes a   from historical data, and (ii) requests share common prefixes—
+runtime memory-management mechanism that operates on inputs provided externally; “Policy” denotes a decision rule
+that produces those inputs.
+                                                                                                                      enabling prefix caching.
+                                                                                                                      Service Time. LLM inference consists of compute-bound
+                                                                                                                      prefill and memory-bandwidth-bound decode phases. The ex-
+required and, therefore, mitigate the associated accuracy degra-                                                      pected service time for class i on configuration k is:
+dation. Length-prediction approaches [6]–[8] estimate output
+                                                                                                                                             pk αLiin   βE[ξi ]
+length from prompts and reserve memory based on predicted                                                                         Ti,k =              +         + NL τk tar        (1)
+sequence lengths, while fixed-quantile heuristics (Mean, P90,                                                                                  Ck         Bk      | {z }
+                                                                                                                                             | {z }     | {z }     comm.
+P95, P99, Max) are widely used in practice as deployment                                                                                   prefill + bubble   decode
+defaults in production stacks [1].                                                                                    where α, β are model-specific constants, NL is the number of
+   Each of these approaches has limitations. Eviction meth-                                                           layers, and tar is all-reduce latency. Note that service time
+ods reduce memory usage after execution begins and do                                                                 uses E[ξi ] rather than the uncertain realization ξi because
+not jointly optimize reservation, routing, or configuration.                                                          throughput is an aggregate metric—by the law of large num-
+Prediction-based methods are sensitive to estimation error and                                                        bers, variability across concurrent requests averages out. In
+offer no guarantee against distribution shift. Fixed-quantile                                                         contrast, reservation decisions affect individual requests where
+heuristics are each optimal only in narrow operating regimes                                                          under-reservation triggers preemption, necessitating the DRO
+and cannot adapt to changing cost structures. Parallelism                                                             formulation. The offered load is ui,k = λi Ti,k .
+strategies [9], [10] are studied extensively for training, but
+inference deployments typically fix a configuration and do                                                            B. Decision Variables
+not jointly optimize memory reservation under uncertainty.                                                              The operator jointly optimizes four decisions, all made
+Recent workload-allocation and heterogeneous-serving frame-                                                           before observing actual output lengths:
+works [12], [13] decide where to run and how to route requests                                                           • Configuration deployment zk ∈ Z+ : number of serving
+under known demand. In contrast, this work is orthogonal and                                                               groups using configuration k ∈ K. This determines how
+new: how much KV cache to reserve per request when the                                                                     GPUs are partitioned.
+output length is unknown. This adds the reservation decision,                                                                                      i    i     i
+                                                                                                                         • Reservation ri ∈ [Lin , Lin + Lmax ]: KV cache tokens
+its Wasserstein-DRO formulation and critical-fractile charac-                                                              reserved per class-i request at admission, where Limax is
+terization, the capacity constraint that couples reservation to                                                            the maximum output length.
+throughput via Little’s law, and prefix caching δ.                                                                       • Routing πi,k ≥ 0: the portion of class-i requests routed
+   Distributionally robust optimization (DRO) has been widely                                                              to configuration
+                                                                                                                                P            k. The rejected portion satisfies πi,0 =
+studied for decision-making under uncertainty [14], particu-                                                               1 − k πi,k .
+larly with Wasserstein ambiguity sets for robustness against                                                             • Prefix caching δi,k ∈ {0, 1}: whether to cache the shared
+distribution shift. We bring this machinery into LLM serving                                                               prefix of class i on configuration-k groups, yielding
+by formulating KV-cache reservation as a Wasserstein DRO                                                                   effective reservation r̃i,k = ri − δi,k Lipre .
+problem with explicit SLO constraints, jointly co-designing
+                                                                                                                      C. Cost Structure
+parallelism, reservation, routing, and prefix caching with a
+critical-fractile reservation structure. Table I summarizes the                                                          The reservation decision ri creates a key trade-off:
+differences.                                                                                                          Preemption Cost. Preemption occurs when the reserved KV
+                                                                                                                      cache is insufficient to accommodate the generated tokens,
+      III. S YSTEM M ODEL AND P ROBLEM F ORMULATION                                                                   forcing the system to terminate and recompute the request.
+A. System Overview                                                                                                    This event incurs substantial overhead: previously generated
+                                                                                                                      tokens are discarded, GPU compute cycles are wasted, and
+   We consider an LLM service provider operating a GPU
+                                                                                                                      the request must be re-executed, increasing both system load
+cluster with J GPUs. The provider partitions GPUs into
+                                                                                                                      and latency. Formally, preemption occurs when Liin + ξi > ri .
+serving groups, each using a specific parallelism configuration.
+                                                                                                                      The resulting cost is proportional to the overflow beyond the
+Let K denote the set of candidate configurations, where each
+                                                                                                                      reservation:
+k ∈ K specifies tensor parallelism degree τk and pipeline
+parallelism degree pk , consuming τk pk GPUs per group. Each                                                                         Cpreempt = cp · (Liin + ξi − ri )+ ,          (2)
+                                                                                        X
+which implies that larger under-reservation leads to more                        s.t.         zk (τk pk ) ≤ J                                      (6b)
+severe recomputation overhead.                                                          k∈K
+
+Waste Cost. When the reserved KV cache exceeds actual                            πi,k ≤ zk , ∀i ∈ I, k ∈ K                                          (6c)
+                                                                                 X
+usage, the unused memory cannot be utilized by other requests,                        πi,k + πi,0 = 1, ∀i ∈ I                                      (6d)
+effectively reducing system throughput. This opportunity cost                     k∈K
+is modeled as:                                                                            X ui,k πi,k              X
+                                                                                 (1+κ)                   r̃i,k +         δi,k Lipre ≤ Mk , ∀k:zk >0 (6e)
+                                                                                                   zk
+                     Cwaste = cw · (ri − Liin − ξi )+ ,                   (3)           X
+                                                                                          i∈I                      i∈I
+
+                                                                                 si ≥          πi,k (Wk + Ti,k ) − ai Di ,      si ≥ 0, ∀i ∈ I      (6f)
+reflecting the loss of serving capacity due to over-reservation.
+                                                                                        k∈K
+Cost Ratio. The preemption and waste terms together capture
+a fundamental trade-off: reserving too little leads to costly                   where Qstoch
+                                                                                         i   = cp (Liin +ξi −ri )+ +cw (ri −Liin −ξi )+ captures
+recomputation due to preemption, while reserving too much                       the stochastic preemption/waste cost. Wk is the expected
+reduces the number of concurrent requests that can be served.                   waiting time from the Pollaczek–Khinchin formula [18]:
+The relative importance of these effects is governed by the                                                              2
+cost ratio ρ = cp /cw , which encodes the asymmetry between                                                     uk (1 + Cs,k )
+                                                                                                        Wk =                   T̄k                   (7)
+under- and over-reservation and reflects the system’s tolerance                                                  2(1 − uk )
+for preemption versus memory inefficiency. This ratio directly                                  P
+determines the optimal reservation quantile, as characterized                   where uk =        i λi πi,k Ti,k /zk is the utilization, T̄k is the
+in Section IV.                                                                  mean service time, and Cs,k is the coefficient of variation of
+                                                                                the empirical service-time distribution (computed on training
+Total Cost. The expected cost per class-i arrival combines                      samples and held fixed across DRO and baselines). We adopt
+stochastic and deterministic components:                                        the M/G/1 model, standard for LLM inference analysis [19],
+       Qi = ai · E[cp (·)+ + cw (·)+ ] + Cgpu + Cslo + Crej               (4)   as it captures Poisson arrivals with general service time distri-
+            |           {z          } |         {z       }                      butions arising from variable output lengths. The two variance
+                    preempt/waste (admitted)   resource, SLO, rejection                                                         2
+                                                                                terms in our model are non-overlapping: Cs,k        in (7) captures
+                                                                                temporal service-time variability (queueing dispersion), while
+                     P
+where   ai =       k πi,k is admission probability, Cgpu =
+                                                                                the (1 + κ) safety factor in (6e) captures instantaneous con-
+P
+   k i,k gpu k k i,k penalizes GPU usage, Cslo penalizes la-
+    π   c   τ p  T
+tency violations, and Crej = (1 − ai )crej penalizes rejections.                currency fluctuation around the Little’s-law mean (memory-
+                                                                                headroom dispersion). The two are layered, not duplicated.
+D. DRO Formulation
+                                                                                Constraint Interpretation.
+   The output length ξi for class i follows an unknown distri-                    • GPU budget (6b): The total GPU consumption across
+bution P i . A natural approach is to construct a class-specific                    all serving groups cannot exceed J. Each configuration-
+ambiguity set: requests within the same class share similar                         k group uses τk pk GPUs.
+application semantics (e.g., chat vs. code generation), and                       • Routing consistency (6c): Requests can only be routed
+thus exhibit similar output length distributions [3], [11], [13].                   to configurations that are actually deployed (zk > 0).
+This within-class homogeneity enables meaningful statistical                      • Routing probability (6d): Each request is either routed to
+                                    (n)
+learning from historical samples {ξˆi }N n=1 , forming empirical                    some configuration     or rejected. The admission probability
+distribution P̂Ni .
+                                                                                             P
+                                                                                    is ai = k πi,k .
+   However, optimizing under P̂Ni alone (sample average ap-                       • Memory capacity (6e): This is the key constraint linking
+proximation) is vulnerable to distribution shift—user behavior                      reservation to throughput. By Little’s law, the expected
+evolves, and finite samples may not capture tail behavior.                          number of concurrent class-i requests on configuration
+We adopt distributionally robust optimization (DRO) with a                          k is λi πi,k Ti,k /zk . Each consumes r̃i,k tokens of KV
+Wasserstein ambiguity set [14]:                                                     cache. The safety factor (1 + κ) accounts for stochastic
+                                                                                    variability in concurrent load.
+                      Pεi = {P : W1 (P, P̂Ni ) ≤ ε}                       (5)
+                                                                                  • SLO constraint (6f): The expected response time (wait-
+
+where W1 is the 1-Wasserstein distance and ε ≥ 0 controls                           ing Wk plus service Ti,k ) for admitted requests must sat-
+robustness. The Wasserstein metric is particularly suitable                         isfy the latency target Di . The slack variable si captures
+here: it captures realistic perturbations where output lengths                      violations penalized in the objective.
+shift continuously rather than jump to entirely different distri-
+butions. In practice, ε is set relative to the output length scale;                                  IV. S OLUTION A PPROACH
+we evaluate sensitivity to ε in Section V.
+                                                                                   We develop the solution in three steps: (i) reformulating the
+Complete Formulation. The joint optimization problem is:
+                                                                                infinite-dimensional DRO into a tractable finite program, (ii)
+       X h                               i
+                                                                                characterizing the structure of optimal reservation, and (iii)
+  min      λi ai sup EP [Qstoch
+                           i    ] + Qdet
+                                     i               (6a)
+  z,r,π,δ,s
+              i∈I         P ∈Pεi                                                designing an efficient algorithm for practical deployment.
+A. Tractable Reformulation                                            η)+ + cw (η − ξ)+ . Taking the derivative of expected cost with
+                                                                      respect to η:
+   The DRO objective involves a supremum over infinitely
+many distributions in Pεi , which is intractable in its original        ∂
+form. We apply Kantorovich duality to obtain an equivalent                 E[Qstoch
+                                                                              i     ] = −cp · Pr(ξ > η) + cw · Pr(ξ ≤ η)    (10a)
+                                                                        ∂η
+finite reformulation.                                                   = −cp (1 − F (η)) + cw F (η) = (cp + cw )F (η) − cp (10b)
+Proposition IV.1 (Tractable Reformulation). The distribution-
+                                                                      Setting to zero yields F (η ∗ ) = cp /(cp +cw ) = ρ/(ρ+1). Thus
+ally robust problem (6a) is equivalent to the following finite-
+                                                                      η ∗ = F −1 (ρ/(ρ + 1)), giving ri∗ = Liin + Fi−1 (ρ/(ρ + 1)).
+dimensional optimization:
+                                                                      Under DRO, the worst-case distribution P ∗ ∈ Pεi replaces Fi ,
+                                                                      preserving the fractile structure.
+                     "                     N
+                                                  !          #
+                X      X               1 X               det
+      min         λi      πi,k γi ε +         θi,n + Qi
+  z,r,π,δ,γ,θ,s                        N n=1                          Remark 3 (Critical Fractile). The threshold quantile q ∗ =
+                 i∈I   k∈K
+                                                               (8a)   ρ/(ρ + 1) is called the critical fractile—the point where the
+ s.t. (6b)–(6f)                                                (8b)   marginal cost of increasing reservation equals the marginal
+              (n)
+                                                                      benefit of avoiding preemption. This structure arises from the
+ θi,n ≥ cp (ξˆ + Li − ri ),
+             i        in           ∀i, n                       (8c)   piecewise linear cost with asymmetric slopes cp and cw . As ρ
+                   i     ˆ(n)                                         increases (preemption becomes more expensive), the optimal
+ θi,n ≥ cw (ri − Lin − ξi ), ∀i, n                             (8d)
+                                                (n)                   quantile rises, leading to more conservative reservation. This
+ θi,n ≥ cp (Limax + Liin − ri ) − γi (Limax − ξˆi ),   ∀i, n   (8e)   is the classical newsvendor critical ratio, and its distribution-
+                               (n)
+ θi,n ≥ cw (ri − Liin ) − γi ξˆi , ∀i, n                       (8f)   ally robust form is likewise known in operations research [14],
+ γi ≥ 0, θi,n ≥ 0,     ∀i, n                                   (8g)   [17]; we treat both as building blocks and locate our contri-
+                                                                      bution in coupling the reservation to routing, configuration,
+where γi is the dual variable for the Wasserstein constraint          and the shared-memory capacity constraint (6e).
+and θi,n are auxiliary variables for each sample n.
+                                                                      Remark 4 (Robust reservation vs. SAA under bounded
+   The proof of Proposition IV.1 follows from Kantorovich du-         support). For the newsvendor loss with unbounded demand
+ality, given in Appendix A. For piecewise linear cost functions,      support, the type-1 Wasserstein-robust order coincides with
+the worst-case distribution places mass only at the empirical         the empirical (SAA) fractile [14]. Our support is bounded,
+samples or the support boundaries {0, Limax }, and constraints        ξi ∈ [0, Limax ], by finite context length and finite GPU memory,
+(8c)–(8f) encode this structure via epigraph representation.          so the worst-case distribution places mass at the support
+   Problem (8) is a mixed-integer bilinear program (MIBLP)            boundary—precisely what the epigraph constraints (8e)–(8f)
+with O(|I| · N ) auxiliary variables. The bilinearity arises from     encode. The robust reservation is therefore shifted above the
+the coupling πi,k · (γi , θi,n ) in the objective.                    empirical fractile by an amount that grows with ε, and strictly
+                                                                      differs from SAA—consistent with the SAA ablation (Table V)
+Remark 1 (Dual Variable Interpretation). The dual variable            and the ε-sensitivity of Fig. 3(b).
+γi acts as a transportation cost penalty: a large γi keeps the
+worst-case distribution close to empirical data, while a small        C. BCD-DRO Algorithm
+γi allows mass to shift toward extremes (0 or Lmax ).
+                                                                         While the MIBLP in Proposition IV.1 can be solved exactly
+Remark 2 (Complexity). The reformulation adds O(|I| · N )             via global solvers, direct optimization is expensive for real-
+variables and constraints, tractable for modern solvers.              time deployment. The problem has a block structure: the con-
+                                                                      tinuous routing/reservation variables (r, π, γ, θ) decouple from
+B. Optimal Reservation Structure                                      the binary caching decisions δi,k and integer configuration
+   We now characterize the structure of optimal reservation,          zk when the other blocks are fixed. This motivates a block
+the central theoretical result of this work.                          coordinate descent (BCD) algorithm that cycles through three
+                                                                      blocks—solving an alternating LP for continuous variables,
+Proposition IV.2 (Critical Fractile Structure). Consider the          applying a closed-form update for caching, and enumerat-
+reservation subproblem for class i with fixed routing. Let                                                                       |K|
+                                                                      P over the finite configuration set Z = {z ∈ Z+ :
+                                                                      ing
+ρ = cp /cw denote the cost ratio. The optimal reservation ri∗
+                                                                         k zk τk pk ≤ J}.
+satisfies:                        
+                                      ρ
+                                                                     Proposition IV.3 (Convergence). Algorithm 1 terminates in
+                  ∗     i      −1
+                 ri = Lin + Fi                           (9)          finite iterations and returns a blockwise optimal solution, i.e.,
+                                    ρ+1
+                                                                      no single block can improve the objective while others are
+where Fi is the cumulative distribution function of output            fixed.
+length ξi under the worst-case distribution in Pεi .
+                                                                      Proof. The objective decreases monotonically at each block
+Proof. Define η = ri − Liin as the buffer for output length           update. Since the feasible set is finite (integer z, binary δ) and
+uncertainty. The stochastic cost becomes Qstoch
+                                          i     (η, ξ) = cp (ξ −      bounded, convergence follows from [20].
+Algorithm 1 BCD-DRO Algorithm                                                                                                      99
+                                                                                                                                   95
+                             (n)                                                                                                   91
+Require: Samples {ξˆi }, radius ε, configurations K
+
+
+
+
+                                                                  Total Cost ($)
+                                                                                                                                   83
+Ensure: Solution (z , r , π ∗ , δ ∗ )
+                            ∗ ∗
+
+
+
+
+                                                                                                                             q * (%)
+                                                                               103
+                                        (0)          (0)                                                  BCD-DRO                  67
+ 1: Initialize z (0) , δ (0) ← 0, γi ← cp , ri ← Liin + E[ξi ]                                            P90 (DistServe)
+                                                                                                          P95 (vLLM)
+ 2: for t = 1, . . . , Tmax do                                                                            Mean (Orca)                                          q * = /( + 1)
+                                                                               102                        P99                      50                          DRO
+ 3:    Block 1: Alternate LP1 (fix γ, θ, r; optimize π) and LP2                      1    2     5   10   20       50 100                0     20     40   60     80     100
+       (fix π; optimize r, γ, θ) until convergence
+                       (t)
+ 4:    Block 2: δi,k ← 1[ui,k πi,k /zk > 1]                                              (a) Cost C vs ρ                                    (b) Quantile q ∗ vs ρ
+ 5:    Block 3: z (t) ← arg minz∈Z Obj(z, r, π, δ (t) )                             Fig. 2. (a) Cost vs cost ratio ρ, (b) DRO quantile vs theoretical q ∗ .
+ 6:    if (z (t) , δ (t) ) = (z (t−1) , δ (t−1) ) then
+ 7:       break
+                                                                                                    TABLE II
+ 8:    end if                                                           DRO VS BASELINES ACROSS APPLICATION SCENARIOS . C OST IS THE
+ 9: end for                                                           PER - ARRIVAL PREEMPTION / WASTE COST ON A SINGLE - CLASS B URST GPT
+                                                                                  INSTANCE ; DRO G AIN SPANS [ VS . P90, VS . P95].
+10: return (z (t) , r, π, δ (t) )
+
+                                                                                   Scenario                   ρ      DRO               P90         P95    DRO Gain
+
+Complexity. The offline phase solves a sequence of LPs via                         Batch                   2          184               255        365     28–50%
+                                                                                   Async API               5          360               380        459      5–22%
+block coordinate descent; runtime scales with the number of                        User-facing             10         587               588        617       0–5%
+request classes, samples, and configuration candidates (see                        Latency-sensitive       20         931              1003        931       0–7%
+Section V for empirical results). The online phase is O(1)                         Critical                50         1575             2250        1875    16–30%
+per request: simply sample the routing decision and apply the                      Real-time              100         1919             4328        3448    44–56%
+precomputed reservation.
+              V. P ERFORMANCE E VALUATION                            at P90 quantile [24]; (4) P95: reserve at P95 with block
+A. Experiment Setup                                                  alignment [1]; (5) P99: reserve at P99; (6) SAA: sample
+                                                                     average approximation (ε=0). We additionally evaluate length-
+Trace Datasets. We evaluate on three production LLM infer-
+                                                                     prediction baselines (LP+kσ) in Section V-D.
+ence datasets spanning different workload types:
+                                                                     Default knobs. Two operator-set parameters drive BCD-DRO:
+  • BurstGPT [21]: 1.4M requests over 61 days from Azure
+                                                                     the cost ratio ρ = cp /cw and the Wasserstein radius ε. The
+    OpenAI services (ChatGPT/GPT-4). Output lengths:
+                                                                     ρ = 10 regime above represents interactive chat; we follow
+    mean=125, P90=276, P99=1,586 tokens.
+                                                                     the data-driven recipe of [14] for ε = 0.15 · E[ξi ]. Sensitivity
+  • Azure LLM 2024 [22]: 44M requests over 7 days from
+                                                                     to ε is reported in Fig. 3(b), and cross-ρ behavior in Table IV.
+    Azure production. Two workload types: Code (mean=23,
+    P90=49 tokens) and Conversation (mean=117, P90=398               B. Model Performance
+    tokens).
+  • ShareGPT      [23]: 368K assistant responses from                DRO vs Fixed-Quantile Baselines. Fig. 2(a) and Table II
+    crowdsourced ChatGPT conversations. Output lengths:              reveal that no single fixed-quantile heuristic is optimal across
+    mean=265, P90=486, P99=768 tokens. Represents                    regimes. By Proposition IV.2, each fixed-quantile baseline is
+    user-facing conversational workloads.                            optimal only where its quantile matches the critical fractile
+                                                                     q ∗ = ρ/(ρ + 1): P90 near ρ=10, P95 near ρ=20. This
+System Configuration. We simulate J = 8 A100-80GB GPUs               follows from the preemption-waste trade-off—higher ρ means
+serving a 70B model with configurations: k1 : (TP=2, PP=1),          preemption is relatively more costly, shifting the optimal
+k2 : (TP=4, PP=1), k3 : (TP=2, PP=2), k4 : (TP=4, PP=2). Cost        reservation toward higher quantiles. Fixed heuristics cannot
+parameters: cp /cw = 10, cslo /cw = 5, crej /cw = 5000,              adapt to this shift; DRO does so automatically by solving
+κ = 0.2. The cost units differ: cp and cw are per token (a           the cost-weighted optimization. Fig. 2(b) confirms that DRO’s
+preempted or wasted KV slot), cslo is a per-request tardiness        empirical quantile tracks the theoretical formula exactly, val-
+weight, and crej is per dropped request. Because a rejection         idating that the formulation correctly captures the trade-off
+gives up an entire sequence, a large crej /cw keeps admission        structure.
+preferred whenever capacity allows; cslo /cw = 5 prices a               Table II maps cost ratios to application scenarios. Batch
+late response at five wasted tokens, and κ = 0.2 leaves              workloads tolerate preemption (low ρ), while real-time sys-
+a 20% memory-headroom margin. By Proposition IV.2 the                tems cannot (high ρ). In practice, ρ varies across request
+reservation depends only on ρ = cp /cw , so these three weights      types and is rarely known precisely. DRO addresses this—
+affect only admission and routing; we confirm below that the         practitioners deploy a single policy that adapts to any cost
+policy is stable when each is varied by up to 5×.                    structure without manual quantile selection.
+Baselines. We compare against six strategies: (1) Max: reserve       Key Takeaway 1: The critical fractile q ∗ = ρ/(ρ + 1) elimi-
+Lmax ; (2) Mean: reserve at mean output [2]; (3) P90: reserve        nates manual tuning—DRO automatically selects the optimal
+                                                                                                                                                                    14
+                                               TABLE III                                                 5600
+                         A LGORITHM SCALABILITY: SOLVE TIME ( S ) VS . PROBLEM SIZE                                                                                 12
+                                                                                                         5400
+
+
+
+
+                                                                                                                                                    P99 latency (s)
+                                                                                                                                                                    10
+                                                                                                         5200                                                        8
+
+
+
+
+                                                                                            Cost
+                          Problem Size                MIBLP                BCD-DRO                                                                                   6
+                          |I|×|K|×N               Time (s) Status        Time (s) Gap                    5000
+                                                                                                                                             cslo                    4                                       cslo
+                                                                                                         4800                                crej                                                            crej
+                          3 × 4 × 100              0.07        Optimal     0.17   0.00%                                                                              2
+                          4 × 4 × 150               1.2        Optimal     0.8    0.00%                  4600      0.5            1           2                      0         0.5              1            2
+                          5 × 5 × 200              33.7        Optimal     4.3    0.00%                                  weight / default                                              weight / default
+                          6 × 6 × 300              >300        Timeout     10.5      –                                   (a) Cost                                               (b) P99 latency
+                          8 × 6 × 500              >300        Timeout     22.4      –
+                          10 × 8 × 1000             —            —         81.2      –         Fig. 4. Sensitivity of cost (a) and P99 latency (b) to the three secondary
+                          15 × 12 × 2000            —            —        257.7      –         weights at ρ=10, each swept relative to its default. The operating point is flat
+                                                                                               except when crej is halved, which sheds the most expensive class; q ∗ ≈91%
+                                                                                               throughout.
+                              2 GPUs
+                250           4 GPUs                                                                     3000
+Total Cost (×103)
+
+
+
+
+                                                                                                                                                                    30          =5
+                200           6 GPUs                                                                                DRO-RH
+
+
+
+
+                                                                                                                                                    DRO Advantage (%)
+                                                                                                         2750                                                                   =10
+                                                                                                                    DRO-Static                                      25          =20
+
+
+
+
+                                                                                            Total Cost ($)
+                150                                                                                      2500                                                                   =50
+                                                                                                                                                                    20          =100
+                100                                                                                      2250                                                       15
+                    50                                                                                   2000                                                       10
+                         1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0                                             1750                                                           5
+                                 Scaling Factor                                                          1500 0%                                                        0 0%
+                                                                                                                         -20%     -40%       -64%                                -20%       -40%      -64%   -80%
+                    (a) Cost vs Arrival Rate αλ                    (b) Cost Overhead vs ε                           Distribution Shift (%)                                       Distribution Shift (%)
+                                                                                                        (a) Static vs Rolling Horizon                                       (b) DRO advantage vs ρ
+    Fig. 3. Sensitivity analysis: (a) Cost vs arrival rate scaling, (b) Cost overhead
+    vs Wasserstein radius ε.                                                                   Fig. 5. Distribution shift robustness: (a) Static vs rolling horizon, (b) DRO
+                                                                                               advantage vs ρ and shift magnitude.
+
+    reservation quantile for any cost structure.
+    Algorithm Scalability. Table III compares BCD-DRO against                                  reservation—the decision that governs cost and preemption—
+    direct MIBLP solving across two regimes. In the small-scale                                depends only on ρ, so these weights cannot move it and
+    setting, both methods are feasible initially, but MIBLP times                              enter the problem solely through admission and routing. Fig. 4
+    out at |I|=6, |K|=6, N =300, while BCD-DRO continues                                       sweeps each by up to 5× around its default: the reservation
+    to converge. The lower block evaluates production-scale in-                                quantile holds at q ∗ ≈91% and both cost and tail latency stay
+    stances with 15 request classes, 12 candidate parallelism                                  flat, because at a well-provisioned operating point neither the
+    configurations, and N =2000 historical samples per class on                                SLO penalty nor the memory-headroom margin is the binding
+    a 48-GPU cluster. At this scale, BCD-DRO converges in                                      constraint. The lone lever that changes behavior is crej , and
+    approximately 257.7 s, remaining within a practical 5–10                                   only once rejecting a request is made cheaper than serving it—
+    minute re-optimization interval. The scalability gain comes                                the optimizer then deliberately sheds the most expensive class,
+    from the decomposition structure: fixing z reduces the inner                               trading admission for a lighter queue. That is a controllable
+    problem to a tractable LP, while the feasible configuration set                            design choice: these weights can be set approximately without
+    Z remains small under the GPU-budget constraint. At larger                                 changing how the policy behaves.
+    scales (e.g., |I|≥20, N ≥5000), runtime approaches the re-                                 Key Takeaway 2: BCD-DRO’s decomposition enables
+    optimization budget, suggesting the need for warm-starting or                              production-scale deployment where monolithic solvers fail,
+    anytime execution strategies.                                                              transforming KV cache reservation from a static offline de-
+    Sensitivity Analysis. Fig. 3(a) examines capacity planning                                 cision into an adaptive online policy.
+    under load scaling. When GPU capacity exceeds demand, cost
+    grows linearly with arrival rate. Once demand saturates capac-                             C. Robustness Evaluation
+    ity, rejection costs dominate and the optimizer shifts toward                              Adaptation Under Distribution Shift. Production LLM work-
+    selective admission. Fig. 3(b) shows the cost overhead from                                loads evolve over time as user behavior and application mix
+    robustness: increasing the Wasserstein radius ε adds a modest                              change. Fig. 5 evaluates robustness under such distribution
+    premium (<1.3% even at ε=0.5). The overhead scales with                                    shifts. When output lengths decrease relative to the training
+    ρ because higher cost ratios amplify the DRO regularization                                distribution, static optimization over-reserves memory using
+    term. In practice, ε ∈ [0.1, 0.2] provides robustness against                              stale statistics, reducing effective GPU utilization. Rolling-
+    distribution shift at <0.5% overhead—a practical default when                              horizon adaptation periodically re-optimizes using recent ob-
+    the degree of shift is unknown.                                                            servations and tracks the evolving workload distribution.
+    Other cost parameters. A natural concern is whether the                                       Fig. 5(b) shows that DRO’s advantage widens with the shift
+    policy is tuned to the three weights fixed above (cslo , crej , and                        magnitude: larger shifts increase the gap because fixed reser-
+    κ). It is not, for a structural reason: by Proposition IV.2 the                            vations stay tied to outdated statistics, while the Wasserstein
+ambiguity set hedges against model mismatch. The companion                                     TABLE IV
+axis (ρ) is examined in detail in Section V-D.                        C OST ACROSS THREE COST- RATIO REGIMES (ρ ∈ {2, 10, 100}) AND
+                                                                     LATENCY AT ρ=10 FOR FIXED - QUANTILE , LENGTH - PREDICTION , AND
+Note on real-trace temporal splits. We also examined                                       DRO BASELINES .
+temporal-split real-trace evaluation at the default ρ=10. At
+this regime the critical fractile q ∗ ≈91% sits close to the            Method               Cost      Latency at ρ=10
+                                                                                        ρ=2 ρ=10 ρ=100 P99 (s) SLO viol.
+P90 reservation, so by Proposition IV.2 the empirical-quantile
+baselines and DRO produce near-indistinguishable simulator              DRO (ours)      1,270   3,083 4,807     11.47     15.6%
+results on mild temporal splits of BurstGPT and Azure-Conv—             P90             1,852   3,095 17,080    11.39     14.8%
+                                                                        P95             2,890   3,320 8,153     12.50     23.2%
+a confirmation rather than refutation of the theory. The cross-ρ        P99             4,308   4,349 4,811     17.12     33.7%
+replay in Table IV, which sweeps ρ through regimes where q ∗            Mean            1,275   4,666 42,811    12.03     21.7%
+is far from any single fixed quantile, is therefore the more            Max             4,752   4,756 4,807     19.04     36.7%
+informative empirical instrument for exposing the regime-               LP+1σ [6], [7] 1,729 3,143 19,055       11.30     13.2%
+narrowness of fixed-quantile policies.                                  LP+2σ [6], [7] 2,615 3,207 9,865        11.80     18.0%
+Key Takeaway 3: Wasserstein robustness and rolling-horizon
+adaptation address complementary aspects of workload drift:
+the ambiguity set protects against model mismatch, while            operating regime. As the cost ratio increases, the policy under-
+periodic re-optimization tracks temporal changes in the live        reserves memory relative to the growing preemption penalty,
+workload distribution.                                              leading to rapidly increasing cost compared to DRO.
+                                                                    Key Takeaway 4: DRO is the only method whose cost remains
+D. Cost–Latency Trade-off Across Cost Ratios                        within a small constant factor of the best baseline across
+   Optimizing only cost or only latency is insufficient in          all ρ regimes. At individual ρ values, a regime-matched
+practice; operators must balance both objectives jointly. We        fixed quantile or LP+kσ may marginally outperform DRO
+therefore evaluate all methods across the same six cost-ratio       on latency, but each of these baselines is also several-fold
+regimes as Table II, where ρ = cp /cw controls the relative         worse than DRO at some other ρ. DRO trades small per-regime
+penalty of preemption versus waiting. For each ρ, we first          overhead for cross-regime stability.
+solve for the policy and then replay the resulting (z, r, π, δ)
+decisions on BurstGPT [21]. The simulator processes 10,000          E. Ablation Analysis
+requests per class, computes per-group queueing delay using            To evaluate the contribution of each component in BCD-
+the M/G/1 Pollaczek–Khinchin model under realized mem-              DRO, we disable them one at a time and re-solve the optimiza-
+ory utilization, and applies a 2.5× service-time penalty for        tion, then test each variant on a 2.5× output-length-shifted
+preempted requests to capture KV reload and decode replay           distribution. The shifted setting reflects realistic training–
+overhead. Table IV reports cost across three representative         evaluation mismatch and highlights the benefit of Wasserstein
+regimes and latency metrics at the central point ρ = 10.            robustness over sample-average optimization. The instance
+   Table IV shows that DRO is the only method with con-             forces routing diversity because the Code class exceeds the
+sistently bounded cost across the full ρ range. Low-quantile        KV capacity of the small TP= 2 configuration. Table V reports
+methods (Mean, P90) under-reserve memory and incur high             the results. The −DRO gap grows monotonically with shift
+preemption cost at large ρ, while conservative methods (P99,        magnitude, as Fig. 6 shows across {1.0, 1.5, 2.0, 2.5, 3.0}×.
+Max) over-reserve memory and become prohibitively expen-            Routing. Uniform π assigns Code requests to GPU groups
+sive at small ρ. DRO avoids both extremes by adapting               whose KV capacity cannot accommodate them, causing re-
+reservation levels to the uncertainty set.                          quest rejection or KV recomputation and eventually saturat-
+   Latency results show the same trend. At ρ = 10, LP+1σ            ing the queue. On workloads with heterogeneous memory
+and P90 both achieve marginally lower P99 latency and SLO           footprints, routing is a feasibility constraint rather than a
+violation than DRO (LP+1σ is 1.5% lower on P99, P90 is              performance-tuning parameter.
+0.7% lower), but each fails badly at other ρ. In contrast,          Distributional robustness. Setting ε = 0 reduces the model
+conservative baselines substantially increase queueing delay        to the empirical quantile and only protects against tail events
+because over-reservation reduces effective concurrency. DRO         observed in the training data. Under distribution shift, the
+therefore maintains a stable balance between cost and latency       reserved capacity underestimates the realized tail demand,
+across operating regimes.                                           leading to increased preemption. As a result, SAA achieves
+Length-prediction baseline. We additionally evaluate LP+kσ          slightly lower cost on the training trace but degrades signifi-
+baselines with ri = Liin + µ̂i +kσi for k ∈ {1, 2}, where µ̂i and   cantly on shifted workloads. Fig. 6 shows this gap widens with
+σi are the empirical mean and standard deviation of historical      shift magnitude: DRO’s P99 grows mildly from 3.0 to 9.1 s
+output lengths. At moderate cost ratios, LP+1σ achieves com-        as the shift factor moves from 1.0× to 3.0×, whereas SAA
+petitive latency because the additional safety margin reduces       degrades faster, from 5.4 to 18.0 s—roughly twice DRO’s tail
+preemption and queueing delay. However, the margin depends          at the largest shift, with its SLO-violation rate climbing to
+only on output-length variance and does not adapt to the            67.7% versus DRO’s 35.6%.
+                                                                   TABLE V
+                  A BLATION ON A HETEROGENEOUS INSTANCE (ρ=20, LOAD αλ =0.6, 2.5× SHIFTED EVALUATION ; MEAN ± STD OVER 5 SEEDS ).
+
+                                         Variant                    Cost          P99 (s)         Goodput       SLO viol.(%)
+                                         BCD-DRO (ours)         13,476 ± 208 8.12 ± 0.65        5.01 ± 0.25        26.4 ± 3.7
+                                         − Routing (uniform π) 93,878 ± 5,152 177.62 ± 11.90    0.63 ± 0.06        93.8 ± 0.6
+                                         − DRO (SAA)            24,864 ± 1,534 11.02 ± 1.55     3.68 ± 0.35        45.8 ± 5.2
+                                         − Prefix caching (δ=0) 13,476 ± 208   9.95 ± 1.29      4.39 ± 0.37        35.4 ± 5.4
+
+
+
+                                                                                 portance of uncertainty-aware memory management in large-
+                                     BCD-DRO (ours)                              scale LLM serving. Future work includes integration with
+                                     SAA
+                          15                                                     production serving runtimes, online adaptation using streaming
+        P99 latency (s)
+
+
+
+
+                                                                                 workload statistics, and joint optimization with energy-aware
+                                                                                 and geographically distributed inference scheduling.
+                          10                                                                                       A PPENDIX
+                                                                                    This appendix provides a complete derivation of the
+                          5                                                      tractable reformulation (8).
+                                                                                 Proposition A.1 (Worst-Case Expectation Reformulation).
+                               1.0      1.5       2.0       2.5    3.0           The worst-case expectation over the Wasserstein ambiguity set
+                                       Distribution-shift factor                 supP ∈Pε EP [Qstoch
+                                                                                               i     ] equals the optimal value of a finite linear
+                                                                                 program with O(N ) variables and constraints.
+Fig. 6. BCD-DRO vs. SAA. The x-axis is the multiplicative shift factor s         Proof. The proof proceeds in five steps.
+(ratio of eval-distribution mean to training-distribution mean; s=1 means no
+shift). SAA’s P99 stays consistently above DRO’s and the gap widens with s,      Step 1: Problem Setup. Consider the worst-case expectation
+reaching ≈ 18 s for SAA versus ≈ 9 s for DRO at s=3.0.                           over the Wasserstein ambiguity set:
+                                                                                                           sup EP [Qstoch
+                                                                                                                    i     (ri , ξi )]             (11)
+Prefix caching. Disabling δi,k leaves the reported cost un-                                                P ∈Pε
+
+changed because δ enters only the queueing/capacity model,                       where the ambiguity set is Pε = {P : W1 (P, P̂N ) ≤ ε}.
+not the preemption/waste cost objective; its effect appears                      The 1-Wasserstein distance between distributions P and Q is
+entirely in queueing delay: per-request KV usage increases                       defined as:
+from ri − Lipre to ri , increasing memory utilization and                                                      Z
+therefore waiting time under the Pollaczek–Khinchin model.                               W1 (P, Q) = inf            |ξ − ξ ′ | dπ(ξ, ξ ′ ) (12)
+                                                                                                            π∈Π(P,Q)      Ξ×Ξ
+The benefit of prefix caching is therefore driven primarily by
+concurrency rather than aggregate arrival rate.                                  where Π(P, Q) denotes the set of all joint distributions (cou-
+Key Takeaway 5: Routing maintains feasibility under hetero-                               PNmarginals P and Q. The empirical distribution is
+                                                                                 plings) with
+geneous memory demands, the Wasserstein radius ε improves                        P̂N = N1 n=1 δξ̂(n) , and the stochastic cost is:
+                                                                                                       i
+robustness to workload drift, and prefix caching reduces
+queueing delay under high concurrency. The unified formu-                         Qstoch
+                                                                                   i     (ri , ξ) = cp (Liin + ξ − ri )+ + cw (ri − Liin − ξ)+    (13)
+lation manages these effects jointly with only two external
+                                                                                 The support of ξ is Ξ = [0, Limax ].
+parameters: ε and the cost ratio ρ.
+                                                                                 Step 2: Lagrangian Relaxation and Strong Duality. The
+                                     VI. C ONCLUSION                             constraint W1 (P, P̂N ) ≤ ε requires that the adversarial
+                                                                                 distribution P lies within the Wasserstein ball. To handle
+   We presented a robust KV cache management framework
+                                                                                 this infinite-dimensional constraint, we introduce dual variable
+for LLM serving under output token length uncertainty. The
+                                                                                 γi ≥ 0 and form the Lagrangian:
+framework jointly optimizes GPU parallelism configuration,                                                                            
+KV cache reservation, request routing, and prefix caching                               L(P, γi ) = EP [Qstoch ] − γi W1 (P, P̂N ) − ε       (14)
+                                                                                                         i
+under latency SLO constraints, enabling coordinated control
+of memory allocation, throughput, and tail latency in heteroge-                  By strong duality [14]:
+neous GPU clusters. A Wasserstein DRO formulation provides
+                                                                                                 sup           EP [Qstoch
+                                                                                                                    i     ] = min sup L(P, γi )   (15)
+protection against distribution shifts, while the scalable BCD-                             P :W1 (P,P̂N )≤ε
+                                                                                                                                γi ≥0 P
+DRO algorithm enables periodic re-optimization as workloads
+evolve. The critical fractile structure (Proposition IV.2) au-                   Step 3: Pointwise Evaluation via Kantorovich Duality. The
+tomatically determines optimal reservation quantiles without                     inner supremum over P in (15) can be evaluated pointwise. For
+manual heuristic tuning. Overall, this work highlights the im-                   the empirical distribution P̂N , the optimal adversarial strategy
+                                    (n)
+transports each sample ξˆi to some point ξn ∈ Ξ, paying                                                 R EFERENCES
+                            (n)
+transportation cost |ξn − ξˆi |. This yields the Kantorovich               [1] W. Kwon, Z. Li, et al., “Efficient memory management for large
+dual form:                                                                     language model serving with PagedAttention,” in Proc. SOSP, 2023.
+        (                                            )                     [2] G.-I. Yu, J. S. Jeong, et al., “Orca: A distributed serving system for
+                 N
+              1 X        n
+                                                (n)
+                                                    o                          transformer-based generative models,” in Proc. OSDI, 2022.
+  min γi ε+                  stoch             ˆ
+                     sup Qi (ri , ξ)−γi |ξ − ξi |       (16)               [3] A. Agrawal, N. Kedia, et al., “Taming throughput-latency tradeoff in
+  γi ≥0       N n=1 ξ∈Ξ                                                        LLM inference with Sarathi-Serve,” in Proc. OSDI, 2024.
+                                                                           [4] Z. Zhang, Y. Sheng, et al., “H2O: Heavy-hitter oracle for efficient
+The dual variable γi acts as a transportation cost penalty: larger             generative inference of large language models,” in Proc. NeurIPS, 2023.
+γi penalizes moving probability mass more heavily, keeping                 [5] Y. Li, Y. Huang, et al., “SnapKV: LLM knows what you are looking
+                                                                               for before generation,” arXiv:2404.14469, 2024.
+the worst-case distribution closer to P̂N .                                [6] Y. Jin, C.-F. Wu, D. Brooks, and G.-Y. Wei, “S3 : Increasing GPU
+Step 4: Closed-Form Pointwise Supremum. Define the                             utilization during generative inference for higher throughput,” in Proc.
+                                                                               NeurIPS, 2023.
+adversarial cost function for each sample:                                 [7] Z. Zheng, X. Ren, et al., “Response length perception and sequence
+                            n                              o                   scheduling: An LLM-empowered LLM inference pipeline,” in Proc.
+            ˆ γi ) = sup
+   ϕi (ri , ξ,                Qstoch (ri , ξ) − γ i |ξ − ˆ
+                                                         ξ|  (17)              NeurIPS, 2024.
+                                i
+                          ξ∈[0,Limax ]                                     [8] H. Qiu, W. Mao, et al., “Power-aware deep learning model serving with
+                                                                               µ-Serve,” in Proc. USENIX ATC, 2024.
+Since Qstoch
+         i   (ri , ξ) is piecewise linear in ξ with breakpoint             [9] M. Shoeybi, M. Patwary, et al., “Megatron-LM: Training multi-billion
+at ξ ∗ = ri − Liin , and the transportation cost |ξ − ξ|  ˆ is                 parameter language models using model parallelism,” arXiv:1909.08053,
+                                      ˆ                                        2019.
+piecewise linear with breakpoint at ξ, the objective inside the           [10] R. Pope, S. Douglas, et al., “Efficiently scaling transformer inference,”
+supremum is piecewise linear. For piecewise linear functions,                  in Proc. MLSys, 2023.
+the supremum over a compact interval is attained at either a              [11] L. Zheng, W.-L. Chiang, et al., “Judging LLM-as-a-judge with MT-
+                                                                               Bench and Chatbot Arena,” in Proc. NeurIPS, 2023.
+vertex of the domain or a breakpoint. The candidate points are            [12] J. Cheng and D. Nguyen, “Scalable Joint Resource Allocation for
+ξ = 0 (lower boundary), ξ = ξˆ (sample point), and ξ = Limax                   SLO-Constrained LLM Inference in Heterogeneous GPU Clouds,”
+(upper boundary). Evaluating at each:                                          arXiv:2504.07472, 2025.
+                                                                          [13] J. Cheng and D. Nguyen, “Green-LLM: Optimal workload allocation for
+            (0)
+      ϕi          = cw (ri − Liin )+ − γi ξˆ                       (18)        environmentally-aware distributed inference,” arXiv:2507.09942, 2025.
+                                                                          [14] P. Mohajerin Esfahani and D. Kuhn, “Data-driven distributionally robust
+        (ξ̂)
+      ϕi = cp (ξˆ + Liin − ri )+ + cw (ri − Liin − ξ)
+                                                    ˆ+             (19)        optimization using the Wasserstein metric,” Math. Program., vol. 171,
+                                                                               pp. 115–166, 2018.
+       (L)                                       ˆ
+      ϕi = cp (Limax + Liin − ri ) − γi (Limax − ξ)                (20)   [15] F. Y. Edgeworth, “The mathematical theory of banking,” J. Roy. Statist.
+                                                                               Soc., vol. 51, no. 1, pp. 113–127, 1888.
+                                               (0)   (ξ̂)    (L)          [16] K. J. Arrow, T. Harris, and J. Marschak, “Optimal inventory policy,”
+The closed-form supremum is ϕi = max{ϕi , ϕi , ϕi }.                           Econometrica, vol. 19, no. 3, pp. 250–272, 1951.
+                                                                          [17] S. Lee, H. Kim, and I. Moon, “A data-driven distributionally robust
+Step 5: Epigraph Reformulation. Substituting the closed-                       newsvendor model with a Wasserstein ambiguity set,” J. Oper. Res. Soc.,
+form ϕi back into (16):                                                        vol. 72, no. 8, pp. 1879–1897, 2021.
+                 (         N
+                                                  )                       [18] L. Kleinrock, Queueing Systems, Volume 1: Theory. Wiley, 1975.
+                        1 X              (n)                              [19] Y. Yang, Y. Xu, and L. Jiao, “A queueing theoretic perspective on low-
+           min γi ε +         ϕi (ri , ξˆi , γi )   (21)                       latency LLM inference with variable token length,” in Proc. WiOpt,
+           γi ≥0        N n=1                                                  2024.
+                                                                          [20] S. Jäger and A. Schöbel, “The blockwise coordinate descent method for
+The max inside ϕi is non-smooth. We introduce auxil-                           integer programs,” Math. Meth. Oper. Res., vol. 91, pp. 357–381, 2020.
+iary variables θi,n and use epigraph representation θi,n ≥                [21] Y. Wang, Y. Chen, et al., “BurstGPT: A real-world workload dataset to
+           (n)                                                (0)              optimize LLM serving systems,” in Proc. KDD, 2025.
+ϕi (ri , ξˆi , γi ), which is equivalent to enforcing θi,n ≥ ϕi ,         [22] J. Stojkovic, C. Zhang, I. Goiri, J. Torrellas, and E. Choukse, “Dy-
+            (ξ̂)              (L)
+θi,n ≥ ϕi , and θi,n ≥ ϕi . The final linear program is:                       namoLLM: Designing LLM inference clusters for performance and
+                                                                               energy efficiency,” in Proc. HPCA, 2025.
+                           N                                              [23] ShareGPT Team, “ShareGPT: Share your ChatGPT conversations,”
+                       1 X                                                     2023. [Online]. Available: https://sharegpt.com
+   min γi ε +                θi,n                              (22a)
+    γi ,θ              N n=1                                              [24] Y. Zhong, S. Liu, et al., “DistServe: Disaggregating prefill and decoding
+                                                                               for goodput-optimized large language model serving,” in Proc. OSDI,
+                     (n)
+   s.t. θi,n ≥ cp (ξˆi + Liin − ri ), ∀n                       (22b)           2024.
+                            (n)
+   θi,n ≥ cw (ri − Li − ξˆ ), ∀n
+                    in      i                                  (22c)
+                                                 (n)
+   θi,n ≥ cp (Lmax + Liin − ri ) − γi (Limax − ξˆi ),
+               i
+                                                        ∀n     (22d)
+                                 (n)
+   θi,n ≥ cw (ri − Liin ) − γi ξˆi , ∀n                        (22e)
+   γi ≥ 0, θi,n ≥ 0, ∀n                                        (22f)
+This is a linear program in (γi , θ) for fixed ri . Constraints
+(22b)–(22e) correspond to (8c)–(8f) in the main text.
+

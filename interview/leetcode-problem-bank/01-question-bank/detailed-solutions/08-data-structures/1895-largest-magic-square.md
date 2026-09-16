@@ -1,0 +1,620 @@
+# 1895. 最大的幻方
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/largest-magic-square/
+- 题目 slug：`largest-magic-square`
+- 来源专题：常用数据结构
+- 来源分类路径：一、前缀和 / §1.5 进阶
+- 难度分：1781
+- 外部题解来源：https://leetcode.cn/problems/largest-magic-square/solutions/825422/go-qian-zhui-he-by-endlesscheng-59wj/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[从 O(N^4) 优化到 O(N^3)（Python/Java/C++/Go）](https://leetcode.cn/problems/largest-magic-square/solutions/825422/go-qian-zhui-he-by-endlesscheng-59wj/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`go-qian-zhui-he-by-endlesscheng-59wj`
+- topic id：`825422`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+> 注：本题不能二分答案。「每行每列的元素和都相等」是一个非常刁钻的要求，可能中间的某个 $k$ 满足要求，$k$ 大一点或小一点都无法让每行每列的元素和都相等。
+
+## 方法一：四种前缀和
+
+从大到小枚举 $k$，判断 $\textit{grid}$ 是否存在一个 $k\times k$ 的子矩阵 $M$，满足如下要求：
+
+- 设 $M$ 第一行的元素和为 $s$。
+- $M$ 每行的元素和都是 $s$。
+- $M$ 每列的元素和都是 $s$。
+- $M$ 主对角线的元素和为 $s$。
+- $M$ 反对角线的元素和为 $s$。
+
+这些参与求和的元素，在 $\textit{grid}$ 中都是连续的，我们可以用四种前缀和计算：
+
+- $\textit{rowSum}[i][j+1]$ 表示 $\textit{grid}$ 的 $i$ 行的前缀 $[0,j]$ 的元素和，即 $(i,0),(i,1),\ldots,(i,j)$ 的元素和。
+- $\textit{colSum}[i+1][j]$ 表示 $\textit{grid}$ 的 $j$ 列的前缀 $[0,i]$ 的元素和，即 $(0,j),(1,j),\ldots,(i,j)$ 的元素和。
+- $\textit{diagSum}[i+1][j+1]$ 表示从最上边或最左边出发，向右下↘到 $(i,j)$ 这条线上的元素和。
+- $\textit{antiSum}[i+1][j]$ 表示从最上边或最右边出发，向左下↙到 $(i,j)$ 这条线上的元素和。
+
+为什么这里有一些 $+1$？原理在 [前缀和](https://leetcode.cn/problems/range-sum-query-immutable/solution/qian-zhui-he-ji-qi-kuo-zhan-fu-ti-dan-py-vaar/) 中讲了，是为了兼容子数组恰好是前缀的情况，此时仍然可以用两个前缀和之差算出子数组和，无需特判。
+
+写个三重循环，依次枚举 $k,i,j$，其中 $k\times k$ 子矩阵的左上角为 $(i-k,j-k)$，右下角为 $(i-1,j-1)$，那么：
+
+- 主对角线的元素和为 $\textit{diagSum}[i][j] - \textit{diagSum}[i-k][j-k]$。
+- 反对角线的元素和为 $\textit{antiSum}[i][j-k]-\textit{antiSum}[i-k][j]$。
+- 在 $[i-k,i-1]$ 中枚举行号 $r$，行元素和为 $\textit{rowSum}[r][j] - \textit{rowSum}[r][j-k]$。
+- 在 $[j-k,j-1]$ 中枚举列号 $c$，列元素和为 $\textit{colSum}[i][c] - \textit{colSum}[i-k][c]$。
+
+代码实现时，可以先求主对角线的元素和、反对角线的元素和，如果二者不相等，则无需枚举 $r$ 和 $c$。
+
+```py [sol-Python3]
+class Solution:
+    def largestMagicSquare(self, grid: List[List[int]]) -> int:
+        m, n = len(grid), len(grid[0])
+        row_sum = [[0] * (n + 1) for _ in range(m)]       # → 前缀和
+        col_sum = [[0] * n for _ in range(m + 1)]         # ↓ 前缀和
+        diag_sum = [[0] * (n + 1) for _ in range(m + 1)]  # ↘ 前缀和
+        anti_sum = [[0] * (n + 1) for _ in range(m + 1)]  # ↙ 前缀和
+
+        for i, row in enumerate(grid):
+            for j, x in enumerate(row):
+                row_sum[i][j + 1] = row_sum[i][j] + x
+                col_sum[i + 1][j] = col_sum[i][j] + x
+                diag_sum[i + 1][j + 1] = diag_sum[i][j] + x
+                anti_sum[i + 1][j] = anti_sum[i][j + 1] + x
+
+        # k×k 子矩阵的左上角为 (i−k, j−k)，右下角为 (i−1, j−1)
+        for k in range(min(m, n), 0, -1):
+            for i in range(k, m + 1):
+                for j in range(k, n + 1):
+                    # 子矩阵主对角线的和
+                    s = diag_sum[i][j] - diag_sum[i - k][j - k]
+
+                    # 子矩阵反对角线的和等于 s
+                    # 子矩阵每行的和都等于 s
+                    # 子矩阵每列的和都等于 s
+                    if anti_sum[i][j - k] - anti_sum[i - k][j] == s and \
+                       all(row_sum[r][j] - row_sum[r][j - k] == s for r in range(i - k, i)) and \
+                       all(col_sum[i][c] - col_sum[i - k][c] == s for c in range(j - k, j)):
+                        return k
+```
+
+```java [sol-Java]
+class Solution {
+    public int largestMagicSquare(int[][] grid) {
+        int m = grid.length;
+        int n = grid[0].length;
+        int[][] rowSum = new int[m][n + 1];      // → 前缀和
+        int[][] colSum = new int[m + 1][n];      // ↓ 前缀和
+        int[][] diagSum = new int[m + 1][n + 1]; // ↘ 前缀和
+        int[][] antiSum = new int[m + 1][n + 1]; // ↙ 前缀和
+
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                int x = grid[i][j];
+                rowSum[i][j + 1] = rowSum[i][j] + x;
+                colSum[i + 1][j] = colSum[i][j] + x;
+                diagSum[i + 1][j + 1] = diagSum[i][j] + x;
+                antiSum[i + 1][j] = antiSum[i][j + 1] + x;
+            }
+        }
+
+        // k×k 子矩阵的左上角为 (i−k, j−k)，右下角为 (i−1, j−1)
+        for (int k = Math.min(m, n); ; k--) {
+            for (int i = k; i <= m; i++) {
+                next:
+                for (int j = k; j <= n; j++) {
+                    // 子矩阵主对角线的和
+                    int sum = diagSum[i][j] - diagSum[i - k][j - k];
+
+                    // 子矩阵反对角线的和
+                    if (antiSum[i][j - k] - antiSum[i - k][j] != sum) {
+                        continue;
+                    }
+
+                    // 子矩阵每行的和
+                    for (int r = i - k; r < i; r++) {
+                        if (rowSum[r][j] - rowSum[r][j - k] != sum) {
+                            continue next;
+                        }
+                    }
+
+                    // 子矩阵每列的和
+                    for (int c = j - k; c < j; c++) {
+                        if (colSum[i][c] - colSum[i - k][c] != sum) {
+                            continue next;
+                        }
+                    }
+
+                    return k;
+                }
+            }
+        }
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int largestMagicSquare(vector<vector<int>>& grid) {
+        int m = grid.size(), n = grid[0].size();
+        vector row_sum(m, vector<int>(n + 1));      // → 前缀和
+        vector col_sum(m + 1, vector<int>(n));      // ↓ 前缀和
+        vector diag_sum(m + 1, vector<int>(n + 1)); // ↘ 前缀和
+        vector anti_sum(m + 1, vector<int>(n + 1)); // ↙ 前缀和
+
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                int x = grid[i][j];
+                row_sum[i][j + 1] = row_sum[i][j] + x;
+                col_sum[i + 1][j] = col_sum[i][j] + x;
+                diag_sum[i + 1][j + 1] = diag_sum[i][j] + x;
+                anti_sum[i + 1][j] = anti_sum[i][j + 1] + x;
+            }
+        }
+
+        // k×k 子矩阵的左上角为 (i−k, j−k)，右下角为 (i−1, j−1)
+        for (int k = min(m, n); ; k--) {
+            for (int i = k; i <= m; i++) {
+                for (int j = k; j <= n; j++) {
+                    // 子矩阵主对角线的和
+                    int sum = diag_sum[i][j] - diag_sum[i - k][j - k];
+
+                    // 子矩阵反对角线的和
+                    if (anti_sum[i][j - k] - anti_sum[i - k][j] != sum) {
+                        continue;
+                    }
+
+                    // 子矩阵每行的和
+                    bool ok = true;
+                    for (int r = i - k; r < i; r++) {
+                        if (row_sum[r][j] - row_sum[r][j - k] != sum) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if (!ok) {
+                        continue;
+                    }
+
+                    // 子矩阵每列的和
+                    for (int c = j - k; c < j; c++) {
+                        if (col_sum[i][c] - col_sum[i - k][c] != sum) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if (ok) {
+                        return k;
+                    }
+                }
+            }
+        }
+    }
+};
+```
+
+```go [sol-Go]
+func largestMagicSquare(grid [][]int) int {
+	m, n := len(grid), len(grid[0])
+	rowSum := make([][]int, m)    // → 前缀和
+	colSum := make([][]int, m+1)  // ↓ 前缀和
+	diagSum := make([][]int, m+1) // ↘ 前缀和
+	antiSum := make([][]int, m+1) // ↙ 前缀和
+	for i := range m + 1 {
+		colSum[i] = make([]int, n)
+		diagSum[i] = make([]int, n+1)
+		antiSum[i] = make([]int, n+1)
+	}
+
+	for i, row := range grid {
+		rowSum[i] = make([]int, n+1)
+		for j, x := range row {
+			rowSum[i][j+1] = rowSum[i][j] + x
+			colSum[i+1][j] = colSum[i][j] + x
+			diagSum[i+1][j+1] = diagSum[i][j] + x
+			antiSum[i+1][j] = antiSum[i][j+1] + x
+		}
+	}
+
+	// k×k 子矩阵的左上角为 (i−k, j−k)，右下角为 (i−1, j−1)
+	for k := min(m, n); ; k-- {
+		for i := k; i <= m; i++ {
+		next:
+			for j := k; j <= n; j++ {
+				// 子矩阵主对角线的和
+				sum := diagSum[i][j] - diagSum[i-k][j-k]
+
+				// 子矩阵反对角线的和
+				if antiSum[i][j-k]-antiSum[i-k][j] != sum {
+					continue
+				}
+
+				// 子矩阵每行的和
+				for _, rowS := range rowSum[i-k : i] {
+					if rowS[j]-rowS[j-k] != sum {
+						continue next
+					}
+				}
+
+				// 子矩阵每列的和
+				for c := j - k; c < j; c++ {
+					if colSum[i][c]-colSum[i-k][c] != sum {
+						continue next
+					}
+				}
+
+				return k
+			}
+		}
+	}
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(mn\min(m,n)^2)$，其中 $m$ 和 $n$ 分别是 $\textit{grid}$ 的行数和列数。
+- 空间复杂度：$\mathcal{O}(mn)$。
+
+## 方法二：维护连续等和行列的个数
+
+从大到小枚举 $k$，判断 $\textit{grid}$ 是否存在一个 $k\times k$ 的子矩阵 $M$，满足如下要求：
+
+- 设 $M$ 第一行的元素和为 $s$。
+- $M$ 每行的元素和都是 $s$。**优化**：想象有一个 $k\times k$ 的窗口在**向下滑动**，我们可以维护到第 $i$ 行时，有连续多少行的和都等于 $s$。维护一个计数器 $\textit{sameCnt}$，如果当前行的和等于前一行的和，那么把 $\textit{sameCnt}$ 加一，否则把 $\textit{sameCnt}$ 重置为 $1$。如果 $\textit{sameCnt}\ge k$，则说明子矩阵每行的元素和都相等。
+- $M$ 每列的元素和都是 $s$。**优化**：想象有一个 $k\times k$ 的窗口在**向右滑动**，我们可以维护到第 $j$ 列时，有连续多少列的和都等于 $s$。算法同上。
+- $M$ 主对角线的元素和为 $s$。
+- $M$ 反对角线的元素和为 $s$。
+
+```py [sol-Python3]
+class Solution:
+    def largestMagicSquare(self, grid: List[List[int]]) -> int:
+        m, n = len(grid), len(grid[0])
+        row_sum = [[0] * (n + 1) for _ in range(m)]       # → 前缀和
+        col_sum = [[0] * n for _ in range(m + 1)]         # ↓ 前缀和
+        diag_sum = [[0] * (n + 1) for _ in range(m + 1)]  # ↘ 前缀和
+        anti_sum = [[0] * (n + 1) for _ in range(m + 1)]  # ↙ 前缀和
+
+        for i, row in enumerate(grid):
+            for j, x in enumerate(row):
+                row_sum[i][j + 1] = row_sum[i][j] + x
+                col_sum[i + 1][j] = col_sum[i][j] + x
+                diag_sum[i + 1][j + 1] = diag_sum[i][j] + x
+                anti_sum[i + 1][j] = anti_sum[i][j + 1] + x
+
+        # is_same_col_sum[i][j] 表示右下角为 (i, j) 的子矩形，每列元素和是否都相等
+        is_same_col_sum = [[False] * n for _ in range(m)]
+
+        for k in range(min(m, n), 1, -1):
+            for i in range(k, m + 1):
+                # 想象有一个 k×k 的窗口在向右滑动
+                same_cnt = 1
+                for j in range(1, n):
+                    if col_sum[i][j] - col_sum[i - k][j] == col_sum[i][j - 1] - col_sum[i - k][j - 1]:
+                        same_cnt += 1
+                    else:
+                        same_cnt = 1
+                    # 连续 k 列元素和是否都一样
+                    is_same_col_sum[i - 1][j] = same_cnt >= k
+
+            for j in range(k, n + 1):
+                # 想象有一个 k×k 的窗口在向下滑动
+                sum_row = row_sum[0][j] - row_sum[0][j - k]
+                same_cnt = 1
+                for i in range(2, m + 1):
+                    row_s = row_sum[i - 1][j] - row_sum[i - 1][j - k]
+                    if row_s == sum_row:
+                        same_cnt += 1
+                        if (same_cnt >= k and  # 连续 k 行元素和都一样
+                            is_same_col_sum[i - 1][j - 1] and  # 连续 k 列元素和都一样
+                            col_sum[i][j - 1] - col_sum[i - k][j - 1] == sum_row and  # 列和 = 行和
+                            diag_sum[i][j] - diag_sum[i - k][j - k] == sum_row and  # 主对角线和 = 行和
+                            anti_sum[i][j - k] - anti_sum[i - k][j] == sum_row):  # 反对角线和 = 行和
+                            return k
+                    else:
+                        sum_row = row_s
+                        same_cnt = 1
+
+        return 1
+```
+
+```java [sol-Java]
+class Solution {
+    public int largestMagicSquare(int[][] grid) {
+        int m = grid.length;
+        int n = grid[0].length;
+        int[][] rowSum = new int[m][n + 1];      // → 前缀和
+        int[][] colSum = new int[m + 1][n];      // ↓ 前缀和
+        int[][] diagSum = new int[m + 1][n + 1]; // ↘ 前缀和
+        int[][] antiSum = new int[m + 1][n + 1]; // ↙ 前缀和
+
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                int x = grid[i][j];
+                rowSum[i][j + 1] = rowSum[i][j] + x;
+                colSum[i + 1][j] = colSum[i][j] + x;
+                diagSum[i + 1][j + 1] = diagSum[i][j] + x;
+                antiSum[i + 1][j] = antiSum[i][j + 1] + x;
+            }
+        }
+
+        // isSameColSum[i][j] 表示右下角为 (i, j) 的子矩形，每列元素和是否都相等
+        boolean[][] isSameColSum = new boolean[m][n];
+
+        for (int k = Math.min(m, n); k > 1; k--) {
+            for (int i = k; i <= m; i++) {
+                // 想象有一个 k×k 的窗口在向右滑动
+                int sameCnt = 1;
+                for (int j = 1; j < n; j++) {
+                    if (colSum[i][j] - colSum[i - k][j] == colSum[i][j - 1] - colSum[i - k][j - 1]) {
+                        sameCnt++;
+                    } else {
+                        sameCnt = 1;
+                    }
+                    // 连续 k 列元素和是否都一样
+                    isSameColSum[i - 1][j] = sameCnt >= k;
+                }
+            }
+
+            for (int j = k; j <= n; j++) {
+                // 想象有一个 k×k 的窗口在向下滑动
+                int sum = rowSum[0][j] - rowSum[0][j - k];
+                int sameCnt = 1;
+                for (int i = 2; i <= m; i++) {
+                    int rowS = rowSum[i - 1][j] - rowSum[i - 1][j - k];
+                    if (rowS == sum) {
+                        sameCnt++;
+                        if (sameCnt >= k && // 连续 k 行元素和都一样
+                            isSameColSum[i - 1][j - 1] && // 连续 k 列元素和都一样
+                            colSum[i][j - 1] - colSum[i - k][j - 1] == sum && // 列和 = 行和
+                            diagSum[i][j] - diagSum[i - k][j - k] == sum && // 主对角线和 = 行和
+                            antiSum[i][j - k] - antiSum[i - k][j] == sum) { // 反对角线和 = 行和
+                            return k;
+                        }
+                    } else {
+                        sum = rowS;
+                        sameCnt = 1;
+                    }
+                }
+            }
+        }
+
+        return 1;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int largestMagicSquare(vector<vector<int>>& grid) {
+        int m = grid.size(), n = grid[0].size();
+        vector row_sum(m, vector<int>(n + 1));      // → 前缀和
+        vector col_sum(m + 1, vector<int>(n));      // ↓ 前缀和
+        vector diag_sum(m + 1, vector<int>(n + 1)); // ↘ 前缀和
+        vector anti_sum(m + 1, vector<int>(n + 1)); // ↙ 前缀和
+
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                int x = grid[i][j];
+                row_sum[i][j + 1] = row_sum[i][j] + x;
+                col_sum[i + 1][j] = col_sum[i][j] + x;
+                diag_sum[i + 1][j + 1] = diag_sum[i][j] + x;
+                anti_sum[i + 1][j] = anti_sum[i][j + 1] + x;
+            }
+        }
+
+        // is_same_col_sum[i][j] 表示右下角为 (i, j) 的子矩形，每列元素和是否都相等
+        vector is_same_col_sum(m, vector<int8_t>(n));
+
+        for (int k = min(m, n); k > 1; k--) {
+            for (int i = k; i <= m; i++) {
+                // 想象有一个 k×k 的窗口在向右滑动
+                int same_cnt = 1;
+                for (int j = 1; j < n; j++) {
+                    if (col_sum[i][j] - col_sum[i - k][j] == col_sum[i][j - 1] - col_sum[i - k][j - 1]) {
+                        same_cnt++;
+                    } else {
+                        same_cnt = 1;
+                    }
+                    // 连续 k 列元素和是否都一样
+                    is_same_col_sum[i - 1][j] = same_cnt >= k;
+                }
+            }
+
+            for (int j = k; j <= n; j++) {
+                // 想象有一个 k×k 的窗口在向下滑动
+                int sum_row = row_sum[0][j] - row_sum[0][j - k];
+                int same_cnt = 1;
+                for (int i = 2; i <= m; i++) {
+                    int row_s = row_sum[i - 1][j] - row_sum[i - 1][j - k];
+                    if (row_s == sum_row) {
+                        same_cnt++;
+                        if (same_cnt >= k && // 连续 k 行元素和都一样
+                            is_same_col_sum[i - 1][j - 1] && // 连续 k 列元素和都一样
+                            col_sum[i][j - 1] - col_sum[i - k][j - 1] == sum_row && // 列和 = 行和
+                            diag_sum[i][j] - diag_sum[i - k][j - k] == sum_row && // 主对角线和 = 行和
+                            anti_sum[i][j - k] - anti_sum[i - k][j] == sum_row) { // 反对角线和 = 行和
+                            return k;
+                        }
+                    } else {
+                        sum_row = row_s;
+                        same_cnt = 1;
+                    }
+                }
+            }
+        }
+
+        return 1;
+    }
+};
+```
+
+```go [sol-Go]
+func largestMagicSquare(grid [][]int) int {
+	m, n := len(grid), len(grid[0])
+	rowSum := make([][]int, m)    // → 前缀和
+	colSum := make([][]int, m+1)  // ↓ 前缀和
+	diagSum := make([][]int, m+1) // ↘ 前缀和
+	antiSum := make([][]int, m+1) // ↙ 前缀和
+	for i := range m + 1 {
+		colSum[i] = make([]int, n)
+		diagSum[i] = make([]int, n+1)
+		antiSum[i] = make([]int, n+1)
+	}
+	for i, row := range grid {
+		rowSum[i] = make([]int, n+1)
+		for j, x := range row {
+			rowSum[i][j+1] = rowSum[i][j] + x
+			colSum[i+1][j] = colSum[i][j] + x
+			diagSum[i+1][j+1] = diagSum[i][j] + x
+			antiSum[i+1][j] = antiSum[i][j+1] + x
+		}
+	}
+
+	// isSameColSum[i][j] 表示右下角为 (i, j) 的子矩形，每列元素和是否都相等
+	isSameColSum := make([][]bool, m)
+	for i := range isSameColSum {
+		isSameColSum[i] = make([]bool, n)
+	}
+	for k := min(m, n); k > 1; k-- {
+		for i := k; i <= m; i++ {
+			// 想象有一个 k×k 的窗口在向右滑动
+			sameCnt := 1
+			for j := 1; j < n; j++ {
+				if colSum[i][j]-colSum[i-k][j] == colSum[i][j-1]-colSum[i-k][j-1] {
+					sameCnt++
+				} else {
+					sameCnt = 1
+				}
+				// 连续 k 列元素和是否都一样
+				isSameColSum[i-1][j] = sameCnt >= k
+			}
+		}
+
+		for j := k; j <= n; j++ {
+			// 想象有一个 k×k 的窗口在向下滑动
+			sum := rowSum[0][j] - rowSum[0][j-k]
+			sameCnt := 1
+			for i := 2; i <= m; i++ {
+				rowS := rowSum[i-1][j] - rowSum[i-1][j-k]
+				if rowS == sum {
+					sameCnt++
+					if sameCnt >= k && // 连续 k 行元素和都一样
+						isSameColSum[i-1][j-1] && // 连续 k 列元素和都一样
+						colSum[i][j-1]-colSum[i-k][j-1] == sum && // 列和 = 行和
+						diagSum[i][j]-diagSum[i-k][j-k] == sum && // 主对角线和 = 行和
+						antiSum[i][j-k]-antiSum[i-k][j] == sum {  // 反对角线和 = 行和
+						return k
+					}
+				} else {
+					sum = rowS
+					sameCnt = 1
+				}
+			}
+		}
+	}
+
+	return 1
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(mn\min(m,n))$，其中 $m$ 和 $n$ 分别是 $\textit{grid}$ 的行数和列数。
+- 空间复杂度：$\mathcal{O}(mn)$。
+
+## 相似题目
+
+[1878. 矩阵中最大的三个菱形和](https://leetcode.cn/problems/get-biggest-three-rhombus-sums-in-a-grid/)
+
+## 专题训练
+
+见下面数据结构题单的「**一、前缀和**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `一、前缀和 / §1.5 进阶`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `一、前缀和 / §1.5 进阶`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

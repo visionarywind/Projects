@@ -1,0 +1,769 @@
+                                        eLLM: Elastic Memory Management Framework for Efficient LLM
+                                                                 Serving
+                                                                 Jiale Xu∗                                              Yi Xiong∗                                     Rui Zhang∗
+                                                 Shanghai Jiao Tong University                        University of Science and Technology                             Unaffiliated
+                                                   Shanghai Qi Zhi Institute                                         of China                                            China
+                                                             China                                                    China
+
+                                                               Cong Guo†                                                Zihan Liu                                   Yangjie Zhou
+                                                 Shanghai Jiao Tong University                             Shanghai Jiao Tong University                 National University of Singapore
+                                                   Shanghai Qi Zhi Institute                                 Shanghai Qi Zhi Institute                                China
+arXiv:2506.15155v2 [cs.DC] 6 May 2026
+
+
+
+
+                                                             China                                                     China
+                                                               Weiming Hu                                                Hao Wu                                         Boyu Li
+                                                 Shanghai Jiao Tong University                                          Unaffiliated                   University of Science and Technology
+                                                   Shanghai Qi Zhi Institute                                              China                                       of China
+                                                             China                                                                                                     China
+
+                                                          Junping Zhao†                                                Minyi Guo                                   Zongwei Zhu†
+                                                                Unaffiliated                               Shanghai Jiao Tong University               University of Science and Technology
+                                                                  China                                      Shanghai Qi Zhi Institute                                of China
+                                                                                                                       China                                           China
+
+                                                                                        Xuehai Zhou                                        Jingwen Leng
+                                                                         University of Science and Technology                        Shanghai Jiao Tong University
+                                                                                        of China                                       Shanghai Qi Zhi Institute
+                                                                                         China                                                   China
+                                        Abstract                                                                                deflation, and leverages CPU memory as an extensible buffer;(3)
+                                        GPU memory management is critical for efficient Large Language                          Lightweight Scheduling Strategy: Employs Service-Level Objective
+                                        Model (LLM) serving. LLM memory usage primarily comprises                               (SLO)-aware policies to optimize memory utilization and effectively
+                                        weights, activations, and KV caches. While weights are static, acti-                    balance performance trade-offs under stringent SLO constraints.
+                                        vations and KV caches exhibit dynamic and unpredictable behav-                          Comprehensive evaluations demonstrate that eLLM outperforms
+                                        ior, posing significant memory management challenges. Modern                            state-of-the-art systems, achieving up to 2.32× higher throughput.
+                                        LLM serving systems address this through a dual-level approach:                          Keywords
+                                        activations inherit static tensor abstractions from deep learning                        LLM serving, memory management, memory virtualization.
+                                        frameworks, while KV caches employ specialized page-table virtual-
+                                        ization (i.e., PagedAttention). Although this reduces KV cache frag-                    ACM Reference Format:
+                                        mentation, the fundamental isolation between activation and KV                          Jiale Xu, Yi Xiong, Rui Zhang, Cong Guo, Zihan Liu, Yangjie Zhou, Weiming
+                                                                                                                                Hu, Hao Wu, Boyu Li, Junping Zhao, Minyi Guo, Zongwei Zhu, Xuehai Zhou,
+                                        cache management prevents memory sharing across these spaces,
+                                                                                                                                and Jingwen Leng. 2026. eLLM: Elastic Memory Management Framework
+                                        leading to suboptimal utilization and 20% throughput degradation.                       for Efficient LLM Serving . In 63rd ACM/IEEE Design Automation Conference
+                                           To address these limitations, we propose eLLM, an elastic mem-                       (DAC ’26), July 26–29, 2026, Long Beach, CA, USA. ACM, New York, NY, USA,
+                                        ory management framework. The core components of eLLM in-                               8 pages. https://doi.org/10.1145/3770743.3804144
+                                        clude:(1) Virtual Tensor Abstraction: Decouples the virtual address
+                                        space of tensors from physical GPU memory, creating a unified and                        1     Introduction
+                                        flexible memory pool;(2) Elastic Memory Mechanism: Dynamically                           Large Language Models (LLMs) [20] process billions of requests
+                                        adjusts memory allocation through runtime memory inflation and                           daily in modern AI services. With model sizes growing exponen-
+                                        ∗ Equal contribution                                                                     tially while GPU memory capacity increases only incrementally,
+                                        † Corresponding author
+                                                                                                                                 GPU memory has emerged as the critical bottleneck for high-
+                                                                                                                                 performance LLM serving. First, the memory-bound nature of auto-
+                                                                                                                                 regressive generation necessitates request batching to improve
+                                        This work is licensed under a Creative Commons Attribution 4.0 International License.    arithmetic intensity and amortize framework overhead. However,
+                                        DAC ’26, Long Beach, CA, USA                                                             limited GPU memory directly constrains batch sizes, capping sys-
+                                        © 2026 Copyright held by the owner/author(s).
+                                        ACM ISBN 979-8-4007-2254-7/2026/07                                                       tem throughput [11]. Second, when GPU memory is insufficient to
+                                        https://doi.org/10.1145/3770743.3804144                                                  accommodate the incoming requests, these requests must queue
+DAC ’26, July 26–29, 2026, Long Beach, CA, USA                                                                    Xu*, Xiong*, Zhang*, Guo et al.
+
+
+until running requests complete and release memory, which signif-       widely recognized. Chunked Prefill (CP) [3] reduces peak ac-
+icantly degrades response latency [24].                                 tivation memory by partitioning requests into fixed-size chunks,
+   Status Quo. The core memory components of LLM inference in-          thereby reducing pre-reserved activation space. However, it suffers
+clude model weights, activations, and KV caches. Among these, acti-     from an inherent drawback refered as read amplification [2]: Chun-
+vations and KV caches exhibit highly dynamic and unpredictable          ked prefill processing incurs redundant KV cache reloading, as each
+behavior. Their dynamic nature stems from frequent allocation and       new chunk requires accessing all previously generated KV caches.
+de-allocation during inference, while their unpredictability arises     This memory overhead scales super-linearly with sequence length.
+from tensor sizes that vary with the uncertain lengths of input         Prefill–decode disaggregation systems [16, 18, 28] separate in-
+prompts and generated sequences.                                        ference phases across different GPUs, reducing activation memory
+   To manage these tensors, early LLM serving systems [25] rely         reservation on decode instances. However, they also exhibit four
+on static tensor abstractions inherited from deep learning frame-       limitations [8]: (1) Model Replication Overhead: Full model weights
+works (e.g., PyTorch [15]). As this abstraction assumes that tensor     must be replicated across prefill and decode instances, imposing
+sizes remain constant throughout their lifecycles, these systems        substantial memory redundancy in small-scale deployments; (2)
+naturally allocate contiguous physical memory blocks and employ         Memory Utilization Skew: Decode instances experience memory
+memory-pool-based reuse strategies for efficient memory man-            saturation from long-lived KV caches, while prefill instances re-
+agement. However, persisting with this abstraction for KV caches,       main significantly underutilized; (3) Inter-instance Communication
+which continuously expand and have unpredictable sizes, inevitably      Cost: KV cache transfer from prefill to decode instances incurs non-
+results in severe memory fragmentation, as shown in Figure 1(a).        trivial network latency and bandwidth consumption; Unlike these
+   To solve this, vLLM [11] introduces PagedAttention, a virtual        approaches, we directly address the space-wise internal fragmenta-
+memory abstraction tailored for KV caches. During system initial-       tion at the memory management level, avoiding their limitations
+ization, it pre-allocates GPU memory into two pools: a reserved         and remaining orthogonal to them.
+portion for model weights and activations (with activations sized ac-       Our solution. We propose eLLM, an elastic memory manage-
+cording to maximum sequence length), and the remaining memory           ment framework. As Figure 1(c) shows, at the logical level, eLLM
+organized as fixed-size KV blocks that are dynamically allocated to     introduces unified virtual tensors that treat KV caches and activa-
+requests on demand. This strategy significantly reduces fragmenta-      tion tensors as independent logical entities at the same abstraction
+tion, as shown in Figure 1(b), making PagedAttention the de facto       level, enabling tailored memory management strategies for their
+standard for modern LLM serving systems.                                distinct access patterns. At the physical level, eLLM implements
+   Limitations. However, PagedAttention creates isolation be-           elastic memory mechanisms through inflation and deflation oper-
+tween activations and KV cache spaces. Activations rely on the          ations to dynamically adjust memory allocation. As illustrated in
+static tensor abstraction of framework level with direct physical       Figure 2, activations and KV caches can mutually "borrow" memory
+memory allocation, while KV caches are managed through page-            from each other, achieving approximately 20% throughput improve-
+table virtualization built atop these abstractions. Due to this ab-     ment and demonstrating the effectiveness of our elastic memory
+straction hierarchy difference, the two memory spaces cannot share      management. Additionally, eLLM leverages CPU memory as an
+resources, even when the KV cache space is exhausted while the          extensible buffer for GPU memory, enhancing memory flexibility
+activation memory sits idle (or vice versa), the underutilized space    and alleviating GPU memory pressure. Finally, eLLM incorporates
+cannot be repurposed. We refer to this phenomenon as space-wise         a lightweight scheduling strategy that coordinates elastic memory
+internal fragmentation.                                                 management to optimize memory allocation, task scheduling, and
+   The phenomenon has become increasingly prominent through-            resource transitions. Extensive evaluation across diverse models
+out the entire inference phase. Prefill phase: As model context         and workloads demonstrates that eLLM achieves significant per-
+lengths surge from thousands [20] to millions [7, 13], the pre-         formance improvements, with inference throughput gains up to
+reserved activation space grows proportionally. For example, in-        2.32×.
+creasing the maximum context of MTP-30B from 2K to 200K on                  In summary, we make the following contributions:
+the same A100 GPUs increases the activation reservation from                • We identify the space-wise internal fragmentation problem
+only 0.3% to 30.8% of GPU memory. However, real-world prompt                  in existing LLM serving systems.
+lengths follow a typical long-tail distribution; for instance, 99%          • We propose eTensor, a virtual tensor abstraction that enables
+of prompts fall within 2K tokens in ShareGPT [19]. This leads to              memory transfers between activations and KV cache.
+significant space-wise internal fragmentation, as more than 90% of          • We design elastic memory mechanisms: inflation/deflation
+prefill batches use less than 30% of the model’s maximum context              for GPU-internal rebalancing and SLO-aware CPU buffering.
+length. Decoding phase: Unlike the prefill phase, which processes           • Comprehensive evaluations demonstrate that eLLM outper-
+a large number of tokens at once, each decoding step handles only             forms state-of-the-art LLM serving systems.
+a small number of tokens, resulting in even lower activation space
+utilization (∼1%). As advanced inference techniques such as Chain-      2   Design
+of-Thought (CoT) [21] become widely adopted, decoding cycles            eLLM comprises three core components organized in a bottom-up
+become longer, and this extremely low utilization increasingly dom-     architecture: Virtual Tensor Abstraction, Elastic Memory Mecha-
+inates the inference process.                                           nism, and Lightweight Scheduling Strategy. ❶ eLLM introduces a
+   Advanced LLM serving systems may mitigate this fragmentation         unified virtual tensor abstraction for both KV caches and activa-
+from the scheduling layer, but their limitations have also become       tions, decoupling them from physical resources while preserving
+eLLM: Elastic Memory Management Framework for Efficient LLM Serving                                                                                                                                     DAC ’26, July 26–29, 2026, Long Beach, CA, USA
+                                                       Fragmentation                       Activation                                                 KV Cache                                       Reservation Memory
+
+                                                   Urgent inquiry                                                    Urgent inquiry                                                         Urgent inquiry
+
+
+
+
+                                        Re
+
+
+
+
+                                                                                                        Re
+
+
+
+
+                                                                                                                                                                                  Re
+                                                     Quick detailed project update                                     Quick detailed project update                                          Quick detailed project update
+
+
+
+
+                                          qu
+
+
+
+
+                                                                                                          qu
+
+
+
+
+                                                                                                                                                                                     qu
+                                                       Our support needs                                                 Our support needs                                                      Our support needs
+
+
+
+
+                                            es
+
+
+
+
+                                                                                                            es
+
+
+
+
+                                                                                                                                                                                      ste
+                                                         Fast    reply                                                     Fast    reply                                                          Fast    reply
+
+
+
+
+                                               t
+
+
+
+
+                                                                                                              t
+                                                                                                          Pa irtua
+
+
+
+
+                                                                                                                                                                 Vir
+                                                                                                                                                                 eT aliza
+                                                                                                            ge liza
+                                                                                                            V
+
+
+
+
+                                                                                                                                                                    tu
+                                                                                                                                                                     en
+                                                                                                               dA
+
+
+
+
+                                                                                                                                                                        so tion
+                                                                                                                 tte tion
+
+
+
+
+                                                                                                                                                                          rs
+                                                                                                                    ntio
+                                                                                                                        n
+                                Ph mor
+
+
+
+
+                                                                                      Ph mor
+
+
+
+
+                                                                                                                                                          Ph mor
+                                 Me
+
+
+
+
+                                                                                       Me
+
+
+
+
+                                                                                                                                                           Me
+                                            Weight                                               Weight                                                                  Weight
+
+
+
+
+                                  ys y
+
+
+
+
+                                                                                        ys y
+
+
+
+
+                                                                                                                                                            ys y
+                                    ica
+
+
+
+
+                                                                                          ica
+
+
+
+
+                                                                                                                                                              ica
+                                        l
+
+
+
+
+                                                                                             l
+
+
+
+
+                                                                                                                                                                  l
+                                                           (a) PyTorch                                                  (b) vLLM                                                                (c) eLLM
+
+Figure 1: (a) Early LLM systems [25] inherit the static-tensor abstraction from deep learning frameworks (e.g., Pytorch [15]),
+failing to handle runtime KV cache tensor expansion, causing fragmentation. (b) By virtualizing the KV cache, vLLM [11]
+alleviates memory fragmentation but separates activations and the KV cache into different abstraction levels, thereby isolating
+activation from the KV cache space. (c) eLLM independently manages the KV cache and activations at the logical level while
+consolidating(a) memory        intoforaweight,
+                  Tensor breakdown       unified      physical
+                                               activation, KV cache. pool, thereby maximizing memory utilization.
+               (a) Tensor breakdown for weight, activation, KV cache.
+                                                                                                                                KV Cache                                            Activation
+                                                                                                                                                                                     KV Cache                                     KV  Cache
+                                                                                                                                                                                                                                  Activation                                      Activation
+                                                                                                                                                     eTensor                                              eTensor                                         eTensor
+                                                                                                                              Physical Chunk                                      Physical
+                                                                                                                                                                                   PhysicalChunk
+                                                                                                                                                                                            Chunk                               Physical
+                                                                                                                                                                                                                                Physical Chunk
+                                                                                                                                                                                                                                         Chunk                                  Physical Chunk
+                 KV Cache
+                 Space
+                                                                                                                    Virtual                                            Virtual                                          VirtualVirtual Address
+                                                                                                                                   Virtual Address                         Virtual Address
+                                                                                                                                                                                     Virtual Address                                    Virtual Address                       Virtual Address
+                                                                         Isolated!                                 Address                                            Address                                          Address
+                 Activation                                               Isolated!                                                                                                                          …                                               …                                       …
+                 Space                                                                                                                                                                      On-demand                                     On-demand                                      On-demand
+                                                                                                                                                          Nice to see you !                                      Nice to see you !                               Nice to see you !
+                                                                                                                                                                                             mapping                                       mapping                                        mapping
+                                                                                                                      Activation eTensor Pool                              KV eTensor
+                                                                                                                                                                          Activation    Pool Pool
+                                                                                                                                                                                     eTensor                                  KV eTensor Pool                                KV eTensor Pool
+                                                                                                                                                                                                                          Activation eTensor Pool
+
+                  (b) vLLM (KV cache-centric) memory snapshot.                                                                                                                                        deflation
+           (a) vLLM(b)(KV
+                       vLLMcache-centric)      memory
+                            (KV cache-centric) memory      snapshot.
+                                                      snapshot.
+                                                                                                                                         …                                                      ……
+                                                                                                                                                                                                                                             ……                                                 …
+
+                                                                                                                        Activation Chunk Pool                    KV Cache Chunk
+                                                                                                                                                                  Activation ChunkPool
+                                                                                                                                                                                   Pool                      inflation
+                                                                                                                                                                                                           KV Cache Chunk Pool
+                                                                                                                                                                                                         Activation Chunk Pool                    KV Cache Chunk Pool
+                                                                                                                                         Unified Physical Chunk Pool               Unified Physical Chunk Pool
+                                                            Elastic   20%                                                                                                                                                 Unified Physical Chunk Pool
+                                                            Elastic Speedup!
+                                                                      20%
+                                                                          Speedup!
+                                                                                                                                   Figure 3: eTensor abstraction for KV cache and activations.
+                  (b) eLLM    (ours)
+                        (c) eLLM (ours)memory     snapshot.
+                                        memory snapshot.
+                         (c) eLLM (ours) memory snapshot.                                                                         consist of smaller memory blocks with short lifespans and high
+Figure 2: (a) vLLM’s isolated allocation for activations and KV                                                                   access frequency. Activation eTensor employs variable-sized vir-
+cache in separate spaces causes underutilization and subopti-                                                                     tual address segments requiring frequent fine-grained management.
+mal performance; (b) eLLM enables elastic memory allocation,                                                                      Both eTensor types align their virtual address segments (termed
+maximizing utilization and achieving a 1.2× speedup.                                                                              tensor slots) strictly to physical block granularity, achieving better
+their distinct access patterns. ❷ Building on this abstraction, eLLM                                                              balance between access efficiency and fragmentation control.
+implements an Elastic Memory Mechanism enabling: (1) intra-GPU
+elasticity through inflation/deflation operations between KV caches                                                              2.1.2 Memory Management Strategy. To mitigate the potential
+and activations, and (2) GPU-CPU elasticity using CPU memory                                                                     overhead introduced by tensor virtualization via virtual-to-physical
+as an overflow buffer. ❸ eLLM employs a Lightweight Scheduling                                                                   address mappings, eLLM implements tailored memory-pool man-
+Strategy that coordinates these elastic mechanisms with SLO-aware                                                                agement strategies for each eTensor type. Rather than immedi-
+adaptive buffer sizing.                                                                                                          ately unmapping eTensor instances from physical resources at the
+                                                                                                                                 end of their lifecycles, the system marks them as mapped and
+2.1    Virtual Tensor Abstraction
+                                                                                                                                 available tensor slots, and tracks their mapping sizes, thereby en-
+The root cause of space-wise internal fragmentation lies in the                                                                  abling efficient memory reuse. The KV eTensor pool employs a
+inconsistent abstraction levels between activations and KV caches.                                                               Best-Fit algorithm for incoming requests. Given the set of avail-
+Two naive approaches could potentially unify these abstractions:                                                                 able pre-mapped tensor slots 𝑅 = {𝑟 | 𝑟 ∈ 𝑀𝑎𝑝𝑝𝑒𝑑 ∧ 𝑟 .𝑠𝑡𝑎𝑡𝑒 =
+(1) Fine-grained KV cache management delegated to the framework                                                                  𝐴𝑣𝑎𝑖𝑙𝑎𝑏𝑙𝑒} and a target memory size 𝑠, the algorithm prioritizes
+would introduce substantial metadata overhead and compromise                                                                     selecting the smallest feasible slot
+the sharing structure of KV caches; (2) A type-agnostic unified                                                                                                     satisfying the requirement 𝑟𝑖 =
+                                                                                                                                 arg min𝑟 𝑗 ∈𝑅 size 𝑟 𝑗 | size 𝑟 𝑗 ≥ 𝑠 . If no such slot exists, on-demand
+virtualization abstraction would ignore the distinct characteristics                                                             mapping is triggered. The Activation eTensor pool retains the frame-
+of activations and KV caches, precluding workload-specific opti-                                                                 work’s native Best-Fit with Coalescing (BFC) strategy.
+mizations. Based on this observation, eLLM introduces eTensor, a
+novel tensor abstraction with two specialized types, KV eTensor
+                                                                                                                                  2.2           Elastic Memory Mechanism
+and activation eTensor. Each implements tailored mechanisms for                                                                  The elastic memory mechanism aims to enhance memory utiliza-
+its specific access patterns while sharing a unified memory pool for                                                             tion and system performance under LLM workloads. It introduces
+inter-conversion, as illustrated in Figure 3.                                                                                    two levels of elasticity: intra-GPU memory inflation and deflation,
+2.1.1 Virtualization Design. KV caches are inherently large, regular                                                             which enable timely adjustment of physical memory allocation for
+memory blocks with predictable growth patterns, low access fre-                                                                  activation and KV cache in response to the dynamic workloads; and
+quency, and persistent retention throughout inference. Therefore,                                                                GPU-CPU offloading and fetching, which employ CPU memory as
+KV eTensor pre-allocates virtual address space equal to the maxi-                                                                an elastic buffer to further alleviate the memory pressure on GPU.
+mum context length for each request, ensuring logical continuity                                                                 2.2.1 Memory Inflation and Deflation. Memory inflation and de-
+that facilitates sequential access and index computation, while phys-                                                            flation operations are the core mechanisms of eLLM, enabling it
+ical blocks are allocated on-demand during actual writes to avoid                                                                to break memory isolation through mapping relation propagation,
+unnecessary memory consumption. In contrast, activation tensors                                                                  which dynamically maintains the binding relationship between
+DAC ’26, July 26–29, 2026, Long Beach, CA, USA                                                                                                      Xu*, Xiong*, Zhang*, Guo et al.
+
+
+          Occupied Chunk       +   Newly Occupied           KV Cache Chunk           Activation Chunk
+                                                                                                        workloads with A100 GPUs and the LLaMA-3-8B model, offloading
+                                                                                          Decoding
+        Input                              Prefill                       Decoding                       overhead can be completely hidden. However, while CPU buffer im-
+                                                                                          Complete
+                Inflation              Inflation             Deflation
+                                           +   +                     +
+                                                                                                        proves request queuing, it inherently introduces a prefill-preference
+                                           +   +                +    +
+                               +   +   +                         +   +
+                                                                                                        that adversely affects TPOT. Therefore, eLLM introduces a simple
+       KV Cache ACT          KV Cache ACT             KV Cache ACT                  KV Cache ACT        yet effective policy to trade off between SLO metrics(§2.3.2).
+          Pool    Pool          Pool    Pool             Pool   Pool                   Pool    Pool
+       (a) step-0 state     (b) step-1 state         (c) step-2 state               (d) step-3 state
+Figure 4: Illustrative example of memory inflation/deflation.                                           2.3    Lightweight Scheduling Strategy
+virtual address spaces and physical memory chunks, built upon the                                       To address memory inefficiency in LLM serving, eLLM introduces
+eTensor abstraction.                                                                                    a lightweight yet effective scheduling algorithm.
+    Inflation operation dynamically expands the physical memory                                         2.3.1 Request Scheduling. eLLM maximizes concurrent requests
+capacity of the KV cache by borrowing from the active memory                                            through elastic memory allocation while adhering to memory con-
+pool, much like inflating a balloon. This process involves the follow-                                  straints. Capitalizing on the substantial variation in activation mem-
+ing steps: ❶ Inflation trigger: upon KV cache allocation requests,                                      ory demands across different phases of LLM inference, we employ
+the system first verifies whether the KV memory pool contains suf-                                      phase-specific allocation: (1) Prefill phase: Requires significant acti-
+ficient physical memory chunks. If insufficient, a borrowing request                                    vation and KV cache memory. During memory-intensive scenarios,
+is issued to the activation memory pool. ❷ Memory reclamation: the                                      we offload KV cache to CPU buffers, thereby reducing GPU memory
+active pool fulfills the request by triggering a lightweight garbage                                    pressure. (2) Decoding phase: Given minimal activation memory re-
+collection (GC) phase. This GC phase identifies and unmaps physical                                     quirements, we optimize resource utilization by fetching KV cache
+memory chunks allocated to inactive eTensor objects. ❸ Owner-                                           back to GPU, exploiting the reduced memory footprint. Both phases
+ship transfer: reclaimed chunks are logically migrated from the                                         maximize GPU memory utilization through inflation and deflation.
+activation pool to the KV cache pool through ownership transfer.                                        2.3.2 SLO-aware Buffer Scaling Policy. CPU buffer size directly af-
+❹ On-demand remapping: the GPU virtual memory manager dy-                                               fects the trade-off between TTFT and TPOT. To achieve an optimal
+namically maps these chunks to target KV eTensors’ virtual address                                      balance between them, it is essential to determine an appropriate
+spaces. Deflation operation is the reverse process of the above.                                        buffer size. However, a fixed-size buffer is suboptimal due to LLMs’
+    Figure 4 demonstrates the intra-GPU elastic memory mechanism                                        dynamic workloads. To address this, eLLM introduces the concept
+through an illustrative example. (a) Initially, the GPU retains his-                                    of a logical buffer, an abstraction of the physical buffer that dynam-
+torical KV caches. In this state, existing LLM serving systems are                                      ically adjusts the usable size within its fixed capacity. This enables
+unable to process newly arrived requests immediately due to insuffi-                                    flexible adjustment of buffer space without evicting stored data,
+cient KV cache space. (b) With memory inflation, eLLM can handle                                        thereby enhancing the system’s adaptability to dynamic workloads.
+prefill requests promptly by borrowing idle activation chunks. (c)                                          Building on this, eLLM proposes an SLO-aware logical buffer
+Through memory inflation, eLLM enables larger batch processing                                          scaling algorithm. If a TPOT violation is detected, the logical buffer
+even under high memory pressure, thereby improving computa-                                             size is reduced to limit prefill requests, thereby improving TPOT
+tional resource utilization given the memory-bound nature of the                                        performance. Conversely, if a TTFT violation is detected, the logical
+decoding phase. (d) With memory deflation, eLLM can return the                                          buffer size is increased to improve TTFT performance. A violation
+borrowed memory. In practice, this process is triggered lazily to                                       event is triggered if the TTFT or TPOT exceeds the predefined SLO
+avoid unnecessary overhead.                                                                             threshold three times within a specific scheduling iteration window
+2.2.2 Memory Offloading and Fetching. eLLM further incorporates                                         (set to 5 iterations). The buffer tuning factor 𝛼 is a hyperparameter
+GPU-CPU elastic memory management to maintain service respon-                                           (default 𝛼 = 2) that controls the rate of buffer size adjustment.
+siveness under memory pressure. In online LLM serving, optimizing                                       3 Implementation
+system response latency (i.e., TTFT) faces more challenges com-                                         3.1 Overlapping (Un)mapping Overheads
+pared to decoding latency (i.e., TPOT): (1) more memory contention
+                                                                                                        To further overlap (up)mapping overhead, we introduce several
+leading to severe request queuing delays, and (2) the computational
+                                                                                                        techniques, including decoding speculative pre-mapping and asyn-
+complexity of the prefill phase scaling superlinearly. Therefore,
+                                                                                                        chronous unmapping. Decoding speculative pre-mapping. Due
+eLLM enables proactively offloading KV cache for part of the re-
+                                                                                                        to the autoregressive nature, where each sequence generates only
+quests to CPU DRAM during the prefill phase. This lowers the
+                                                                                                        one token per iteration, we leverage branch speculation principles
+memory admission barrier for request execution, effectively reduc-
+                                                                                                        to assume each sequence will produce the next token and proac-
+ing queuing delays to improve TTFT. Additionally, it can aggregate
+                                                                                                        tively initiate asynchronous memory allocation in advance. This
+larger decoding batch sizes, thereby increasing throughput.
+                                                                                                        approach effectively masks mapping overhead by using minimal ad-
+   Its technical feasibility is based on the following observations.
+                                                                                                        ditional memory (<50MB), thereby achieving full overlap between
+Firstly, newly generated KV caches that are not immediately needed
+                                                                                                        decoding and mapping costs. Asynchronous unmapping. When
+can be proactively offloaded and fetched back only when their
+                                                                                                        unmapping a tensor slot is triggered, the system does not require
+corresponding requests are scheduled for decoding. Secondly, the
+                                                                                                        immediate unmapping of the slot followed by reassignment of its
+multi-layer structure of Transformers naturally supports overlap-
+                                                                                                        associated physical chunk. Instead, by leveraging the GPU VMM’s
+ping computation and communication through layer-wise pipelin-
+                                                                                                        capability to map a single physical chunk to multiple virtual ad-
+ing. Thirdly, migration of KV caches requires only 𝑂 (𝑁 ) linear
+                                                                                                        dresses, the physical chunk can be initially assigned to a new tensor
+communication overhead, whereas the prefill stage’s self-attention
+                                                                                                        slot. The unmapping of the original slot can then be performed
+computation incurs 𝑂 (𝑁 2 ) complexity. For example, in practical
+                                                                                                        asynchronously, effectively overlapping the unmapping overhead.
+eLLM: Elastic Memory Management Framework for Efficient LLM Serving                                                                                                         DAC ’26, July 26–29, 2026, Long Beach, CA, USA
+
+
+
+
+                                                                                                                                                                                              Output Throughput(tps)
+                                                                                                                 SLO Attainment (%)
+                          vLLM          eLLM                                     vLLM          eLLM                                             vLLM          eLLM                                                               vLLM          eLLM
+
+
+
+
+                                                       Mean TPOT (ms)
+Mean TTFT (ms)
+
+
+                          vLLM-CP                                                vLLM-CP                                                        vLLM-CP                                                                          vLLM-CP
+                                                                                                                                      100
+                                                                        104                                                                                                                                            1000
+                 104
+                                                                                                                                       50
+                                                                        102
+                 102
+                       0    0.5    1.0    1.5                                 0    0.5    1.0    1.5                                        0    0.5    1.0    1.5                                                            0    0.5    1.0    1.5
+                       Request Rate (request / sec)                           Request Rate (request / sec)                                  Request Rate (request / sec)                                                      Request Rate (request / sec)
+                            (a) 2K-2K                                              (b) 2K-2K                                                     (c) 2K-2K                                                                        (d) 2K-2K
+
+
+
+
+                                                                                                                                                                                      Output Throughput(tps)
+                                                                                                             SLO Attainment (%)
+                          vLLM          eLLM                                     vLLM          eLLM                                            vLLM          eLLM                                                                vLLM          eLLM
+
+
+
+
+                                                      Mean TPOT (ms)
+Mean TTFT (ms)
+
+
+
+
+                          vLLM-CP                                                vLLM-CP                                                       vLLM-CP                                                                           vLLM-CP
+                                                                                                                                      100                                                                      1800
+                                                                        104                                                                                                                                    1600
+                 104                                                                                                                                                                                           1400
+                                                                                                                                       50
+                                                                        102                                                                                                                                    1200
+                 102
+                         3        4         5                                   3        4         5                                          3        4         5                                                            3        4         5
+                       Request Rate (request / sec)                           Request Rate (request / sec)                                  Request Rate (request / sec)                                                    Request Rate (request / sec)
+                         (e) ShareGPT                                           (f) ShareGPT                                                  (g) ShareGPT                                                                     (h) ShareGPT
+                        Figure 5: Online serving evaluation with SLO-constraints on Llama3-8B-262K model with one A100 (80GB) GPU.
+3.2                     eLLM System Implementation                                                                                               vLLM         eLLM                                                             vLLM           eLLM
+
+
+
+
+                                                                                                                                                                                      SLO Attainment (%)
+                                                                                                             Output Throughput
+                                                                                                                                                 vLLM-CP      DistServe                                                        vLLM-cp        DistServe
+                                                                                                                                                                                                               100
+eLLM is built on top of vLLM v0.5.5, incorporating ∼4000 lines of                                                                      500
+
+
+
+
+                                                                                                                 (token/s)
+C++ and Python code. To support KV eTensor, we developed a C++                                                                         200
+                                                                                                                                       100                                                                             50
+library and integrated it into vLLM, replacing the original KV Cache
+tensor object, and modified the minimum allocation granularity                                                                               0.5    1.0     1.5     2.0                                                     0.5    1.0      1.5      2.0
+                                                                                                                                             Request Rate (request / sec)                                                    Request Rate (request / sec)
+from a page to a physical memory chunk. For activation eTensor                                                                                 (a) OPT-13B                                                                      (b) OPT-13B
+management, we modify the caching allocator of PyTorch, replacing
+                                                                                                             Figure 6: SLO attainment and goodput evaluation with SLO-
+traditional memory allocation methods such as cudaMalloc with
+                                                                                                             constraint, which is conducted on OPT-13B model with two
+GPU VMM APIs.
+                                                                                                             GPUs, P=1, D=1 for DistServe and TP=2 for other systems.
+4 Evaluation                                                                                                 90% SLO attainment [28]. For offline inference scenarios: (1) To-
+4.1 Experimental Setup                                                                                       tal Throughput, measuring overall system processing capacity; (2)
+                                                                                                             Decode Throughput, specifically measuring the decoding phase
+Baselines. We compare eLLM with the following state-of-the-art
+                                                                                                             performance; and (3) Maximum Batch Size.
+LLM serving systems: vLLM[11] : A state-of-the-art LLM serv-
+ing system widely adopted in industry. vLLM with Chunked                                                     4.2                             Online Serving Evaluation on Single GPU
+Prefill[3] : vLLM integrates chunked prefill optimization as an                                              Figure 5 illustrates the online serving evaluation of Llama3-8B on
+optional feature, segmenting prefill requests into smaller chunks                                            a single A100 (80GB) GPU under various workloads. Figure 5a,
+(default: 512 tokens). DistServe [28]: A classical Prefill-Decode                                            and Figure 5e showcase the TTFT performance of eLLM under
+disaggregation system designed for online serving.                                                           different workloads. eLLM consistently outperforms vLLM across
+   Models. We evaluate eLLM on three popular models with dis-                                                both workloads, with up to 295× and 140× faster TTFT compared
+tinct architectures: Llama3-8B-262K [20]: A representative Grouped                                           to vLLM and vLLM-CP respectively.
+Query Attention (GQA) [4] model supports chunked prefill [3];                                                   Specifically, in Figure 5a, vLLM-CP and eLLM both exhibit its
+Jamba [12] : A novel hybrid Mamba-MoE architecture that achieves                                             ability to reduce queueing time. However, with the request rate
+superior performance and efficiency but does not support chunked                                             increasing, vLLM-CP’s performance degrades. In contrast, eLLM
+prefill yet due to its unique design; OPT-13B [26]: A standard Multi-                                        makes full use of the intra-GPU elasticity and leverages the GPU-
+Head Attention (MHA) model compatible with DistServe [28].                                                   CPU elasticity to reduce the queueing time, leading to the best
+   Testbed. We evaluate eLLM and all baselines on a server con-                                              performance. The larger decoding batch of eLLM also contributes
+figured with eight NVIDIA A100 (80GB) connected via NVLink                                                   to the improved output, as shown in Figure 5h, and Figure 5d.
+and Intel(R) Xeon(R) Platinum 8369B CPU with 1 TB RAM. We use                                                   For TPOT metric, because eLLM and vLLM-CP have more avail-
+PyTorch 2.4.0, CUDA Driver 12.4, and vLLM v0.5.5.                                                            able KV Cache space for decoding, their TPOT is higher than vLLM.
+   Workloads. eLLM is evaluated under both online serving and                                                Overall, the trade-off of eLLM between TTFT and TPOT leads to
+offline inference scenarios, employing popular real-world datasets                                           a better SLO attainment and up to 2.5× and 2.26× higher goodput
+(ShareGPT [19]) and fixed-length datasets. In the online serving                                             compared to vLLM and vLLM-CP in Figure 5c and Figure 5g.
+scenario, the server is configured to issue requests according to a
+Poisson process with varying arrival rates. In contrast, during offline                                      4.3                             Online Serving Evaluation on Multi-GPUs
+inference, all requests arrive at the beginning of the experiment [11].                                      We evaluated the online performance of eLLM in multi-GPU sce-
+   Metrics. For online serving evaluation: (1) TTFT, Time To First                                           narios, as shown in Figure 6, allowing us to include DistServe with
+Token; (2) TPOT, Time Per Output Token; (3) Output Through-                                                  prefill-decoding disaggregation for comparison. eLLM consistently
+put, measured in tokens/s; and (4) SLO Attainment, representing                                              achieves the highest performance across all tested configurations.
+the percentage of requests meeting latency requirements. SLO con-                                            Although DistServe theoretically allows decoding instances to mini-
+straints are defined as 25× the TTFT and TPOT measured under                                                 mize pre-allocated activation space, its actual performance remains
+no contention [22]. From SLO Attainment results, we can also de-                                             suboptimal due to two main factors: First, DistServe executes prefill
+rive goodput, defined as the maximum request rate that achieves                                              and decoding phases separately on dedicated GPUs. Consequently,
+DAC ’26, July 26–29, 2026, Long Beach, CA, USA                                                                                                                                                                                  Xu*, Xiong*, Zhang*, Guo et al.
+
+
+                                                                            Decode Throughput                             Max Batch Size
+                                                                            Total Throughput
+                                                                                                                                                                                      prefill-phase bottlenecks under high load, resulting in goodput
+                                          Normalized Improvement   3                                            3                                                                     degradation. eLLM addresses these limitations through dynamic
+                                                                   2                                            2
+                                                                                                                                                                                      dual-mechanism orchestration, achieving 1.5× throughput and 2.5×
+                                                                   1                                            1
+                                                                                                                                                                                      goodput improvements by adaptively balancing the benefits of GPU-
+                                                                                                                                                                                      internal memory sharing against the costs of CPU-backed overflow.
+                                                                   0                                           0
+
+                                                                       8k
+                                                                         /2k
+                                                                               16
+                                                                                    k/2
+                                                                                          k
+                                                                                              32
+                                                                                                    k
+                                                                                                 k/4 28/4
+                                                                                                      1
+                                                                                                          k
+                                                                                                                 8k
+                                                                                                                    /2k
+                                                                                                                        16
+                                                                                                                           k/2
+                                                                                                                               k
+                                                                                                                                                         32
+                                                                                                                                                              k/4
+                                                                                                                                                                    k                 4.6    System Execution Time Breakdown
+                                                                                               Input Length / Output Length
+Figure 7: Throughput and batch size performance normalized                                                                                                                            We quantify eLLM’s overhead by decomposing execution time into
+to vLLM, under varying input/output lengths. Left: Jamba-                                                                                                                             three components: CPU scheduling, VMM operations, and model
+Mini [12] on 2 GPUs; Right: Llama3-8B-262K on 1 GPU.                                                                                                                                  execution. The CPU scheduling overhead remains negligible (less
+                                                                                                                                                                                      than 1% of total execution time) due to our lightweight schedul-
+                                    vLLM                                    vLLM+intra                                                                   vLLM            vLLM+intra   ing strategy. VMM operation overhead, comprising eLLM’s inter-
+                                                                                                                           Mean TPOT (ms)
+Mean TTFT (ms)
+
+
+
+
+                                    vLLM+inter                              eLLM                                                                         vLLM+inter      eLLM
+                                                                                                                                                                                      nal calls to VMM API functions, accounts for 1-5% of execution
+                                                                                                                                            104
+                         104                                                                                                                                                          time in online serving scenarios. This modest overhead is achieved
+                                                                                                                                            102
+                         102                                                                                                                                                          through three optimization techniques: eTensor pooling to reuse
+                            0.5           1.0         1.5                                                                                        0.5           1.0         1.5
+                                  Request Rate (request / sec)                                                                                         Request Rate (request / sec)
+                                                                                                                                                                                      memory mappings, speculative pre-mapping for decoding phases,
+                                      (a) TTFT                                                                                                                (b) TPOT                and asynchronous unmapping to overlap memory operations with
+                                                                                                                                                                                      computation. These optimizations ensure that eLLM’s memory
+Output Throughput(tps)
+
+
+
+
+                                    vLLM                                    vLLM+intra                                                                  vLLM            vLLM+intra
+                                                                                                                    SLO Attainment (%)
+
+
+
+
+                                    vLLM+inter                              eLLM                                                                        vLLM+inter      eLLM
+               2000                                                                                                                      100
+                                                                                                                                                                                      virtualization benefits far outweigh its runtime costs.
+               1500                                                                                                                         50                                        5     Related Work
+               1000
+                   0.5                    1.0         1.5                                                                                    0.5           1.0         1.5
+                                                                                                                                                                                      Existing research on long-context LLM memory challenges gener-
+                                  Request Rate (request / sec)                                                                                     Request Rate (request / sec)       ally falls into three categories: Lightweight Algorithms. Prior
+                         (c) Output Throughput                                                                                                   (d) SLO Attainment                   work reduces memory demands by optimizing attention archi-
+Figure 8: Ablation study on different features of eLLM. This                                                                                                                          tecture (e.g., shared head attention [4], hybrid transformer [12])
+experiment is conducted on the 2K-2K workload with the                                                                                                                                and compression techniques (e.g., quantization [10, 14], sparsifica-
+same settings as the online serving evaluation.                                                                                                                                       tion [1, 23, 27]). Although effective in reducing memory usage, these
+computational resources on one GPU are underutilized when the                                                                                                                         approaches often compromise model accuracy. Efficient Kernels.
+corresponding phase is idle. Second, model weights in DistServe are                                                                                                                   Existing LLM serving systems utilize optimized GPU kernels that
+replicated across GPUs, resulting in additional memory consump-                                                                                                                       take advantage of memory hierarchies to improve memory access
+tion and a reduction in the effective batch size during decoding.                                                                                                                     efficiency and reduce memory footprints. Examples include Flash
+4.4                               Offline Inference Evaluation                                                                                                                        Attention [5] and Flash-Decoding [9]. These techniques are orthog-
+                                                                                                                                                                                      onal to our approach and have been integrated into eLLM. Memory
+Figure 7 shows eLLM’s offline inference performance across various                                                                                                                    Management. GMLake [6] addresses fragmentation issues caused
+configurations. By dynamically converting idle activation memory                                                                                                                      by the BFC algorithm in memory pools, while vAttention [17] tack-
+to KV cache during decoding, eLLM maintains larger batch sizes                                                                                                                        les fine-grained fragmentation at the token dimension. While these
+than vLLM. The benefits are particularly pronounced for long se-                                                                                                                      approaches effectively reduce memory fragmentation within their
+quences and architectures with high activation-to-KV ratios like                                                                                                                      respective scopes, they maintain the fundamental isolation between
+Jamba, where vLLM’s static allocation causes severe memory bot-                                                                                                                       activation and KV cache memory spaces, which limits resource uti-
+tlenecks. eLLM achieves up to 1.82× total throughput and 2.32×                                                                                                                        lization and hinders dynamic workload management. In contrast,
+decode throughput improvements in the 128k-4k configuration.                                                                                                                          eLLM fundamentally addresses space-wise internal fragmentation
+4.5                               Ablation Study                                                                                                                                      by enabling elastic memory sharing between previously isolated
+We conducted an ablation study on the two elastic features of                                                                                                                         spaces, representing a paradigm shift in memory management for
+eLLM: intra-GPU elasticity (denoted as vLLM+intra) and GPU-CPU                                                                                                                        long-context LLM serving.
+elasticity (denoted as vLLM+inter). Using vLLM as the baseline, we                                                                                                                    6     Conclusion
+evaluated each method’s effectiveness, as shown in Figure 8.
+                                                                                                                                                                                      Modern LLM serving systems face significant memory utilization
+   Figure 8a demonstrates that both intra-GPU and GPU-CPU elas-
+                                                                                                                                                                                      bottlenecks due to the isolation of memory spaces. Our proposed
+ticity mechanisms reduce TTFT by expanding effective memory ca-
+                                                                                                                                                                                      eLLM framework addresses this through an elastic memory para-
+pacity for incoming requests. While each mechanism provides sub-
+                                                                                                                                                                                      digm. By introducing virtual tensor abstraction to unify memory
+stantial improvements independently, their combination in eLLM
+                                                                                                                                                                                      pools, dynamic inflation/deflation mechanisms to optimize GPU
+achieves up to 295× TTFT reduction through synergistic mem-
+                                                                                                                                                                                      utilization, and CPU-GPU memory orchestration with SLO-aware
+ory management. Importantly, these gains are achieved without
+                                                                                                                                                                                      scheduling, eLLM achieves significantly improvements.
+degrading TPOT stability (Figure 8b). Figure 8c and 8d reveal crit-
+ical performance trade-offs. Although both mechanisms increase                                                                                                                        Acknowledgments
+decoding batch sizes, their combination sometimes yields lower                                                                                                                        This work was supported by Fundamental and Interdisciplinary
+throughput than using intra-GPU elasticity alone, primarily due                                                                                                                       Disciplines Breakthrough Plan of the Ministry of Education of China
+to PCIe transfer overhead that cannot be fully overlapped in de-                                                                                                                      (JYB2025XDXM113) and National Natural Science Foundation of
+coding phase. Moreover, intra-GPU elasticity alone fails to prevent                                                                                                                   China (NSFC) grant (62532006).
+eLLM: Elastic Memory Management Framework for Efficient LLM Serving                                                          DAC ’26, July 26–29, 2026, Long Beach, CA, USA
+
+
+References                                                                                    abs/2402.08268 (2024). https://doi.org/10.48550/arXiv.2402.08268
+ [1] Muhammad Adnan, Akhil Arunkumar, Gaurav Jain, Prashant J. Nair, Ilya Solovey-       [14] Zirui Liu, Jiayi Yuan, Hongye Jin, Shaochen Zhong, Zhaozhuo Xu, Vladimir
+     chik, and Purushotham Kamath. 2024. Keyformer: KV Cache reduction through                Braverman, Beidi Chen, and Xia Hu. 2024. KIVI: A Tuning-Free Asymmetric 2bit
+     key tokens selection for Efficient Generative Inference. In Proceedings of the           Quantization for KV Cache. In Forty-first International Conference on Machine
+     Seventh Annual Conference on Machine Learning and Systems, MLSys 2024, Santa             Learning, ICML 2024, Vienna, Austria, July 21-27, 2024. OpenReview.net.
+     Clara, CA, USA, May 13-16, 2024, Phillip B. Gibbons, Gennady Pekhimenko, and        [15] Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Bradbury, Gregory
+     Christopher De Sa (Eds.). mlsys.org.                                                     Chanan, Trevor Killeen, Zeming Lin, Natalia Gimelshein, Luca Antiga, Alban
+ [2] Amey Agrawal, Junda Chen, Íñigo Goiri, Ramachandran Ramjee, Chaojie Zhang,               Desmaison, Andreas Köpf, Edward Z. Yang, Zachary DeVito, Martin Raison,
+     Alexey Tumanov, and Esha Choukse. 2024. Mnemosyne: Parallelization Strategies            Alykhan Tejani, Sasank Chilamkurthy, Benoit Steiner, Lu Fang, Junjie Bai, and
+     for Efficiently Serving Multi-Million Context Length LLM Inference Requests              Soumith Chintala. 2019. PyTorch: An Imperative Style, High-Performance Deep
+     Without Approximations. CoRR abs/2409.17264 (2024).                                      Learning Library. In Advances in Neural Information Processing Systems 32: Annual
+ [3] Amey Agrawal, Nitin Kedia, Ashish Panwar, Jayashree Mohan, Nipun Kwatra,                 Conference on Neural Information Processing Systems 2019, NeurIPS 2019, December
+     Bhargav S. Gulavani, Alexey Tumanov, and Ramachandran Ramjee. 2024. Tam-                 8-14, 2019, Vancouver, BC, Canada, Hanna M. Wallach, Hugo Larochelle, Alina
+     ing Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve. In 18th             Beygelzimer, Florence d’Alché-Buc, Emily B. Fox, and Roman Garnett (Eds.).
+     USENIX Symposium on Operating Systems Design and Implementation, OSDI 2024,              8024–8035.
+     Santa Clara, CA, USA, July 10-12, 2024, Ada Gavrilovska and Douglas B. Terry        [16] Pratyush Patel, Esha Choukse, Chaojie Zhang, Aashaka Shah, Íñigo Goiri, Saeed
+     (Eds.). USENIX Association, 117–134.                                                     Maleki, and Ricardo Bianchini. 2024. Splitwise: Efficient Generative LLM Infer-
+ [4] Joshua Ainslie, James Lee-Thorp, Michiel de Jong, Yury Zemlyanskiy, Federico             ence Using Phase Splitting. In 51st ACM/IEEE Annual International Symposium
+     Lebrón, and Sumit Sanghai. 2023. GQA: Training Generalized Multi-Query                   on Computer Architecture, ISCA 2024, Buenos Aires, Argentina, June 29 - July 3,
+     Transformer Models from Multi-Head Checkpoints. In Proceedings of the 2023               2024. IEEE, 118–132.
+     Conference on Empirical Methods in Natural Language Processing, EMNLP 2023,         [17] Ramya Prabhu, Ajay Nayak, Jayashree Mohan, Ramachandran Ramjee, and
+     Singapore, December 6-10, 2023, Houda Bouamor, Juan Pino, and Kalika Bali (Eds.).        Ashish Panwar. 2025. vAttention: Dynamic Memory Management for Serv-
+     Association for Computational Linguistics, 4895–4901.                                    ing LLMs without PagedAttention. arXiv:2405.04437 [cs.LG] https://arxiv.org/
+ [5] Tri Dao, Daniel Y. Fu, Stefano Ermon, Atri Rudra, and Christopher Ré. 2022.              abs/2405.04437
+     FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness.        [18] Ruoyu Qin, Zheming Li, Weiran He, Jialei Cui, Feng Ren, Mingxing Zhang,
+     In Advances in Neural Information Processing Systems 35: Annual Conference on            Yongwei Wu, Weimin Zheng, and Xinran Xu. 2025. Mooncake: Trading More
+     Neural Information Processing Systems 2022, NeurIPS 2022, New Orleans, LA, USA,          Storage for Less Computation - A KVCache-centric Architecture for Serving LLM
+     November 28 - December 9, 2022, Sanmi Koyejo, S. Mohamed, A. Agarwal, Danielle           Chatbot. In 23rd USENIX Conference on File and Storage Technologies, FAST 2025,
+     Belgrave, K. Cho, and A. Oh (Eds.).                                                      Santa Clara, CA, February 25-27, 2025, Haryadi S. Gunawi and Vasily Tarasov
+ [6] Cong Guo, Rui Zhang, Jiale Xu, Jingwen Leng, Zihan Liu, Ziyu Huang, Minyi Guo,           (Eds.). USENIX Association, 155–170.
+     Hao Wu, Shouren Zhao, Junping Zhao, and Ke Zhang. 2024. GMLake: Efficient           [19] Sharegpt teams. 2023. Sharegot. https://sharegpt.com/
+     and Transparent GPU Memory Defragmentation for Large-scale DNN Training             [20] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne
+     with Virtual Memory Stitching. In Proceedings of the 29th ACM International              Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal
+     Conference on Architectural Support for Programming Languages and Operating              Azhar, Aurélien Rodriguez, Armand Joulin, Edouard Grave, and Guillaume Lam-
+     Systems, Volume 2, ASPLOS 2024, La Jolla, CA, USA, 27 April 2024- 1 May 2024,            ple. 2023. LLaMA: Open and Efficient Foundation Language Models. CoRR
+     Rajiv Gupta, Nael B. Abu-Ghazaleh, Madan Musuvathi, and Dan Tsafrir (Eds.).              abs/2302.13971 (2023). https://doi.org/10.48550/arXiv.2302.13971
+     ACM, 450–466. doi:10.1145/3620665.3640423                                           [21] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei
+ [7] Chi Han, Qifan Wang, Hao Peng, Wenhan Xiong, Yu Chen, Heng Ji, and Sinong                Xia, Ed H. Chi, Quoc V. Le, and Denny Zhou. 2022. Chain-of-Thought Prompting
+     Wang. 2024. LM-Infinite: Zero-Shot Extreme Length Generalization for Large Lan-          Elicits Reasoning in Large Language Models. In Advances in Neural Information
+     guage Models. In Proceedings of the 2024 Conference of the North American Chapter        Processing Systems 35: Annual Conference on Neural Information Processing Systems
+     of the Association for Computational Linguistics: Human Language Technologies            2022, NeurIPS 2022, New Orleans, LA, USA, November 28 - December 9, 2022, Sanmi
+     (Volume 1: Long Papers), NAACL 2024, Mexico City, Mexico, June 16-21, 2024, Kevin        Koyejo, S. Mohamed, A. Agarwal, Danielle Belgrave, K. Cho, and A. Oh (Eds.).
+     Duh, Helena Gómez-Adorno, and Steven Bethard (Eds.). Association for Compu-         [22] Bingyang Wu, Shengyu Liu, Yinmin Zhong, Peng Sun, Xuanzhe Liu, and Xin
+     tational Linguistics, 3991–4008. https://doi.org/10.18653/v1/2024.naacl-long.222         Jin. 2024. LoongServe: Efficiently Serving Long-Context Large Language Models
+ [8] Ke Hong, Lufang Chen, Zhong Wang, Xiuhong Li, Qiuli Mao, Jianping Ma, Chao               with Elastic Sequence Parallelism. In Proceedings of the ACM SIGOPS 30th Sympo-
+     Xiong, Guanyu Wu, Buhe Han, Guohao Dai, and Yu Wang. 2025. semi-PD:                      sium on Operating Systems Principles, SOSP 2024, Austin, TX, USA, November 4-6,
+     Towards Efficient LLM Serving via Phase-Wise Disaggregated Computation and               2024, Emmett Witchel, Christopher J. Rossbach, Andrea C. Arpaci-Dusseau, and
+     Unified Storage. CoRR abs/2504.19867 (2025). https://doi.org/10.48550/arXiv.             Kimberly Keeton (Eds.). ACM, 640–654. https://doi.org/10.1145/3694715.3695948
+     2504.19867                                                                          [23] Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song Han, and Mike Lewis. 2024.
+ [9] Ke Hong, Guohao Dai, Jiaming Xu, Qiuli Mao, Xiuhong Li, Jun Liu, Kangdi Chen,            Efficient Streaming Language Models with Attention Sinks. In The Twelfth Inter-
+     Yuhan Dong, and Yu Wang. 2024. FlashDecoding++: Faster Large Language Model              national Conference on Learning Representations, ICLR 2024, Vienna, Austria, May
+     Inference with Asynchronization, Flat GEMM Optimization, and Heuristics. In              7-11, 2024. OpenReview.net.
+     Proceedings of the Seventh Annual Conference on Machine Learning and Systems,       [24] Yi Xiong, Hao Wu, Changxu Shao, Ziqing Wang, Rui Zhang, Yuhong Guo, Junping
+     MLSys 2024, Santa Clara, CA, USA, May 13-16, 2024, Phillip B. Gibbons, Gennady           Zhao, Ke Zhang, and Zhenxuan Pan. 2024. LayerKV: Optimizing Large Language
+     Pekhimenko, and Christopher De Sa (Eds.). mlsys.org.                                     Model Serving with Layer-wise KV Cache Management. CoRR abs/2410.00428
+[10] Coleman Hooper, Sehoon Kim, Hiva Mohammadzadeh, Michael W. Mahoney,                      (2024).
+     Yakun Sophia Shao, Kurt Keutzer, and Amir Gholami. 2024. KVQuant: Towards 10        [25] Gyeong-In Yu, Joo Seong Jeong, Geon-Woo Kim, Soojeong Kim, and Byung-
+     Million Context Length LLM Inference with KV Cache Quantization. In Advances             Gon Chun. 2022. Orca: A Distributed Serving System for Transformer-Based
+     in Neural Information Processing Systems 38: Annual Conference on Neural Infor-          Generative Models. In 16th USENIX Symposium on Operating Systems Design
+     mation Processing Systems 2024, NeurIPS 2024, Vancouver, BC, Canada, December            and Implementation, OSDI 2022, Carlsbad, CA, USA, July 11-13, 2022, Marcos K.
+     10 - 15, 2024, Amir Globersons, Lester Mackey, Danielle Belgrave, Angela Fan,            Aguilera and Hakim Weatherspoon (Eds.). USENIX Association, 521–538.
+     Ulrich Paquet, Jakub M. Tomczak, and Cheng Zhang (Eds.).                            [26] Susan Zhang, Stephen Roller, Naman Goyal, Mikel Artetxe, Moya Chen, Shuohui
+[11] Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin Zheng,                       Chen, Christopher Dewan, Mona T. Diab, Xian Li, Xi Victoria Lin, Todor Mihaylov,
+     Cody Hao Yu, Joseph Gonzalez, Hao Zhang, and Ion Stoica. 2023. Efficient                 Myle Ott, Sam Shleifer, Kurt Shuster, Daniel Simig, Punit Singh Koura, Anjali
+     Memory Management for Large Language Model Serving with PagedAtten-                      Sridhar, Tianlu Wang, and Luke Zettlemoyer. 2022. OPT: Open Pre-trained
+     tion. In Proceedings of the 29th Symposium on Operating Systems Principles, SOSP         Transformer Language Models. CoRR abs/2205.01068 (2022).
+     2023, Koblenz, Germany, October 23-26, 2023, Jason Flinn, Margo I. Seltzer, Pe-     [27] Zhenyu Zhang, Ying Sheng, Tianyi Zhou, Tianlong Chen, Lianmin Zheng, Ruisi
+     ter Druschel, Antoine Kaufmann, and Jonathan Mace (Eds.). ACM, 611–626.                  Cai, Zhao Song, Yuandong Tian, Christopher Ré, Clark W. Barrett, Zhangyang
+     https://doi.org/10.1145/3600006.3613165                                                  Wang, and Beidi Chen. 2023. H2O: Heavy-Hitter Oracle for Efficient Generative
+[12] Opher Lieber, Barak Lenz, Hofit Bata, Gal Cohen, Jhonathan Osin, Itay Dalmedi-           Inference of Large Language Models. In Advances in Neural Information Processing
+     gos, Erez Safahi, Shaked Meirom, Yonatan Belinkov, Shai Shalev-Shwartz, Omri             Systems 36: Annual Conference on Neural Information Processing Systems 2023,
+     Abend, Raz Alon, Tomer Asida, Amir Bergman, Roman Glozman, Michael                       NeurIPS 2023, New Orleans, LA, USA, December 10 - 16, 2023, Alice Oh, Tristan
+     Gokhman, Avashalom Manevich, Nir Ratner, Noam Rozen, Erez Shwartz, Mor                   Naumann, Amir Globerson, Kate Saenko, Moritz Hardt, and Sergey Levine (Eds.).
+     Zusman, and Yoav Shoham. 2024. Jamba: A Hybrid Transformer-Mamba Lan-               [28] Yinmin Zhong, Shengyu Liu, Junda Chen, Jianbo Hu, Yibo Zhu, Xuanzhe Liu, Xin
+     guage Model. CoRR abs/2403.19887 (2024).                                                 Jin, and Hao Zhang. 2024. DistServe: Disaggregating Prefill and Decoding for
+[13] Hao Liu, Wilson Yan, Matei Zaharia, and Pieter Abbeel. 2024. World Model                 Goodput-optimized Large Language Model Serving. In 18th USENIX Symposium
+     on Million-Length Video And Language With Blockwise RingAttention. CoRR                  on Operating Systems Design and Implementation, OSDI 2024, Santa Clara, CA,
+                                                                                              USA, July 10-12, 2024, Ada Gavrilovska and Douglas B. Terry (Eds.). USENIX
+DAC ’26, July 26–29, 2026, Long Beach, CA, USA   Xu*, Xiong*, Zhang*, Guo et al.
+
+
+     Association, 193–210.
+

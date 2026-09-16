@@ -1,0 +1,770 @@
+# 1930. 长度为 3 的不同回文子序列
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/unique-length-3-palindromic-subsequences/
+- 题目 slug：`unique-length-3-palindromic-subsequences`
+- 来源专题：动态规划
+- 来源分类路径：专题：前后缀分解
+- 难度分：1533
+- 外部题解来源：https://leetcode.cn/problems/unique-length-3-palindromic-subsequences/solutions/869697/mei-ju-zhong-jian-zi-fu-ran-hou-gen-ju-q-186d/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[两种方法：枚举两侧 / 枚举中间，附进阶问题（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/unique-length-3-palindromic-subsequences/solutions/869697/mei-ju-zhong-jian-zi-fu-ran-hou-gen-ju-q-186d/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`mei-ju-zhong-jian-zi-fu-ran-hou-gen-ju-q-186d`
+- topic id：`869697`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 前言
+
+本题要找长为 $3$ 的回文子序列，这要求子序列的第一个字母等于第三个字母。
+
+换句话说，确定了子序列的前两个字母，就确定了子序列。
+
+这引出了两类做法：
+
+- 先枚举两侧的字母，再枚举中间的字母。
+- 先枚举中间的字母，再枚举两侧的字母。
+
+## 方法一：枚举两侧
+
+枚举子序列的第一、三个字母是 $\texttt{a},\texttt{b},\ldots,\texttt{z}$。
+
+如果第一、三个字母都是 $\texttt{a}$，如何找到尽量多的不同的子序列？
+
+例如 $s = \texttt{abbacad}$。如果选前两个 $\texttt{a}$ 作为子序列的第一、三个字母，我们只能找到子序列 $\texttt{aba}$。而如果选第一个 $\texttt{a}$ 和最后一个 $\texttt{a}$，**夹在两个** $\texttt{a}$ **之间的字母都可以是子序列的第二个字母**，从而找到第一、三个字母都是 $\texttt{a}$ 的所有子序列，即 $\texttt{aaa}$、$\texttt{aba}$ 和 $\texttt{aca}$。
+
+**算法**：
+
+1. 枚举 $\alpha = \texttt{a},\texttt{b},\ldots,\texttt{z}$。
+2. 找 $\alpha$ 在 $s$ 中首次出现的下标 $i$ 和最后一次出现的下标 $j$。如果没有这样的下标，回到第一步继续枚举。
+3. 下标在 $[i+1,j-1]$ 中的字母，可以作为回文子序列的中间字母。
+4. 题目要求相同的子序列只计数一次。这可以用哈希集合去重，也可以用长为 $26$ 的布尔数组记录遇到过的中间字母，避免重复统计。
+
+```py [sol-Python3]
+class Solution:
+    def countPalindromicSubsequence(self, s: str) -> int:
+        ans = 0
+        for alpha in ascii_lowercase:  # 枚举两侧字母 alpha
+            i = s.find(alpha)  # 最左边的 alpha 的下标
+            if i < 0:  # s 中没有 alpha
+                continue
+            j = s.rfind(alpha)  # 最右边的 alpha 的下标
+            ans += len(set(s[i + 1: j]))  # 统计有多少个不同的中间字母
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int countPalindromicSubsequence(String s) {
+        int ans = 0;
+        for (char alpha = 'a'; alpha <= 'z'; alpha++) { // 枚举两侧字母 alpha
+            int i = s.indexOf(alpha); // 最左边的 alpha 的下标
+            if (i < 0) { // s 中没有 alpha
+                continue;
+            }
+            int j = s.lastIndexOf(alpha); // 最右边的 alpha 的下标
+
+            boolean[] has = new boolean[26];
+            for (int k = i + 1; k < j; k++) { // 枚举中间字母 mid
+                int mid = s.charAt(k) - 'a';
+                if (!has[mid]) {
+                    has[mid] = true; // 避免重复统计
+                    ans++;
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int countPalindromicSubsequence(string s) {
+        int ans = 0;
+        for (char alpha = 'a'; alpha <= 'z'; alpha++) { // 枚举两侧字母 alpha
+            int i = s.find(alpha); // 最左边的 alpha 的下标
+            if (i == string::npos) { // s 中没有 alpha
+                continue;
+            }
+            int j = s.rfind(alpha); // 最右边的 alpha 的下标
+
+            bool has[26]{};
+            for (int k = i + 1; k < j; k++) { // 枚举中间字母 s[k]
+                if (!has[s[k] - 'a']) {
+                    has[s[k] - 'a'] = true; // 避免重复统计
+                    ans++;
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+int countPalindromicSubsequence(char* s) {
+    int ans = 0;
+    for (char alpha = 'a'; alpha <= 'z'; alpha++) { // 枚举两侧字母 alpha
+        char* p = strchr(s, alpha); // 找最左边的 alpha
+        if (p == NULL) { // s 中没有 alpha
+            continue;
+        }
+        int i = p - s; // 最左边的 alpha 的下标
+        int j = strrchr(s, alpha) - s; // 最右边的 alpha 的下标
+
+        bool has[26] = {};
+        for (int k = i + 1; k < j; k++) { // 枚举中间字母 s[k]
+            if (!has[s[k] - 'a']) {
+                has[s[k] - 'a'] = true; // 避免重复统计
+                ans++;
+            }
+        }
+    }
+    return ans;
+}
+```
+
+```go [sol-Go]
+func countPalindromicSubsequence(s string) (ans int) {
+	for alpha := byte('a'); alpha <= 'z'; alpha++ { // 枚举两侧字母 alpha
+		i := strings.IndexByte(s, alpha) // 最左边的 alpha 的下标
+		if i < 0 { // s 中没有 alpha
+			continue
+		}
+		j := strings.LastIndexByte(s, alpha) // 最右边的 alpha 的下标
+		if i+1 >= j { // 长度不足 3
+			continue
+		}
+
+		has := [26]bool{}
+		for _, mid := range s[i+1 : j] { // 枚举中间字母 mid
+			if !has[mid-'a'] {
+				has[mid-'a'] = true // 避免重复统计
+				ans++
+			}
+		}
+	}
+	return
+}
+```
+
+```js [sol-JavaScript]
+var countPalindromicSubsequence = function(s) {
+    const ordA = 'a'.charCodeAt(0);
+    let ans = 0;
+    for (let alpha = ordA; alpha <= 'z'.charCodeAt(0); alpha++) { // 枚举两侧字母 alpha
+        const ch = String.fromCharCode(alpha);
+        const i = s.indexOf(ch); // 最左边的 alpha 的下标
+        if (i < 0) { // s 中没有 alpha
+            continue;
+        }
+        const j = s.lastIndexOf(ch); // 最右边的 alpha 的下标
+
+        const has = Array(26).fill(false);
+        for (let k = i + 1; k < j; k++) { // 枚举中间字母 mid
+            const mid = s.charCodeAt(k) - ordA;
+            if (!has[mid]) {
+                has[mid] = true; // 避免重复统计
+                ans++;
+            }
+        }
+    }
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn count_palindromic_subsequence(s: String) -> i32 {
+        let s = s.as_bytes();
+        let mut ans = 0;
+        for alpha in b'a'..=b'z' { // 枚举两侧字母 alpha
+            let i = s.iter().position(|&c| c == alpha); // 找最左边的 alpha
+            if i.is_none() { // s 中没有 alpha
+                continue;
+            }
+            let i = i.unwrap(); // 最左边的 alpha 的下标
+            let j = s.iter().rposition(|&c| c == alpha).unwrap(); // 最右边的 alpha 的下标
+
+            let mut has = [false; 26];
+            for k in i + 1..j { // 枚举中间字母 mid
+                let mid = (s[k] - b'a') as usize;
+                if !has[mid] {
+                    has[mid] = true; // 避免重复统计
+                    ans += 1;
+                }
+            }
+        }
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n|\Sigma|)$，其中 $n$ 是 $s$ 的长度，$|\Sigma|=26$ 是字符集合的大小。
+- 空间复杂度：$\mathcal{O}(|\Sigma|)$。
+
+## 方法二：枚举中间 + 前后缀分解
+
+枚举 $i=1,2,\ldots,n-2$，把 $s[i]$ 当作子序列的第二个字母，那么对于第一、三个字母 $\alpha = \texttt{a},\texttt{b},\ldots,\texttt{z}$，我们需要判断：
+
+- $s$ 的前缀 $[0,i-1]$ 中有没有 $\alpha$？
+- $s$ 的后缀 $[i+1,n-1]$ 中有没有 $\alpha$？
+
+暴力找是 $\mathcal{O}(n)$ 的，如何加速？
+
+我们可以先遍历 $s$，统计 $s$ 中每个字母的个数，然后再从左到右遍历 $s$，把 $s[i]$ 的个数减一，就得到了后缀 $[i+1,n-1]$ 每个字母的个数。
+
+对于前缀 $[0,i-1]$，在从左到右遍历 $s$ 的同时，记录遇到了哪些字母。
+
+### 优化前
+
+```py [sol-Python3]
+class Solution:
+    def countPalindromicSubsequence(self, s: str) -> int:
+        suf_cnt = Counter(s[1:])  # 统计 [1,n-1] 每个字母的个数
+        pre_set = set()
+        st = set()
+        for i in range(1, len(s) - 1):  # 枚举中间字母 mid
+            mid = s[i]
+            suf_cnt[mid] -= 1  # 撤销 mid 的计数，suf_cnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+            if suf_cnt[mid] == 0:  # 后缀 [i+1,n-1] 不包含 mid
+                del suf_cnt[mid]  # 从 suf_cnt 中去掉 mid
+            pre_set.add(s[i - 1])  # 记录前缀 [0,i-1] 有哪些字母
+            for alpha in pre_set & suf_cnt.keys():  # mid 的左右两侧都有字母 alpha
+                st.add(alpha + mid)
+        return len(st)
+```
+
+```java [sol-Java]
+class Solution {
+    public int countPalindromicSubsequence(String S) {
+        char[] s = S.toCharArray();
+        int n = s.length;
+
+        // 统计 [1,n-1] 每个字母的个数
+        int[] sufCnt = new int[26];
+        for (int i = 1; i < n; i++) {
+            sufCnt[s[i] - 'a']++;
+        }
+
+        boolean[] preHas = new boolean[26];
+        boolean[][] has = new boolean[26][26];
+        int ans = 0;
+        for (int i = 1; i < n - 1; i++) { // 枚举中间字母 mid
+            int mid = s[i] - 'a';
+            sufCnt[mid]--; // 撤销 mid 的计数，sufCnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+            preHas[s[i - 1] - 'a'] = true; // 记录前缀 [0,i-1] 有哪些字母
+            for (int alpha = 0; alpha < 26; alpha++) { // 枚举两侧字母 alpha
+                // 判断 mid 的左右两侧是否都有字母 alpha
+                if (preHas[alpha] && sufCnt[alpha] > 0 && !has[mid][alpha]) {
+                    has[mid][alpha] = true;
+                    ans++;
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int countPalindromicSubsequence(string s) {
+        int n = s.size();
+        // 统计 [1,n-1] 每个字母的个数
+        int suf_cnt[26]{};
+        for (int i = 1; i < n; i++) {
+            suf_cnt[s[i] - 'a']++;
+        }
+
+        bool pre_has[26]{};
+        bool has[26][26]{};
+        int ans = 0;
+        for (int i = 1; i < n - 1; i++) { // 枚举中间字母 mid
+            int mid = s[i] - 'a';
+            suf_cnt[mid]--; // 撤销 mid 的计数，suf_cnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+            pre_has[s[i - 1] - 'a'] = true; // 记录前缀 [0,i-1] 有哪些字母
+            for (int alpha = 0; alpha < 26; alpha++) { // 枚举两侧字母 alpha
+                // 判断 mid 的左右两侧是否都有字母 alpha
+                if (pre_has[alpha] && suf_cnt[alpha] && !has[mid][alpha]) {
+                    has[mid][alpha] = true;
+                    ans++;
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+int countPalindromicSubsequence(char* s) {
+    // 统计 [1,n-1] 每个字母的个数
+    int suf_cnt[26] = {}; 
+    for (int i = 1; s[i]; i++) {
+        suf_cnt[s[i] - 'a']++;
+    }
+
+    bool pre_has[26] = {};
+    bool has[26][26] = {};
+    int ans = 0;
+    for (int i = 1; s[i + 1]; i++) { // 枚举中间字母 mid
+        int mid = s[i] - 'a';
+        suf_cnt[mid]--; // 撤销 mid 的计数，suf_cnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+        pre_has[s[i - 1] - 'a'] = true; // 记录前缀 [0,i-1] 有哪些字母
+        for (int alpha = 0; alpha < 26; alpha++) { // 枚举两侧字母 alpha
+            // 判断 mid 的左右两侧是否都有字母 alpha
+            if (pre_has[alpha] && suf_cnt[alpha] && !has[mid][alpha]) {
+                has[mid][alpha] = true;
+                ans++;
+            }
+        }
+    }
+    return ans;
+}
+```
+
+```go [sol-Go]
+func countPalindromicSubsequence(s string) (ans int) {
+	// 统计 s[1:] 每个字母的个数
+	sufCnt := [26]int{} 
+	for _, ch := range s[1:] {
+		sufCnt[ch-'a']++
+	}
+
+	preHas := [26]bool{}
+	has := [26][26]bool{}
+	for i := 1; i < len(s)-1; i++ { // 枚举中间字母 mid
+		mid := s[i] - 'a'
+		sufCnt[mid]-- // 撤销 mid 的计数，suf_cnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+		preHas[s[i-1]-'a'] = true // 记录前缀 [0,i-1] 有哪些字母
+		for alpha := range 26 { // 枚举两侧字母 alpha
+			// 判断 mid 的左右两侧是否都有字母 alpha
+			if preHas[alpha] && sufCnt[alpha] > 0 && !has[mid][alpha] {
+				has[mid][alpha] = true
+				ans++
+			}
+		}
+	}
+	return
+}
+```
+
+```js [sol-JavaScript]
+var countPalindromicSubsequence = function(s) {
+    const n = s.length;
+    const ordA = 'a'.charCodeAt(0);
+
+    // 统计 [1,n-1] 每个字母的个数
+    const sufCnt = Array(26).fill(0);
+    for (let i = 1; i < n; i++) {
+        sufCnt[s.charCodeAt(i) - ordA]++;
+    }
+
+    const preHas = Array(26).fill(false);
+    const has = Array.from({ length: 26 }, () => Array(26).fill(false));
+    let ans = 0;
+    for (let i = 1; i < n - 1; i++) { // 枚举中间字母 mid
+        const mid = s.charCodeAt(i) - ordA;
+        sufCnt[mid]--; // 撤销 mid 的计数，sufCnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+        preHas[s.charCodeAt(i - 1) - ordA] = true; // 记录前缀 [0,i-1] 有哪些字母
+        for (let alpha = 0; alpha < 26; alpha++) { // 枚举两侧字母 alpha
+            // 判断 mid 的左右两侧是否都有字母 alpha
+            if (preHas[alpha] && sufCnt[alpha] && !has[mid][alpha]) {
+                has[mid][alpha] = true;
+                ans++;
+            }
+        }
+    }
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn count_palindromic_subsequence(s: String) -> i32 {
+        let s = s.as_bytes();
+        let n = s.len();
+
+        // 统计 [1,n-1] 每个字母的个数
+        let mut suf_cnt = [0; 26]; 
+        for &ch in &s[1..] {
+            suf_cnt[(ch - b'a') as usize] += 1;
+        }
+
+        let mut pre_has = [false; 26];
+        let mut has = [[false; 26]; 26];
+        let mut ans = 0;
+        for i in 1..n - 1 { // 枚举中间字母 mid
+            let mid = (s[i] - b'a') as usize;
+            suf_cnt[mid] -= 1; // 撤销 s[i] 的计数，suf_cnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+            pre_has[(s[i - 1] - b'a') as usize] = true; // 记录前缀 [0,i-1] 有哪些字母
+            for alpha in 0..26 { // 枚举两侧字母 alpha
+                // 判断 mid 的左右两侧是否都有字母 alpha
+                if pre_has[alpha] && suf_cnt[alpha] > 0 && !has[mid][alpha] {
+                    has[mid][alpha] = true;
+                    ans += 1;
+                }
+            }
+        }
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n|\Sigma|)$，其中 $n$ 是 $s$ 的长度，$|\Sigma|=26$ 是字符集合的大小。
+- 空间复杂度：$\mathcal{O}(|\Sigma|^2)$。
+
+### 位运算优化
+
+我们可以把集合或者布尔数组压缩成一个二进制数，二进制数中的 $0$ 表示 $\texttt{false}$，$1$ 表示 $\texttt{true}$。原理请看 [从集合论到位运算，常见位运算技巧分类总结！](https://leetcode.cn/circle/discuss/CaOJ45/)
+
+用与运算可以 $\mathcal{O}(1)$ 求出 $\textit{pre}$ 和 $\textit{suf}$ 的交集。
+
+```py [sol-Python3]
+class Solution:
+    def countPalindromicSubsequence(self, s: str) -> int:
+        n = len(s)
+        ord_a = ord('a')
+
+        # 统计 [1,n-1] 每个字母的个数
+        suf_cnt = [0] * 26
+        suf = 0
+        for ch in s[1:]:
+            ch = ord(ch) - ord_a
+            suf_cnt[ch] += 1
+            suf |= 1 << ch  # 把 ch 记录到二进制数 suf 中，表示后缀有 ch
+
+        pre = 0
+        ans = [0] * 26  # ans[mid] = 由 alpha 组成的二进制数
+        for i in range(1, n - 1):  # 枚举中间字母 mid
+            mid = ord(s[i]) - ord_a
+            suf_cnt[mid] -= 1  # 撤销 mid 的计数，suf_cnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+            if suf_cnt[mid] == 0:  # 后缀 [i+1,n-1] 不包含 mid
+                suf ^= 1 << mid  # 从 suf 中去掉 mid
+            pre |= 1 << (ord(s[i - 1]) - ord_a)  # 把 s[i-1] 记录到二进制数 pre 中，表示前缀有 s[i-1]
+            ans[mid] |= pre & suf  # 计算 pre 和 suf 的交集，|= 表示把交集中的字母加到 ans[mid] 中
+
+        return sum(mask.bit_count() for mask in ans)  # mask 中的每个 1 对应着一个 alpha
+```
+
+```java [sol-Java]
+class Solution {
+    public int countPalindromicSubsequence(String S) {
+        char[] s = S.toCharArray();
+        int n = s.length;
+
+        // 统计 [1,n-1] 每个字母的个数
+        int[] sufCnt = new int[26];
+        int suf = 0;
+        for (int i = 1; i < n; i++) {
+            int ch = s[i] - 'a';
+            sufCnt[ch]++;
+            suf |= 1 << ch; // 把 ch 记录到二进制数 suf 中，表示后缀有 ch
+        }
+
+        int pre = 0;
+        int[] has = new int[26]; // has[mid] = 由 alpha 组成的二进制数
+        for (int i = 1; i < n - 1; i++) { // 枚举中间字母 mid
+            int mid = s[i] - 'a';
+            sufCnt[mid]--; // 撤销 mid 的计数，sufCnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+            if (sufCnt[mid] == 0) { // 后缀 [i+1,n-1] 不包含 mid
+                suf ^= 1 << mid; // 从 suf 中去掉 mid
+            }
+            pre |= 1 << (s[i - 1] - 'a'); // 把 s[i-1] 记录到二进制数 pre 中，表示前缀有 s[i-1]
+            has[mid] |= pre & suf; // 计算 pre 和 suf 的交集，|= 表示把交集中的字母加到 has[mid] 中
+        }
+
+        int ans = 0;
+        for (int mask : has) {
+            ans += Integer.bitCount(mask); // mask 中的每个 1 对应着一个 alpha
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int countPalindromicSubsequence(string s) {
+        int n = s.size();
+        // 统计 [1,n-1] 每个字母的个数
+        int suf_cnt[26]{};
+        int suf = 0;
+        for (int i = 1; i < n; i++) {
+            int ch = s[i] - 'a';
+            suf_cnt[ch]++;
+            suf |= 1 << ch; // 把 ch 记录到二进制数 suf 中，表示后缀有 ch
+        }
+
+        int pre = 0;
+        int has[26]{}; // has[mid] = 由 alpha 组成的二进制数
+        for (int i = 1; i < n - 1; i++) { // 枚举中间字母 mid
+            int mid = s[i] - 'a';
+            suf_cnt[mid]--; // 撤销 mid 的计数，suf_cnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+            if (suf_cnt[mid] == 0) { // 后缀 [i+1,n-1] 不包含 mid
+                suf ^= 1 << mid; // 从 suf 中去掉 mid
+            }
+            pre |= 1 << (s[i - 1] - 'a'); // 把 s[i-1] 记录到二进制数 pre 中，表示前缀有 s[i-1]
+            has[mid] |= pre & suf; // 计算 pre 和 suf 的交集，|= 表示把交集中的字母加到 has[mid] 中
+        }
+
+        int ans = 0;
+        for (int mask : has) {
+            ans += popcount((uint32_t) mask); // mask 中的每个 1 对应着一个 alpha
+        }
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+int countPalindromicSubsequence(char* s) {
+    int n = strlen(s);
+    // 统计 [1,n-1] 每个字母的个数
+    int suf_cnt[26] = {};
+    int suf = 0;
+    for (int i = 1; s[i]; i++) {
+        int ch = s[i] - 'a';
+        suf_cnt[ch]++;
+        suf |= 1 << ch; // 把 ch 记录到二进制数 suf 中，表示后缀有 ch
+    }
+
+    int pre = 0;
+    int has[26] = {}; // has[mid] = 由 alpha 组成的二进制数
+    for (int i = 1; s[i + 1]; i++) { // 枚举中间字母 mid
+        int mid = s[i] - 'a';
+        suf_cnt[mid]--; // 撤销 mid 的计数，suf_cnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+        if (suf_cnt[mid] == 0) { // 后缀 [i+1,n-1] 不包含 mid
+            suf ^= 1 << mid; // 从 suf 中去掉 mid
+        }
+        pre |= 1 << (s[i - 1] - 'a'); // 把 s[i-1] 记录到二进制数 pre 中，表示前缀有 s[i-1]
+        has[mid] |= pre & suf; // 计算 pre 和 suf 的交集，|= 表示把交集中的字母加到 has[mid] 中
+    }
+
+    int ans = 0;
+    for (int i = 0; i < 26; i++) {
+        ans += __builtin_popcount(has[i]); // has[i] 中的每个 1 对应着一个 alpha
+    }
+    return ans;
+}
+```
+
+```go [sol-Go]
+func countPalindromicSubsequence(s string) (ans int) {
+	// 统计 [1,n-1] 每个字母的个数
+	sufCnt := [26]int{}
+	suf := 0
+	for _, ch := range s[1:] {
+		ch -= 'a'
+		sufCnt[ch]++
+		suf |= 1 << ch // 把 ch 记录到二进制数 suf 中，表示后缀有 ch
+	}
+
+	pre := 0
+	has := [26]int{} // has[mid] = 由 alpha 组成的二进制数
+	for i := 1; i < len(s)-1; i++ { // 枚举中间字母 mid
+		mid := s[i] - 'a'
+		sufCnt[mid]-- // 撤销 mid 的计数，sufCnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+		if sufCnt[mid] == 0 { // 后缀 [i+1,n-1] 不包含 mid
+			suf ^= 1 << mid // 从 suf 中去掉 mid
+		}
+		pre |= 1 << (s[i-1] - 'a') // 把 s[i-1] 记录到二进制数 pre 中，表示前缀有 s[i-1]
+		has[mid] |= pre & suf // 计算 pre 和 suf 的交集，|= 表示把交集中的字母加到 has[mid] 中
+	}
+
+	for _, mask := range has {
+		ans += bits.OnesCount(uint(mask)) // mask 中的每个 1 对应着一个 alpha
+	}
+	return
+}
+```
+
+```js [sol-JavaScript]
+var countPalindromicSubsequence = function(s) {
+    const n = s.length;
+    const ordA = 'a'.charCodeAt(0);
+
+    // 统计 [1,n-1] 每个字母的个数
+    const sufCnt = Array(26).fill(0);
+    let suf = 0;
+    for (let i = 1; i < n; i++) {
+        const ch = s.charCodeAt(i) - ordA;
+        sufCnt[ch]++;
+        suf |= 1 << ch; // 把 ch 记录到二进制数 suf 中，表示后缀有 ch
+    }
+
+    let pre = 0;
+    const has = Array(26).fill(0); // has[mid] = 由 alpha 组成的二进制数
+    for (let i = 1; i < n - 1; i++) { // 枚举中间字母 mid
+        const mid = s.charCodeAt(i) - ordA;
+        sufCnt[mid]--; // 撤销 mid 的计数，sufCnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+        if (sufCnt[mid] === 0) { // 后缀 [i+1,n-1] 不包含 mid
+            suf ^= 1 << mid; // 从 suf 中去掉 mid
+        }
+        pre |= 1 << (s.charCodeAt(i - 1) - ordA); // 把 s[i-1] 记录到二进制数 pre 中，表示前缀有 s[i-1]
+        has[mid] |= pre & suf; // 计算 pre 和 suf 的交集，|= 表示把交集中的字母加到 has[mid] 中
+    }
+
+    let ans = 0;
+    for (const mask of has) {
+        ans += bitCount32(mask); // mask 中的每个 1 对应着一个 alpha
+    }
+    return ans;
+};
+
+// 参考 Java 的 Integer.bitCount
+function bitCount32(i) {
+    i = i - ((i >>> 1) & 0x55555555);
+    i = (i & 0x33333333) + ((i >>> 2) & 0x33333333);
+    i = (i + (i >>> 4)) & 0x0f0f0f0f;
+    i = i + (i >>> 8);
+    i = i + (i >>> 16);
+    return i & 0x3f;
+}
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn count_palindromic_subsequence(s: String) -> i32 {
+        let s = s.as_bytes();
+        let n = s.len();
+
+        // 统计 [1,n-1] 每个字母的个数
+        let mut suf_cnt = [0; 26];
+        let mut suf = 0;
+        for &ch in &s[1..] {
+            let ch = (ch - b'a') as usize;
+            suf_cnt[ch] += 1;
+            suf |= 1 << ch; // 把 ch 记录到二进制数 suf 中，表示后缀有 ch
+        }
+
+        let mut pre = 0;
+        let mut has = [0u32; 26]; // has[mid] = 由 alpha 组成的二进制数
+        for i in 1..n - 1 { // 枚举中间字母 mid
+            let mid = (s[i] - b'a') as usize;
+            suf_cnt[mid] -= 1; // 撤销 mid 的计数，suf_cnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+            if suf_cnt[mid] == 0 { // 后缀 [i+1,n-1] 不包含 mid
+                suf ^= 1 << mid; // 从 suf 中去掉 mid
+            }
+            pre |= 1 << (s[i - 1] - b'a'); // 把 s[i-1] 记录到二进制数 pre 中，表示前缀有 s[i-1]
+            has[mid] |= pre & suf; // 计算 pre 和 suf 的交集，|= 表示把交集中的字母加到 has[mid] 中
+        }
+
+        // mask 中的每个 1 对应着一个 alpha
+        has.into_iter().map(|mask| mask.count_ones() as i32).sum()
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n + |\Sigma|)$，其中 $n$ 是 $s$ 的长度，$|\Sigma|=26$ 是字符集合的大小。
+- 空间复杂度：$\mathcal{O}(|\Sigma|)$。
+
+## 进阶问题
+
+1. 计算不同子序列的个数：[940. 不同的子序列 II](https://leetcode.cn/problems/distinct-subsequences-ii/)。
+2. 计算不同回文子序列的个数：[730. 统计不同回文子序列](https://leetcode.cn/problems/count-different-palindromic-subsequences/)。
+
+## 专题训练
+
+1. 数据结构题单的「**§0.2 枚举中间**」。
+2. 动态规划题单的「**专题：前后缀分解**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `专题：前后缀分解`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `专题：前后缀分解`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

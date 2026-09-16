@@ -130,28 +130,36 @@ flowchart TD
 ### 9.1 环境检查
 
 - `[未验证]` 本机没有 `nvidia-smi` 命令，无法确认 NVIDIA GPU、驱动和显存容量。
-- `[未验证]` 当前 Python 环境没有 `torch`，无法创建 CUDA tensor、读取显存快照或进行 CUDA Graph replay。
-- `[未验证]` 当前 Python 环境没有 `pytest`，SGLang memory-cache 测试无法进入用例执行阶段。
+- `[已确认]` 已安装 `torch==2.14.0+cu130`，但 `torch.cuda.is_available()` 为 `False`、CUDA device count 为 `0`；没有可用 accelerator，不能执行 CUDA tensor、显存快照或 CUDA Graph replay。
+- `[已确认]` 已安装 `pytest==9.1.1`，并通过 `PYTHONPATH=python` 导入 `source/sglang` 源码；为完成导入还补齐了本次 targeted 测试暴露的运行依赖。
 - `[已确认]` `source/sglang` 中存在 Radix、allocator、SWA、Mamba、Unified、SLRU 及 storage/HiCache 测试文件。
 
 ### 9.2 测试执行记录
 
-已尝试在 `source/sglang` 执行 Radix cache、lock/ref、eviction、SWA/Mamba 和 Unified/SLRU 单元测试。所有 pytest 命令均因 `No module named pytest` 在测试启动前退出。
+使用 `PYTHONPATH=python python3 -m pytest <test> -q` 执行了以下验证：
 
-还尝试使用 Python 标准库 `unittest discover` 运行 Radix 测试；测试收集阶段因 `No module named 'sglang'` 失败。该结果表示环境未准备好，不表示被测实现失败。
+- `[部分已验证]` `test_radix_cache_unit.py -k 'not memory_allocated'`：35 passed，1 deselected，23 subtests passed。覆盖的 CPU-safe Radix 路径通过。
+- `[已验证]` `test_evict_policy.py`：23 passed。
+- `test_radix_cache_unit.py` 不排除 CUDA 用例时为 35 passed、1 failed；唯一失败为 `test_memory_allocated`，在 `torch.zeros(..., device="cuda")` 处因 `Found no NVIDIA driver on your system` 退出，属于环境前置条件失败，不是 allocator/Radix 断言失败。
+- `test_decode_radix_lock_ref.py` 未进入用例执行：收集时 `ScheduleBatch` 的默认 device 调用 `get_device()`，因没有 CUDA/XPU/HPU/NPU/MUSA/MPS accelerator 而退出。
+- `test_swa_unittest.py`、`test_mamba_unittest.py` 和 `test_unified_radix_cache_unittest.py` 也未形成通过记录：相关模块在收集阶段依赖 accelerator；SWA 测试还首先暴露了可选的 `datasets` 导入依赖。
+
+此前从 `No module named pytest` 开始逐层补齐依赖；随后遇到的导入错误也均属于环境配置，不作为源码实现失败统计。
 
 ### 9.3 未完成验证及所需环境
 
 | 内容 | 当前状态 | 需要补齐 |
 |---|---|---|
-| allocator/Radix correctness | `[待验证]` | 安装项目测试依赖、可导入 `sglang`，执行 targeted pytest |
-| GPU physical backing | `[待验证]` | NVIDIA GPU、驱动、PyTorch/CUDA |
-| CUDA Graph capture/replay | `[待验证]` | 支持 Graph 的 GPU、torch、模型和可复现实例 |
-| prefix hit/eviction/retraction | `[待验证]` | 可运行 SGLang 测试环境，tiny pool/真实 scheduler 场景 |
-| CPU offload/recompute | `[待验证]` | 对应 backend、模型/张量、CPU/GPU 带宽测量 |
+| allocator/Radix correctness（CPU-safe） | `[部分已验证：35 passed]` | 继续运行适用的 CPU-safe 测试并固定依赖版本 |
+| eviction policy（CPU-safe） | `[已验证：23 passed]` | 真实 GPU pool 场景仍需硬件 |
+| GPU physical backing / memory snapshot | `[待验证：无 accelerator]` | NVIDIA GPU、驱动和兼容 PyTorch/CUDA |
+| CUDA Graph capture/replay | `[待验证：无 accelerator]` | 支持 Graph 的 GPU、模型和可复现实例 |
+| prefix hit / Radix eviction | `[部分已验证：CPU-safe 单元路径]` | 真实 GPU backing、并发 scheduler 和 tiny-pool 场景 |
+| decode lock/ref/retraction | `[待验证：收集阶段即因无 accelerator 退出]` | 可用 accelerator 和对应 runtime |
+| CPU offload/partial recompute | `[待验证]` | 对应 backend、模型/张量与带宽实验 |
 | P/D transfer/RDMA | `[待验证]` | 多进程、多设备、网络/RDMA 环境 |
 | throughput/TTFT/TPOT/P99 | `[待验证]` | 固定模型、输入分布、并发、warmup、重复次数和 baseline |
 
 ### 9.4 状态纪律
 
-本轮没有把任何论文性能数字或动态运行行为改成“本地已验证”。论文结果仍是作者报告；源码结论仍区分 `[已确认]` 与 `[推断]`；GPU、网络、RDMA、模型和压测结果继续标为 `[待验证]`。
+本轮将明确执行成功的 CPU-safe 测试记录为 `[已验证]` 或 `[部分已验证]`，但没有把 GPU、CUDA Graph、真实 decode/retraction、offload、RDMA 或性能结果改成已验证。论文数字仍是作者报告；源码结论继续区分 `[已确认]` 与 `[推断]`。

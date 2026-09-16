@@ -1,0 +1,1104 @@
+                                                       P/D-Serve: Serving Disaggregated Large Language Model at Scale
+
+                                          Yibo Jin*, Tao Wang*, Huimin Lin, Mingyang Song, Peiyang Li, Yipeng Ma, Yicheng Shan, Zhengfan
+                                          Yuan, Cailong Li, Yajing Sun, Tiandeng Wu, Xing Chu, Ruizhi Huan, Li Ma, Xiao You, Wenting Zhou,
+                                         Yunpeng Ye, Wen Liu, Xiangkun Xu, Yongsheng Zhang, Tiantian Dong, Jiawei Zhu, Zhe Wang, Xijian Ju,
+                                             Jianxun Song, Haoliang Cheng, Xiaojing Li, Jiandong Ding, Hefei Guo, and Zhengyong Zhang
+arXiv:2408.08147v1 [cs.DC] 15 Aug 2024
+
+
+
+
+                                                                                              Huawei Technologies Co., Ltd.
+
+                                         Abstract                                                                time-to-first-token (TTFT) for quick response (e.g., first token
+                                                                                                                 returned to users immediately, followed by further streaming
+                                         Serving disaggregated large language models (LLMs) over                 results) and enhance the throughput of decoding follow-up
+                                         tens of thousands of xPU devices (GPUs or NPUs) with reli-              tokens at the same time, disaggregated paradigm has become a
+                                         able performance faces multiple challenges. 1) Ignoring the             new trend [6–10], where the prefill phase and decoding phase
+                                         diversity (various prefixes and tidal requests), treating all the       are deployed in different instances, with disparate settings on
+                                         prompts in a mixed pool is inadequate. To facilitate the simi-          batch sizes. Then, the transfer of intermediate data, generated
+                                         larity per scenario and minimize the inner mismatch on P/D              during inference (i.e., KVCache), is necessary.
+                                         (prefill and decoding) processing, fine-grained organization is            Although previous works have already implemented disag-
+                                         required, dynamically adjusting P/D ratios for better perfor-           gregated LLMs upon vLLM [11], using pool management for
+                                         mance. 2) Due to inaccurate estimation on workload (queue               prefill and decoding instances, and further instance migration
+                                         status or maintained connections), the global scheduler easily          and role switch for various workloads [6, 7], serving disaggre-
+                                         incurs unnecessary timeouts in prefill. 3) Block-fixed device-          gated LLMs at scale, over tens of thousands of xPU devices
+                                         to-device (D2D) KVCache transfer over cluster-level RDMA                (NPUs or GPUs), faces multiple challenges as follows:
+                                         (remote direct memory access) fails to achieve desired D2D                 First and foremost, ignoring the diversity, treating all the
+                                         utilization as expected. To overcome previous problems, this            prompts in a mixed pool is inadequate. Given the P/D (prefill
+                                         paper proposes an end-to-end system P/D-Serve, complying                and decoding) instances, end-to-end (E2E) throughput de-
+                                         with the paradigm of MLOps (machine learning operations),               pends on its bottleneck (e.g., longer prompts slow down the
+                                         which models end-to-end (E2E) P/D performance and en-                   prefill while more tokens generated increase the occupation
+                                         ables: 1) fine-grained P/D organization, mapping the service            in the decoding). Faster inference is preferred, but minimiz-
+                                         with RoCE (RDMA over converged ethernet) as needed, to                  ing the P/D mismatch is more urgent (maximum capability
+                                         facilitate similar processing and dynamic adjustments on P/D            of serving). As mentioned in [12, 13], the inference can be
+                                         ratios; 2) on-demand forwarding upon rejections for idle pre-           accelerated by reusing attention states across prompts (i.e.
+                                         fill, decoupling the scheduler from regular inaccurate reports          prefix-aware KVCache). However, the weights and all KV-
+                                         and local queues, to avoid timeouts in prefill; and 3) efficient        Caches share the high bandwidth memory (HBM). With the
+                                         KVCache transfer via optimized D2D access. P/D-Serve is im-             growth of model size and prompt length, KVCache dramati-
+                                         plemented upon Ascend and MindSpore, has been deployed                  cally increases [14], implying that individual instance in the
+                                         over tens of thousands of NPUs for more than eight months               pool fails to cover all the prefixes for all scenarios. Except
+                                         in commercial use, and further achieves 60%, 42% and 46%                for using host memory as substitute (incurs load and flush),
+                                         improvements on E2E throughput, time-to-first-token (TTFT)              assigning the prompts with common prefixes to a few prefills
+                                         SLO (service level objective) and D2D transfer time. As the             enhances the hit rate. Although prefill is accelerated, without
+                                         E2E system with optimizations, P/D-Serve achieves 6.7x in-              further adjustments in decoding (e.g., larger batch size upon
+                                         crease on throughput, compared with aggregated LLMs.                    shared prefixes and cost-effective P/D ratio), the throughput
+                                                                                                                 is still limited. Actually, processing homologous prompts to-
+                                         1    Introduction                                                       gether is profit to apply more optimizations, but fine-grained
+                                                                                                                 orchestration should be considered (e.g., changes on P/D ra-
+                                         Large language models (LLMs) have been widely adopted                   tios due to updated prefixes via prompt engineering [15, 16]).
+                                         [1–5] for various generative applications. In order to shorten             Furthermore, the global scheduler fails to balance the work-
+                                                                                                                 load among prefill due to inaccurate estimation. As shown
+                                             ∗ Contributed Equally, Corresponding to jinyibo1@huawei.com.
+
+
+
+
+                                                                                                             1
+in previous works [6, 7], each prefill instance regularly com-          dynamic RoCE mapping, fine-grained organization is then
+municates to the scheduler (e.g., reporting the queue every             enabled (for specific scenario in a service), including rolling
+100ms). Such queue status based on either pending tokens or             upgrade, scaling upon groups, and the adjustment on P/D ra-
+memory capacity is actually insufficient, since the inference           tios catering to content changes and traffic changes. Secondly,
+in prefill also depends on the length of cached prefix and batch        based on such fine-grained organization for P/D instances,
+size. Given TTFT SLO (service-level objective) per scenario,            P/D-Serve uses a customized monitor for auto health check
+hitting a longer prefix implies a larger batch size can be ap-          of xPU device. Meanwhile, the auto recovery is performed
+plied. With the changes on prefix and batch size, actual TTFT           efficiently, which only substitutes the fault one with minimum
+has great varying range. Although the gateway records the               cost and does no harm to running service. Thirdly, to pursue
+server-sent events (SSE) connections for streaming responses,           balanced workload among prefills, P/D-Serve uses on-demand
+the workload hinted by the number of connections also fails             forwarding upon the rejections for idle prefill, in which the
+to indicate idle prefill, since it is maintained during entire          requests have the chance to be assigned to further idle one
+LLM lifecycle (also including decoding). Current scheduler              by gateway retries, decoupling the scheduler from regular
+fails to capture these factors, leading to sub-optimum. Instead         inaccurate reports and the local queues. Meanwhile, the gate-
+of directly forwarding requests to the queue of each prefill            way also enables batch forwarding, catering to various batch
+(easily incurs timeouts), a more effective way is: the requests         settings among prefills. Finally, to fully utilize D2D band-
+have the chance to be assigned to other idle prefill.                   width, P/D-Serve manages the KVCache to be transferred
+   In addition, block-fixed device-to-device (D2D) KVCache              via a contiguous buffer, and recovers the bytes to desired dis-
+transfer over cluster-level RDMA (remote direct memory ac-              crete blocks via RecvScatter. Meanwhile, stable transfer and
+cess) fails to achieve desired performance. PageAttention [14]          RoCE construction are ensured for large scale xPUs. P/D-
+is widely used for efficient management of xPU memory and               Serve is implemented upon Ascend and MindSpore, has been
+thus enhance the throughput in decoding phase. Although the             deployed over tens of thousands of NPUs for more than eight
+optimizations like KVCache transfer per layer are adopted [6],          months in commercial use, and further achieves 60%, 42%
+when both sender and receiver are equipped with PageAtten-              and 46% improvements on E2E throughput, TTFT SLO and
+tion, KVCache transfers between P/D over RDMA are nat-                  D2D transfer time. Compared with serving aggregated LLMs,
+urally implemented using discrete blocks (e.g., transfer one            P/D-Serve achieves 6.7x increase on throughput at scale.
+by one). Such transfer incurs unnecessary software overhead
+and fails to fully utilize D2D bandwidth. Note that transfer            2     Background and Motivation
+per block involves the confirmation between the sender and
+the receiver, where the controls actually waste the bandwidth.          This section first introduces the fundamentals of autoregres-
+Thus, it is preferred to transfer all the blocks as a whole (in         sive LLM, and then explicitly show the performance degra-
+bytes), involve less controls, and recover the bytes to blocks          dation in production, even using the disaggregated paradigm.
+in decoding. It is also challenging to ensure contiguous space          Upon the degradation, this section discusses the opportunities
+at sender as well as to make the tradeoff between transparency          and challenges for serving disaggregated LLM at scale.
+and flexibility for restoring discrete blocks. Moreover, multi-
+ple hops may incur the conflicts and unstable transfer time,
+which requires the platform to fully utilize the path diversity.        2.1    Autoregressive LLM
+   Existing research falls insufficient for addressing the afore-       LLM: The architecture of transformer [26] stands on two pil-
+mentioned challenges. Some works had studied accelerating               lars: the encoder and the decoder, in which the self-attention
+LLMs via various caching, management and kernel optimiza-               mechanism is the core. The encoder and decoder can be used
+tions [11–14,17–20]. Others focused on the batch scheduling             in combination or separately. A typical example of encoder-
+(e.g., continuous batching) within and over instances [21–25].          only model is Bert [27] while an example of decoder-only
+And the rest investigated serving the disaggregated LLMs for            model is Llama [3]. The input of LLM inference is a prompt
+better performance [6–9]. However, few of them has consid-              (a piece of text, converted to tokens in advance via a tokenizer)
+ered serving E2E disaggregated LLMs at scale, over tens of              while the output is a sequence of tokens. The tokens are gener-
+thousands of xPU devices (NPUs or GPUs), which involves                 ated in an autoregressive manner. That is, the LLM is trained
+new challenges on both processing and scaling.                          on a vast collection of texts, with the goal of predicting the
+   In this paper, we propose an end-to-end system P/D-Serve             next token based on the previous ones. The prefill refers to
+for serving disaggregated LLMs at scale. Firstly, P/D-Serve             the inference on predicting the first token while the decoding
+models the E2E P/D performance. To facilitate similar pro-              refers to the inference on predicting the follow-up tokens. The
+cessing on homologous prompts and on-demand adjustments,                metric of prefill phase is time-to-first-token (TTFT), and the
+P/D-Serve uses dynamic mappings of the services (or further             metrics of decoding phase are time-per-output-token (TPOT).
+scenarios) and the RoCE (RDMA over converged ethernet) as               For entire LLM, the metrics are the latency to generate all
+needed, where RoCE supports D2D KVCache transfer. Via                   tokens (E2E time or latency), and the throughput.
+
+
+                                                                    2
+   KVCache: The attention block of transformer (e.g., multi-             where the numerator of Φ measures the bottleneck (i.e., RPS,
+head self-attention) essentially contains scaled dot-product             requests per second). p and d refer to “prefill” and “decoding”,
+attention, where the previous outputs are represented into a             respectively. n p and nd are the number of prefill instances and
+query (Q) tensor and the next output is produced by mapping              decoding instances, respectively. P/D ratio refers to n p /nd . Φ
+this query and the set of keys (K) and values (V). Since the             refers to the average throughput per instance (also measures
+previous tokens are appended one after another to form Q,                the cost). It refers to the input traffic. Limited to the bottleneck,
+to reuse the intermediate data (only incurs the computation              not all requests are treated without breaking timeouts. For ex-
+for newly appended one), already computed key-value pairs                ample, waiting is involved if prefill is weak: It > n p b p · 1/Tp .
+(K and V) are cached (i.e., KVCache). The size of current                Here, t refers to the time slot, since the input traffic varies
+KVCache per layer is calculated by 2 (bytes for fp16) * batch            over time. b p and bd are the batch sizes used in prefill and
+size * hidden size * 2 (K and V tensors) * query length. Note            decoding. 1/Tp and 1/Td measure the processing capability
+that the query length is the sum of tokens in prompt and the             in prefill and decoding (i.e., averaged batches treated per sec-
+tokens already generated. With the growth of LLM, actually               ond; “1” refers to a unit time period). In prefill, T T FTbs refers
+the hidden size and the number of layers, KVCache increases              to the TTFT under batch size bs, and r pre ∈ (0, 1] refers to
+dramatically. As shown in [28], GPT-3 (175B) generates a                 the ratio benefit from prefix-aware KVCaches. In decoding,
+4.5MB KVCache per token. Then, for prefill inference with                ξ measures the time of KVCache transfer. Since each D2D
+the prompt of 1k tokens, KVCache is 4.5GB. Some techniques               transfer involves multiple sub-transfers, ξ refers to the maxi-
+like quantization [28–31] and grouped attention [32, 33] are             mum one. Similarly, T POTbs refers to the TPOT under batch
+used for small KVCache. With the growth of the model and                 size bs. G refers to the averaged tokens generated in decoding.
+the context length, the increase of KVCache is inevitable.
+   Disaggregated LLM: In order to pursue lower TTFT and
+achieve a higher throughput for follow-up tokens, disaggre-
+                                                                         2.2     Opportunities and Challenges
+gated LLM is proposed, where prefill phase and decoding                  Serving disaggregated LLMs at scale, for services and over
+phase (P/D) are deployed separately, decoupling the constraint           xPUs, unavoidably faces performance degradation. And for
+on the batch size. That is, the ratio of P/D instances can be con-       each opportunity, related challenge is highlighted.
+figured in advance for various workloads. For those prompts
+generating few tokens, more prefill instances are preferred,
+                                                                         2.2.1   Diversity on Prompts Affects E2E Latency
+with the inference executed under small batch size and using
+the pipeline one batch after another. For those prompts gener-           Diversity on Prompts: The prompt is a piece of text or a
+ating a large volume of tokens, more decoding instances are              set of instructions, as the input of LLM (converted to tokens
+preferred (or with larger batch size). And for each prompt, al-          in advance via a tokenizer) to trigger a specific response or
+ready executed in prefill, its KVCache has to be transferred to          action. The prompt contains two parts: the setting part and
+a decoding instance for further inference. Since the KVCache             the query part. The setting part is used to describe the sys-
+is stored among multiple xPU devices (split by the strategy of           tem and the scenario. For example, Llama 3 [3] uses fixed
+model parallelism, e.g., tensor parallelism), D2D KVCache                format to indicate the role: “<|begin of text|><|start header
+transfer in order is involved, where the data stored in the 0-th         id|>{role}<|end header id|>”, where the role can be system,
+device of the sender is transferred to the 0-th device of the            user or assistant. In majority scenarios, the settings are very
+receiver correspondingly (multiple transfers simultaneously).            common to involve the contexts [35]. A typical context is:
+   Infrastructure: Upon the physical machines, the contain-              “Candidate Pool: (A)...(B)...(C)...”, where all candidate op-
+ers are used as the minimum resource unit for service scal-              tions are listed for LLM inference. Some background facts
+ing, where each container is assigned multiple xPU (e.g., vol-           can also be involved in either system part and scenario part as
+cano [34] for NPU) devices for inference (prefill phase or               auxiliary information. Actually, the developers from different
+decoding phase). Each xPU device has limited HBM (e.g.,                  services or even the scenarios in a service, individually design
+tens of GB) and is directly connected to top-of-rack (ToR)               the prompts (via prompt engineering). Although the format
+switch via RDMA. ToR switches further connect to spine one.              is similar, prompt (or prefix) length is quite different (also
+The maximum RoCE (RDMA over converged ethernet) IPs                      the contents), as in Fig. 1a (there are six scenarios from two
+are limited in a region, in thousands. The maximum band-                 services, Scene 1∼6). And, the traffic also changes over time
+width for D2D transfer is about hundreds of Gb per second.               (i.e., the combination of prompts among scenarios).
+   E2E Performance: Except for the E2E latency measuring                    Limited HBM: The memory of xPU device is limited (i.e.,
+the sum of prefill and decoding latency, given P/D instances,            the size of HBM is tens of GB). In order to avoid exchanging
+the throughput actually depends on the bottleneck:                       the data with host memory, all the tensors used for inference
+                                                                         are preferred to stored in xPU HBM, including the model
+    Φ = min{It , n p b p · 1/Tp , nd bd · 1/Td }/(n p + nd ),
+                                                                         weights, the activations, the space left for reserved usage, and
+Tp = T T FTbs ∗ r pre , Td = ξ + T POTbs ∗ G, E2E = Tp + Td ,            the KVCaches. As shown in [14], based on Nvidia A100 with
+
+
+                                                                     3
+      1.0                                             1.0      30% Prefixes Hit                                          1.0                             Scene 1          1.0
+                                                               70% Prefixes Hit                                                                          Scene 2
+      0.8                                             0.8                                                                0.8                                              0.8
+
+
+
+
+                                                                                                    Normalized Traffic
+                                                                                                                                                                                      Processing Capability
+                                                                                                                                                                                      Prefill: A RPS
+      0.6                            Scene 1          0.6                                                                0.6                                              0.6         Decoding: 2A RPS
+                                                                                                                                                                                      Bottleneck: min{A, 2A}
+
+
+
+
+                                                                                                                                                                    CDF
+CDF
+
+
+
+
+                                                CDF
+                                     Scene 2                                                                                                                              0.4
+      0.4                            Scene 3          0.4                                                                0.4
+                                     Scene 4                                                                                                                                                             Input Traffic
+      0.2                            Scene 5          0.2                                                                0.2                                              0.2                               A RPS
+                                     Scene 6                                                                                                                                                                1.25A RPS
+      0.0                                             0.0                                                                0.0                                              0.0
+            0.0   0.2   0.4   0.6   0.8   1.0            0.5   0.6    0.7     0.8   0.9   1.0                                  0.0    0.2   0.4   0.6   0.8   1.0               0.2        0.4     0.6     0.8      1.0
+             Normalized Prompt Length                            Normalized TTFT                                              Time Index                                               Normalized Tp
+          (a) Various Prompts                           (b) TTFT under Various                                  (a) Traffics among Scenarios                                    (b) P/D Mismatch
+        in Services (Scenarios)                             Prefixes in HBM                                        Figure 2: Changes and Mismatch in Disaggregated LLMs
+ Figure 1: Performance degradation derives from the diversity.
+                                                                                                          2.2.2                      Inaccurate Prefill Status Affects TTFT
+40GB HBM, the space left for KVCache is at least 30% for
+13B LLM. Although some techniques like quantization and                                                  Inaccurate Queue Status: Existing scheduler collects the
+grouped attention are used, KVCache dramatically increases                                               queue status or available free HBM from the prefill instances,
+with the growth of model size and prompt length. For example,                                            in which the queue and the free HBM are measured by using
+GPT-3 (175B) generates a 4.5MB KVCache per token. Using                                                  pending tokens to be treated. Unfortunately, those pending
+int-8 quantization, the KVCache for 1k prompts is reduced                                                tokens are far from precise TTFT prediction. By using the
+to about 2.3GB. However, with the growth of prompt length                                                prefix-aware KVCaches, prefill inference is accelerated. Thus,
+(e.g., 4k), the size dramatically increases to about 9GB. That                                           more prompts can be treated simultaneously in a single batch,
+is, the KVCache dominates the HBM use.                                                                   as long as the TTFT does not exceed a given threshold. Then,
+   E2E Degradation: If all instances are organized in a fixed                                            pending tokens along are inadequate. As in Fig. 3a, compared
+pool (e.g., service-level management: inference at daytime                                               with TTFT under 70% prefixes hit (actually Tp , with batch
+and training at night), each one of deployed prefill instances                                           processing and cached prefixes), the estimation (already con-
+has to serve all the possible prompts, which requires them                                               sidered the batch size) upon tokens is inaccurate. Note that
+to cache all the prefix-aware KVCaches [12, 13]. Unfortu-                                                the prompt lengths are similar in this case. Thus, the gap ex-
+nately, given limited HBM, caching all the KVCaches per                                                  ists between the estimation (the blue line) and actual TTFT
+instance is impossible (multiple scenarios per service, and                                              (the red one). Further, the reports are triggered regularly (e.g.,
+tens of prefixes per scenario). Given HBM, the hit rate of                                               every 100ms). The period between two consecutive ones also
+prefix significantly affects TTFT (actually Tp , with batch pro-                                         hampers the scheduler from precise decision.
+cessing and cached prefixes), as in Fig. 1b. Although several                                               Unnecessary Queueing in Prefill: Except for inaccurate
+works [8, 9] have already considered the pools for large vol-                                            estimation on TTFT, queueing in prefill easily incurs the time-
+ume of KVCaches with the help of host memory (incurs load                                                outs. Here is a simple example. There are two prefill instances
+and flush), to fundamentally improve the hit rate of cached                                              (batch size 1 and empty queue). And four prompts arrive si-
+prefixes, increasing valuable KVCaches in HBM is inevitable.                                             multaneously. The length of prompt 1 is 8k and the lengths
+   Opportunity: The similarity occurs in P/D behaviors (e.g.,                                            of the others are 2k. Both prefill instances contain the prefix-
+the prompt length or the number of tokens generated is more                                              aware KVCaches, where the prefix for prompt 1 is 0.1k and
+likely to be similar in a scenario), motivating serving prompts                                          the prefix for the other prompts is 1k. Due to simultaneous
+together. The inference could be further accelerated due to                                              arrival, either shortest queue strategy or round robin strategy
+homologous features (e.g., similar prompts facilitate input                                              assigns two prompts to the first prefill instance and the other
+prepare in advance or customized parallelism [36]). Upon the                                             two are assigned to the rest. However, the optimum strategy
+similarity, better performance could be achieved.                                                        is to assign three prompts with length 1k to the same instance.
+   Challenge: The changes on prompts derive from both con-                                               Here, the prompts, waiting in the queue, are affected (i.e., the
+tent and traffic. Then, corresponding adjustments are needed                                             1k one queued after 8k). Although the prompts terminate im-
+from two aspects: scaling demands and efficiency demands.                                                mediately after the timeouts, they still affects those queuing
+Organizing a subset of prefill instances and related decoding                                            ones. Note that the timeout threshold for 1k is quite different
+ones, actually involves complicated management on rolling                                                from that of 8k. As in Fig. 3b, under heavy workload, requests
+upgrade of models, prompts, etc., and necessary auto scale-out                                           are more likely to break timeouts, especially for short prompts.
+and recovery (minimum cost required). Furthermore, catering                                              A more effective way is to assign the prompts only to idle
+to the content changes (due to prompt engineering) and traffic                                           prefill. After completing two prompts with length 1k, the third
+changes (shown in Fig. 2a), orchestrating P/D ratio is a must,                                           prompt with the same length is then assigned, instead of wait-
+which involves inevitable re-organizing existing P/D groups                                              ing in local queue for the completion of 8k prompt. That is,
+dynamically. Essentially, the orchestration has to minimize                                              waiting in local queue is sub-optimal.
+the mismatch (in Fig. 2b) regarding the processing capability                                               TTFT SLO: TTFT SLO refers to achieving a higher ratio
+between prefill and decoding instances.                                                                  of the prompts, whose TTFT (actually Tp , with batch process-
+
+
+                                                                                                4
+      1.0      Actual TTFT (70% Prefixes Hit)               1.0                                                                           1.0                  Size S, Discrete                                 100
+
+
+
+
+                                                                                                               Normalized Transfer Time
+
+
+
+
+                                                                                                                                                                                      D2D Bandwidth Util. (%)
+               Estimation upon Pending Tokens                                                                                                                  Size S, Contiguous
+      0.8                                                   0.8                                                                           0.8                  Size 10S, Discrete                               80
+                                                                                                                                                               Size 10S, Contiguous
+      0.6                                                   0.6                                                                           0.6                                                                   60
+CDF
+
+
+
+
+                                                      CDF
+      0.4                                                   0.4                                                                           0.4                                                                                    Size S, Discrete
+                                                                                                                                                                                                                40               Size S, Contiguous
+      0.2                                                   0.2                     A RPS (Light Load)                                    0.2                                                                                    Size 10S, Discrete
+                                                                                    4A RPS (Heavy Load)                                                                                                         20               Size 10S, Contiguous
+      0.0                                                   0.0                                                                           0.0
+         0.5    0.6     0.7    0.8     0.9      1.0               0.0   0.2   0.4     0.6     0.8    1.0                                         A    4A   16A 64A 256A 1kA                                           A   4A   16A 64A 256A 1kA
+                 Normalized TTFT                                    Normalized Timeout #                                                              Block Size at Sender                                             Block Size at Sender
+          (a) Actual TTFT v.s.                                 (b) TTFT Timeouts                                                                (a) Extra Control Cost                                          (b) Bandwidth Utilization
+        Token-based Estimation                                due to Prefill Queueing                                  Figure 4: Block-fixed transfer fails to fully utilize bandwidth.
+       Figure 3: Queue status is insufficient for precise TTFT.
+                                                                                                                      transmission. That is, during the calculation of next layer, the
+ing and cached prefixes) does not exceed related thresholds.
+                                                                                                                      key-value pairs already generated for previous layer could be
+Both prefill and the gateway are configured using early inter-
+                                                                                                                      transferred. Naturally, KVCache transfer is implemented us-
+vention. As long as current duration exceeds the TTFT SLO
+                                                                                                                      ing blocks one after another (i.e., discrete). However, RDMA
+(e.g., waiting in the queue or failure), either prefill or gateway
+                                                                                                                      prefers to transfer all the data as a whole (in bytes, i.e., con-
+may complete related requests, to avoid resource waste and
+                                                                                                                      tiguous), to avoid frequent confirmations and controls. As
+to avoid the bottleneck as early as possible.
+                                                                                                                      in Fig. 4a, with the growth of the data size to be transferred
+   Opportunity: For global scheduler, inaccurate status upon
+                                                                                                                      under small blocks, the extra control cost increases, which
+queues (just pending tokens) or the connections (cover entire
+                                                                                                                      should be avoided (waste D2D bandwidth). Further results
+LLM lifecycle) should be fundamentally avoided. A more ef-
+                                                                                                                      are illustrated in Fig. 4b, where the bandwidth utilization is
+fective way is: assigning pending prompts only to idle prefill.
+                                                                                                                      low using discrete blocks, due to frequent controls.
+   Challenge: Actual TTFT depends on both batch size and
+                                                                                                                         Transfer Variance: Typically, the entire transfer time is
+prefix-aware KVCaches (i.e., Tp , posterior revealed, and vary
+                                                                                                                      expected to be controlled (e.g., a small fraction of TPOT).
+among scenarios). Blindly forwarding new requests to a few
+                                                                                                                      Otherwise, there is a noticeable gap between the first token
+idle instances incurs the waiting in a local queue. And for the
+                                                                                                                      and the follow-up ones. Furthermore, the transfer should be
+traffic surge, those waiting requests easily break the timeout
+                                                                                                                      stable. Unfortunately, when conflicts occur along with multi-
+thresholds, leading to a lower success rate. To get rid of the
+                                                                                                                      ple hops, the transfer time varies dramatically, even leading
+sub-optimum waiting and to avoid the preemptive scheduling,
+                                                                                                                      to hundreds of milliseconds. Such variance is unacceptable.
+the queues in prefill are preferred to be removed. Afterwards,
+                                                                                                                         Opportunity: Both sender and receiver may manage xPU
+all pending prompts have to be waiting at gateway for further
+                                                                                                                      HBM via PageAttention (i.e., discrete blocks). To fully utilize
+choices. Unfortunately, lack of accurate feedback from prefill,
+                                                                                                                      D2D bandwidth over RDMA, transfer in bytes as a whole is
+the scheduler fails to be aware of idle ones in time. Essentially,
+                                                                                                                      preferred, instead of block transfers one after another.
+global scheduler has to minimize the mismatch between the
+traffic and the processing capability of P/D instances.                                                                  Challenge: To facilitate block-free KVCache transfer, the
+                                                                                                                      platform has to involve two extra converts (as needed): orga-
+                                                                                                                      nizing discrete blocks to a contiguous buffer at sender and
+ 2.2.3         Block-fixed KVCache Affects Transfer                                                                   restoring discrete blocks from bytes at receiver. However, due
+Block-fixed Management: Block-fixed memory manage-                                                                    to limited HBM, the sender may fail to prepare the contiguous
+ment has been widely used for xPU HBM (e.g., PageAtten-                                                               buffer for all pending prompts. Further, there exists a conflict
+tion [14]), where the HBM is organized via discrete blocks                                                            between 1) block-free transfer for entire KVCache (all layers)
+with fixed size. Benefit from organizing the HBM in discrete                                                          with transparency to services and 2) per layer triggers with
+blocks, more prompts can be involved, fully utilizing the mem-                                                        less transfer time but revision required on models. The trade-
+ory, which facilitates the decoding phase and enhances the                                                            off should be considered according to the model (whether to
+throughput. For aggregated LLM, vLLM enables PageAtten-                                                               enable per layer transfer). And, at last, the transfer should be
+tion for entire HBM (both prefill and decoding). Upon vLLM,                                                           stable in large scale (multiple hops involved).
+previous works have implemented disaggregated LLM. Both
+sender and receiver equipped with PageAttention, KVCache                                                               3                        Design on Serving LLMs at Scale
+transfers between P/D instances over RDMA are naturally
+implemented using the blocks (e.g., transfer one by one). How-
+                                                                                                                       3.1                           Overview
+ever, as shown later, block-fixed transfer is inefficient.
+   Unnecessary Controls: KVCache is the intermediate data,                                                            P/D-Serve is proposed as an end-to-end system, complying
+generated during inference, and is calculated per layer. Instead                                                      with the paradigm of MLOps (machine learning operations),
+of transfer the entire KVCache after the completion of prefill,                                                       serving disaggregated LLMs over tens of thousands of xPU
+transfer per layer is proposed for concurrent computation and                                                         devices, as shown in Fig. 5. P/D-Serve contains three compo-
+
+
+                                                                                                           5
+view
+
+
+
+                                                                                  Developer Actions         and the service-level scaling copes with the changes on the
+                                                  MLOps                                                     traffic. Unfortunately, coarse-grained management is insuffi-
+             P/D Organization & Auto Adjustment                Forwarding & Auto Recovery                   cient. Various scenarios, even in the same service, have quite
+                       Requests              P/D Group
+                                                                                                            different demands on scaling and adjustment, which requires
+                                                                                           Groups           the platform to support the isolation of P/D instances among
+                       Prefill
+                        Prefill
+                         Prefill                                                             …
+                                                               Decoding                                     scenarios. Thus, the need of organizing any instances to form
+                                                                                            Container
+                            Framework        L                     Framework       L
+             LLM                             L       LLM                           L
+                                                                                            Instance
+                                                                                                            a P/D group (fine-grained) is inevitable, where such a group
+                                                                    Runtime
+             Serving         Runtime         M       Serving                       M
+
+                         xPU 0
+                                 …
+                                     xPU N                      xPU 0
+                                                                        … xPU N            Adjustment       works for specific scenario (for related developers), is isolated
+                                                                                           /Recovery
+                                                                                                            to others, and also obeys the management and scaling from
+          Network                                                   KVCache Transfer          …             superior service. Due to fine-grained demands on scaling and
+                                                 Region                            Infrastructure           adjustment, for dynamic group organization, a map between
+                            Figure 5: Overview of P/D-Serve                                                 the service (and further scenarios) and P/D instances is a must.
+                                                                                                            That is, the relationship on P/D instances can be mapped to
+       nents: 1) the MLOps, i) manages the services (also the scenar-                                       its relationship on RoCE. Note that each prefill instance has
+       ios) and infrastructure (service-level resource management,                                          the chance to forward the request (with KVCache) to any
+       e.g., inference at daytime and training at night), ii) triggers the                                  decoding instance in a group for generating follow-up tokens.
+       workflows of deployment and scaling for LLMs according to                                               Multiple xPU devices (e.g., NPUs) are assigned to one
+       developer actions, and iii) enables automatic request forward-                                       instance (i.e., via flexible container), in which each device has
+       ing, traffic controls and recovery upon detected faults; 2) the                                      the RoCE IP in the region (a cluster contains multiple regions
+       LLM Serving, i) coordinates with MLOps for instance-level                                            for disaster recovery). To form the relationship between P/D
+       management (i.e., form a group of P/D instances), ii) serves                                         role and RoCE, we use the format like <P, {<IP1, ...>, ...}>,
+       the prompts among P/D instances with all necessary controls                                          where “P” refers to the prefill role, and each prefill instance
+       and communications, and iii) integrates the full stack for in-                                       in this group is described using its RoCE IPs. For example,
+       ference, including the model, the runtime (e.g., Ascend), and                                        IP1 to IP8 refers to 8 xPU devices of an instance. Since
+       the framework (e.g., MindSpore); and 3) the infrastructure                                           all the RoCE IPs are determined in advance via container,
+       contains tens of thousands of machines and xPU devices (e.g.,                                        organizing these information to form a logical group first, and
+       NPUs), connected via the network (multiple regions), with                                            then triggering the initialization (establish connections and
+       the basic ability of disaster recovery and load balance.                                             deploy the model) should be well orchestrated.
+          For the first challenge, the LLM Serving coordinates with                                            Workflow of P/D Setup in Groups: As shown in Fig. 6,
+       the MLOps in P/D-Serve, mapping the service (also the sce-                                           the workflow contains two parts: gathering information and
+       narios) with RoCE as needed for fine-grained organization                                            initializing a group. For those containers (triggered by Kuber-
+       (P/D groups), dynamically adjusting the ratios (minimize the                                         netes [37]) to form a P/D group, LLM Serving coordinates
+       mismatch regarding the processing capability), and enabling                                          with MLOps to establish the relationship between the service
+       the recovery with minimum cost upon auto fault detection, as                                         (or scenario) and RoCE. 1 LLM Serving (the resident pro-
+       shown in subsections §3.2, §3.3, and §3.4, respectively.                                             cess per instance) first obtains the RoCE IPs (e.g., via hccn
+          For the second challenge, multiple gateways retry the re-                                         tool). Then, LLM Serving organizes the RoCE IPs in order, ac-
+       quests among prefill instances within a time period to balance                                       cording to device IDs of assigned xPUs. At last, LLM Serving
+       the workload, in which the prefill may reject the requests if it                                     reports to the Zookeeper [38] of MLOps, in which all RoCE
+       is occupied. If no prefill accepts the requests and its timeout                                      IPs are collected and recorded to target service (or scenario).
+       threshold is reached, P/D-Serve terminates it without further                                        The Zookeeper completes the information gathering until the
+       forwarding. That is, gateway helps the requests to find the                                          number of reports match the instance number. If failures oc-
+       idle prefill (control the input traffic to match the processing                                      cur during the collection, MLOps retries within pre-defined
+       capability for given P/D instances), as illustrated in §3.5.                                         time threshold. 2 As long as the Zookeeper completes the
+          And for the third challenge, P/D-Serve enables D2D KV-                                            collection, initialization order is delivered.
+       Cache transfer in bytes, where the sender prepares a contigu-                                           After receiving initialization order, 3 LLM Serving es-
+       ous buffer, and the receiver recovers the blocks via RecvScat-                                       tablishes the connections (with verifications) and 4 deploys
+       ter, as shown in §3.6. Further details about infrastructure and                                      pre-compiled models. The establishment continuously waits
+       configurations (switches and NPUs) are shown in §3.7.                                                all possible connections until a timeout occurs. After estab-
+                                                                                                            lishment, all instances individually load pre-compiled model
+                                                                                                            from a file system (e.g., scalable file service SFS). The models
+       3.2      P/D Organization upon RoCE                                                                  loaded by prefill and decoding instances are different. After
+       Map of Service with RoCE: The resources are managed at                                               initialization, 5 LLM Serving enables regular health reports
+       service granularity (coarse-grained), in which the resources                                         to the Zookeeper (besides the first, tens of seconds per follow-
+       are assigned to inference at daytime and training at night,                                          up reports). 6 The whole workflow is completed until the
+
+
+                                                                                                        6
+flow                                                                             dynamic roce
+
+
+
+                                                    MLOps                          Requests                                                  MLOps
+                           Gateway Forwarding: <Scenario, Prefill*A>                                                                 P/D Organization: Zookeeper
+                                                  6                                                                                                                               2
+                                  P/D Organization: Zookeeper
+            Meta Info: <Scenario, <Prefill, {RoCE IP 0~N}*A>, <Decoding, {…}*B>>                                         Prefill
+                                                                                                                           Prefill
+                                                                                                                          Prefill                                       Decoding
+                    1      2                    5                1    2                     5                  LLM             Framework             L
+                                                                                                                                                              LLM            Framework             L
+                                                                                                                                                     L                                             L
+                                                                                                         3     Serving             Runtime           M        Serving            Runtime           M
+                        Prefill
+                         Prefill
+                         Prefill                                      Decoding                                             xPU 0     … xPU N                             xPU 0     …       xPU N
+
+
+                                                                                                                               1                                             1
+                               Framework            L                     Framework             L                                    …                                             …
+                                                                                                                           xPU 0             xPU N                       xPU 0             xPU N
+              LLM                                   L       LLM                                 L
+                                                                                                              LLM                                             LLM
+              Serving                          4                                           4    M                              Framework             L                       Framework             L
+                                  Runtime           M
+                                                            Serving           Runtime
+                                                                                                              Serving                                L   or   Serving                              L
+                                   …                                           …                                                   Runtime           M                           Runtime           M
+                          xPU 0             xPU N                     xPU 0             xPU N
+        A                                               B                                                      New Container to be Decoding                    New Container to be Prefill
+                                                    3
+
+                 Figure 6: Workflow of P/D Setup for a Group                                                   Figure 7: Dynamic RoCE for P/D Adjustment
+
+                                                                                                        for newly added but stateless containers. As shown in Fig. 7,
+       Zookeeper confirms all reports from instances, in which all
+                                                                                                        dynamically changing the P/D ratio contains two steps: RoCE
+       prefill instances are labeled as the entrance for requests.
+                                                                                                        construction for newly added containers (stateless and no P/D
+          Pre-compiled Model Loaded in Minutes: To avoid the
+                                                                                                        role) and taking effect of new P/D ratio. Note that removing
+       waste on compilation, the models for both prefill and decod-
+                                                                                                        existing instances is implemented via similar two steps.
+       ing are pre-compiled, via subsequent task after training, and
+                                                                                                           Integrating newly added but stateless containers into exist-
+       stored to a file service (for loading from any instance). LLM
+                                                                                                        ing RoCE involve new connections between these containers
+       with hundreds of billion parameters is loaded within minutes.
+                                                                                                        with existing P/D instances. More specifically, the Zookeeper
+                                                                                                        sends existing RoCE map recorded to newly added containers.
+       3.3      P/D Adjustment with MLOps                                                                1 The LLM Serving then triggers new connections from
+                                                                                                        these containers, in which the RoCE IPs of newly added con-
+       Group-based Scaling: The scaling covers a wide range of                                          tainers are gathered and sent to existing P/D instances. After
+       demands. For the demands with P/D ratio unchanged (e.g.,                                         receiving all the confirmations, newly added containers can
+       the traffic surges, but the combination of requests does not                                     communicate with existing prefill or decoding according to
+       change), the scaling is conducted upon groups. MLOps pro-                                        the role. Then, similar to the workflow of P/D setup, these
+       vides friendly UI for developers to scale-out/in P/D instances                                   containers load pre-compiled model also based on the role,
+       by groups (manually), and auto scale-out/in via a time trig-                                     and 2 send health reports to the Zookeeper. After receiving
+       ger. The scale-in involves removing the map of the service                                       the reports, 3 the Zookeeper updates all meta information
+       (or scenario) and RoCE in the Zookeeper of MLOps, to pre-                                        of decoding to prefill instances (also contains newly added
+       vent the traffic from removed groups (further actions on non-                                    ones), to facilitate further forwarding from prefill to decoding.
+       interrupting the service shown later). All data in the instances                                    Ratio Adjustment for Changes: As mentioned before, the
+       from removed groups are then erased, and the instances would                                     rolling upgrades are performed based on unchanged P/D ratio
+       be released. Note that the resources are charged according                                       first. Then, via profiling in advance, or triggered by developers
+       to the duration of usage. The scale-out involves using more                                      manually, or monitoring latency changes (shown later), the
+       containers (without any states) to form P/D groups as needed.                                    adjustment on P/D ratio is adopted. The demands of P/D ratio
+       The process obeys the workflow of P/D setup mentioned be-                                        adjustment derive from both content change (i.e., prompt en-
+       fore. We should mention here that, the workflow of P/D setup                                     gineering, with the changes on prompts and tokens generated)
+       assumes the containers are stateless, to facilitate the resource                                 and traffic change (i.e., the combination of requests changes).
+       relocation among scenarios or even among services.                                               If the profiling is performed, the desired P/D ratio (shown
+          For the demands of rolling upgrades (e.g., model update                                       later) is determined. Then, related groups are adapted to such
+       via LoRA, prompt via prompt engineering, etc.), the upgrade                                      desired P/D ratio using dynamic RoCE construction (gradu-
+       is performed based on the origin groups with unchanged P/D                                       ally update those groups). If the overall number of instances
+       ratio, and then further changes on the P/D ratio (shown later)                                   is fixed for a specific scenario, re-construction of some groups
+       as needed. Since the upgrade is performed one group after                                        is necessary (gradually release part of the instances and add
+       another, the upgrade actually does not involve the service                                       them to the other groups to from new P/D ratio). Otherwise,
+       interruption. Note that each group receives a proportion of                                      the adjustments may involve new instances (for intermediate
+       traffic for inference (at most group-level failure).                                             steps, and may release redundant ones after adjustments).
+          Dynamic RoCE Construction: Dynamically changing                                                  The monitor records the averaged E2E latency and TTFT
+       the P/D ratio without the service interruption facilitates the                                   (actually Tp , here for convenience) per scenario. Once the
+       adjustments for both scaling and efficiency demands, which                                       proportion of TTFT and the averaged E2E latency change
+       essentially requires RoCE construction (and re-construction)                                     dramatically (for both content change or traffic change), the
+
+
+                                                                                                    7
+o fault detection
+
+
+
+                                                       MLOps                                                      stituting it with a new instance. More specifically, after the
+                                                                        /health, Regular Health Check             detection, the meta information recorded in the Zookeeper
+                                                          Node              3                                     is updated (logically removed), to avoid forwarding further
+                                     Prefill or Decoding Instance                                                 requests. Then, the meta information is sent to all instances in
+                                                               L                      Filebeat
+                                            Framework                                                             this group to avoid actual transmission and forwarding. After-
+                          LLM                                  L
+                                              Runtime                                               …             wards, like ratio adjustment, a newly added but stateless con-
+                                                               M        Flask
+                          Serving
+                                       xPU 0       … xPU N                           Register                     tainer is involved. After dynamic RoCE construction, loading
+                                                                                                                  pre-compiled model, and reporting health to the Zookeeper,
+                                             1                                                                    the Zookeeper updates the meta information of this container
+                      Proactive Detection                                                                         to existing instances (only updates decoding information in
+                                                                    2       xPU
+                                    Device Plugin                          Status                                 prefill). Then, all the status of fault one would be erased. For
+                                                                                                                  running requests, the protection shown later ensures the ter-
+                                    Figure 8: Automatic Fault Detection
+                                                                                                                  mination. No further requests are forwarded to the substitute
+                                                                                                                  ensured by the Zookeeper (no harm to others). Note that one
+                    adjustment on P/D ratio is recommended. For example, with
+                                                                                                                  newly added container is involved (minimum).
+                    the increase on both E2E latency and the proportion of TTFT,
+                                                                                                                     Protection over faults: Except for xPU devices, the faults
+                    more prefill instances are needed. In contrast, with the in-
+                                                                                                                  also occur during calculation, transmission, or even forward-
+                    crease on E2E latency but decrease on the proportion of TTFT,
+                                                                                                                  ing. Each component in the system has the chance to in-
+                    more decoding instances are needed. Profiling a certain pat-
+                                                                                                                  volve the faults. Then, the protection like early intervention is
+                    tern on prompts benefits determining the optimized P/D ratio:
+                                                                                                                  needed, as early as possible for the completeness. For exam-
+                                            n p b p · 1/Tp ≈ nd bd · 1/Td ,                             (1)       ple, if the fault occurs in a decoding instance, related prefill
+                                                                                                                  instances (LLM Serving is aware of the timeout) and MLOps
+                    which essentially minimizes the mismatch between prefill and                                  perform all cleanup actions (not consider request migration
+                    decoding regarding the processing capability (single point fail-                              in this paper due to maintained streaming), like stopping the
+                    ure should be also avoided per scenario). Profiling involves                                  connections, responding with users using default texts (or
+                    extra resources in advance. An adaptive approach is to gradu-                                 retrieval-augmented generation, RAG [41]), and updating the
+                    ally increase the instances, upon both TTFT proportion and                                    meta information of decoding to avoid further forwarding,
+                    increased E2E latency, catering to the changes over time.                                     etc. Such protection (for the completeness) like stopping and
+                                                                                                                  responding is necessary. Otherwise, the zombie connections
+                                                                                                                  easily involves harms and uncertainty.
+                    3.4     Minimum-cost Auto Recovery
+                    Automatic Fault Detection: Various faults occur during LLM                                    3.5    On-demand Forwarding for Idle Prefill
+                    inference, especially when disaggregated paradigm is adopted.
+                    The most common phenomenon is timeout. Timeout actually                                       Streaming Responses via SSE: The autoregressive LLM
+                    helps the early intervention (either in instance or at gateway)                               generates tokens one after another. To improve the user expe-
+                    for quick response. Blindly re-try or re-start fails to dig out                               rience, it is preferred to deliver the token (converts it to the
+                    the real reasons behind timeouts, which leaves the uncertainty                                texts in advance) to the user as long as it is generated. Such
+                    to the whole system. Note that xPUs are continuously used                                     streaming responses are implemented via server-sent events
+                    all day long for both training and inference (auto switch for                                 (SSE), which is essentially unidirectional, enabling the client
+                    tidal traffic). As shown in [39], about 1 or 2 faults occur per                               to receive automatic updates from the server using the HTTP
+                    week over the cluster with 400 GPUs. With the growth of xPU                                   connection. Note that the entire network should support such
+                    device number (i.e., tens of thousands of xPUs), the faults are                               feature (i.e., decoding -> prefill -> gateway). Then, each com-
+                    very common (both recoverable and unrecoverable). As in                                       ponent should maintain such connections for SSE. As for
+                    Fig. 8, for Ascend NPUs, a customized container (with res-                                    each prefill instance, it only maintains the requests forwarded
+                    ident process) upon Ascend Device Plugin [40] is deployed                                     to related group. However, for the gateway, it maintains ex-
+                    per node (e.g., a physical machine, may contain multiple in-                                  tensive connections per second. The gateway just forwards
+                    stances). 1 The resident process regularly detects the faults                                 the streaming responses instead of complex resolution. And
+                    and 2 records the results (xPU status) to a file. Such file                                   the scheduler is integrated with the gateway to avoid further
+                    is mounted to all instances per node. Further, the faults are                                 forwarding. Actually, there are multiple gateways in a cluster.
+                    classified into multiple levels, in which some are recoverable                                   Idle Prefill or Rejection: The prompts already assigned in
+                    without node-level recovery. 3 MLOps regular checks the                                       the queue fail to be re-directed to other idle prefill instances.
+                    xPU status via a Flask request and triggers auto substitute.                                  And, the prediction upon the queue status (pending tokens)
+                       Recovery without Interruption: If one instance in a group                                  is inaccurate due to batch processing and prefix-aware KV-
+                    is detected as failure, MLOps triggers auto recovery by sub-                                  Cache. To avoid local-optimum and also to avoid preemptive
+
+
+                                                                                                              8
+n-demand forwarding                                                                        block-free D2D
+
+
+
+
+                                     MLOps                                  Prefill Instance                                  Sender (Prefill Instance)                     Receiver (Decoding Instance)
+                                    Gateway                                  LLM Serving                                             LLM Serving                                      LLM Serving
+                Requests                       Ranked Prefill              …              Framework   L                  Inference with Batch Size bp                        Inference with Batch Size bd
+                                                                      bp                              L
+                        SSEs: SSE               per Scenario                      b        Runtime    M
+                                                                                                                                    …            Framework   L                         …               Framework   L
+                       Connections              (# of SSEs)                                                                  bp                              L                   bd                                L
+                                                                      Inference with Batch Size bp                                                 Runtime   M                                          Runtime    M
+                                                                      Currently, b Prompts in Slots
+                                                                Try
+                                                N+b SSEs                          Accept b < bp                          PageAttention (Optional)                                     block 0                     …
+                      Inquire Candidates                                                                                                                                                        …
+                                                   …                   Action =                                                       Contiguous Buffer
+                        within Timeout                                            Reject b = bp                                             …                …                            Layer 0, K
+
+                                                                                                                        bp        Layer 0
+                                                                                                                                          K
+                                                                                                                                            …    V                D2D       bd           RecvScatter
+                                                                                                                                                             …   Transfer
+                                                                                                                                            …                                           Contiguous Buffer
+                                                                      Other Prompts in Decoding                                              …                                              …
+                       Maintain SSEs for Assigned Prompts
+                                                                          Maintain N SSEs                                              xPU 0 HBM                 …                    xPU 0 HBM                        …
+                                           …                                          …
+
+                        Figure 9: On-demand Forwarding for Idle Prefill                                                       Figure 10: Block-free D2D KVCache Transfer
+
+               scheduling, the local queue in prefill is removed. Actually,                                         for key-value pairs (K and V) generated per layer, the sender
+               the SSE directly hints the workload of a group at gateway,                                           organizes the KVCache together in a contiguous buffer to
+               since the connections are maintained for streaming responses.                                        facilitate the transfer. As illustrated in Fig. 10, there are no
+               However, SSE covers the entire LLM lifecycle (also contains                                          discrete blocks at the sender, and all the key-value pairs are
+               token generation in decoding). The number of SSE connec-                                             managed one after another in the buffer. Given the index of
+               tions alone is inadequate (i.e., cannot distinguish whether                                          a layer, the offset and the length can be quickly calculated
+               prefill is completed). Therefore, the prefill is enabled with the                                    according to the prompt length and the hidden size of a model
+               ability of accepting or rejecting the requests. If the prefill is                                    (also the precision of floats). Either the transfer per layer or the
+               idle, it accepts new requests for batch processing. Otherwise,                                       entire model can be triggered by using different offsets and
+               the rejections are sent to the gateway. Note that, a prompt                                          lengths. If there are multiple prompts, it is hard to ensure the
+               continuously occupies one slot in prefill if it is waiting for                                       prepare of contiguous buffers for all of them. However, benefit
+               KVCache transfer to a decoding for follow-up generation.                                             from fine-grained P/D organization (i.e., homologous prompts
+                  On-demand Forwarding at Gateway: Each one of the                                                  per scenario) and on-demand forwarding upon rejections (i.e.,
+               gateways performs on-demand forwarding based on the num-                                             limited prompts entered), reserving all of these contiguous
+               ber of connections and prefill feedbacks, as shown in Fig. 9.                                        buffers for KVCache transfer is possible in prefill in advance.
+               A request is assigned to a specific prefill by gateway, in which                                     Before each transfer for a specific range of key-value pairs in
+               the gateway chooses the one with the least number of SSE                                             the buffer, one communication with a low cost exchange of
+               connections. Note that the prefill instances are organized in                                        the meta is necessary between sender and receiver.
+               order at the gateway. At that moment, the gateway supposes                                              RecvScatter at Receiver: As shown in Fig. 10, the RecvS-
+               this prefill is more likely to be idle. Here, the worst case is:                                     catter refers to either a function or an operator, to facilitate the
+               the desired prefill rejects the request, implying it is occupied.                                    tradeoff between transparency and flexibility. As mentioned
+               Then, the gateway consider other candidates (e.g., a subset                                          before, a conflict exists: 1) block-free transfer for entire KV-
+               of prefill instances top ranked) within a time period (e.g.,                                         Cache (all layers) with no revision on models (transparency
+               the timeout threshold). The gateway inquires these prefill                                           to services); 2) per layer triggers with less transfer time but
+               instances one after another. Although several retries are per-                                       revision required on models (more flexibility). Note that the
+               formed, the acceptance implies the request must be assigned                                          operator implementation does not interrupt the computation
+               to an idle prefill (i.e., waiting at the gateway instead of the                                      of other operators in the stream. It is preferred to trigger either
+               local queue belonging to a prefill). The gateway achieves                                            function or operator implementation according to the scenario
+                                                                                                                    (per layer transfer depends on explicitly model revision). P/D-
+                                                 It ≈ n p b p · 1/Tp ,                                    (2)
+                                                                                                                    Serve facilitates such revision during or after the training
+               where the requests assigned matches the processing capabil-                                          (manually insert operators or during model pre-compilation
+               ity of prefill per scenario. To facilitate full batch processing,                                    via convert tasks). Whether to use per layer transfer also af-
+               the gateway continuously forwards the requests to one idle                                           fects when to select an idle decoding (before or after prefill).
+               prefill until it is busy (or using chunked prefill for continuous                                       Asynchronous Retrieval: The decoding has limited HBM
+               batching). The request terminates (early intervention), if none                                      space for KVCache transfer. And, the KVCache transfer and
+               prefill is idle and the waiting time exceeds the threshold.                                          the decoding inference can be concurrent (i.e., asynchronous
+                                                                                                                    retrieval). By default, one KVCache is transferred and added
+               3.6       Block-free D2D KVCache Transfer                                                            to running batch after a completed request (continuous batch-
+                                                                                                                    ing). Note that several concurrent transmissions share the
+               Contiguous Buffer at Sender: The desired KVCache transfer                                            D2D bandwidth, whose average completion time is actually
+               prefers to treat all the data as a whole in bytes. Therefore,                                        less than the transfer one after another. Further, similar to sub-
+
+
+                                                                                                                9
+nfrastructure
+
+
+
+                                                     Cluster                                          construction). Moreover, each D2D KVCache transfer incurs
+                                        Load Balance & Disaster Recovery                              multiple sub-transfers between a pair of P/D instances (i.e.,
+                                                    Region                                            due to multiple xPUs). The conflict should be avoided among
+                      Spine Switch … Spine Switch         Spine Switch … Spine Switch
+                                                                                                      those sub-transfers, which requires the infrastructure to fully
+                      ToR Switch (Control Plane)          ToR Switch (Data Plane)                     utilize the path diversity between ToR and spine switches.
+                                                                                             …        Note that a conflict may lead to hundreds of milliseconds.
+                       NPU 0     …      NPU N              NPU 0     …      NPU N
+                                                                                        …                Disaster Recovery over Regions: Multiple regions are
+                                                   …
+                        HCCS     Node                        HCCS    Node
+                                                                                                      used in a cluster, in which the devices and related resources
+                                                   Rack                                               are divided among those regions. The P/D instances are or-
+                       RoCE v2          MSG         …          MSG     Traditional Network            ganized via groups (fine-grained manner) per scenario and
+                                                                                                      can be deployed to any region (each one with suitable NPU
+                Figure 11: Infrastructure contains tens of thousands of xPUs.                         types is equipped with the infrastructure for KVCache trans-
+                                                                                                      fer). The ELB and SLB are responsible for load balance for
+                optimum in prefill scheduling, the space left for KVCache                             scenarios. Once the region-level failures occur, other regions
+                transfer actually forms a local queue. Asynchronous retrieval                         continuously serve the requests without service interruption.
+                is preferred, but just waiting in such queue sacrifices other
+                decoding choices. Thus, the capacity of such queue is rela-                           4     Performance Evaluation
+                tively small, to facilitate on-demand use (i.e., a completed
+                request triggers next retrieval). The retrieval here also does no
+                harm to the running requests in decoding. After asynchronous
+                                                                                                      4.1    Experimental Setup
+                retrieval, the pending KVCache occupies the slot (belonging                           Workloads: All the requests analyzed are derived from real
+                to the request just completed) and is valid in the next iteration                     services (fine-tune datasets), instead of the production cluster,
+                (decoding iteratively generates tokens for batch requests).                           due to the privacy policy. After the collection, those requests
+                                                                                                      are further classified, to verify the similarity on P/D behav-
+                3.7    Infrastructure and Configurations                                              iors (already shown before). We should mention here that
+                                                                                                      the requests from upstream services actually contain the sce-
+                Network Organization: As illustrated in 11, there are multi-                          nario information (labelled after the intention understanding),
+                ple regions in a cluster, in which the resources are managed                          which helps P/D-Serve to perform the fine-grained P/D or-
+                according to the computing capability of xPU devices (i.e.,                           ganization and the forwarding upon the similarity (prompt
+                NPUs). Each region contains thousands of NPUs and related                             length or scenario). Except for the content analysis, the sys-
+                resources. Actually, a rack contains multiple Atlas servers, in                       tem metrics are measured in both mirror environment and
+                which each server (node) contains multiple NPUs. The HBMs                             the production cluster. The machine types (multiple choices
+                of NPUs are tens of GBs, and the NPUs belonging to the same                           equipped with NPUs) used in mirror environment (hundreds
+                node are connected via HCCS [42]. Moreover, the NPUs are                              of NPUs) are actually a subset of that in production cluster
+                directly connected to top-of-rack (ToR) switches with RoCE                            (tens of thousands of NPUs). Either SFS or SSD is used for
+                v2 enabled. Multiple ToR switches are prepared in a rack for                          storing compiled models. The models used are the Pangu [4]
+                both control plane and data plane. The spine switches are                             (P/D-Serve also supports other mainstream models), whose
+                further connected to ToR switches for cluster-level transfer.                         parameters also vary according to the scenarios. All the re-
+                   The requests are forwarded via elastic load balancer (ELB),                        sults are normalized to a standard range 0∼1 for illustration.
+                software load balancer (SLB) and model service gateway                                All the features are first implemented and evaluated in mirror
+                (MSG), where these three components work together for load                            environment and then deployed over all NPUs.
+                balance, traffic control and forwarding the requests to specific                         Baseline: As mentioned in previous works, disaggregated
+                services (to each prefill per scenario for disaggregated LLM).                        LLMs earn a significant improvement on both latency and
+                In this paper, we only consider the strategy at MSG gateway.                          throughput. In this paper, we use the first commercial version
+                   Configurations in Large Scale: The NPUs are directly                               for disaggregated LLMs as the baseline (overall 6.7x increase
+                connected to ToR switches with RoCE v2 enabled. There-                                on throughput, compared with serving aggregated LLMs).
+                fore, the transfer does not need the host network (one hop
+                less), which requires the meta for RoCE connections being                             4.2    E2E Performance
+                maintained in HBM. Due to limited HBM, the space left for
+                meta information should be well orchestrated. Benefit from                            P/D Mismatch: The mismatch derives from the difference on
+                fine-grained P/D organization and the transfer between the                            processing capability between prefill and decoding. As shown
+                NPUs labeled as the same index among instances, the space                             in Fig. 12a, Tp (TTFT upon batch processing and prefixes
+                left is acceptable (i.e., hundreds of MB). Further compression                        cached) is quite different when using P/D ratios 1:N and N:1.
+                is performed for supporting more NPUs (for dynamic RoCE                               Here, N is the number of the instances larger than 1. Fig. 12a
+
+
+                                                                                                 10
+                 1.0                                         1.0                                    1.0                                                1.0                        1.0                                            1.0                                1.0
+                 0.8                                         0.8                                    0.8                                                0.8                        0.8                      N:1               0.8                                    0.8
+
+
+
+
+                                                              Normalized RPS
+
+                                                                               Normalized RPS
+                                        Single Decoding                                                   N:1 Td Ceiling                                                                                   N:1 (50%+ Tokens)
+                 0.6                                        0.6                                     0.6                                                0.6                        0.6                                            0.6                                0.6     Ratio-A Tp     Ratio-A E2E Latency
+
+
+
+
+                                                                                                                                                                                                                                  Tp / E2E
+                                            Single Prefill                                                N:1 Td+ Ceiling                                                                                                                                                   Ratio-B Tp     Ratio-B E2E Latency
+
+
+
+
+                                                                                                                                                                                                                                             CDF
+CDF
+
+
+
+
+                                                                                                                                                        CDF
+
+                                                                                                                                                                CDF
+                 0.4                  1:N Ceiling           0.4                                     0.4                                                0.4                                                                       0.4                                0.4     Ratio-C Tp     Ratio-C E2E Latency
+                                   N:1 Ceiling
+                                                                                                                                                                                  0.4
+                 0.2                          P/D Ratio 1:N 0.2                                     0.2               N:1 Td                           0.2                        0.2                            Default         0.2                                0.2
+                                              P/D Ratio N:1                                                           N:1 Td+ (50%+ Tokens)                                                                      Tp/E2E
+                 0.0                                         0.0                                    0.00.0                                           0.0                                                                         0.0                                0.0
+                             0.2 0.4 0.6 0.8 1.0                                                                0.2        0.4     0.6     0.8     1.0                            0.00.4 0.5 0.6 0.7 0.8 0.9 1.0                                                      0.0    0.2     0.4     0.6     0.8    1.0
+                  Normalized Tp                                                                              Normalized Td                                                                 Normalized E2E Latency                                                Normalized Latency
+         (a) Mismatch and Bottleneck                                                                 (b) Td Affects Capability                                                         (c) Proportion of Tp /E2E                                        (d) E2E under Various Ratios
+                        Figure 12: Evaluation on P/D-Serve: P/D mismatch incurs bottleneck; P/D ratios is adjusted for better performance.
+                 1.0         Ratio-A         Ratio-B      Ratio-C                                   1.0                                                                               80                                                                            1.0                        P-1         D-1
+
+
+
+
+                                                                                                                                                                                                                                             Normalized Load Time
+                                                                                                                                                                                                                                                                                               P-2         D-2
+                 0.8                                                                                0.8
+
+
+
+
+                                                                                                                                                                NPU Utilization (%)
+                                                                               Normalized Traffic
+
+
+                                                                                                                                                                                         Detect Fault                                                               0.8                        P-3         D-3
+Normalized RPS
+
+
+
+
+                                                                                                                           xB                                                         70 Start a New                                                                                           P-4         D-4
+                 0.6                                                                                0.6         xA                                                                       Container                                                                  0.6
+                                                                                                                                                                                               Report
+                                                                                                                                                                                               Healthy
+                 0.4                                                                                0.4                                                                               60       &Replace                                                             0.4
+                                                                                                                Scale-in Groups
+                 0.2                                                                                0.2         Scale-out Groups                                                                 Minutes                                                            0.2
+                                                                                                                Scale-out for Training                 xC                             50
+                 0.0                                                                                0.0                                                                                                                                                0.0 M1 M1 M1* M1* M2 M2 M2* M2*
+                       0.0      0.2    0.4       0.6   0.8     1.0                                        0.0        0.2     0.4         0.6     0.8     1.0                               0.0      0.2    0.4    0.6      0.8     1.0
+                      Time Index                                                                     Time Index                                                                         Time Index                                                         SFS SSD SFS SSD SFS SSD SFS SSD
+          (a) Throughput under Ratios                                                  (b) Auto Scaling upon Groups                                                         (c) Recovery via a Substitute                                            (d) Loading Compiled Models
+                                               Figure 13: Evaluation on P/D-Serve: Both P/D adjustment and P/D organization are adopted.
+
+    further shows the processing capability of each single P/D                                                                                                             And, the number of requests continuously increases until the
+    instance (already normalized). Then, blindly increasing the                                                                                                            success rate drops (E2E SLO, less than 100%, i.e., no time-
+    number of the instances for only one role is insufficient. For                                                                                                         outs). As shown in Fig. 12d, by using different P/D ratios, Tp
+    example, the processing capability of one prefill instance is                                                                                                          and E2E are quite different (minimum is preferred). Actually,
+    0.6 in this scenario while that of decoding is about 0.7. Blindly                                                                                                      the optimum ratio is obtained by using Equation (1). Further
+    increasing the prefill instances actually enhances the prefill                                                                                                         throughput results are shown in Fig. 13a, under optimum P/D
+    capability (0.6*N), but its bottleneck is still the decoding (0.7).                                                                                                    ratio, the throughput overcomes the others by at least 60%.
+    In contrast, blindly increasing the decoding fails to remove                                                                                                           As for the latency, minimizing the mismatch (in a group) ac-
+    the bottleneck in prefill. As in the modeling, both Tp and Td                                                                                                          tually decreases the probability of unnecessary waiting. Note
+    affect the processing capability (i.e., with the growth of Tp and                                                                                                      that, due to faster inference in prefill, some KVCaches wait in
+    Td , the throughput drops). As shown in Fig. 12b, given P/D                                                                                                            prefill for idle decoding. And for the throughput, the resource
+    ratio N:1 (this case generates less tokens), with the increase                                                                                                         utilization of P/D instances increases, resulting in swallowing
+    of tokens generated, the latency of decoding phase (labeled as                                                                                                         more requests without timeouts (fully utilize the pipeline).
+    Td+ , 50%+ increase) increases. Furthermore, Fig. 12b shows                                                                                                               Auto Workflows: MLOps facilitates auto workflows for
+    the capability of decoding. Compared with Td , increasing Td+                                                                                                          both P/D organization and recovery. As illustrated in Fig. 13b,
+    slows down the processing capability of decoding (although                                                                                                             the traffics are shown for a specific scenario during a whole
+    the bottleneck is still prefill). As shown in Equation (1), based                                                                                                      day. The green line shows the auto scaling between inference
+    on previous profiling, minimizing the mismatch is necessary.                                                                                                           and training (e.g., inference at daytime and training at night).
+    Except for profiling in advance, dynamic bottleneck detection                                                                                                          Furthermore, the red lines show the scale-in actions by group
+    is enabled. As shown in Fig. 12c, increased E2E potentially                                                                                                            granularity. In this scenario, there are three scale-in actions
+    gives an alarm while the proportion of Tp hints the P/D bottle-                                                                                                        for catering to more traffic while two scale-out actions are
+    neck. With the growth of tokens generated and unchanged P/D                                                                                                            performed. The P/D organization, including P/D setup, scal-
+    ratio, E2E latency increases, and the proportion of Tp /E2E                                                                                                            ing (re-organization of a few groups among scenarios), and
+    decreases, which implies the decoding phase occupies much,                                                                                                             rolling upgrade, etc., is automatically performed based on the
+    and more instances are needed (motivating ratio adjustment).                                                                                                           platform (P/D adjustment already shown before). Equipped
+       P/D Adjustment: By adopting P/D ratio adjustment (either                                                                                                            with auto fault detection, the recovery is also conducted by us-
+    profiling in advance or detected online), the P/D mismatch                                                                                                             ing auto workflow. As shown in Fig. 13c, After detecting the
+    actually decreases, leading to improved latency and through-                                                                                                           fault, a new container is triggered and then as the substitute
+    put. Note that blindly increasing the input traffic, ignoring                                                                                                          integrated into the P/D group. After the integration, stateless
+    the bottleneck, easily leads to timeouts (shown in Equation                                                                                                            container acts as prefill or decoding role, and becomes a P/D
+    (2), further solved using on-demand forwarding). We should                                                                                                             instance. The loading spends minutes, and after the substitute,
+    mention here that, the tests are conducted by maintaining the                                                                                                          the NPUs are occupied for inference. The loading is further
+    constant requests (one completed triggers new one added).                                                                                                              illustrated in Fig. 13d, in which “P” and “D” refer to prefill
+
+
+                                                                                                                                                               11
+                            100                                                           1.0                         100                                     100                                                            1.0
+Success Rate (%, Fitting)
+
+
+                                                                                                                      80                                      80                                                             0.8
+
+
+
+
+                                                                                                                          Success Rate (%)
+                                                                                          0.9
+
+
+
+
+                                                                          Normalized Tp
+
+
+
+
+                                                                                                                                              D2D Util. (%)
+                            80                                                                                        60                                      60                                                             0.6
+                                                                                                  Latency                                                                   S, D.      100S, D.         10kS, D.
+
+
+
+
+                                                                                                                                                                                                                       CDF
+                                                                                          0.8     Success Rate                                                              S, C.      100S, C.         10kS, C.
+                                                                                                                      40                                      40        (S: Unit Size, D.: Discrete, C.: Contiguous)         0.4
+                            60
+                                    A Users        4A Users                               0.7                         20                                      20                                                             0.2                        Stable
+                                    2A Users       5A w/ new Forwarding                                                                                                                                                                                 w/ Conflicts
+                            40                                                            0.6 A                                                                                                                              0.0
+                                    2          4      6       8      10                           1.25A 1.5A 2A 3A 4A 0                                             A         4A      16A 64A 256A 1kA                             0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+                       Time Index (in Minutes)                                                      Workload                                                             Block Size at Sender                                       Normalized Transfer Time
+               (a) Changes on Success Rate                                                 (b) Success and Latency                                                  (c) D2D Utilization                                       (d) Stable Transfer Time
+                              Figure 14: Evaluation on P/D-Serve: Designed forwarding and transfer lead to higher success rate and lower D2D time.
+
+     and decoding, respectively (there are four further parts in load-                                                                                quest management. TetriInfer [7] utilizes a global scheduler
+     ing). Meanwhile, M1 and M2 are two different models, and                                                                                         that manages the lifecycle of inference requests and a cluster
+     the symbol “∗” refers to related optimizations. Actually, SSD                                                                                    monitor that manages the lifecycle of prefill and decoding
+     overcomes SFS during loading pre-compiled models.                                                                                                instances. To predict the generation length of LLM inference
+        On-demand Forwarding: The original version uses the                                                                                           requests, TetriInfer has fine-tuned a compact LLM model.
+     local queue in prefill, and the gateway choses the one with                                                                                      MemServe [44] supports P/D co-located instances apart from
+     minimum SSE connections. As mentioned before, already                                                                                            prefill and decoding ones, with each instance holding a mem-
+     assigned prompts easily break timeout thresholds. As shown                                                                                       ory pool for memory allocation, index management, and dis-
+     in Fig. 14a, with the growth on workload (from A users to 4A                                                                                     tributed transfer. Mooncake [9] features a KVCache-centric
+     users), the success rate drops dramatically (from 100% to the                                                                                    architecture that separates prefill and decoding clusters.
+     worst 57%). By removing prefill queues and invoking gateway                                                                                         Although previous works have already implemented disag-
+     retries, with even heavier workload, the success rate maintains                                                                                  gregated LLMs, treating all the prompts in a mixed pool is in-
+     at least 99%. Compared with the same workload, the gap of                                                                                        adequate and the global scheduler easily incurs skewed work-
+     success rate is up to 42.3%. Note that desired success rate is                                                                                   load. Our work organizes P/D instances in a fine-grained man-
+     100%, which implies no requests break the timeout thresholds                                                                                     ner (at scale) and adjusts P/D ratio, catering to the changes,
+     and SLO is achieved. The relationship between success rate                                                                                       so that the mismatch between P/D instances is essentially
+     and latency is shown in Fig. 14b. Here, the timeout check is                                                                                     minimized. Meanwhile, our wok uses an on-demand forward-
+     conducted before and after the prefill inference. Thus, some                                                                                     ing upon rejections to balance prefill workload, and efficient
+     prompts have already broken the timeout threshold during                                                                                         KVCache transfer for faster latency.
+     execution. These prompts are still counted. Although timeout
+     intervention during prefill execution is useful, it wastes the
+     computing power of xPU and is actually ignored.                                                                                                  5.2                 Serving System at Scale
+        Block-free Transfer: By using transferring KVCache as a                                                                                       Serving LLMs to accelerate the inference and enhance the
+     whole and restoring the bytes to discrete blocks, the utilization                                                                                throughput is widely studied, such as TensorRT-LLM [45],
+     of D2D bandwidth improves, as illustrated in Fig. 14c. Such                                                                                      FastTransformer [18], vLLM [11], DeepSpeed-Inference [21],
+     gap derives from the bubbles, in which frequent controls are                                                                                     FlexFlow [46] and TGI [47]. The bottlenecks of scaling the
+     involved for discrete block transfer, one after another. The                                                                                     system for LLMs are primarily found in two critical areas:
+     average transfer time decreases 46%, compared with discrete                                                                                      batch scheduling strategy [21–25, 36, 48–50] and memory
+     block transfer. As shown in Fig. 14d, with conflicts during                                                                                      utilization [14, 28–31, 51]. Orca [22] introduces iteration-
+     multi-hop transfer, the transfer time varies dramatically.                                                                                       level scheduling to dynamically adjusts the batch size. Fast-
+                                                                                                                                                      Serve [23] utilizes skip-join Multi-Level Feedback Queue
+       5                          Related Works                                                                                                       scheduler to minimize job completion time (JCT). Sheng [25]
+                                                                                                                                                      proposes a fair scheduler, the virtual token counter (VTC),
+       5.1                         Disaggregated LLM                                                                                                  based on the continuous batching mechanism to achieve fair-
+                                                                                                                                                      ness in serving. MuxServe [50] proposes a placement algo-
+      Numerous related references have emerged within a short                                                                                         rithm as well as a adaptive batch scheduling strategy to serve
+      six-month span: Splitwise [6], TetriInfer [7], DistServe [10],                                                                                  multiple LLMs concurrently. PageAttention [14] is widely
+      Dejavu [43], MemServe [44] and Mooncake [9]. All prior                                                                                          used for efficient management of xPU memory, which dynami-
+      works separate prefill and decoding instances to improve in-                                                                                    cally allocates KVCache inspired by the classical virtual mem-
+      ference performance and propose a global scheduler to dis-                                                                                      ory and paging techniques, thereby augmenting the LLM sys-
+      tribute requests. Furthermore, Splitwise [6] maintains a mixed                                                                                  tem’s throughput. LLM.int8() [28], SpQR [29], FlexGen [51]
+      pool for expanding contracts as needed by the workload and                                                                                      and SmoothQuant [31] significantly reduce the HBM needed
+      adopts a hierarchical two-level scheduling for pool and re-                                                                                     for inference by performing low-bit-precision multiplication.
+
+
+                                                                                                                                             12
+  Benefit from previous technologies, the inference in both              7   Conclusion
+prefill and decoding (as well as the system throughput) is
+actually improved. This paper further studies serving disag-             This paper presents the P/D-Serve, a end-to-end system, com-
+gregated LLMs at scale with new challenges.                              plying with the MLOps, enables fine-grained P/D organiza-
+                                                                         tion and adjustment dynamically, on-demand forwarding with
+                                                                         rejections for idle prefill, and fast block-free KVCache trans-
+6     Discussion and Extension                                           fer, to overcome new challenges at scale. P/D-Serve is im-
+                                                                         plemented and has been deployed over tens of thousands of
+6.1    Speculative Decoding                                              xPUs for more than eight months in commercial use.
+LLM predicts the next token based on the previous ones in an
+autoregressive manner. To accelerate such inference process,             References
+speculative decoding [52,53] has been proposed. This method
+utilizes a smaller autoregressive model to generate K tokens              [1] OpenAI. https://openai.com/index/gpt-4, 2024.
+(educated guesses about future tokens), and a larger model
+decides whether to accept all of these tokens or correct them             [2] Gemini Team, Rohan Anil, Sebastian Borgeaud,
+if some are rejected (distribution unchanged [52]).                           Yonghui Wu, Jean-Baptiste Alayrac, Jiahui Yu, Radu
+   If the autoregressive model is relatively small and the in-                Soricut, Johan Schalkwyk, Andrew M Dai, Anja Hauth,
+ference latency using CPU is acceptable, the small model                      et al. Gemini: a family of highly capable multimodal
+could be entirely managed in the decoding instance of the                     models. arXiv preprint arXiv:2312.11805, 2023.
+large model. However, when the inference latency using CPU                [3] Meta. Llama 3. https://llama.meta.com/docs/mo
+is unacceptable, it has to be treated using NPUs. Similar to                  del-cards-and-prompt-formats/meta-llama-3,
+the large model, in order to facilitate different batch sizes in              2024.
+P/D and less interruption incurred by P/D mixture, the small
+autoregressive model is also disaggregated. Its prefill part is           [4] Ren Xiaozhe, Zhou Pingyi, Meng Xinfan, Huang Xin-
+deployed in the prefill instance of large model, and its decod-               jing, Wang Yadao, Wang Weichao, Li Pengfei, Zhang
+ing part is deployed in the decoding instance of large model,                 Xiaoda, Podolskiy Alexander, Arshinov Grigory, Bout
+respectively. Except for CPU and xPU, not all types of xPUs                   Andrey, Piontkovskaya Irina, Wei Jiansheng, Jiang Xin,
+can be integrated to support heterogeneous processing for dis-                Su Teng, Liu Qun, and Yao Jun. Pangu-Σ: Towards
+aggregated LLM directly. Some are not equipped with RoCE                      trillion parameter language model with sparse hetero-
+(PCIe is a substitute but with extra overhead).                               geneous computing. arXiv preprint arXiv:2303.10845,
+                                                                              2023.
+6.2    Multi-turn Conversation                                            [5] Moonshot AI. https://kimi.moonshot.cn, 2023.
+Some works [8, 9] have already considered using host mem-                 [6] Pratyush Patel, Esha Choukse, Chaojie Zhang, Íñigo
+ory for KVCache store. Our work is orthogonal to such host                    Goiri, Aashaka Shah, Saeed Maleki, and Ricardo Bian-
+memory pool. More specifically, our goal is to improve the                    chini. Splitwise: Efficient generative llm inference using
+hit rate of prefix-aware KVCaches only using HBM (solved                      phase splitting. arXiv preprint arXiv:2311.18677, 2023.
+by fine-grained P/D organization per scenario). With further
+growth on the number of prefixes and content length (long se-             [7] Hu Cunchen, Huang Heyang, Xu Liangliang, Chen
+quence or multi-turn conversation), available host memory is                  Xusheng, Xu Jiang, Chen Shuang, Feng Hao, Wang
+useful since its capacity is relatively large. Although loading               Chenxi, Wang Sa, Bao Yungang, Sun Ninghui, and Shan
+KVCache from host (local or remote) incurs extra overhead,                    Yizhou. Inference without interference: Disaggregate
+compared with the inference on the entire prompt, such over-                  llm inference for mixed downstream workloads. arXiv
+head is gradually acceptable. Essentially, it is preferred to                 preprint arXiv:2401.11181, 2024.
+forward those requests related to the same user or scenario               [8] Gao Bin, He Zhuomin, Sharma Puru, Kang Qingxuan,
+to a subset of prefill instances, to enhance the hit rate in host             Jevdjic Djordje, Deng Junbo, Yang Xingkun, Yu Zhou,
+memory pool (to the host caches the KV pairs). Fine-grained                   and Zuo Pengfei. Cost-efficient large language model
+P/D organization actually facilitates such demands, since it is               serving for multi-turn conversations with cachedatten-
+more likely to hit KVCaches in the same group per scenario                    tion. arXiv preprint arXiv:2403.19708, 2024.
+(e.g., pool with multiple tiers to facilitate the same group,
+and the gateway can be equipped with the forwarding upon                  [9] Qin Ruoyu, Li Zheming, He Weiran, Zhang Mingxing,
+affinity). Except for the benefits, dynamic P/D adjustments                   Wu Yongwei, Zheng Weimin, and Xu Xinran. Moon-
+(due to scaling, efficiency and recovery) further requires the                cake: A kvcache-centric disaggregated architecture for
+pool to be adjusted for robustness.                                           llm serving. arXiv preprint arXiv:2407.00079, 2024.
+
+
+                                                                    13
+[10] Yinmin Zhong, Shengyu Liu, Junda Chen, Jianbo Hu,                 [21] Reza Yazdani Aminabadi, Samyam Rajbhandari, Am-
+     Yibo Zhu, Xuanzhe Liu, Xin Jin, and Hao Zhang. Dist-                   mar Ahmad Awan, Cheng Li, Du Li, Elton Zheng,
+     serve: Disaggregating prefill and decoding for goodput-                Olatunji Ruwase, Shaden Smith, Minjia Zhang, Jeff
+     optimized large language model serving. In Proceedings                 Rasley, et al. Deepspeed-inference: enabling effi-
+     of USENIX Symposium on Operating Systems Design                        cient inference of transformer models at unprecedented
+     and Implementation, OSDI, 2024.                                        scale. In Proceedings of the International Conference
+                                                                            on High Performance Computing, Networking, Storage
+[11] vLLM Project. vllm: Easy, fast, and cheap llm serving                  and Analysis, SC, 2022.
+     with pagedattention. https://github.com/vllm-p
+     roject/vllm/, 2023.                                               [22] Gyeong-In Yu, Joo Seong Jeong, Geon-Woo Kim, Soo-
+                                                                            jeong Kim, and Byung-Gon Chun. Orca: A distributed
+[12] In Gim, Guojun Chen, Seung-seob Lee, Nikhil Sarda,                     serving system for transformer-based generative models.
+     Anurag Khandelwal, and Lin Zhong. Prompt cache:                        In Proceedings of USENIX Symposium on Operating
+     Modular attention reuse for low-latency inference. arXiv               Systems Design and Implementation, OSDI, 2022.
+     preprint arXiv:2311.04934, 2023.
+                                                                       [23] Bingyang Wu, Yinmin Zhong, Zili Zhang, Gang Huang,
+[13] Lu Ye, Ze Tao, Yong Huang, and Yang Li. Chunkat-                       Xuanzhe Liu, and Xin Jin. Fast distributed inference
+     tention: Efficient self-attention with prefix-aware kv                 serving for large language models. arXiv preprint
+     cache and two-phase partition.          arXiv preprint                 arXiv:2305.05920, 2023.
+     arXiv:2402.15220, 2024.
+                                                                       [24] Li Zhuohan, Zheng Lianmin, Zhong Yinmin, Liu Vin-
+[14] Kwon Woosuk, Li Zhuohan, Zhuang Siyuan, Sheng                          cent, Sheng Ying, Jin Xin, Huang Yanping, Chen
+     Ying, Zheng Lianmin, Hao Yu Cody, E. Gonzalez                          Zhifeng, Zhang Hao, E. Gonzalez Joseph, and Stoica
+     Joseph, Zhang Hao, and Stoica Ion. Efficient mem-                      Ion. Alpaserve: Statistical multiplexing with model
+     ory management for large language model serving with                   parallelism for deep learning serving. arXiv preprint
+     pagedattention. arXiv preprint arXiv:2309.06180, 2023.                 arXiv:2302.11665, 2023.
+[15] Wei Jason, Wang Xuezhi, Schuurmans Dale, Bosma                    [25] Sheng Ying, Cao Shiyi, Li Dacheng, Zhu Banghua,
+     Maarten, Ichter Brian, Xia Fei, H. Chi Ed, V. Le Quoc,                 Li Zhuohan, Zhuo Danyang, E. Gonzalez Joseph, and
+     and Zhou Denny. Chain-of-thought prompting elicits                     Stoica Ion. Fairness in serving large language models.
+     reasoning in large language models. In Proceedings of                  arXiv preprint arXiv:2401.00588, 2024.
+     Annual Conference on Neural Information Processing
+     Systems, NIPS, 2022.                                              [26] Vaswani Ashish, Shazeer Noam, Parmar Niki, Uszkoreit
+                                                                            Jakob, Jones Llion, N. Gomez Aidan, Kaiser Lukasz,
+[16] White Jules, Fu Quchen, Hays Sam, Sandborn Michael,                    and Polosukhin Illia. Attention is all you need, 2017.
+     Olea Carlos, Gilbert Henry, Elnashar Ashraf, Spencer-
+     Smith Jesse, and C. Schmidt Douglas. A prompt pattern             [27] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+     catalog to enhance prompt engineering with chatgpt.                    Kristina Toutanova. Bert: Pre-training of deep bidirec-
+     arXiv preprint arXiv:2302.11382, 2023.                                 tional transformers for language understanding. arXiv
+                                                                            preprint arXiv:1810.04805, 2018.
+[17] Amey Agrawal, Ashish Panwar, Jayashree Mohan,
+     Nipun Kwatra, Bhargav S Gulavani, and Ramachan-                   [28] Tim Dettmers, Mike Lewis, Younes Belkada, and Luke
+     dran Ramjee. Sarathi: Efficient llm inference by piggy-                Zettlemoyer. Gpt3. int8 (): 8-bit matrix multiplication
+     backing decodes with chunked prefills. arXiv preprint                  for transformers at scale. In Proceedings of Advances in
+     arXiv:2308.16369, 2023.                                                Neural Information Processing Systems, NeuIPS, 2022.
+[18] Nvidia, FasterTransformer. https://github.com/N                   [29] Tim Dettmers, Ruslan Svirschevski, Vage Egiazar-
+     VIDIA/FasterTransformer, 2021.                                         ian, Denis Kuznedelev, Elias Frantar, Saleh Ashkboos,
+                                                                            Alexander Borzunov, Torsten Hoefler, and Dan Alis-
+[19] Tri Dao. Flashattention-2: Faster attention with bet-                  tarh. Spqr: A sparse-quantized representation for
+     ter parallelism and work partitioning. arXiv preprint                  near-lossless llm weight compression. arXiv preprint
+     arXiv:2307.08691, 2023.                                                arXiv:2306.03078, 2023.
+[20] Agrawal Amey, Kedia Nitin, Panwar Ashish, Mohan                   [30] Berivan Isik, Hermann Kumbong, Wanyi Ning, Xiaozhe
+     Jayashree, Kwatra Nipun, S. Gulavani Bhargav, Tu-                      Yao, Sanmi Koyejo, and Ce Zhang. Gpt-zip: Deep
+     manov Alexey, and Ramjee Ramachandran. Taming                          compression of finetuned large language models. In
+     throughput-latency tradeoff in llm inference with sarathi-             Proceedings of International Conference on Machine
+     serve. arXiv preprint arXiv:2403.02310, 2024.                          Learning, ICML, 2023.
+
+                                                                  14
+[31] Guangxuan Xiao, Ji Lin, Mickael Seznec, Hao Wu,                   [44] Hu Cunchen, Huang Heyang, Hu Junhao, Xu Jiang,
+     Julien Demouth, and Song Han. Smoothquant: Accu-                       Chen Xusheng, Xie Tao, Wang Chenxi, Wang Sa, Bao
+     rate and efficient post-training quantization for large                Yungang, Sun Ninghui, and Shan Yizhou. Memserve:
+     language models. In Proceedings of International                       Context caching for disaggregated llm serving with elas-
+     Conference on Machine Learning, ICML, 2023.                            tic memory pool. arXiv preprint arXiv:2406.17565,
+                                                                            2024.
+[32] Joshua Ainslie, James Lee-Thorp, Michiel de Jong,
+     Yury Zemlyanskiy, Federico Lebrón, and Sumit Sang-                [45] Nvidia, TensorRT-LLM. https://github.com/NVI
+     hai. Gqa: Training generalized multi-query transformer                 DIA/TensorRT-LLM, 2023.
+     models from multi-head checkpoints. arXiv preprint
+     arXiv:2305.13245, 2023.                                           [46] Xupeng Miao, Gabriele Oliaro, Zhihao Zhang, Xin-
+                                                                            hao Cheng, Zeyu Wang, Zhengxin Zhang, Ying Yee
+[33] Tang Yehui, Wang Yunhe, Guo Jianyuan, Tu Zhijun, Han                   Wong Rae, Alan Zhu, Lijie Yang, Xiaoxiang Shi, Chu-
+     Kai, Hu Hailin, and Tao Dacheng. A survey on trans-                    nan Shi, Zhuoming Chen, Daiyaan Arfeen, Reyna Ab-
+     former compression. arXiv preprint arXiv:2402.05964,                   hyankar, and Zhihao Jia. Specinfer: Accelerating large
+     2024.                                                                  language model serving with tree-based speculative
+                                                                            inference and verification. In Proceedings of ACM
+[34] Ascend-for-volcano. https://github.com/Ascend/                         International Conference on Architectural Support for
+     ascend-for-volcano, 2019.                                              Programming Languages and Operating Systems, ASP-
+[35] Yue Zhenrui, Rabhi Sara, Moreira Gabriel, de                           LOS, 2024.
+     Souza Pereira, Wang Dong, and Oldridge Even. Lla-                 [47] Huggingface TGI. https://github.com/huggingfa
+     marec: Two-stage recommendation using large language                   ce/text-generation-inference, 2023.
+     models for ranking. arXiv preprint arXiv:2402.05964,
+     2023.                                                             [48] Ke Hong, Guohao Dai, Jiaming Xu, Qiuli Mao, Xiuhong
+                                                                            Li, Jun Liu, Kangdi Chen, Yuhan Dong, and Yu Wang.
+[36] Wu Bingyang, Liu Shengyu, Zhong Yinmin, Sun Peng,                      Flashdecoding++: Faster large language model infer-
+     Liu Xuanzhe, and Jin Xin. Loongserve: Efficiently serv-                ence on gpus. arXiv preprint arXiv:2311.01282, 2024.
+     ing long-context large language models with elastic se-
+     quence parallelism. arXiv preprint arXiv:2404.09526,              [49] Reiner Pope, Sholto Douglas, Aakanksha Chowdhery,
+     2024.                                                                  Jacob Devlin, James Bradbury, Jonathan Heek, Kefan
+                                                                            Xiao, Shivani Agrawal, and Jeff Dean. Efficiently scal-
+[37] Kubernetes. https://github.com/kubernetes/ku                           ing transformer inference. In Proceedings of Machine
+     bernetes, 2014.                                                        Learning and Systems, MLSys, 2023.
+[38] Apache Zookeeper. https://github.com/apache/                      [50] Jiangfei Duan, Runyu Lu, Haojie Duanmu, Xiuhong
+     zookeeper, 2010.                                                       Li, Xingcheng Zhang, Dahua Lin, Ion Stoica, and Hao
+[39] The Technology Behind BLOOM Training. https:                           Zhang. Muxserve: Flexible spatial-temporal mul-
+     //huggingface.co/blog/bloom-megatron-deeps                             tiplexing for multiple llm serving. arXiv preprint
+     peed, 2022.                                                            arXiv:2404.02015, 2024.
+
+[40] Ascend Device Plugin. https://github.com/Ascen                    [51] Ying Sheng, Lianmin Zheng, Binhang Yuan, Zhuohan
+     d/ascend-device-plugin, 2023.                                          Li, Max Ryabinin, Beidi Chen, Percy Liang, Christopher
+                                                                            Ré, Ion Stoica, and Ce Zhang. Flexgen: high-throughput
+[41] Fan Wenqi, Ding Yujuan, Ning Liangbo, Wang Shijie,                     generative inference of large language models with a
+     Li Hengyun, Yin Dawei, Chua Tat-Seng, and Li Qing.                     single gpu. In Proceedings of International Conference
+     A survey on rag meeting llms: Towards retrieval-                       on Machine Learning, ICML, 2023.
+     augmented large language models. arXiv preprint
+     arXiv:2405.06211, 2024.                                           [52] Yaniv Leviathan, Matan Kalman, and Yossi Matias. Fast
+                                                                            inference from transformers via speculative decoding.
+[42] Atlas AI Cluster. High-speed Interfaces (HCCS, PCIe,                   In Proceedings of International Conference on Machine
+     RoCE) in the Huawei Cluster. https://www.hiasce                        Learning, ICML, 2023.
+     nd.com/en/hardware/cluster, 2024.
+                                                                       [53] Charlie Chen, Sebastian Borgeaud, Geoffrey Irving,
+[43] Foteini Strati, Sara Mcallister, Amar Phanishayee, Jakub               Jean-Baptiste Lespiau, Laurent Sifre, and John Jumper.
+     Tarnawski, and Ana Klimovic. Déjàvu: Kv-cache                          Accelerating large language model decoding with spec-
+     streaming for fast, fault-tolerant generative llm serving.             ulative sampling. arXiv preprint arXiv:2302.01318,
+     arXiv preprint arXiv:2403.01876, 2024.                                 2023.
+
+                                                                  15
+

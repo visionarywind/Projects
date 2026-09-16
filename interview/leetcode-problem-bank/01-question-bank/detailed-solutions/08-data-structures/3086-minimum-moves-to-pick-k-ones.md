@@ -1,0 +1,340 @@
+# 3086. 拾起 K 个 1 需要的最少行动次数
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/minimum-moves-to-pick-k-ones/
+- 题目 slug：`minimum-moves-to-pick-k-ones`
+- 来源专题：常用数据结构
+- 来源分类路径：一、前缀和 / §1.3 距离和
+- 难度分：2673
+- 外部题解来源：https://leetcode.cn/problems/minimum-moves-to-pick-k-ones/solutions/2692009/zhong-wei-shu-tan-xin-by-endlesscheng-h972/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[中位数贪心（Python/Java/C++/Go）](https://leetcode.cn/problems/minimum-moves-to-pick-k-ones/solutions/2692009/zhong-wei-shu-tan-xin-by-endlesscheng-h972/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`zhong-wei-shu-tan-xin-by-endlesscheng-h972`
+- topic id：`2692009`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+请看 [视频讲解](https://www.bilibili.com/video/BV1RH4y1W7DP/) 第四题。
+
+## 初步分析
+
+把 $0$ 看成「空位」。
+
+**第二种操作**相当于把一个 $1$ 移动到和它相邻的空位上，如果我们想得到一个下标在 $j$ 的 $1$，必须操作 $|\textit{aliceIndex} - j|$ 次。
+
+对于**第一种操作**，贪心地把和 $\textit{aliceIndex}$ 相邻的 $0$ 变成 $1$（在此之前先移动相邻的 $1$），然后结合第二种操作，把相邻的 $1$ 移动到 $\textit{aliceIndex}$，只需 $2$ 次操作就可以得到一个 $1$。
+
+我们分 $\textit{maxChanges}$ 较大，和 $\textit{maxChanges}$ 较小两种情况讨论。
+
+## maxChanges 较大的情况
+
+应当优先使用第一种操作+第二种操作，毕竟只需要操作 $2$ 次就能得到一个 $1$。那么答案就是 $2k$ 吗？
+
+**细节**：对于 $\textit{aliceIndex}, \textit{aliceIndex}-1, \textit{aliceIndex}+1$ 这三个位置上的 $1$，可以用更少的操作得到：
+
+- $\textit{aliceIndex}$ 位置上的 $1$ 无需操作就能得到。
+- $\textit{aliceIndex}-1$ 和 $\textit{aliceIndex}+1$ 位置上的 $1$ 只需操作 $1$ 次就能得到。
+
+贪心的想法是，选择有三个连续 $1$ 的中间位置，作为 $\textit{aliceIndex}$。如果没有三个连续 $1$，就看有没有连续两个 $1$。如果没有连续两个 $1$，就选任意 $1$ 的位置。如果没有 $1$ 就随便选。
+
+一般地，设 $c$ 为 $\textit{nums}$ 中的长度不超过 $3$ 的最长连续 $1$ 的长度。如果 $c>k$ 则 $c=k$。
+
+如果 $\textit{maxChanges}\ge k-c$，我们可以先使用 $\max(c-1, 0)$ 次第二种操作，收集这连续的 $c$ 个 $1$，然后对于其余 $k-c$ 个 $1$，都可以用 $2$ 次操作得到，此时可以直接返回 $\max(c-1, 0) + (k-c)\cdot 2$。
+
+接下来，要解决的就是 $\textit{maxChanges}$ 比较小的情况了。
+
+**从特殊到一般**，想一想，如果 $\textit{maxChanges}=0$，也就是只能使用第二种操作，要如何计算答案呢？
+
+## maxChanges=0 的情况
+
+首先算出所有 $1$ 的位置，记到一个 $\textit{pos}$ 数组中。例如示例 1 的 $\textit{nums} = [1,1,0,0,0,1,1,0,0,1]$，其 $\textit{pos}=[0,1,5,6,9]$。
+
+示例 1 的 $k=3$，我们可以枚举 $\textit{pos}$ 的所有长为 $3$ 的子数组，例如 $[0,1,5]$，就好比在坐标轴上的 $0,1,5$ 位置上有 $3$ 个生产商品的工厂，我们要建造一个货仓存放商品，把货仓建在哪里，可以使所有工厂到货仓的距离之和最小？
+
+这个问题叫做「货仓选址」。根据 [中位数贪心及其证明](https://zhuanlan.zhihu.com/p/1922938031687595039)，最优解是把货仓建在工厂位置的**中位数**上。例如 $[0,1,5]$ 中的 $1$，此时距离和等于 $|0-1|+|1-1|+|5-1| = 5$。
+
+利用前缀和，可以 $\mathcal{O}(1)$ 地算出子数组元素到其中位数的距离之和，原理请看 [图解](https://leetcode.cn/problems/minimum-operations-to-make-all-array-elements-equal/solution/yi-tu-miao-dong-pai-xu-qian-zhui-he-er-f-nf55/)。
+
+## maxChanges 较小的情况
+
+最后，如果 $\textit{maxChanges}>0$，我们可以先计算所有长为 $k - \textit{maxChanges}$ 的子数组的货仓选址问题，取最小值，然后再通过 $\textit{maxChanges}\cdot 2$ 次操作得到 $\textit{maxChanges}$ 个 $1$。
+
+示例 1 只需考虑所有长为 $k-1=2$ 的子数组，那么前两个 $1$ 的货仓选址问题就是最小的，距离之和为 $1$，也就是这两个 $1$ 需要 $1$ 次操作得到。然后再通过 $2$ 次操作得到剩下的一个 $1$，总共需要 $1+2=3$ 次操作。
+
+```py [sol-Python3]
+class Solution:
+    def minimumMoves(self, nums: List[int], k: int, max_changes: int) -> int:
+        pos = []
+        c = 0  # nums 中连续的 1 长度
+        for i, x in enumerate(nums):
+            if x == 0:
+                continue
+            pos.append(i)  # 记录 1 的位置
+            c = max(c, 1)
+            if i > 0 and nums[i - 1] == 1:
+                if i > 1 and nums[i - 2] == 1:
+                    c = 3  # 有 3 个连续的 1
+                else:
+                    c = max(c, 2)  # 有 2 个连续的 1
+
+        c = min(c, k)
+        if max_changes >= k - c:
+            # 其余 k-c 个 1 可以全部用两次操作得到
+            return max(c - 1, 0) + (k - c) * 2
+
+        n = len(pos)
+        pre_sum = list(accumulate(pos, initial=0))
+
+        ans = inf
+        # 除了 max_changes 个数可以用两次操作得到，其余的 1 只能一步步移动到 pos[i]
+        size = k - max_changes
+        for right in range(size, n + 1):
+            # s1+s2 是 j 在 [left, right) 中的所有 pos[j] 到 pos[(left+right)/2] 的距离之和
+            left = right - size
+            i = left + size // 2
+            s1 = pos[i] * (i - left) - (pre_sum[i] - pre_sum[left])
+            s2 = pre_sum[right] - pre_sum[i] - pos[i] * (right - i)
+            ans = min(ans, s1 + s2)
+        return ans + max_changes * 2
+```
+
+```java [sol-Java]
+class Solution {
+    public long minimumMoves(int[] nums, int k, int maxChanges) {
+        List<Integer> pos = new ArrayList<>();
+        int c = 0; // nums 中连续的 1 长度
+        for (int i = 0; i < nums.length; i++) {
+            if (nums[i] == 0) continue;
+            pos.add(i); // 记录 1 的位置
+            c = Math.max(c, 1);
+            if (i > 0 && nums[i - 1] == 1) {
+                if (i > 1 && nums[i - 2] == 1) {
+                    c = 3; // 有 3 个连续的 1
+                } else {
+                    c = Math.max(c, 2); // 有 2 个连续的 1
+                }
+            }
+        }
+
+        c = Math.min(c, k);
+        if (maxChanges >= k - c) {
+            // 其余 k-c 个 1 可以全部用两次操作得到
+            return Math.max(c - 1, 0) + (k - c) * 2;
+        }
+
+        int n = pos.size();
+        long[] sum = new long[n + 1];
+        for (int i = 0; i < n; i++) {
+            sum[i + 1] = sum[i] + pos.get(i);
+        }
+
+        long ans = Long.MAX_VALUE;
+        // 除了 maxChanges 个数可以用两次操作得到，其余的 1 只能一步步移动到 pos[i]
+        int size = k - maxChanges;
+        for (int right = size; right <= n; right++) {
+            // s1+s2 是 j 在 [left, right) 中的所有 pos[j] 到 index=pos[(left+right)/2] 的距离之和
+            int left = right - size;
+            int i = left + size / 2;
+            long index = pos.get(i);
+            long s1 = index * (i - left) - (sum[i] - sum[left]);
+            long s2 = sum[right] - sum[i] - index * (right - i);
+            ans = Math.min(ans, s1 + s2);
+        }
+        return ans + maxChanges * 2;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    long long minimumMoves(vector<int> &nums, int k, int maxChanges) {
+        vector<int> pos;
+        int c = 0; // nums 中连续的 1 长度
+        for (int i = 0; i < nums.size(); i++) {
+            if (nums[i] == 0) continue;
+            pos.push_back(i); // 记录 1 的位置
+            c = max(c, 1);
+            if (i > 0 && nums[i - 1] == 1) {
+                if (i > 1 && nums[i - 2] == 1) {
+                    c = 3; // 有 3 个连续的 1
+                } else {
+                    c = max(c, 2); // 有 2 个连续的 1
+                }
+            }
+        }
+
+        c = min(c, k);
+        if (maxChanges >= k - c) {
+            // 其余 k-c 个 1 可以全部用两次操作得到
+            return max(c - 1, 0) + (k - c) * 2;
+        }
+
+        int n = pos.size();
+        vector<long long> sum(n + 1);
+        for (int i = 0; i < n; i++) {
+            sum[i + 1] = sum[i] + pos[i];
+        }
+
+        long long ans = LLONG_MAX;
+        // 除了 maxChanges 个数可以用两次操作得到，其余的 1 只能一步步移动到 pos[i]
+        int size = k - maxChanges;
+        for (int right = size; right <= n; right++) {
+            // s1+s2 是 j 在 [left, right) 中的所有 pos[j] 到 index=pos[(left+right)/2] 的距离之和
+            int left = right - size;
+            int i = left + size / 2;
+            long long index = pos[i];
+            long long s1 = index * (i - left) - (sum[i] - sum[left]);
+            long long s2 = sum[right] - sum[i] - index * (right - i);
+            ans = min(ans, s1 + s2);
+        }
+        return ans + maxChanges * 2;
+    }
+};
+```
+
+```go [sol-Go]
+func minimumMoves(nums []int, k, maxChanges int) int64 {
+	pos := []int{}
+	c := 0 // nums 中连续的 1 长度
+	for i, x := range nums {
+		if x == 0 {
+			continue
+		}
+		pos = append(pos, i) // 记录 1 的位置
+		c = max(c, 1)
+		if i > 0 && nums[i-1] == 1 {
+			if i > 1 && nums[i-2] == 1 {
+				c = 3 // 有 3 个连续的 1
+			} else {
+				c = max(c, 2) // 有 2 个连续的 1
+			}
+		}
+	}
+
+	c = min(c, k)
+	if maxChanges >= k-c {
+		// 其余 k-c 个 1 可以全部用两次操作得到
+		return int64(max(c-1, 0) + (k-c)*2)
+	}
+
+	n := len(pos)
+	sum := make([]int, n+1)
+	for i, x := range pos {
+		sum[i+1] = sum[i] + x
+	}
+
+	ans := math.MaxInt
+	// 除了 maxChanges 个数可以用两次操作得到，其余的 1 只能一步步移动到 pos[i]
+	size := k - maxChanges
+	for right := size; right <= n; right++ {
+		// s1+s2 是 j 在 [left, right) 中的所有 pos[j] 到 pos[(left+right)/2] 的距离之和
+		left := right - size
+		i := left + size/2
+		s1 := pos[i]*(i-left) - (sum[i] - sum[left])
+		s2 := sum[right] - sum[i] - pos[i]*(right-i)
+		ans = min(ans, s1+s2)
+	}
+	return int64(ans + maxChanges*2)
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 为 $\textit{nums}$ 的长度。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+注：也有不用前缀和的滑窗做法，具体见 2968 题的 [题解方法二](https://leetcode.cn/problems/apply-operations-to-maximize-frequency-score/solution/hua-dong-chuang-kou-zhong-wei-shu-tan-xi-nuvr/)。
+
+## 相似题目
+
+见 [贪心题单](https://leetcode.cn/circle/discuss/g6KTKL/) 中的「**§4.5 中位数贪心**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `一、前缀和 / §1.3 距离和`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `一、前缀和 / §1.3 距离和`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

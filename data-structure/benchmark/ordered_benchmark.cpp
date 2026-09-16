@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "rbtree/llrb_tree.hpp"
 #include "rbtree/rb_tree.hpp"
 #include "rbtree/skip_list.hpp"
 
@@ -17,6 +18,7 @@ namespace {
 using clock_type = std::chrono::steady_clock;
 using key_type = int;
 using tree_type = rbtree::rb_tree<key_type>;
+using llrb_tree_type = rbtree::llrb_tree<key_type>;
 using skip_type = rbtree::skip_list<key_type, std::less<key_type>, 12>;
 using std_set_type = std::set<key_type>;
 
@@ -207,6 +209,9 @@ std::vector<result> run_size(std::size_t size, const options& config) {
     add_container_results<tree_type>(
         results, "rb_tree", size, config, data, lookup_keys, erase_keys,
         [] { return std::make_unique<tree_type>(); });
+    add_container_results<llrb_tree_type>(
+        results, "llrb_tree", size, config, data, lookup_keys, erase_keys,
+        [] { return std::make_unique<llrb_tree_type>(); });
     add_container_results<skip_type>(
         results, "skip_list", size, config, data, lookup_keys, erase_keys,
         [&config, size] {

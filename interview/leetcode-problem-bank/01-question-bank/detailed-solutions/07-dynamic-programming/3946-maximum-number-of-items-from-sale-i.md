@@ -1,0 +1,439 @@
+# 3946. 购买最多物品数目 I
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/maximum-number-of-items-from-sale-i/
+- 题目 slug：`maximum-number-of-items-from-sale-i`
+- 来源专题：动态规划
+- 来源分类路径：三、背包 / §3.1 0-1 背包
+- 难度分：1728
+- 外部题解来源：https://leetcode.cn/problems/maximum-number-of-items-from-sale-i/solutions/3976688/0-1-bei-bao-mei-ju-you-hua-pythonjavacgo-6km7/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[0-1 背包 + 枚举优化（Python/Java/C++/Go）](https://leetcode.cn/problems/maximum-number-of-items-from-sale-i/solutions/3976688/0-1-bei-bao-mei-ju-you-hua-pythonjavacgo-6km7/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`0-1-bei-bao-mei-ju-you-hua-pythonjavacgo-6km7`
+- topic id：`3976688`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+对于物品 $i$，统计满足 $\textit{factor}_j$ 是 $\textit{factor}_i$ 的倍数的物品 $j$ 的个数（包括物品 $i$），记作 $\textit{cnt}_i$。那么 $\textit{cnt}_i$ 就是**首次**购买物品 $i$ 时，所获得的物品个数。
+
+如果每个物品只能购买一次，那么本题是标准的 **0-1 背包问题**：
+
+- 给你一个容量为 $\textit{budget}$ 的背包，以及 $n$ 个物品，其中物品 $i$ 的体积为 $\textit{price}_i$，价值为 $\textit{cnt}_i$。在**至多装满**背包的情况下，所选物品的价值之和最大是多少？
+
+关于 0-1 背包问题的做法，请看 [0-1 背包【基础算法精讲 18】](https://www.bilibili.com/video/BV16Y411v7Y6/)。
+
+设装入背包的物品的花费至多为 $i$ 时，获得了 $f_i$ 个物品。
+
+本题可以重复购买物品。由于重复购买物品时，无法免费获取物品，所以贪心地，**重复购买最便宜的物品**，设其价格为 $\textit{minPrice}$。
+
+枚举装入背包的物品的花费至多为 $i$，那么用于重复购买物品的预算为 $\textit{budget} - i$，可以额外购买 $\left\lfloor\dfrac{\textit{budget} - i}{\textit{minPrice}}\right\rfloor$ 个物品。所以可以获得的物品最大总数为
+
+$$
+\max_{i=0}^{\textit{budget}} f_i + \left\lfloor\dfrac{\textit{budget} - i}{\textit{minPrice}}\right\rfloor
+$$
+
+[本题视频讲解](https://www.bilibili.com/video/BV1KwVn6zEZB/?t=2m6s)，欢迎点赞关注~
+
+## 答疑
+
+**问**：最后枚举 $i$ 的过程，如果最便宜的物品不在 $f_i$ 中，且 $\left\lfloor\dfrac{\textit{budget} - i}{\textit{minPrice}}\right\rfloor > 0$，那我们没有计入购买最便宜物品后，免费获得的物品个数（如果有）。这是否会导致返回值小于正确值？
+
+**答**：设 $j$ 是最便宜物品的下标。如果算少了，意味着 $\textit{cnt}_j\ge 2$。
+
+当我们枚举到 $i=x$ 的时候，如果最便宜的物品不在 $f_x$ 中，那么继续枚举到 $i = x+\textit{minPrice}$ 的时候，由状态转移方程可知，$f_{x+\textit{minPrice}} \ge f_x + \textit{cnt}_{j} \ge f_x + 2$。所以有
+
+$$
+f_x + \left\lfloor\dfrac{\textit{budget} - x}{\textit{minPrice}}\right\rfloor = f_x + 1 + \left\lfloor\dfrac{\textit{budget} - (x + \textit{minPrice})}{\textit{minPrice}}\right\rfloor < f_{x+\textit{minPrice}} + \left\lfloor\dfrac{\textit{budget} - (x + \textit{minPrice})}{\textit{minPrice}}\right\rfloor
+$$
+
+上式表明，如果 $i=x$ 时可以买最便宜的物品，但 $f_x$ 不包含最便宜的物品，那么 $i=x$ 时算出的物品个数**严格小于** $i = x+\textit{minPrice}$ 时算出的物品个数。如果最优解买了最便宜的物品，那么我们一定会枚举到包含最便宜的物品的 $f_i$。
+
+## 优化前
+
+```py [sol-Python3]
+class Solution:
+    def maximumSaleItems(self, items: list[list[int]], budget: int) -> int:
+        f = [0] * (budget + 1)
+        min_price = inf
+
+        for factor, price in items:
+            min_price = min(min_price, price)
+
+            cnt = 0  # 统计 factor 的倍数（包括 factor）
+            for factor_j, _ in items:
+                if factor_j % factor == 0:
+                    cnt += 1
+
+            # 视作一个体积为 price，价值为 cnt 的物品
+            for j in range(budget, price - 1, -1):
+                f[j] = max(f[j], f[j - price] + cnt)
+
+        return max(fi + (budget - i) // min_price for i, fi in enumerate(f))
+```
+
+```java [sol-Java]
+class Solution {
+    public int maximumSaleItems(int[][] items, int budget) {
+        int[] f = new int[budget + 1];
+        int minPrice = Integer.MAX_VALUE;
+
+        for (int[] p : items) {
+            int factor = p[0], price = p[1];
+            minPrice = Math.min(minPrice, price);
+
+            int cnt = 0; // 统计 factor 的倍数（包括 factor）
+            for (int[] q : items) {
+                if (q[0] % factor == 0) {
+                    cnt++;
+                }
+            }
+
+            // 视作一个体积为 price，价值为 cnt 的物品
+            for (int j = budget; j >= price; j--) {
+                f[j] = Math.max(f[j], f[j - price] + cnt);
+            }
+        }
+
+        int ans = 0;
+        for (int i = 0; i <= budget; i++) {
+            ans = Math.max(ans, f[i] + (budget - i) / minPrice);
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maximumSaleItems(vector<vector<int>>& items, int budget) {
+        vector<int> f(budget + 1);
+        int min_price = INT_MAX;
+
+        for (auto& p : items) {
+            int factor = p[0], price = p[1];
+            min_price = min(min_price, price);
+
+            int cnt = 0; // 统计 factor 的倍数（包括 factor）
+            for (auto& q : items) {
+                if (q[0] % factor == 0) {
+                    cnt++;
+                }
+            }
+
+            // 视作一个体积为 price，价值为 cnt 的物品
+            for (int j = budget; j >= price; j--) {
+                f[j] = max(f[j], f[j - price] + cnt);
+            }
+        }
+
+        int ans = 0;
+        for (int i = 0; i <= budget; i++) {
+            ans = max(ans, f[i] + (budget - i) / min_price);
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func maximumSaleItems(items [][]int, budget int) (ans int) {
+	f := make([]int, budget+1)
+	minPrice := math.MaxInt
+
+	for _, p := range items {
+		factor, price := p[0], p[1]
+		minPrice = min(minPrice, price)
+
+		cnt := 0 // 统计 factor 的倍数（包括 factor）
+		for _, q := range items {
+			if q[0]%factor == 0 {
+				cnt++
+			}
+		}
+
+		// 视作一个体积为 price，价值为 cnt 的物品
+		for j := budget; j >= price; j-- {
+			f[j] = max(f[j], f[j-price]+cnt)
+		}
+	}
+
+	for i, cnt := range f {
+		ans = max(ans, cnt+(budget-i)/minPrice)
+	}
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n(n+\textit{budget}))$，其中 $n$ 是 $\textit{items}$ 的长度。
+- 空间复杂度：$\mathcal{O}(\textit{budget})$。
+
+## 优化
+
+设 $U=\max(\textit{factor}_i)$。
+
+统计 $\textit{factor}_i$ 的倍数个数时，上面代码写了一个 $\mathcal{O}(n^2)$ 的暴力。改成枚举 $x = 1,2,\ldots,U$ 以及 $x$ 的倍数 $y=x,2x,\ldots$ 计算 $y$ 的个数之和。由调和级数可知，这只需 $\mathcal{O}(U\log U)$ 的时间。
+
+```py [sol-Python3]
+class Solution:
+    def maximumSaleItems(self, items: list[list[int]], budget: int) -> int:
+        max_factor = max(p[0] for p in items)
+        cnt_factor = [0] * (max_factor + 1)
+        for factor, _ in items:
+            cnt_factor[factor] += 1
+
+        cnt_multi = [0] * (max_factor + 1)
+        f = [0] * (budget + 1)
+        min_price = inf
+        sum_price = 0
+
+        for factor, price in items:
+            min_price = min(min_price, price)
+
+            if cnt_multi[factor] == 0:  # 之前没有计算过
+                for j in range(factor, max_factor + 1, factor):
+                    cnt_multi[factor] += cnt_factor[j]
+            cnt = cnt_multi[factor]
+
+            # 视作一个体积为 price，价值为 cnt 的物品
+            # 优化：已遍历的物品的体积和至多为 sum_price，大于这个值的体积和无法凑出来
+            sum_price = min(sum_price + price, budget)
+            for j in range(sum_price, price - 1, -1):
+                v = f[j - price] + cnt
+                if v > f[j]: f[j] = v  # 手写 max 更快
+
+        return max(fi + (budget - i) // min_price for i, fi in enumerate(f))
+```
+
+```java [sol-Java]
+class Solution {
+    public int maximumSaleItems(int[][] items, int budget) {
+        int maxFactor = 0;
+        int minPrice = Integer.MAX_VALUE;
+        for (int[] p : items) {
+            maxFactor = Math.max(maxFactor, p[0]);
+            minPrice = Math.min(minPrice, p[1]);
+        }
+
+        int[] cntFactor = new int[maxFactor + 1];
+        for (int[] p : items) {
+            cntFactor[p[0]]++;
+        }
+        int[] cntMulti = new int[maxFactor + 1];
+        int[] f = new int[budget + 1];
+        int sumPrice = 0;
+
+        for (int[] p : items) {
+            int factor = p[0], price = p[1];
+
+            if (cntMulti[factor] == 0) { // 之前没有计算过
+                for (int j = factor; j <= maxFactor; j += factor) {
+                    cntMulti[factor] += cntFactor[j];
+                }
+            }
+            int cnt = cntMulti[factor];
+
+            // 视作一个体积为 price，价值为 cnt 的物品
+            // 优化：已遍历的物品的体积和至多为 sumPrice，大于这个值的体积和无法凑出来
+            sumPrice = Math.min(sumPrice + price, budget);
+            for (int j = sumPrice; j >= price; j--) {
+                f[j] = Math.max(f[j], f[j - price] + cnt);
+            }
+        }
+
+        int ans = 0;
+        for (int i = 0; i <= budget; i++) {
+            ans = Math.max(ans, f[i] + (budget - i) / minPrice);
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maximumSaleItems(vector<vector<int>>& items, int budget) {
+        int max_factor = 0;
+        int min_price = INT_MAX;
+        for (auto& p : items) {
+            max_factor = max(max_factor, p[0]);
+            min_price = min(min_price, p[1]);
+        }
+
+        vector<int> cnt_factor(max_factor + 1);
+        for (auto& p : items) {
+            cnt_factor[p[0]]++;
+        }
+        vector<int> cnt_multi(max_factor + 1);
+        vector<int> f(budget + 1);
+        int sum_price = 0;
+
+        for (auto& p : items) {
+            int factor = p[0], price = p[1];
+
+            int& cnt = cnt_multi[factor]; // 注意这里是引用
+            if (cnt == 0) { // 之前没有计算过
+                for (int j = factor; j <= max_factor; j += factor) {
+                    cnt += cnt_factor[j];
+                }
+            }
+
+            // 视作一个体积为 price，价值为 cnt 的物品
+            // 优化：已遍历的物品的体积和至多为 sum_price，大于这个值的体积和无法凑出来
+            sum_price = min(sum_price + price, budget);
+            for (int j = sum_price; j >= price; j--) {
+                f[j] = max(f[j], f[j - price] + cnt);
+            }
+        }
+
+        int ans = 0;
+        for (int i = 0; i <= budget; i++) {
+            ans = max(ans, f[i] + (budget - i) / min_price);
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func maximumSaleItems(items [][]int, budget int) (ans int) {
+	maxFactor := 0
+	minPrice := math.MaxInt
+	for _, p := range items {
+		maxFactor = max(maxFactor, p[0])
+		minPrice = min(minPrice, p[1])
+	}
+
+	cntFactor := make([]int, maxFactor+1)
+	for _, p := range items {
+		cntFactor[p[0]]++
+	}
+	cntMulti := make([]int, maxFactor+1)
+	f := make([]int, budget+1)
+	sumPrice := 0
+
+	for _, p := range items {
+		factor, price := p[0], p[1]
+
+		if cntMulti[factor] == 0 { // 之前没有计算过
+			for j := factor; j <= maxFactor; j += factor {
+				cntMulti[factor] += cntFactor[j]
+			}
+		}
+		cnt := cntMulti[factor]
+
+		// 视作一个体积为 price，价值为 cnt 的物品
+		// 优化：已遍历的物品的体积和至多为 sumPrice，大于这个值的体积和无法凑出来
+		sumPrice = min(sumPrice+price, budget)
+		for j := sumPrice; j >= price; j-- {
+			f[j] = max(f[j], f[j-price]+cnt)
+		}
+	}
+
+	for i, cnt := range f {
+		ans = max(ans, cnt+(budget-i)/minPrice)
+	}
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\cdot\textit{budget} + U\log U)$，其中 $n$ 是 $\textit{items}$ 的长度，$U=\max(\textit{factor}_i)$。由调和级数可知，计算 `cntMulti` 的总时间复杂度为 $\mathcal{O}(U\log U)$。
+- 空间复杂度：$\mathcal{O}(\textit{budget} + U)$。
+
+## 专题训练
+
+见下面动态规划题单的「**§3.1 0-1 背包**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `三、背包 / §3.1 0-1 背包`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `三、背包 / §3.1 0-1 背包`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

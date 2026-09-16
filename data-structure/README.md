@@ -2,9 +2,10 @@
 
 这是一个从零实现的、**单线程、唯一键** C++ 有序容器学习项目，位于本仓库的 `data-structure/`，可以独立使用 CMake 构建，不依赖仓库根目录的构建系统。
 
-项目同时保留两条实现路线：
+项目同时保留四种实现路线：
 
 - `rb_tree<Key, Compare>`：学习优先的 set-like 实现，使用 `nullptr` 表示叶子；
+- `llrb_tree<Key, Compare>`：独立的左倾红黑树 set-like 实现，使用 top-down 插入/删除且不保存 parent 指针；
 - `rb_map<Key, T, Compare, Allocator>`：面向性能实验的 map-like 实现，使用黑色哨兵和节点 allocator；
 - `skip_list<Key, Compare, MaxLevel>`：教学版 set-like 跳表，使用随机层级和多层 forward 指针。
 
@@ -17,10 +18,11 @@
 - 中序双向迭代器与 `--end()`；
 - `rb_map` 的 `insert`、`try_emplace`、`emplace`、`operator[]`、`find`、`contains`、`erase`、`clear` 和遍历；
 - `rb_map` 的黑色 `nil_` 哨兵、`leftmost_`/`rightmost_` 边界缓存和 allocator-aware 节点分配；
-- 两套实现的不变量检查、基础测试和固定 seed 差分测试；
+- 三套树/跳表实现的不变量检查、基础测试和固定 seed 差分测试；
 - `rb_map<int, uint64_t>` 与 `std::map<int, uint64_t>` 的 Release benchmark，支持中位数、最小值、最大值和 CSV 输出；
-- `rb_tree<int>`、`skip_list<int>` 与 `std::set<int>` 的可重放性能对比 benchmark；
-- `skip_list` 的固定 seed 基础测试和与 `std::set<int>` 的随机差分测试。
+- `rb_tree<int>`、`llrb_tree<int>`、`skip_list<int>` 与 `std::set<int>` 的可重放性能对比 benchmark；
+- `skip_list` 的固定 seed 基础测试和与 `std::set<int>` 的随机差分测试；
+- `llrb_tree` 的固定删除序列、随机差分测试和红黑不变量检查。
 
 当前版本有意不包含：
 
@@ -72,10 +74,28 @@ ctest --test-dir data-structure/build/asan --output-on-failure
 1. [`docs/architecture.md`](docs/architecture.md)：先看总体架构、节点布局和插入/删除/验证流程图；
 2. `docs/invariants.md`：两种实现必须保持的不变量；
 3. `include/rbtree/rb_tree.hpp`：先看教学版的 `insert`、旋转和 `insert_fixup` 注释；
-4. `include/rbtree/rb_map.hpp`：再看哨兵、allocator、map 节点布局和 `erase_fixup` 注释；
-5. `tests/rb_map_differential_test.cpp`：看如何逐步对照 `std::map`；
-6. `benchmark/rb_map_benchmark.cpp`：看如何固定 workload、校验 checksum 并记录时间；
-7. `docs/implementation-notes.md` 与 `docs/testing-and-verification.md`：了解实现取舍和验证方法。
+4. `include/rbtree/llrb_tree.hpp`：再看左倾红链接、top-down 删除和无 parent 迭代器；
+5. `include/rbtree/rb_map.hpp`：最后看哨兵、allocator、map 节点布局和 `erase_fixup` 注释；
+6. `tests/rb_map_differential_test.cpp`：看如何逐步对照 `std::map`；
+7. `benchmark/rb_map_benchmark.cpp`：看如何固定 workload、校验 checksum 并记录时间；
+8. `docs/implementation-notes.md` 与 `docs/testing-and-verification.md`：了解实现取舍和验证方法。
+
+## 左倾红黑树快速示例
+
+```cpp
+#include "rbtree/llrb_tree.hpp"
+
+rbtree::llrb_tree<int> tree;
+tree.insert(3);
+tree.insert(1);
+tree.insert(2);
+for (int key : tree) {
+    // 通过中序迭代得到：1, 2, 3
+}
+tree.erase(2);
+```
+
+`llrb_tree` 与 `rb_tree` 都是单线程、唯一键的 set-like 容器，但平衡路径不同：LLRB 使用左倾红链接和递归 top-down 删除，不保存 parent 指针。节点仍使用一次普通 `new`/`delete`，没有池化、Arena 或自定义 allocator。由于迭代器需要从根重新搜索 successor/predecessor，`++`/`--` 的常数和复杂度与 parent-based `rb_tree` 不同；两者应通过同一 benchmark 分别测量。
 
 ## 跳表快速示例
 
@@ -91,7 +111,7 @@ for (int key : list) {
 }
 ```
 
-跳表的查找、插入和删除期望为 `O(log n)`，最坏情况可能退化为 `O(n)`；当前实现使用固定 seed 构造以便测试复现，并已通过 `ordered_benchmark` 与 `rb_tree`、`std::set` 做端到端性能对比。当前 benchmark 的跳表参数为 `MaxLevel=12`、晋升概率约 `1/4`，但仍使用默认 `new/delete` 和固定大小节点布局，不能视为完整的 LevelDB SkipList 实现。
+跳表的查找、插入和删除期望为 `O(log n)`，最坏情况可能退化为 `O(n)`；当前实现使用固定 seed 构造以便测试复现，并已通过 `ordered_benchmark` 与 `rb_tree`、`std::set` 做端到端性能对比。当前 benchmark 的跳表参数为 `MaxLevel=12`、晋升概率约 `1/4`，节点只为实际高度分配 forward link，但仍使用默认 `new/delete`，不能视为完整的 LevelDB SkipList 或 Redis sorted set 实现。
 
 ## 性能原则
 

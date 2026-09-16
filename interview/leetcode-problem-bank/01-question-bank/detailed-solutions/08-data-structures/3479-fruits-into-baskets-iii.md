@@ -1,0 +1,348 @@
+# 3479. 水果成篮 III
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/fruits-into-baskets-iii/
+- 题目 slug：`fruits-into-baskets-iii`
+- 来源专题：常用数据结构
+- 来源分类路径：八、树状数组和线段树 / §8.3 线段树（无区间更新）
+- 难度分：2178
+- 外部题解来源：https://leetcode.cn/problems/fruits-into-baskets-iii/solutions/3603049/xian-duan-shu-er-fen-pythonjavacgo-by-en-ssqf/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[线段树二分（Python/Java/C++/Go）](https://leetcode.cn/problems/fruits-into-baskets-iii/solutions/3603049/xian-duan-shu-er-fen-pythonjavacgo-by-en-ssqf/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`xian-duan-shu-er-fen-pythonjavacgo-by-en-ssqf`
+- topic id：`3603049`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+具体请看 [视频讲解](https://www.bilibili.com/video/BV15gRaYZE5o/)，从线段树二分的角度，带你发明线段树。
+
+对于 $x=\textit{fruits}[i]$，在线段树上二分找第一个容量 $\ge x$ 的篮子。
+
+- 如果整棵子树的最大容量都小于 $x$，说明没有这样的篮子，返回 $-1$。所以线段树要维护 $\textit{baskets}$ 的**区间最大值**。
+- 否则，先递归左子树。
+- 如果左子树没找到（左子树的最大值小于 $x$），再递归右子树。
+- 如果我们能递归到线段树的叶子（线段树本质是二叉树），说明找到目标篮子，返回叶子对应的篮子下标。
+
+二分结束后，如果二分结果为 $-1$，说明没有找到篮子，把答案加一。否则，把叶子值改成 $-1$，表示该篮子已经装了水果，不能再装水果。
+
+> 完整的线段树模板见 [数据结构题单](https://leetcode.cn/circle/discuss/mOr1u6/)。
+
+```py [sol-Python3]
+class SegmentTree:
+    def __init__(self, a: List[int]):
+        n = len(a)
+        self.max = [0] * (2 << (n - 1).bit_length())
+        self.build(a, 1, 0, n - 1)
+
+    def maintain(self, o: int):
+        self.max[o] = max(self.max[o * 2], self.max[o * 2 + 1])
+
+    # 初始化线段树
+    def build(self, a: List[int], o: int, l: int, r: int):
+        if l == r:
+            self.max[o] = a[l]
+            return
+        m = (l + r) // 2
+        self.build(a, o * 2, l, m)
+        self.build(a, o * 2 + 1, m + 1, r)
+        self.maintain(o)
+
+    # 找区间内的第一个 >= x 的数，并更新为 -1，返回这个数的下标（没有则返回 -1）
+    def find_first_and_update(self, o: int, l: int, r: int, x: int) -> int:
+        if self.max[o] < x:  # 区间没有 >= x 的数
+            return -1
+        if l == r:
+            self.max[o] = -1  # 更新为 -1，表示不能放水果
+            return l
+        m = (l + r) // 2
+        i = self.find_first_and_update(o * 2, l, m, x)  # 先递归左子树
+        if i < 0:  # 左子树没找到
+            i = self.find_first_and_update(o * 2 + 1, m + 1, r, x)  # 再递归右子树
+        self.maintain(o)
+        return i
+
+
+class Solution:
+    def numOfUnplacedFruits(self, fruits: List[int], baskets: List[int]) -> int:
+        t = SegmentTree(baskets)
+        n = len(baskets)
+        ans = 0
+        for x in fruits:
+            if t.find_first_and_update(1, 0, n - 1, x) < 0:
+                ans += 1
+        return ans
+```
+
+```java [sol-Java]
+class SegmentTree {
+    private final int[] max;
+
+    public SegmentTree(int[] a) {
+        int n = a.length;
+        max = new int[2 << (32 - Integer.numberOfLeadingZeros(n - 1))];
+        build(a, 1, 0, n - 1);
+    }
+
+    // 找区间内的第一个 >= x 的数，并更新为 -1，返回这个数的下标（没有则返回 -1）
+    public int findFirstAndUpdate(int o, int l, int r, int x) {
+        if (max[o] < x) { // 区间没有 >= x 的数
+            return -1;
+        }
+        if (l == r) {
+            max[o] = -1; // 更新为 -1，表示不能放水果
+            return l;
+        }
+        int m = (l + r) / 2;
+        int i = findFirstAndUpdate(o * 2, l, m, x); // 先递归左子树
+        if (i < 0) { // 左子树没找到
+            i = findFirstAndUpdate(o * 2 + 1, m + 1, r, x); // 再递归右子树
+        }
+        maintain(o);
+        return i;
+    }
+
+    private void maintain(int o) {
+        max[o] = Math.max(max[o * 2], max[o * 2 + 1]);
+    }
+
+    // 初始化线段树
+    private void build(int[] a, int o, int l, int r) {
+        if (l == r) {
+            max[o] = a[l];
+            return;
+        }
+        int m = (l + r) / 2;
+        build(a, o * 2, l, m);
+        build(a, o * 2 + 1, m + 1, r);
+        maintain(o);
+    }
+}
+
+class Solution {
+    public int numOfUnplacedFruits(int[] fruits, int[] baskets) {
+        SegmentTree t = new SegmentTree(baskets);
+        int n = baskets.length;
+        int ans = 0;
+        for (int x : fruits) {
+            if (t.findFirstAndUpdate(1, 0, n - 1, x) < 0) {
+                ans++;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class SegmentTree {
+    vector<int> mx;
+
+    void maintain(int o) {
+        mx[o] = max(mx[o * 2], mx[o * 2 + 1]);
+    }
+
+    // 初始化线段树
+    void build(const vector<int>& a, int o, int l, int r) {
+        if (l == r) {
+            mx[o] = a[l];
+            return;
+        }
+        int m = (l + r) / 2;
+        build(a, o * 2, l, m);
+        build(a, o * 2 + 1, m + 1, r);
+        maintain(o);
+    }
+
+public:
+    SegmentTree(const vector<int>& a) {
+        size_t n = a.size();
+        mx.resize(2 << bit_width(n - 1));
+        build(a, 1, 0, n - 1);
+    }
+
+    // 找区间内的第一个 >= x 的数，并更新为 -1，返回这个数的下标（没有则返回 -1）
+    int findFirstAndUpdate(int o, int l, int r, int x) {
+        if (mx[o] < x) { // 区间没有 >= x 的数
+            return -1;
+        }
+        if (l == r) {
+            mx[o] = -1; // 更新为 -1，表示不能放水果
+            return l;
+        }
+        int m = (l + r) / 2;
+        int i = findFirstAndUpdate(o * 2, l, m, x); // 先递归左子树
+        if (i < 0) { // 左子树没找到
+            i = findFirstAndUpdate(o * 2 + 1, m + 1, r, x); // 再递归右子树
+        }
+        maintain(o);
+        return i;
+    }
+};
+
+class Solution {
+public:
+    int numOfUnplacedFruits(vector<int>& fruits, vector<int>& baskets) {
+        SegmentTree t(baskets);
+        int n = baskets.size(), ans = 0;
+        for (int x : fruits) {
+            if (t.findFirstAndUpdate(1, 0, n - 1, x) < 0) {
+                ans++;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+type seg []int
+
+func (t seg) maintain(o int) {
+	t[o] = max(t[o<<1], t[o<<1|1])
+}
+
+// 初始化线段树
+func (t seg) build(a []int, o, l, r int) {
+	if l == r {
+		t[o] = a[l]
+		return
+	}
+	m := (l + r) >> 1
+	t.build(a, o<<1, l, m)
+	t.build(a, o<<1|1, m+1, r)
+	t.maintain(o)
+}
+
+// 找区间内的第一个 >= x 的数，并更新为 -1，返回这个数的下标（没有则返回 -1）
+func (t seg) findFirstAndUpdate(o, l, r, x int) int {
+	if t[o] < x { // 区间没有 >= x 的数
+		return -1
+	}
+	if l == r {
+		t[o] = -1 // 更新为 -1，表示不能放水果
+		return l
+	}
+	m := (l + r) >> 1
+	i := t.findFirstAndUpdate(o<<1, l, m, x) // 先递归左子树
+	if i < 0 { // 左子树没找到
+		i = t.findFirstAndUpdate(o<<1|1, m+1, r, x) // 再递归右子树
+	}
+	t.maintain(o)
+	return i
+}
+
+func newSegmentTree(a []int) seg {
+	n := len(a)
+	t := make(seg, 2<<bits.Len(uint(n-1)))
+	t.build(a, 1, 0, n-1)
+	return t
+}
+
+func numOfUnplacedFruits(fruits, baskets []int) (ans int) {
+	t := newSegmentTree(baskets)
+	for _, x := range fruits {
+		if t.findFirstAndUpdate(1, 0, len(baskets)-1, x) < 0 {
+			ans++
+		}
+	}
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\log n)$，其中 $n$ 是 $\textit{fruits}$ 的长度，也是 $\textit{baskets}$ 的长度。$\texttt{findFirstAndUpdate}$ 的过程类似二分查找，我们可以通过区间最大值，$\mathcal{O}(1)$ 判断出答案在左半区间还是在右半区间，在左半就递归左半，如果左半最大值小于 $x$ 就递归右半。所以复杂度和二分查找是一样的 $\mathcal{O}(\log n)$。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 专题训练
+
+见下面数据结构题单的「**§8.3 线段树（无区间更新）**」，包含线段树的模板。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `八、树状数组和线段树 / §8.3 线段树（无区间更新）`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `八、树状数组和线段树 / §8.3 线段树（无区间更新）`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

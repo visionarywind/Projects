@@ -1,0 +1,506 @@
+# 1870. 准时到达的列车最小时速
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/minimum-speed-to-arrive-on-time/
+- 题目 slug：`minimum-speed-to-arrive-on-time`
+- 来源专题：二分算法
+- 来源分类路径：二、二分答案 / §2.1 求最小 / 答疑
+- 难度分：1676
+- 外部题解来源：https://leetcode.cn/problems/minimum-speed-to-arrive-on-time/solutions/791209/bi-mian-fu-dian-yun-suan-de-xie-fa-by-en-9fc6/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[极致优化！避免浮点误差的写法（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/minimum-speed-to-arrive-on-time/solutions/791209/bi-mian-fu-dian-yun-suan-de-xie-fa-by-en-9fc6/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`bi-mian-fu-dian-yun-suan-de-xie-fa-by-en-9fc6`
+- topic id：`791209`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 思路
+
+首先，由于除了最后一趟列车，前面的每趟列车至少花费 $1$ 小时（算上等待时间），且最后一趟列车花费的时间严格大于 $0$，因此 $\textit{hour}$ 必须严格大于 $n-1$。若不满足则返回 $-1$。
+
+由于时速越大，花费的时间越少，有单调性，可以**二分**时速 $v$。关于二分算法的原理，请看[【基础算法精讲 04】](https://www.bilibili.com/video/BV1AP41137w7/)。
+
+现在问题变成：
+
+- 已知时速 $v$，计算花费的总时间是否 $\le \textit{hour}$。
+
+除了最后一趟列车，前面每趟列车花费的时间为 $\left\lceil \dfrac{\textit{dist}[i]}{v} \right\rceil$。把前 $n-1$ 趟列车的时间之和记为 $t$。
+
+$t$ 加上最后一趟列车的用时即为总时间，需要满足
+
+$$
+t+\dfrac{\textit{dist}[n-1]}{v}\le\textit{hour}
+$$
+
+即
+
+$$
+t\cdot v+\textit{dist}[n-1]\le\textit{hour}\cdot v
+$$
+
+由于 $\textit{hour}$ 至多有两位小数，不妨将其乘上 $100$，得到整数 $\textit{h}_{100}$。上式两边同乘 $100$ 得
+
+$$
+(t\cdot v+\textit{dist}[n-1])\cdot 100\le\textit{h}_{100}\cdot v
+$$
+
+这样就和浮点数说拜拜了。
+
+## 细节
+
+### 1)
+
+由于双精度浮点数无法准确表示 $2.01$ 这样的小数，我们在计算 $2.01\times 100$ 时，算出的结果不是 $201$，而是 $200.99999999999997$ 这样的数。
+
+所以代码不能直接转成整数，而是要 `round` 一下。
+
+### 2)
+
+为了简化二分边界的计算，我们可以先特判 $\textit{hour}\le n$ 的情况。
+
+这种情况，除了最后一趟列车，前面的每趟列车一定都花费恰好 $1$ 小时（算上等待时间）。所以时速至少是 $\textit{dist}[0]$ 到 $\textit{dist}[n-2]$ 的最大值。
+
+留给最后一趟列车的时间是 $\textit{hour} - (n-1)$ 小时，那么有
+
+$$
+(\textit{hour} - (n-1))\cdot v \ge \textit{dist}[n-1]
+$$
+
+即
+
+$$
+(h_{100} - (n-1)\cdot 100)\cdot v \ge \textit{dist}[n-1]\cdot 100
+$$
+
+解得
+
+$$
+v \ge \left\lceil\dfrac{\textit{dist}[n-1]\cdot 100}{h_{100} - (n-1)\cdot 100}\right\rceil\ge \textit{dist}[n-1]
+$$
+
+> 这里注明 $\ge \textit{dist}[n-1]$ 是想说时速至少是 $\max(\textit{dist})$，我们可以取整个 $\textit{dist}$ 数组的最大值，而不是 $\textit{dist}[0]$ 到 $\textit{dist}[n-2]$ 的最大值。
+
+综上所述，当 $\textit{hour}\le n$ 时，$v$ 的最小值为
+
+$$
+\max\left\{ \max(\textit{dist}), \left\lceil\dfrac{\textit{dist}[n-1]\cdot 100}{h_{100} - (n-1)\cdot 100}\right\rceil \right\}
+$$
+
+### 3)
+
+下面代码采用开区间二分，这仅仅是二分的一种写法，使用闭区间或者半闭半开区间都是可以的。
+
+- 开区间左端点初始值：$0$。时速为 $0$，一定无法到达终点。
+- 开区间右端点初始值：$\max(\textit{dist})$。至多花费 $n$ 小时。由于我们前面特判了 $\textit{hour}\le n$ 的情况，所以这里 $v=\max(\textit{dist})$ 是一定可以到达终点的。
+
+**优化**：
+
+- 开区间左端点初始值：假设不考虑上取整（等待时间），计算**不满足要求**的最大时速 $v$，我们有 $h_{100}\cdot v < s\cdot 100$，其中 $s$ 是 $\textit{dist}$ 的元素和。解得 $v < \left\lceil\dfrac{s\cdot 100}{h_{100}}\right\rceil$。故取 $\left\lceil\dfrac{s\cdot 100}{h_{100}}\right\rceil-1$ 作为开区间左端点。
+- 开区间右端点初始值：假设所有 $\textit{dist}[i]$ 都等于 $\max(\textit{dist})$，那么每趟列车可以花费的时间至多为 $h=\left\lfloor\dfrac{h_{100}}{n\cdot 100}\right\rfloor$。时速 $v$ 需要满足 $h\cdot v \ge \max(\textit{dist})$，即 $v\ge \left\lceil\dfrac{\max(\textit{dist})}{h}\right\rceil$，该速度一定可以到达终点。
+
+### 4)
+
+关于上取整的计算，当 $a$ 和 $b$ 均为正整数时，我们有
+
+$$
+\left\lceil\dfrac{a}{b}\right\rceil = \left\lfloor\dfrac{a-1}{b}\right\rfloor + 1
+$$
+
+证明见 [上取整下取整转换公式的证明](https://zhuanlan.zhihu.com/p/1890356682149838951)。
+
+### 5)
+
+力扣有多台评测机，如果你发现运行时间长，可能是运行在比较慢的那台机子上，可以尝试多提交几次。
+
+```py [sol-Python3]
+class Solution:
+    def minSpeedOnTime(self, dist: List[int], hour: float) -> int:
+        n = len(dist)
+        h100 = round(hour * 100)  # 下面不会用到任何浮点数
+        delta = h100 - (n - 1) * 100
+        if delta <= 0:  # 无法到达终点
+            return -1
+
+        max_dist = max(dist)
+        if h100 <= n * 100:  # 特判
+            # 见题解中的公式
+            return max(max_dist, (dist[-1] * 100 - 1) // delta + 1)
+
+        def check(v: int) -> bool:
+            t = n - 1  # n-1 个上取整中的 +1 先提出来
+            for d in dist[:-1]:
+                t += (d - 1) // v
+            return (t * v + dist[-1]) * 100 <= h100 * v
+
+        left = (sum(dist) * 100 - 1) // h100  # 也可以初始化成 0（简单写法）
+        h = h100 // (n * 100)
+        right = (max_dist - 1) // h + 1  # 也可以初始化成 max_dist（简单写法）
+        while left + 1 < right:
+            mid = (left + right) // 2
+            if check(mid):
+                right = mid
+            else:
+                left = mid
+        return right
+```
+
+```py [sol-Python3 库函数]
+class Solution:
+    def minSpeedOnTime(self, dist: List[int], hour: float) -> int:
+        n = len(dist)
+        h100 = round(hour * 100)  # 下面不会用到任何浮点数
+        delta = h100 - (n - 1) * 100
+        if delta <= 0:  # 无法到达终点
+            return -1
+
+        max_dist = max(dist)
+        if h100 <= n * 100:  # 特判
+            # 见题解中的公式
+            return max(max_dist, (dist[-1] * 100 - 1) // delta + 1)
+
+        def check(v: int) -> bool:
+            t = n - 1  # n-1 个上取整中的 +1 先提出来
+            for d in dist[:-1]:
+                t += (d - 1) // v
+            return (t * v + dist[-1]) * 100 <= h100 * v
+
+        # bisect_left 需要用左闭右开区间
+        left = (sum(dist) * 100 - 1) // h100 + 1
+        h = h100 // (n * 100)
+        right = (max_dist - 1) // h + 1
+        return bisect_left(range(right), True, left, key=check)
+```
+
+```java [sol-Java]
+class Solution {
+    public int minSpeedOnTime(int[] dist, double hour) {
+        int n = dist.length;
+        long h100 = Math.round(hour * 100); // 下面不会用到任何浮点数
+        long delta = h100 - (n - 1) * 100;
+        if (delta <= 0) { // 无法到达终点
+            return -1;
+        }
+
+        int maxDist = 0;
+        long sumDist = 0;
+        for (int d : dist) {
+            maxDist = Math.max(maxDist, d);
+            sumDist += d;
+        }
+        if (h100 <= n * 100) { // 特判
+            // 见题解中的公式
+            return Math.max(maxDist, (int) ((dist[n - 1] * 100 - 1) / delta + 1));
+        }
+
+        int left = (int) ((sumDist * 100 - 1) / h100); // 也可以初始化成 0（简单写法）
+        int h = (int) (h100 / (n * 100));
+        int right = (maxDist - 1) / h + 1; // 也可以初始化成 maxDist（简单写法）
+        while (left + 1 < right) {
+            int mid = (left + right) >>> 1;
+            if (check(mid, dist, h100)) {
+                right = mid;
+            } else {
+                left = mid;
+            }
+        }
+        return right;
+    }
+
+    private boolean check(int v, int[] dist, long h100) {
+        int n = dist.length;
+        long t = 0;
+        for (int i = 0; i < n - 1; i++) {
+            t += (dist[i] - 1) / v + 1;
+        }
+        return (t * v + dist[n - 1]) * 100 <= h100 * v;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int minSpeedOnTime(vector<int>& dist, double hour) {
+        int n = dist.size();
+        long long h100 = round(hour * 100); // 下面不会用到任何浮点数
+        long long delta = h100 - (n - 1) * 100;
+        if (delta <= 0) { // 无法到达终点
+            return -1;
+        }
+
+        int max_dist = ranges::max(dist);
+        if (h100 <= n * 100) { // 特判
+            // 见题解中的公式
+            return max(max_dist, (int) ((dist.back() * 100 - 1) / delta + 1));
+        }
+
+        auto check = [&](int v) -> bool {
+            long long t = 0;
+            for (int i = 0; i < n - 1; i++) {
+                t += (dist[i] - 1) / v + 1;
+            }
+            return (t * v + dist.back()) * 100 <= h100 * v;
+        };
+
+        long long sum_dist = reduce(dist.begin(), dist.end(), 0LL);
+        int left = (sum_dist * 100 - 1) / h100; // 也可以初始化成 0（简单写法）
+        int h = h100 / (n * 100); 
+        int right = (max_dist - 1) / h + 1; // 也可以初始化成 max_dist（简单写法）
+        while (left + 1 < right) {
+            int mid = (left + right) / 2;
+            (check(mid) ? right : left) = mid;
+        }
+        return right;
+    }
+};
+```
+
+```c [sol-C]
+#define MAX(a, b) ((b) > (a) ? (b) : (a))
+
+int check(int v, int* dist, int n, long long h100) {
+    long long t = 0;
+    for (int i = 0; i < n - 1; i++) {
+        t += (dist[i] - 1) / v + 1;
+    }
+    return (t * v + dist[n - 1]) * 100 <= h100 * v;
+}
+
+int minSpeedOnTime(int* dist, int n, double hour) {
+    long long h100 = round(hour * 100); // 下面不会用到任何浮点数
+    long long delta = h100 - (n - 1) * 100;
+    if (delta <= 0) { // 无法到达终点
+        return -1;
+    }
+
+    int max_dist = 0;
+    long long sum_dist = 0;
+    for (int i = 0; i < n; i++) {
+        max_dist = MAX(max_dist, dist[i]);
+        sum_dist += dist[i];
+    }
+    if (h100 <= n * 100) { // 特判
+        // 见题解中的公式
+        return MAX(max_dist, (int) ((dist[n - 1] * 100 - 1) / delta + 1));
+    }
+
+    int left = (sum_dist * 100 - 1) / h100; // 也可以初始化成 0（简单写法）
+    int h = h100 / (n * 100); 
+    int right = (max_dist - 1) / h + 1; // 也可以初始化成 max_dist（简单写法）
+    while (left + 1 < right) {
+        int mid = (left + right) / 2;
+        if (check(mid, dist, n, h100)) {
+            right = mid;
+        } else {
+            left = mid;
+        }
+    }
+    return right;
+}
+```
+
+```go [sol-Go]
+func minSpeedOnTime(dist []int, hour float64) int {
+    n := len(dist)
+    h100 := int(math.Round(hour * 100)) // 下面不会用到任何浮点数
+    delta := h100 - (n-1)*100
+    if delta <= 0 { // 无法到达终点
+        return -1
+    }
+
+    maxDist := slices.Max(dist)
+    if h100 <= n*100 { // 特判
+        // 见题解中的公式
+        return max(maxDist, (dist[n-1]*100-1)/delta+1)
+    }
+
+    sumDist := 0
+    for _, d := range dist {
+        sumDist += d
+    }
+    left := (sumDist*100-1)/h100 + 1 // 也可以初始化成 0（简单写法）
+    h := h100 / (n * 100)
+    right := (maxDist-1)/h + 1 // 也可以初始化成 maxDist（简单写法）
+    return left + sort.Search(right-left, func(v int) bool {
+        v += left
+        t := 0
+        for _, d := range dist[:n-1] {
+            t += (d-1)/v + 1
+        }
+        return (t*v+dist[n-1])*100 <= h100*v
+    })
+}
+```
+
+```js [sol-JavaScript]
+var minSpeedOnTime = function(dist, hour) {
+    const n = dist.length;
+    const h100 = Math.round(hour * 100);
+    const delta = h100 - (n - 1) * 100;
+    if (delta <= 0) { // 无法到达终点
+        return -1;
+    }
+
+    const maxDist = Math.max(...dist);
+    if (h100 <= n * 100) { // 特判
+        // 见题解中的公式
+        return Math.max(maxDist, Math.ceil(dist[n - 1] * 100 / delta));
+    }
+
+    function check(v) {
+        let t = 0;
+        for (let i = 0; i < n - 1; i++) {
+            t += Math.ceil(dist[i] / v);
+        }
+        return (t * v + dist[n - 1]) * 100 <= h100 * v;
+    }
+
+    let left = Math.ceil(_.sum(dist) * 100 / h100) - 1; // 也可以初始化成 0（简单写法）
+    const h = Math.floor(h100 / (n * 100));
+    let right = Math.ceil(maxDist / h); // 也可以初始化成 maxDist（简单写法）
+    while (left + 1 < right) {
+        const mid = Math.floor((left + right) / 2);
+        if (check(mid)) {
+            right = mid;
+        } else {
+            left = mid;
+        }
+    }
+    return right;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn min_speed_on_time(dist: Vec<i32>, hour: f64) -> i32 {
+        let n = dist.len();
+        let h100 = (hour * 100.0).round() as i64; // 下面不会用到任何浮点数
+        let delta = h100 - (n as i64 - 1) * 100;
+        if delta <= 0 { // 无法到达终点
+            return -1;
+        }
+
+        let max_dist = *dist.iter().max().unwrap();
+        if h100 <= n as i64 * 100 { // 特判
+            // 见题解中的公式
+            return max_dist.max(((dist[n - 1] * 100 - 1) as i64 / delta) as i32 + 1);
+        }
+
+        let check = |v: i32| -> bool {
+            let mut t = 0i64;
+            for &d in &dist[..n - 1] {
+                t += ((d - 1) / v + 1) as i64;
+            }
+            (t * v as i64 + dist[n - 1] as i64) * 100 <= h100 * v as i64
+        };
+
+        let sum_dist = dist.iter().map(|&x| x as i64).sum::<i64>();
+        let mut left = ((sum_dist * 100 - 1) / h100) as i32; // 也可以初始化成 0（简单写法）
+        let h = (h100 / (n * 100) as i64) as i32;
+        let mut right = (max_dist - 1) / h + 1; // 也可以初始化成 max_dist（简单写法）
+        while left + 1 < right {
+            let mid = (left + right) / 2;
+            if check(mid) {
+                right = mid;
+            } else {
+                left = mid;
+            }
+        }
+        right
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\log U)$，其中 $n$ 是 $\textit{dist}$ 的长度，$U$ 为二分上下界之差。在本题数据范围下，$U$ 不会超过 $10^5$。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `二、二分答案 / §2.1 求最小 / 答疑`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `二、二分答案 / §2.1 求最小 / 答疑`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

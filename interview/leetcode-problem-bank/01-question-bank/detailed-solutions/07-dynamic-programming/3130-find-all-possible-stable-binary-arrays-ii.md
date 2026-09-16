@@ -1,0 +1,755 @@
+# 3130. 找出所有稳定的二进制数组 II
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/find-all-possible-stable-binary-arrays-ii/
+- 题目 slug：`find-all-possible-stable-binary-arrays-ii`
+- 来源专题：动态规划
+- 来源分类路径：十一、优化 DP / §11.1 前缀和优化 DP
+- 难度分：2825
+- 外部题解来源：https://leetcode.cn/problems/find-all-possible-stable-binary-arrays-ii/solutions/2758868/dong-tai-gui-hua-cong-ji-yi-hua-sou-suo-37jdi/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[从 DP 到组合数学（Python/Java/C++/Go）](https://leetcode.cn/problems/find-all-possible-stable-binary-arrays-ii/solutions/2758868/dong-tai-gui-hua-cong-ji-yi-hua-sou-suo-37jdi/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`dong-tai-gui-hua-cong-ji-yi-hua-sou-suo-37jdi`
+- topic id：`2758868`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 方法一：记忆化搜索
+
+**前置知识**：[动态规划入门：从记忆化搜索到递推](https://www.bilibili.com/video/BV1Xj411K7oF/)，其中包含如何把记忆化搜索 1:1 翻译成递推的技巧。
+
+先解释 $\textit{limit}$，意思是数组中至多有连续 $\textit{limit}$ 个 $0$，且至多有连续 $\textit{limit}$ 个 $1$。
+
+看示例 3，$\textit{zero}=3,\ \textit{one}=3,\ \textit{limit}=2$。
+
+考虑稳定数组的最后一个位置填 $0$ 还是 $1$：
+
+- 填 $0$，问题变成剩下 $2$ 个 $0$ 和 $3$ 个 $1$ 怎么填。
+- 填 $1$，问题变成剩下 $3$ 个 $0$ 和 $2$ 个 $1$ 怎么填。
+- 这两个都是和原问题相似的子问题。
+
+看上去，定义 $\textit{dfs}(i,j)$ 表示用 $i$ 个 $0$ 和 $j$ 个 $1$ 构造稳定数组的方案数？但这样定义不方便计算 $\textit{limit}$ 带来的影响。
+
+比如 $\textit{limit}=3$，如果在以 $1000$ 结尾的稳定数组的后面，再添加一个 $0$，得到以 $10000$ 结尾的数组，这是不合法的。我们需要把这种不合法的情况减掉。
+
+为了减去不合法的情况，我们需要知道稳定数组的最后一个数是 $0$ 还是 $1$。
+
+改成定义 $\textit{dfs}(i,j,k)$ 表示用 $i$ 个 $0$ 和 $j$ 个 $1$ 构造长为 $i+j$ 的稳定数组的方案数，其中最后一个位置（第 $i+j$ 个位置）**已经填入了** $k$，其中 $k$ 为 $0$ 或 $1$。
+
+以 $k=0$ 为例，考虑 $\textit{dfs}(i,j,0)$ 怎么算。现在最后一个位置（第 $i+j$ 个位置）**已经填入了** $0$，消耗了一个 $0$，还剩下 $i-1$ 个 $0$。问题变成用 $i-1$ 个 $0$ 和 $j$ 个 $1$ 构造长为 $i+j-1$ 的稳定数组的方案数。对于这个子问题，枚举最后一个位置（第 $i+j-1$ 个位置）填入 $k=0$ 还是 $k=1$，对应的方案数为 $\textit{dfs}(i-1,j,0)$ 和 $\textit{dfs}(i-1,j,1)$。
+
+看上去，把这两种情况加起来，我们就得到了 
+
+$$
+\textit{dfs}(i,j,0) = \textit{dfs}(i-1,j,0) + \textit{dfs}(i-1,j,1)
+$$
+
+但是，这会产生不合法的情况。
+
+以 $\textit{limit}=3$ 为例说明。$\textit{dfs}(i-1,j,0)$ 是一些以 $0$ 结尾的稳定数组（合法数组），讨论末尾 $0$ 的个数：
+
+- 末尾恰好有连续 $1$ 个 $0$，即 $10$。
+- 末尾恰好有连续 $2$ 个 $0$，即 $100$。
+- 末尾恰好有连续 $3$ 个 $0$，即 $1000$。由于末尾不能超过连续 $3$ 个 $0$，末尾是 $000$ 的稳定数组，倒数第 $4$ 个数一定是 $1$，也就是在 $\textit{dfs}(i-1,j,0)$ 中有 $\textit{dfs}(i-4,j,1)$ 个末尾是 $1000$ 的稳定数组。
+
+若要通过 $\textit{dfs}(i-1,j,0)$ 计算 $\textit{dfs}(i,j,0)$，相当于往这 $\textit{dfs}(i-1,j,0)$ 个稳定数组的末尾再加一个 $0$：
+
+- 末尾恰好有连续 $2$ 个 $0$，即 $100$，这是合法的。
+- 末尾恰好有连续 $3$ 个 $0$，即 $1000$，这是合法的。
+- 末尾恰好有连续 $4$ 个 $0$，即 $10000$，这是不合法的，要**全部去掉**！根据上面的分析，要减去 $\textit{dfs}(i-4,j,1)$。
+
+一般地，在 $\textit{dfs}(i-1,j,0)$ 个稳定数组的末尾添加一个 $0$，会得到 $\textit{dfs}(i-\textit{limit}-1,j,1)$ 个不合法的数组。从上文的状态转移方程中减掉 $\textit{dfs}(i-\textit{limit}-1,j,1)$，得
+
+$$
+\textit{dfs}(i,j,0) = \textit{dfs}(i-1,j,0) + \textit{dfs}(i-1,j,1) - \textit{dfs}(i-\textit{limit}-1,j,1)
+$$
+
+同理得
+
+$$
+\textit{dfs}(i,j,1) = \textit{dfs}(i,j-1,0) + \textit{dfs}(i,j-1,1) - \textit{dfs}(i,j-\textit{limit}-1,0)
+$$
+
+**递归边界**：
+
+- 如果 $i<0$ 或者 $j<0$，返回 $0$。也可以在递归 $\textit{dfs}(i-\textit{limit}-1,j,1)$ 前判断 $i>\textit{limit}$，在递归 $\textit{dfs}(i,j-\textit{limit}-1,0)$ 前判断 $j>\textit{limit}$。下面代码在递归前判断。
+- 如果 $i=0$，那么当 $k=1$ 且 $j\le \textit{limit}$ 的情况下返回 $1$，否则返回 $0$；如果 $j=0$，那么当 $k=0$ 且 $i\le \textit{limit}$ 的情况下返回 $1$，否则返回 $0$。
+
+**递归入口**：$\textit{dfs}(\textit{zero},\textit{one},0)+\textit{dfs}(\textit{zero},\textit{one},1)$，即答案。
+
+请看 [视频讲解](https://www.bilibili.com/video/BV16t421c7GB/) 第四题，欢迎点赞关注~
+
+> **注**：也可以从枚举最后一段有多少个 $0$（或者 $1$）入手，用前缀和优化 DP（或者滑动窗口优化 DP）做。可以先做做我 DP 题单中的前缀和优化 DP，再来做这题。
+
+```py [sol-Python3]
+class Solution:
+    def numberOfStableArrays(self, zero: int, one: int, limit: int) -> int:
+        MOD = 1_000_000_007
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int, k: int) -> int:
+            if i == 0:
+                return 1 if k == 1 and j <= limit else 0
+            if j == 0:
+                return 1 if k == 0 and i <= limit else 0
+            if k == 0:
+                return (dfs(i - 1, j, 0) + dfs(i - 1, j, 1) - (dfs(i - limit - 1, j, 1) if i > limit else 0)) % MOD
+            else:  # else 可以去掉，这里仅仅是为了代码对齐
+                return (dfs(i, j - 1, 0) + dfs(i, j - 1, 1) - (dfs(i, j - limit - 1, 0) if j > limit else 0)) % MOD
+        ans = (dfs(zero, one, 0) + dfs(zero, one, 1)) % MOD
+        dfs.cache_clear()  # 防止爆内存
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public int numberOfStableArrays(int zero, int one, int limit) {
+        int[][][] memo = new int[zero + 1][one + 1][2];
+        for (int[][] m : memo) {
+            for (int[] m2 : m) {
+                Arrays.fill(m2, -1); // -1 表示没有计算过
+            }
+        }
+        return (dfs(zero, one, 0, limit, memo) + dfs(zero, one, 1, limit, memo)) % MOD;
+    }
+
+    private int dfs(int i, int j, int k, int limit, int[][][] memo) {
+        if (i == 0) { // 递归边界
+            return k == 1 && j <= limit ? 1 : 0;
+        }
+        if (j == 0) { // 递归边界
+            return k == 0 && i <= limit ? 1 : 0;
+        }
+        if (memo[i][j][k] != -1) { // 之前计算过
+            return memo[i][j][k];
+        }
+        if (k == 0) {
+            // + MOD 保证答案非负
+            memo[i][j][k] = (int) (((long) dfs(i - 1, j, 0, limit, memo) + dfs(i - 1, j, 1, limit, memo) +
+                    (i > limit ? MOD - dfs(i - limit - 1, j, 1, limit, memo) : 0)) % MOD);
+        } else {
+            memo[i][j][k] = (int) (((long) dfs(i, j - 1, 0, limit, memo) + dfs(i, j - 1, 1, limit, memo) +
+                    (j > limit ? MOD - dfs(i, j - limit - 1, 0, limit, memo) : 0)) % MOD);
+        }
+        return memo[i][j][k];
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int numberOfStableArrays(int zero, int one, int limit) {
+        const int MOD = 1'000'000'007;
+        vector memo(zero + 1, vector<array<int, 2>>(one + 1, {-1, -1})); // -1 表示没有计算过
+
+        auto dfs = [&](this auto&& dfs, int i, int j, int k) -> int {
+            if (i == 0) { // 递归边界
+                return k == 1 && j <= limit;
+            }
+            if (j == 0) { // 递归边界
+                return k == 0 && i <= limit;
+            }
+            int& res = memo[i][j][k]; // 注意这里是引用
+            if (res != -1) { // 之前计算过
+                return res;
+            }
+            if (k == 0) {
+                // + MOD 保证答案非负
+                res = ((long long) dfs(i - 1, j, 0) + dfs(i - 1, j, 1) +
+                       (i > limit ? MOD - dfs(i - limit - 1, j, 1) : 0)) % MOD;
+            } else {
+                res = ((long long) dfs(i, j - 1, 0) + dfs(i, j - 1, 1) +
+                       (j > limit ? MOD - dfs(i, j - limit - 1, 0) : 0)) % MOD;
+            }
+            return res;
+        };
+
+        return (dfs(zero, one, 0) + dfs(zero, one, 1)) % MOD;
+    }
+};
+```
+
+```go [sol-Go]
+func numberOfStableArrays(zero, one, limit int) int {
+	const mod = 1_000_000_007
+	memo := make([][][2]int, zero+1)
+	for i := range memo {
+		memo[i] = make([][2]int, one+1)
+		for j := range memo[i] {
+			memo[i][j] = [2]int{-1, -1}
+		}
+	}
+	var dfs func(int, int, int) int
+	dfs = func(i, j, k int) (res int) {
+		if i == 0 { // 递归边界
+			if k == 1 && j <= limit {
+				return 1
+			}
+			return
+		}
+		if j == 0 { // 递归边界
+			if k == 0 && i <= limit {
+				return 1
+			}
+			return
+		}
+		p := &memo[i][j][k]
+		if *p != -1 { // 之前计算过
+			return *p
+		}
+		if k == 0 {
+			// +mod 保证答案非负
+			res = (dfs(i-1, j, 0) + dfs(i-1, j, 1)) % mod
+			if i > limit {
+				res = (res - dfs(i-limit-1, j, 1) + mod) % mod
+			}
+		} else {
+			res = (dfs(i, j-1, 0) + dfs(i, j-1, 1)) % mod
+			if j > limit {
+				res = (res - dfs(i, j-limit-1, 0) + mod) % mod
+			}
+		}
+		*p = res // 记忆化
+		return
+	}
+	return (dfs(zero, one, 0) + dfs(zero, one, 1)) % mod
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(\textit{zero}\cdot \textit{one})$。由于每个状态只会计算一次，动态规划的时间复杂度 $=$ 状态个数 $\times$ 单个状态的计算时间。本题状态个数等于 $\mathcal{O}(\textit{zero}\cdot \textit{one})$，单个状态的计算时间为 $\mathcal{O}(1)$，所以动态规划的时间复杂度为 $\mathcal{O}(\textit{zero}\cdot \textit{one})$。
+- 空间复杂度：$\mathcal{O}(\textit{zero}\cdot \textit{one})$。有多少个状态，$\textit{memo}$ 数组的大小就是多少。
+
+## 方法二：递推
+
+和 $\textit{dfs}(i,j,k)$ 一样，定义 $f[i][j][k]$ 表示用 $i$ 个 $0$ 和 $j$ 个 $1$ 构造稳定数组的方案数，其中第 $i+j$ 个位置要填 $k$，其中 $k$ 为 $0$ 或 $1$。
+
+状态转移方程：
+
+$$
+\begin{aligned}
+f[i][j][0] &= f[i-1][j][0] + f[i-1][j][1] - f[i-\textit{limit}-1][j][1]     \\
+f[i][j][1] &= f[i][j-1][0] + f[i][j-1][1] - f[i][j-\textit{limit}-1][0]     \\
+\end{aligned}
+$$
+
+如果 $i\le \textit{limit}$ 则 $f[i-\textit{limit}-1][j][1]$ 视作 $0$，如果 $j\le \textit{limit}$ 则 $f[i][j-\textit{limit}-1][0]$ 视作 $0$。
+
+初始值：$f[i][0][0] = f[0][j][1] = 1$，其中 $1\le i \le \min(\textit{limit}, \textit{zero}),\ 1\le j \le \min(\textit{limit}, \textit{one})$。翻译自递归边界。
+
+答案：$f[\textit{zero}][\textit{one}][0] + f[\textit{zero}][\textit{one}][1]$。翻译自递归入口。
+
+```py [sol-Python3]
+class Solution:
+    def numberOfStableArrays(self, zero: int, one: int, limit: int) -> int:
+        MOD = 1_000_000_007
+        f = [[[0, 0] for _ in range(one + 1)] for _ in range(zero + 1)]
+        for i in range(1, min(limit, zero) + 1):
+            f[i][0][0] = 1
+        for j in range(1, min(limit, one) + 1):
+            f[0][j][1] = 1
+        for i in range(1, zero + 1):
+            for j in range(1, one + 1):
+                f[i][j][0] = (f[i - 1][j][0] + f[i - 1][j][1] - (f[i - limit - 1][j][1] if i > limit else 0)) % MOD
+                f[i][j][1] = (f[i][j - 1][0] + f[i][j - 1][1] - (f[i][j - limit - 1][0] if j > limit else 0)) % MOD
+        return sum(f[-1][-1]) % MOD
+```
+
+```java [sol-Java]
+class Solution {
+    public int numberOfStableArrays(int zero, int one, int limit) {
+        final int MOD = 1_000_000_007;
+        int[][][] f = new int[zero + 1][one + 1][2];
+        for (int i = 1; i <= Math.min(limit, zero); i++) {
+            f[i][0][0] = 1;
+        }
+        for (int j = 1; j <= Math.min(limit, one); j++) {
+            f[0][j][1] = 1;
+        }
+        for (int i = 1; i <= zero; i++) {
+            for (int j = 1; j <= one; j++) {
+                // + MOD 保证答案非负
+                f[i][j][0] = (int) (((long) f[i - 1][j][0] + f[i - 1][j][1] + (i > limit ? MOD - f[i - limit - 1][j][1] : 0)) % MOD);
+                f[i][j][1] = (int) (((long) f[i][j - 1][0] + f[i][j - 1][1] + (j > limit ? MOD - f[i][j - limit - 1][0] : 0)) % MOD);
+            }
+        }
+        return (f[zero][one][0] + f[zero][one][1]) % MOD;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int numberOfStableArrays(int zero, int one, int limit) {
+        const int MOD = 1'000'000'007;
+        vector<vector<array<int, 2>>> f(zero + 1, vector<array<int, 2>>(one + 1));
+        for (int i = 1; i <= min(limit, zero); i++) {
+            f[i][0][0] = 1;
+        }
+        for (int j = 1; j <= min(limit, one); j++) {
+            f[0][j][1] = 1;
+        }
+        for (int i = 1; i <= zero; i++) {
+            for (int j = 1; j <= one; j++) {
+                // + MOD 保证答案非负
+                f[i][j][0] = ((long long) f[i - 1][j][0] + f[i - 1][j][1] + (i > limit ? MOD - f[i - limit - 1][j][1] : 0)) % MOD;
+                f[i][j][1] = ((long long) f[i][j - 1][0] + f[i][j - 1][1] + (j > limit ? MOD - f[i][j - limit - 1][0] : 0)) % MOD;
+            }
+        }
+        return (f[zero][one][0] + f[zero][one][1]) % MOD;
+    }
+};
+```
+
+```go [sol-Go]
+func numberOfStableArrays(zero, one, limit int) (ans int) {
+	const mod = 1_000_000_007
+	f := make([][][2]int, zero+1)
+	for i := range f {
+		f[i] = make([][2]int, one+1)
+	}
+	for i := 1; i <= min(limit, zero); i++ {
+		f[i][0][0] = 1
+	}
+	for j := 1; j <= min(limit, one); j++ {
+		f[0][j][1] = 1
+	}
+	for i := 1; i <= zero; i++ {
+		for j := 1; j <= one; j++ {
+			f[i][j][0] = (f[i-1][j][0] + f[i-1][j][1]) % mod
+			if i > limit {
+				// + mod 保证答案非负
+				f[i][j][0] = (f[i][j][0] - f[i-limit-1][j][1] + mod) % mod
+			}
+			f[i][j][1] = (f[i][j-1][0] + f[i][j-1][1]) % mod
+			if j > limit {
+				f[i][j][1] = (f[i][j][1] - f[i][j-limit-1][0] + mod) % mod
+			}
+		}
+	}
+	return (f[zero][one][0] + f[zero][one][1]) % mod
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(\textit{zero}\cdot \textit{one})$。
+- 空间复杂度：$\mathcal{O}(\textit{zero}\cdot \textit{one})$。
+
+## 方法三：容斥原理+乘法原理
+
+回顾一个经典的组合数学问题：
+
+- 把 $n$ 个无区别的小球，放入 $m$ 个有区别的盒子，不允许空盒，有多少种方案？
+
+这可以用**隔板法**解决，$n$ 个小球之间有 $n-1$ 个空隙，从中选择 $m-1$ 个空隙，插入 $m-1$ 个隔板，这样就把小球分成了 $m$ 组，并且每一组都是非空的，方案数就是 $n-1$ 选 $m-1$ 的组合数 $\dbinom {n-1} {m-1}$。
+
+- 只考虑 $0$，把 $0$ 分成 $i$ 组，方案数就是 $f_0[i] = \dbinom {\textit{zero}-1} {i-1}$；
+- 只考虑 $1$，把 $1$ 分成 $i$ 组，方案数就是 $f_1[i] = \dbinom {\textit{one}-1} {i-1}$。
+
+如何**综合考虑** $0$ 和 $1$？要如何计算方案数？
+
+例如 $10110001$，相当于把 $0$ 分成了 $2$ 组，把 $1$ 分成了 $3$ 组。
+
+一般地，设 $1$ 分成了 $i$ 组，那么 $0$ 会分成多少组？有哪些情况？
+
+有如下四种情况：
+
+- $0$ 分成 $i-1$ 组，例如 $10110001$。注意第一个数和最后一个数一定是 $1$。
+- $0$ 分成 $i$ 组，且第一个数是 $0$，例如 $01010011$。注意最后一个数一定是 $1$。
+- $0$ 分成 $i$ 组，且第一个数是 $1$，例如 $10100110$。注意最后一个数一定是 $0$。
+- $0$ 分成 $i+1$ 组，例如 $01010110$。注意第一个数和最后一个数一定是 $0$。
+
+注意 $0$ 和 $1$ 内部的分组方案是互相独立的，例如
+
+$$
+\begin{aligned}
+&11010001\\
+&10110001\\
+&10100011
+\end{aligned}
+$$
+
+这些例子的 $0$ 的组数不变，$1$ 的组数不变，$0$ 的分组方式也不变（都是一个 $0$ 和三个 $0$），只有 $1$ 的分组方式在变。
+
+根据乘法原理，综合考虑 $0$ 和 $1$，把 $1$ 分成 $i$ 组总的方案数，等于上面说的四种情况（只考虑 $0$，把 $0$ 分成 $i-1,i,i+1$ 组）的方案数之和，乘以只考虑 $1$，把 $1$ 分成 $i$ 组的方案数，即
+
+$$
+(f_0[i-1] + 2\cdot f_0[i] + f_0[i+1])\cdot f_1[i]
+$$
+
+接下来，考虑 $\textit{limit}$ 带来的影响。推荐先看 [2929. 给小朋友们分糖果 II](https://leetcode.cn/problems/distribute-candies-among-children-ii/) 以及 [我的题解](https://leetcode.cn/problems/distribute-candies-among-children-ii/solution/o1-rong-chi-yuan-li-pythonjavacgo-by-end-2woj/)。
+
+根据**容斥原理**，对于 $f_0[i] = \dbinom {\textit{zero}-1} {i-1}$，我们需要减去「至少 $1$ 组有超过 $\textit{limit}$ 个 $0$」的方案数，再加上「至少 $2$ 组有超过 $\textit{limit}$ 个 $0$」的方案数，再减去「至少 $3$ 组有超过 $\textit{limit}$ 个 $0$」的方案数，……，直到「至少 $j$ 组有超过 $\textit{limit}$ 个 $0$」的方案数，$j$ 的值见下文。
+
+- 至少 $j$ 组有超过 $\textit{limit}$ 个 $0$，相当于先从 $i$ 组中选 $j$ 组，每组先放入 $\textit{limit}$ 个 $0$，然后再把剩下的 $\textit{zero} - j\cdot \textit{limit}$ 分成 $i$ 组（需要满足 $\textit{zero} - j\cdot \textit{limit} \ge i$），方案数为
+
+$$
+\dbinom {i} {j} \dbinom {\textit{zero} - j\cdot \textit{limit}-1} {i-1}
+$$
+
+所以
+
+$$
+f_0[i] = \dbinom {\textit{zero}-1} {i-1} + \sum_{j} (-1)^j \dbinom {i} {j} \dbinom {\textit{zero} - j\cdot \textit{limit}-1} {i-1}
+$$
+
+其中 $j\ge 1$ 且需要满足 $\textit{zero} - j\cdot \textit{limit} \ge i$，即
+
+$$
+1\le j\le \left\lfloor\dfrac{zero - i}{\textit{limit}}\right\rfloor
+$$
+
+同理有
+
+$$
+f_1[i] = \dbinom {\textit{one}-1} {i-1} + \sum_{j} (-1)^j \dbinom {i} {j} \dbinom {\textit{one} - j\cdot \textit{limit}-1} {i-1}
+$$
+
+其中
+
+$$
+1\le j\le \left\lfloor\dfrac{one - i}{\textit{limit}}\right\rfloor
+$$
+
+最终答案为
+
+$$
+\sum_{i} (f_0[i-1] + 2\cdot f_0[i] + f_0[i+1])\cdot f_1[i]
+$$
+
+其中：
+
+1. $i\le \textit{one}$。因为 $1$ 最多分成 $\textit{one}$ 组。
+2. $i-1\le \textit{zero}$。因为 $0$ 最多分成 $\textit{zero}$ 组，当 $i-1 > \textit{zero}$ 时，上式中的 $f_0[i-1] = f_0[i] = f_0[i+1] = 0$，无需累加。
+3. $i\cdot \textit{limit}\ge \textit{one}$，即 $i\ge\left\lceil\dfrac{\textit{one}}{\textit{limit}}\right\rceil$。因为每组至多 $\textit{limit}$ 个 $1$，分成 $i$ 组，至多 $i\cdot \textit{limit}$ 个 $1$，这个数必须 $\ge \textit{one}$，不然剩下的 $1$ 放到哪一组都会导致组内 $1$ 的个数超过 $\textit{limit}$。
+
+整理得
+
+$$
+\left\lceil\dfrac{\textit{one}}{\textit{limit}}\right\rceil \le i\le \min(\textit{one},\textit{zero}+1)
+$$
+
+代码实现时：
+
+1. 上取整 $\left\lceil\dfrac{a}{b}\right\rceil$ 转换成下取整 $\left\lfloor\dfrac{a-1}{b}\right\rfloor+1$。
+2. $(-1)^j$ 可以用 $1-j\bmod 2\cdot 2$ 表示，因为当 $j$ 是偶数时，该式为 $1$；当 $j$ 是奇数时，该式为 $-1$，符合 $(-1)^j$。
+3. 预处理阶乘及其逆元，利用公式 $\dbinom {n} {m} = \dfrac{n!}{m!(n-m)!}$ 计算组合数。
+
+关于取模的知识点，见 [模运算的世界：当加减乘除遇上取模](https://leetcode.cn/circle/discuss/mDfnkW/)。
+
+```py [sol-Python3]
+MOD = 1_000_000_007
+MX = 1001
+
+fac = [0] * MX  # f[i] = i!
+fac[0] = 1
+for i in range(1, MX):
+    fac[i] = fac[i - 1] * i % MOD
+
+inv_f = [0] * MX  # inv_f[i] = i!^-1
+inv_f[-1] = pow(fac[-1], -1, MOD)
+for i in range(MX - 1, 0, -1):
+    inv_f[i - 1] = inv_f[i] * i % MOD
+
+def comb(n: int, m: int) -> int:
+    return fac[n] * inv_f[m] * inv_f[n - m] % MOD
+
+class Solution:
+    def numberOfStableArrays(self, zero: int, one: int, limit: int) -> int:
+        if zero > one:
+            zero, one = one, zero  # 保证空间复杂度为 O(min(zero, one))
+        f0 = [0] * (zero + 3)
+        for i in range((zero - 1) // limit + 1, zero + 1):
+            f0[i] = comb(zero - 1, i - 1)
+            for j in range(1, (zero - i) // limit + 1):
+                f0[i] = (f0[i] + (-1 if j % 2 else 1) * comb(i, j) * comb(zero - j * limit - 1, i - 1)) % MOD
+
+        ans = 0
+        for i in range((one - 1) // limit + 1, min(one, zero + 1) + 1):
+            f1 = comb(one - 1, i - 1)
+            for j in range(1, (one - i) // limit + 1):
+                f1 = (f1 + (-1 if j % 2 else 1) * comb(i, j) * comb(one - j * limit - 1, i - 1)) % MOD
+            ans = (ans + (f0[i - 1] + f0[i] * 2 + f0[i + 1]) * f1) % MOD
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MOD = 1_000_000_007;
+    private static final int MX = 1001;
+
+    private static final long[] F = new long[MX]; // f[i] = i!
+    private static final long[] INV_F = new long[MX]; // inv_f[i] = i!^-1
+
+    static {
+        F[0] = 1;
+        for (int i = 1; i < MX; i++) {
+            F[i] = F[i - 1] * i % MOD;
+        }
+
+        INV_F[MX - 1] = pow(F[MX - 1], MOD - 2);
+        for (int i = MX - 1; i > 0; i--) {
+            INV_F[i - 1] = INV_F[i] * i % MOD;
+        }
+    }
+
+    public int numberOfStableArrays(int zero, int one, int limit) {
+        if (zero > one) {
+            // swap，保证空间复杂度为 O(min(zero, one))
+            int t = zero;
+            zero = one;
+            one = t;
+        }
+        long[] f0 = new long[zero + 3];
+        for (int i = (zero - 1) / limit + 1; i <= zero; i++) {
+            f0[i] = comb(zero - 1, i - 1);
+            for (int j = 1; j <= (zero - i) / limit; j++) {
+                f0[i] = (f0[i] + (1 - j % 2 * 2) * comb(i, j) * comb(zero - j * limit - 1, i - 1)) % MOD;
+            }
+        }
+
+        long ans = 0;
+        for (int i = (one - 1) / limit + 1; i <= Math.min(one, zero + 1); i++) {
+            long f1 = comb(one - 1, i - 1);
+            for (int j = 1; j <= (one - i) / limit; j++) {
+                f1 = (f1 + (1 - j % 2 * 2) * comb(i, j) * comb(one - j * limit - 1, i - 1)) % MOD;
+            }
+            ans = (ans + (f0[i - 1] + f0[i] * 2 + f0[i + 1]) * f1) % MOD;
+        }
+        return (int) ((ans + MOD) % MOD); // 保证结果非负
+    }
+
+    private long comb(int n, int m) {
+        return F[n] * INV_F[m] % MOD * INV_F[n - m] % MOD;
+    }
+
+    private static long pow(long x, int n) {
+        long res = 1;
+        for (; n > 0; n /= 2) {
+            if (n % 2 > 0) {
+                res = res * x % MOD;
+            }
+            x = x * x % MOD;
+        }
+        return res;
+    }
+}
+```
+
+```cpp [sol-C++]
+const int MOD = 1'000'000'007;
+const int MX = 1001;
+
+long long F[MX]; // F[i] = i!
+long long INV_F[MX]; // INV_F[i] = i!^-1
+
+long long pow(long long x, int n) {
+    long long res = 1;
+    for (; n; n /= 2) {
+        if (n % 2) {
+            res = res * x % MOD;
+        }
+        x = x * x % MOD;
+    }
+    return res;
+}
+
+auto init = [] {
+    F[0] = 1;
+    for (int i = 1; i < MX; i++) {
+        F[i] = F[i - 1] * i % MOD;
+    }
+
+    INV_F[MX - 1] = pow(F[MX - 1], MOD - 2);
+    for (int i = MX - 1; i; i--) {
+        INV_F[i - 1] = INV_F[i] * i % MOD;
+    }
+    return 0;
+}();
+
+long long comb(int n, int m) {
+    return F[n] * INV_F[m] % MOD * INV_F[n - m] % MOD;
+}
+
+class Solution {
+public:
+    int numberOfStableArrays(int zero, int one, int limit) {
+        if (zero > one) {
+            swap(zero, one); // 保证空间复杂度为 O(min(zero, one))
+        }
+        vector<long long> f0(zero + 3);
+        for (int i = (zero - 1) / limit + 1; i <= zero; i++) {
+            f0[i] = comb(zero - 1, i - 1);
+            for (int j = 1; j <= (zero - i) / limit; j++) {
+                f0[i] = (f0[i] + (1 - j % 2 * 2) * comb(i, j) * comb(zero - j * limit - 1, i - 1)) % MOD;
+            }
+        }
+
+        long long ans = 0;
+        for (int i = (one - 1) / limit + 1; i <= min(one, zero + 1); i++) {
+            long long f1 = comb(one - 1, i - 1);
+            for (int j = 1; j <= (one - i) / limit; j++) {
+                f1 = (f1 + (1 - j % 2 * 2) * comb(i, j) * comb(one - j * limit - 1, i - 1)) % MOD;
+            }
+            ans = (ans + (f0[i - 1] + f0[i] * 2 + f0[i + 1]) * f1) % MOD;
+        }
+        return (ans + MOD) % MOD; // 保证结果非负
+    }
+};
+```
+
+```go [sol-Go]
+const mod = 1_000_000_007
+const mx = 1001
+
+var f [mx]int    // f[i] = i!
+var invF [mx]int // invF[i] = i!^-1
+
+func init() {
+	f[0] = 1
+	for i := 1; i < mx; i++ {
+		f[i] = f[i-1] * i % mod
+	}
+
+	invF[mx-1] = pow(f[mx-1], mod-2)
+	for i := mx - 1; i > 0; i-- {
+		invF[i-1] = invF[i] * i % mod
+	}
+}
+
+func comb(n, m int) int {
+	return f[n] * invF[m] % mod * invF[n-m] % mod
+}
+
+func numberOfStableArrays(zero, one, limit int) (ans int) {
+	if zero > one {
+		zero, one = one, zero // 保证空间复杂度为 O(min(zero, one))
+	}
+	f0 := make([]int, zero+3)
+	for i := (zero-1)/limit + 1; i <= zero; i++ {
+		f0[i] = comb(zero-1, i-1)
+		for j := 1; j <= (zero-i)/limit; j++ {
+			f0[i] = (f0[i] + (1-j%2*2)*comb(i, j)*comb(zero-j*limit-1, i-1)) % mod
+		}
+	}
+
+	for i := (one-1)/limit + 1; i <= min(one, zero+1); i++ {
+		f1 := comb(one-1, i-1)
+		for j := 1; j <= (one-i)/limit; j++ {
+			f1 = (f1 + (1-j%2*2)*comb(i, j)*comb(one-j*limit-1, i-1)) % mod
+		}
+		ans = (ans + (f0[i-1]+f0[i]*2+f0[i+1])*f1) % mod
+	}
+	return (ans + mod) % mod // 保证结果非负
+}
+
+func pow(x, n int) int {
+	res := 1
+	for ; n > 0; n /= 2 {
+		if n%2 > 0 {
+			res = res * x % mod
+		}
+		x = x * x % mod
+	}
+	return res
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}\left(\dfrac{\textit{zero}\cdot\textit{one}}{\textit{limit}}\right)$。忽略预处理的时间和空间。
+- 空间复杂度：$\mathcal{O}(\min(\textit{zero},\textit{one}))$。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `十一、优化 DP / §11.1 前缀和优化 DP`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `十一、优化 DP / §11.1 前缀和优化 DP`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

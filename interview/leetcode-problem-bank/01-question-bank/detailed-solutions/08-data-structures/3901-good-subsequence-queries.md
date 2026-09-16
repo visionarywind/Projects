@@ -1,0 +1,654 @@
+# 3901. 好子序列查询
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/good-subsequence-queries/
+- 题目 slug：`good-subsequence-queries`
+- 来源专题：常用数据结构
+- 来源分类路径：八、树状数组和线段树 / §8.3 线段树（无区间更新）
+- 难度分：2545
+- 外部题解来源：https://leetcode.cn/problems/good-subsequence-queries/solutions/3949925/jie-lun-xian-duan-shu-by-endlesscheng-aihf/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[结论+证明，用线段树维护（Python/Java/C++/Go）](https://leetcode.cn/problems/good-subsequence-queries/solutions/3949925/jie-lun-xian-duan-shu-by-endlesscheng-aihf/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`jie-lun-xian-duan-shu-by-endlesscheng-aihf`
+- topic id：`3949925`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 分析
+
+如果子序列的 GCD 等于 $p$，那么 $p$ 是子序列每个数的因子，或者说，子序列每个数都是 $p$ 的倍数。
+
+对于 $\textit{nums}$ 中的不是 $p$ 的倍数的数，一定不能在子序列中。
+
+参与 GCD 的数越多，GCD 越小。那么把所有是 $p$ 的倍数的数都选上，如果这些数的 GCD 不等于 $p$，那么选更少的数，GCD 也无法等于 $p$。所以我们必须知道所有是 $p$ 的倍数的数的 GCD。本题有单点修改操作，这可以用**线段树**维护。
+
+- 如果所有是 $p$ 的倍数的数的 GCD 等于 $p$，且这样的数不足 $n$ 个，那么万事大吉，答案加一。
+- 如果所有是 $p$ 的倍数的数的 GCD 等于 $p$，且这样的数有 $n$ 个，那就麻烦了，我们必须删除一个数（不选一个数）。暴力枚举删除哪个数？太慢了。如何处理这种特殊情况？
+
+## 特殊情况
+
+> 注意，下面讨论的前提是，$\textit{nums}$ 的每个数都是 $p$ 的倍数，且 $\textit{nums}$ 所有数的 GCD 等于 $p$。
+
+如果存在一个 $\textit{nums}[i]$，删除后（不选它），剩余 $n-1$ 个数的 GCD 等于 $p$，那么万事大吉，答案加一。
+
+但如果删除任意一个数，都会导致剩余 $n-1$ 个数的 GCD 大于 $p$ 呢？
+
+这样的数组长什么样？
+
+设 $a[i] = \dfrac{nums[i]}{p}$，那么 $a$ 的所有数的 GCD 等于 $1$。
+
+如果删除 $a[i]$ 后，剩余 $n-1$ 个数的 GCD 大于 $1$，那么剩余 $n-1$ 个数都包含某个质因子 $q_i$，且 $a[i]$ 不含质因子 $q_i$。
+
+**定理**：要让每个 $a[i]$ 都具有这样的性质，至少要有 $n$ 个**不同**的质数。
+
+**证明**：反证法。不妨设 $q_1 = q_2$，根据 $q_1$ 的定义，$q_1$ 整除 $a[2]$；根据 $q_2$ 的定义，$q_2$ 不整除 $a[2]$。这就矛盾了，故原命题成立。
+
+所以每个 $a[i]$ 至少是 $n-1$ 个不同质数的乘积。或者说，$a[i]$ 是 $n$ 个不同质数的乘积，再除以其中一个质数。
+
+考虑 $a$ 中最大的那个数，它可以不包含 $2$。由于 $3\times 5 \times 7 \times 11 \times 13 = 15015$，再乘一个质数 $17$ 就超过值域上界 $5\times 10^4$，所以 $a$ 中最大的那个数至多是 $5$ 个不同质数的乘积。所以如果「删除一个数后，所有数的 GCD 大于 $p$」，那么必须满足 $n-1\le 5$，即 $n\le 6$。
+
+如果 $n>6$，那么一定可以删除一个数，使得剩余 $n-1$ 个数的 GCD 等于 $p$。
+
+所以只需判断 $n\le 6$ 的情况，暴力枚举删除的数即可。
+
+[本题视频讲解](https://www.bilibili.com/video/BV1JNDQBBE7n/?t=24m31s)，欢迎点赞关注~
+
+```py [sol-Python3]
+# 模板来源 https://leetcode.cn/circle/discuss/mOr1u6/
+# 线段树有两个下标，一个是线段树节点的下标，另一个是线段树维护的区间的下标
+# 节点的下标：从 1 开始，如果你想改成从 0 开始，需要把左右儿子下标分别改成 node*2+1 和 node*2+2
+# 区间的下标：从 0 开始
+class SegmentTree:
+    def __init__(self, arr, target_gcd: int, default=0):
+        # 线段树维护一个长为 n 的数组（下标从 0 到 n-1）
+        # arr 可以是 list 或者 int
+        # 如果 arr 是 int，视作数组大小，默认值为 default
+        if isinstance(arr, int):
+            arr = [default] * arr
+        n = len(arr)
+        self._target_gcd = target_gcd
+        self._n = n
+        self._tree = [0] * (2 << (n - 1).bit_length())
+        self._build(arr, 1, 0, n - 1)
+
+    # 合并左右儿子的 val 到当前节点的 val
+    def _maintain(self, node: int) -> None:
+        self._tree[node] = gcd(self._tree[node * 2], self._tree[node * 2 + 1])
+
+    # 用 a 初始化线段树
+    # 时间复杂度 O(n)
+    def _build(self, a: List[int], node: int, l: int, r: int) -> None:
+        if l == r:  # 叶子
+            # 0 和任何数 g 的 GCD 都是 g，所以设置为 0 不影响所有数的 GCD
+            self._tree[node] = a[l] if a[l] % self._target_gcd == 0 else 0  # 初始化叶节点的值
+            return
+        m = (l + r) // 2
+        self._build(a, node * 2, l, m)  # 初始化左子树
+        self._build(a, node * 2 + 1, m + 1, r)  # 初始化右子树
+        self._maintain(node)
+
+    def _update(self, node: int, l: int, r: int, i: int, val: int) -> None:
+        if l == r:  # 叶子（到达目标）
+            # 0 和任何数 g 的 GCD 都是 g，所以设置为 0 不影响所有数的 GCD
+            self._tree[node] = val if val % self._target_gcd == 0 else 0
+            return
+        m = (l + r) // 2
+        if i <= m:  # i 在左子树
+            self._update(node * 2, l, m, i, val)
+        else:  # i 在右子树
+            self._update(node * 2 + 1, m + 1, r, i, val)
+        self._maintain(node)
+
+    def _query(self, node: int, l: int, r: int, ql: int, qr: int) -> int:
+        if ql > qr:
+            return 0
+        if ql <= l and r <= qr:  # 当前子树完全在 [ql, qr] 内
+            return self._tree[node]
+        m = (l + r) // 2
+        if qr <= m:  # [ql, qr] 在左子树
+            return self._query(node * 2, l, m, ql, qr)
+        if ql > m:  # [ql, qr] 在右子树
+            return self._query(node * 2 + 1, m + 1, r, ql, qr)
+        l_res = self._query(node * 2, l, m, ql, qr)
+        r_res = self._query(node * 2 + 1, m + 1, r, ql, qr)
+        return gcd(l_res, r_res)
+
+    # 更新 a[i]
+    # 时间复杂度 O(log n)
+    def update(self, i: int, val: int) -> None:
+        self._update(1, 0, self._n - 1, i, val)
+
+    # 返回用 gcd 合并所有 a[i] 的计算结果，其中 i 在闭区间 [ql, qr] 中
+    # 时间复杂度 O(log n)
+    def query(self, ql: int, qr: int) -> int:
+        return self._query(1, 0, self._n - 1, ql, qr)
+
+    def query_all(self) -> int:
+        return self._tree[1]
+
+    def check(self, n: int) -> bool:
+        return any(gcd(self.query(0, i - 1), self.query(i + 1, n - 1)) == self._target_gcd for i in range(n))
+
+
+class Solution:
+    def countGoodSubseq(self, nums: List[int], p: int, queries: List[List[int]]) -> int:
+        n = len(nums)
+        cnt_p = sum(x % p == 0 for x in nums)
+
+        t = SegmentTree(nums, p)
+        ans = 0
+
+        for i, x in queries:
+            if nums[i] % p == 0:
+                cnt_p -= 1
+            if x % p == 0:
+                cnt_p += 1
+            nums[i] = x
+            t.update(i, x)
+
+            if t.query_all() == p and (cnt_p < n or n > 6 or t.check(n)):
+                ans += 1
+
+        return ans
+```
+
+```java [sol-Java]
+// 模板来源 https://leetcode.cn/circle/discuss/mOr1u6/
+// 线段树有两个下标，一个是线段树节点的下标，另一个是线段树维护的区间的下标
+// 节点的下标：从 1 开始，如果你想改成从 0 开始，需要把左右儿子下标分别改成 node*2+1 和 node*2+2
+// 区间的下标：从 0 开始
+class SegmentTree {
+    private final int targetGcd;
+    private final int n;
+    private final int[] tree;
+
+    // 线段树维护数组 a
+    public SegmentTree(int[] a, int targetGcd) {
+        this.targetGcd = targetGcd;
+        n = a.length;
+        tree = new int[2 << (32 - Integer.numberOfLeadingZeros(n - 1))];
+        build(a, 1, 0, n - 1);
+    }
+
+    // 更新 a[i]
+    // 时间复杂度 O(log n)
+    public void update(int i, int val) {
+        update(1, 0, n - 1, i, val);
+    }
+
+    // 返回用 gcd 合并所有 a[i] 的计算结果，其中 i 在闭区间 [ql, qr] 中
+    // 时间复杂度 O(log n)
+    public int query(int ql, int qr) {
+        return query(1, 0, n - 1, ql, qr);
+    }
+
+    public int queryAll() {
+        return tree[1];
+    }
+
+    public boolean check(int n) {
+        for (int i = 0; i < n; i++) {
+            if (gcd(query(0, i - 1), query(i + 1, n - 1)) == targetGcd) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 合并左右儿子的 val 到当前节点的 val
+    private void maintain(int node) {
+        tree[node] = gcd(tree[node * 2], tree[node * 2 + 1]);
+    }
+
+    // 用 a 初始化线段树
+    // 时间复杂度 O(n)
+    private void build(int[] a, int node, int l, int r) {
+        if (l == r) { // 叶子
+            // 0 和任何数 g 的 GCD 都是 g，所以设置为 0 不影响所有数的 GCD
+            tree[node] = a[l] % targetGcd == 0 ? a[l] : 0; // 初始化叶节点的值
+            return;
+        }
+        int m = (l + r) / 2;
+        build(a, node * 2, l, m); // 初始化左子树
+        build(a, node * 2 + 1, m + 1, r); // 初始化右子树
+        maintain(node);
+    }
+
+    private void update(int node, int l, int r, int i, int val) {
+        if (l == r) { // 叶子（到达目标）
+            // 0 和任何数 g 的 GCD 都是 g，所以设置为 0 不影响所有数的 GCD
+            tree[node] = val % targetGcd == 0 ? val : 0;
+            return;
+        }
+        int m = (l + r) / 2;
+        if (i <= m) { // i 在左子树
+            update(node * 2, l, m, i, val);
+        } else { // i 在右子树
+            update(node * 2 + 1, m + 1, r, i, val);
+        }
+        maintain(node);
+    }
+
+    private int query(int node, int l, int r, int ql, int qr) {
+        if (ql > qr) {
+            return 0;
+        }
+        if (ql <= l && r <= qr) { // 当前子树完全在 [ql, qr] 内
+            return tree[node];
+        }
+        int m = (l + r) / 2;
+        if (qr <= m) { // [ql, qr] 在左子树
+            return query(node * 2, l, m, ql, qr);
+        }
+        if (ql > m) { // [ql, qr] 在右子树
+            return query(node * 2 + 1, m + 1, r, ql, qr);
+        }
+        int lRes = query(node * 2, l, m, ql, qr);
+        int rRes = query(node * 2 + 1, m + 1, r, ql, qr);
+        return gcd(lRes, rRes);
+    }
+
+    private int gcd(int a, int b) {
+        while (a != 0) {
+            int tmp = a;
+            a = b % a;
+            b = tmp;
+        }
+        return b;
+    }
+}
+
+class Solution {
+    public int countGoodSubseq(int[] nums, int p, int[][] queries) {
+        int n = nums.length;
+        int cntP = 0;
+        for (int x : nums) {
+            if (x % p == 0) {
+                cntP++;
+            }
+        }
+
+        SegmentTree t = new SegmentTree(nums, p);
+        int ans = 0;
+
+        for (int[] q : queries) {
+            int i = q[0];
+            int x = q[1];
+
+            if (nums[i] % p == 0) {
+                cntP--;
+            }
+            if (x % p == 0) {
+                cntP++;
+            }
+            nums[i] = x;
+            t.update(i, x);
+
+            if (t.queryAll() == p && (cntP < n || n > 6 || t.check(n))) {
+                ans++;
+            }
+        }
+
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+// 模板来源 https://leetcode.cn/circle/discuss/mOr1u6/
+// 线段树有两个下标，一个是线段树节点的下标，另一个是线段树维护的区间的下标
+// 节点的下标：从 1 开始，如果你想改成从 0 开始，需要把左右儿子下标分别改成 node*2+1 和 node*2+2
+// 区间的下标：从 0 开始
+template<typename T>
+class SegmentTree {
+    // 注：也可以去掉 template<typename T>，改在这里定义 T
+    // 例如 using T = pair<int, int>;
+
+    int target_gcd;
+    int n;
+    vector<T> tree;
+
+    // 合并左右儿子的 val 到当前节点的 val
+    void maintain(int node) {
+        tree[node] = gcd(tree[node * 2], tree[node * 2 + 1]);
+    }
+
+    // 用 a 初始化线段树
+    // 时间复杂度 O(n)
+    void build(const vector<T>& a, int node, int l, int r) {
+        if (l == r) { // 叶子
+            // 0 和任何数 g 的 GCD 都是 g，所以设置为 0 不影响所有数的 GCD
+            tree[node] = a[l] % target_gcd == 0 ? a[l] : 0; // 初始化叶节点的值
+            return;
+        }
+        int m = (l + r) / 2;
+        build(a, node * 2, l, m); // 初始化左子树
+        build(a, node * 2 + 1, m + 1, r); // 初始化右子树
+        maintain(node);
+    }
+
+    void update(int node, int l, int r, int i, T val) {
+        if (l == r) { // 叶子（到达目标）
+            // 0 和任何数 g 的 GCD 都是 g，所以设置为 0 不影响所有数的 GCD
+            tree[node] = val % target_gcd == 0 ? val : 0;
+            return;
+        }
+        int m = (l + r) / 2;
+        if (i <= m) { // i 在左子树
+            update(node * 2, l, m, i, val);
+        } else { // i 在右子树
+            update(node * 2 + 1, m + 1, r, i, val);
+        }
+        maintain(node);
+    }
+
+    T query(int node, int l, int r, int ql, int qr) const {
+        if (ql > qr) {
+            return 0;
+        }
+        if (ql <= l && r <= qr) { // 当前子树完全在 [ql, qr] 内
+            return tree[node];
+        }
+        int m = (l + r) / 2;
+        if (qr <= m) { // [ql, qr] 在左子树
+            return query(node * 2, l, m, ql, qr);
+        }
+        if (ql > m) { // [ql, qr] 在右子树
+            return query(node * 2 + 1, m + 1, r, ql, qr);
+        }
+        T l_res = query(node * 2, l, m, ql, qr);
+        T r_res = query(node * 2 + 1, m + 1, r, ql, qr);
+        return gcd(l_res, r_res);
+    }
+
+public:
+    // 线段树维护数组 a
+    SegmentTree(const vector<T>& a, int target_gcd) : target_gcd(target_gcd), n(a.size()), tree(2 << bit_width(a.size() - 1)) {
+        build(a, 1, 0, n - 1);
+    }
+
+    // 更新 a[i]
+    // 时间复杂度 O(log n)
+    void update(int i, T val) {
+        update(1, 0, n - 1, i, val);
+    }
+
+    // 返回用 gcd 合并所有 a[i] 的计算结果，其中 i 在闭区间 [ql, qr] 中
+    // 时间复杂度 O(log n)
+    T query(int ql, int qr) const {
+        return query(1, 0, n - 1, ql, qr);
+    }
+
+    T query_all() const {
+        return tree[1];
+    }
+
+    bool check(int n) const {
+        for (int i = 0; i < n; i++) {
+            if (gcd(query(0, i - 1), query(i + 1, n - 1)) == target_gcd) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
+class Solution {
+public:
+    int countGoodSubseq(vector<int>& nums, int p, vector<vector<int>>& queries) {
+        int n = nums.size();
+        int cnt_p = 0;
+        for (int x : nums) {
+            cnt_p += x % p == 0;
+        }
+
+        SegmentTree<int> t(nums, p);
+        int ans = 0;
+
+        for (auto& q : queries) {
+            int i = q[0], x = q[1];
+
+            cnt_p -= nums[i] % p == 0;
+            cnt_p += x % p == 0;
+            nums[i] = x;
+            t.update(i, x);
+
+            if (t.query_all() == p && (cnt_p < n || n > 6 || t.check(n))) {
+                ans++;
+            }
+        }
+
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+var targetGcd int
+
+// 模板来源 https://leetcode.cn/circle/discuss/mOr1u6/
+// 线段树有两个下标，一个是线段树节点的下标，另一个是线段树维护的区间的下标
+// 节点的下标：从 1 开始，如果你想改成从 0 开始，需要把左右儿子下标分别改成 node*2+1 和 node*2+2
+// 区间的下标：从 0 开始
+type seg []int
+
+// 线段树维护数组 a
+func newSegmentTreeWithArray(a []int) seg {
+	n := len(a)
+	t := make(seg, 2<<bits.Len(uint(n-1)))
+	t.build(a, 1, 0, n-1)
+	return t
+}
+
+// 合并左右儿子的 val 到当前节点的 val
+func (t seg) maintain(node int) {
+	t[node] = gcd(t[node*2], t[node*2+1])
+}
+
+// 用 a 初始化线段树
+// 时间复杂度 O(n)
+func (t seg) build(a []int, node, l, r int) {
+	if l == r { // 叶子
+		if a[l]%targetGcd == 0 {
+			t[node] = a[l] // 初始化叶节点的值
+		}
+		return
+	}
+	m := (l + r) / 2
+	t.build(a, node*2, l, m)     // 初始化左子树
+	t.build(a, node*2+1, m+1, r) // 初始化右子树
+	t.maintain(node)
+}
+
+// 更新 a[i]
+// 调用 t.update(1, 0, n-1, i, val)
+// 0 <= i <= n-1
+// 时间复杂度 O(log n)
+func (t seg) update(node, l, r, i, val int) {
+	if l == r { // 叶子（到达目标）
+		if val%targetGcd == 0 {
+			t[node] = val
+		} else {
+			t[node] = 0 // 0 和任何数 g 的 GCD 都是 g，所以设置为 0 不影响所有数的 GCD
+		}
+		return
+	}
+	m := (l + r) / 2
+	if i <= m { // i 在左子树
+		t.update(node*2, l, m, i, val)
+	} else { // i 在右子树
+		t.update(node*2+1, m+1, r, i, val)
+	}
+	t.maintain(node)
+}
+
+// 返回用 GCD 合并所有 a[i] 的计算结果，其中 i 在闭区间 [ql, qr] 中
+// 调用 t.query(1, 0, n-1, ql, qr)
+// 0 <= ql <= qr <= n-1
+// 时间复杂度 O(log n)
+func (t seg) query(node, l, r, ql, qr int) int {
+	if ql > qr {
+		return 0
+	}
+	if ql <= l && r <= qr { // 当前子树完全在 [ql, qr] 内
+		return t[node]
+	}
+	m := (l + r) / 2
+	if qr <= m { // [ql, qr] 在左子树
+		return t.query(node*2, l, m, ql, qr)
+	}
+	if ql > m { // [ql, qr] 在右子树
+		return t.query(node*2+1, m+1, r, ql, qr)
+	}
+	lRes := t.query(node*2, l, m, ql, qr)
+	rRes := t.query(node*2+1, m+1, r, ql, qr)
+	return gcd(lRes, rRes)
+}
+
+func (t seg) check(n int) bool {
+	for i := range n {
+		if gcd(t.query(1, 0, n-1, 0, i-1), t.query(1, 0, n-1, i+1, n-1)) == targetGcd {
+			return true
+		}
+	}
+	return false
+}
+
+func countGoodSubseq(nums []int, p int, queries [][]int) (ans int) {
+	n := len(nums)
+	cntP := 0
+	for _, x := range nums {
+		if x%p == 0 {
+			cntP++
+		}
+	}
+
+	targetGcd = p
+	t := newSegmentTreeWithArray(nums)
+
+	for _, q := range queries {
+		i, x := q[0], q[1]
+
+		if nums[i]%p == 0 {
+			cntP--
+		}
+		if x%p == 0 {
+			cntP++
+		}
+		nums[i] = x
+		t.update(1, 0, n-1, q[0], x)
+
+		if t[1] == p && (cntP < n || n > 6 || t.check(n)) {
+			ans++
+		}
+	}
+	return
+}
+
+func gcd(a, b int) int {
+	for a != 0 {
+		a, b = b%a, a
+	}
+	return b
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\log U + q(\log n + \log U))$，其中 $n$ 是 $\textit{nums}$ 的长度，$q$ 是 $\textit{queries}$ 的长度，$U=\max(\textit{nums})$。在线段树的 $\texttt{update}$ 过程中，从叶子到根的路径上，GCD 要么不变（此时退出辗转相除过程），要么至少减半（此时继续辗转相除过程），所以辗转相除的**总**循环次数只有 $\mathcal{O}(\log n + \log U)$。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 思考题
+
+如果有区间修改操作呢？
+
+欢迎在评论区分享你的思路/代码。
+
+## 专题训练
+
+见下面数据结构题单的「**§8.3 线段树**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `八、树状数组和线段树 / §8.3 线段树（无区间更新）`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `八、树状数组和线段树 / §8.3 线段树（无区间更新）`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

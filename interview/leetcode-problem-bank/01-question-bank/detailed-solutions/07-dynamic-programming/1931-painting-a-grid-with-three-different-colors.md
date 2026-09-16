@@ -1,0 +1,2071 @@
+# 1931. 用三种不同颜色为网格涂色
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/painting-a-grid-with-three-different-colors/
+- 题目 slug：`painting-a-grid-with-three-different-colors`
+- 来源专题：动态规划
+- 来源分类路径：九、状态压缩 DP（状压 DP） / §9.5 轮廓线 DP
+- 难度分：2170
+- 外部题解来源：https://leetcode.cn/problems/painting-a-grid-with-three-different-colors/solutions/869703/zhuang-ya-dp-yu-chu-li-he-fa-zhuang-tai-l927s/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[四种方法：记忆化搜索/递推/矩阵快速幂/BM+Kitamasa（Python/Java/C++/Go）](https://leetcode.cn/problems/painting-a-grid-with-three-different-colors/solutions/869703/zhuang-ya-dp-yu-chu-li-he-fa-zhuang-tai-l927s/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`zhuang-ya-dp-yu-chu-li-he-fa-zhuang-tai-l927s`
+- topic id：`869703`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+## 前言
+
+如果只有红绿两种颜色，可以把这两种颜色分别用 $0$ 和 $1$ 表示，用一个长为 $m$ 的**二进制数**表示一列的颜色。
+
+例如 $m=5$，二进制数 $01010_{(2)}$ 表示红绿红绿红。
+
+本题有红绿蓝三种颜色，可以分别用 $0,1,2$ 表示，用一个长为 $m$ 的**三进制数**表示一列的颜色。
+
+例如 $m=5$，三进制数 $01202_{(3)}$ 表示红绿蓝红蓝。
+
+> 注：本题不区分左右，三进制数从高到低读还是从低到高读都可以。
+
+## 思路
+
+首先预处理所有合法的（没有相邻相同颜色的）三进制数，记在数组 $\textit{valid}$ 中。
+
+然后对于每个 $\textit{valid}[i]$，预处理它的下一列颜色，要求左右相邻颜色不同。把 $\textit{valid}$ 的下标记在数组 $\textit{nxt}[i]$ 中。
+
+预处理这些数据之后，就可以 DP 了。
+
+对于 $m\times n$ 的网格，如果最后一列填的是三进制数 $\textit{valid}[j]$，那么问题为：对于 $m\times (n-1)$ 的网格，最后一列填的是三进制数 $\textit{valid}[j]$ 的情况下的涂色方案数。
+
+继续，如果倒数第二列填的是三进制数 $\textit{valid}[k]$，那么接下来要解决的问题为：对于 $m\times (n-2)$ 的网格，右边一列填的是三进制数 $\textit{valid}[k]$ 的情况下的涂色方案数。
+
+所以定义 $\textit{dfs}(i,j)$ 表示对于 $m\times i$ 的网格，右边第 $i+1$ 列填的是三进制数 $\textit{valid}[j]$ 的情况下的涂色方案数。
+
+枚举第 $i$ 列填颜色 $\textit{valid}[k]$（其中 $k$ 是 $\textit{nxt}[j]$ 中的元素），问题变成对于 $m\times (i-1)$ 的网格，右边第 $i$ 列填的是三进制数 $\textit{valid}[k]$ 的情况下的涂色方案数。
+
+累加得
+
+$$
+\textit{dfs}(i,j) = \sum_{k} \textit{dfs}(i-1,k)
+$$
+
+递归边界：$\textit{dfs}(0,j) = 1$，表示找到了一个合法涂色方案。
+
+递归入口：$\displaystyle\sum\limits_{j} \textit{dfs}(n-1, j)$。第 $n$ 列填颜色 $\textit{valid}[j]$。
+
+## 细节
+
+三进制数最大为 $22\ldots 2_{(3)} = 3^m-1$。枚举 $[0,3^m-1]$ 中的三进制数，怎么判断一个三进制数是否合法？
+
+我们需要取出三进制数中的每一位。
+
+回想一下十进制数 $12345$ 怎么取出百位的 $3$：$12345$ 除以 $100$ 下取整，得到 $123$，再模 $10$，得到 $3$。
+
+所以对于三进制数，可以除以 $3^i$ 下取整，再模 $3$。
+
+为什么可以在 DP 的计算过程中取模？可以看 [模运算的世界：当加减乘除遇上取模](https://leetcode.cn/circle/discuss/mDfnkW/)。
+
+## 方法一：记忆化搜索
+
+```py [sol-Python3]
+class Solution:
+    def colorTheGrid(self, m: int, n: int) -> int:
+        pow3 = [3 ** i for i in range(m)]
+        valid = []
+        for color in range(3 ** m):
+            for i in range(1, m):
+                if color // pow3[i] % 3 == color // pow3[i - 1] % 3:  # 相邻颜色相同
+                    break
+            else:  # 没有中途 break，合法
+                valid.append(color)
+
+        nv = len(valid)
+        nxt = [[] for _ in range(nv)]
+        for i, color1 in enumerate(valid):
+            for j, color2 in enumerate(valid):
+                for p3 in pow3:
+                    if color1 // p3 % 3 == color2 // p3 % 3:  # 相邻颜色相同
+                        break
+                else:  # 没有中途 break，合法
+                    nxt[i].append(j)
+
+        MOD = 1_000_000_007
+        @cache  # 缓存装饰器，避免重复计算 dfs（一行代码实现记忆化）
+        def dfs(i: int, j: int) -> int:
+            if i == 0:
+                return 1  # 找到了一个合法涂色方案
+            return sum(dfs(i - 1, k) for k in nxt[j]) % MOD
+        return sum(dfs(n - 1, j) for j in range(nv)) % MOD
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public int colorTheGrid(int m, int n) {
+        int[] pow3 = new int[m];
+        pow3[0] = 1;
+        for (int i = 1; i < m; i++) {
+            pow3[i] = pow3[i - 1] * 3;
+        }
+
+        List<Integer> valid = new ArrayList<>();
+        next:
+        for (int color = 0; color < pow3[m - 1] * 3; color++) {
+            for (int i = 1; i < m; i++) {
+                if (color / pow3[i] % 3 == color / pow3[i - 1] % 3) { // 相邻颜色相同
+                    continue next;
+                }
+            }
+            valid.add(color);
+        }
+
+        int nv = valid.size();
+        List<Integer>[] nxt = new ArrayList[nv];
+        Arrays.setAll(nxt, i -> new ArrayList<>());
+        for (int i = 0; i < nv; i++) {
+            next2:
+            for (int j = 0; j < nv; j++) {
+                for (int p3 : pow3)
+                    if (valid.get(i) / p3 % 3 == valid.get(j) / p3 % 3) { // 相邻颜色相同
+                        continue next2;
+                    }
+                nxt[i].add(j);
+            }
+        }
+
+        int[][] memo = new int[n][nv];
+        for (int[] row : memo) {
+            Arrays.fill(row, -1);
+        }
+
+        long ans = 0;
+        for (int j = 0; j < nv; j++) {
+            ans += dfs(n - 1, j, nxt, memo);
+        }
+        return (int) (ans % MOD);
+    }
+
+    private int dfs(int i, int j, List<Integer>[] nxt, int[][] memo) {
+        if (i == 0) {
+            return 1; // 找到了一个合法涂色方案
+        }
+        if (memo[i][j] != -1) { // 之前计算过
+            return memo[i][j];
+        }
+        long res = 0;
+        for (int k : nxt[j]) {
+            res += dfs(i - 1, k, nxt, memo);
+        }
+        return memo[i][j] = (int) (res % MOD); // 记忆化
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+    const int MOD = 1'000'000'007;
+public:
+    int colorTheGrid(int m, int n) {
+        vector<int> pow3(m);
+        pow3[0] = 1;
+        for (int i = 1; i < m; i++) {
+            pow3[i] = pow3[i - 1] * 3;
+        }
+
+        vector<int> valid;
+        for (int color = 0; color < pow3[m - 1] * 3; color++) {
+            bool ok = true;
+            for (int i = 1; i < m; i++) {
+                if (color / pow3[i] % 3 == color / pow3[i - 1] % 3) { // 相邻颜色相同
+                    ok = false;
+                    break;
+                }
+            }
+            if (ok) {
+                valid.push_back(color);
+            }
+        }
+
+        int nv = valid.size();
+        vector<vector<int>> nxt(nv);
+        for (int i = 0; i < nv; i++) {
+            for (int j = 0; j < nv; j++) {
+                bool ok = true;
+                for (int k = 0; k < m; k++) {
+                    if (valid[i] / pow3[k] % 3 == valid[j] / pow3[k] % 3) { // 相邻颜色相同
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) {
+                    nxt[i].push_back(j);
+                }
+            }
+        }
+
+        vector memo(n, vector<int>(nv, -1));
+        auto dfs = [&](this auto&& dfs, int i, int j) -> int {
+            if (i == 0) {
+                return 1; // 找到了一个合法涂色方案
+            }
+            int& res = memo[i][j]; // 注意这里是引用
+            if (res != -1) { // 之前计算过
+                return res;
+            }
+            res = 0;
+            for (int k : nxt[j]) {
+                res = (res + dfs(i - 1, k)) % MOD;
+            }
+            return res;
+        };
+
+        long long ans = 0;
+        for (int j = 0; j < nv; j++) {
+            ans += dfs(n - 1, j);
+        }
+        return ans % MOD;
+    }
+};
+```
+
+```go [sol-Go]
+func colorTheGrid(m, n int) int {
+	const mod = 1_000_000_007
+	pow3 := make([]int, m)
+	pow3[0] = 1
+	for i := 1; i < m; i++ {
+		pow3[i] = pow3[i-1] * 3
+	}
+
+	valid := []int{}
+next:
+	for color := range pow3[m-1] * 3 {
+		for i := range m - 1 {
+			if color/pow3[i+1]%3 == color/pow3[i]%3 { // 相邻颜色相同
+				continue next
+			}
+		}
+		valid = append(valid, color)
+	}
+
+	nv := len(valid)
+	nxt := make([][]int, nv)
+	for i, color1 := range valid {
+	next2:
+		for j, color2 := range valid {
+			for _, p3 := range pow3 {
+				if color1/p3%3 == color2/p3%3 { // 相邻颜色相同
+					continue next2
+				}
+			}
+			nxt[i] = append(nxt[i], j)
+		}
+	}
+
+	memo := make([][]int, n)
+	for i := range memo {
+		memo[i] = make([]int, nv)
+		for j := range memo[i] {
+			memo[i][j] = -1
+		}
+	}
+	var dfs func(int, int) int
+	dfs = func(i, j int) (res int) {
+		if i == 0 {
+			return 1 // 找到了一个合法涂色方案
+		}
+		p := &memo[i][j]
+		if *p != -1 { // 之前计算过
+			return *p
+		}
+		defer func() { *p = res }() // 记忆化
+		for _, k := range nxt[j] {
+			res += dfs(i-1, k)
+		}
+		return res % mod
+	}
+
+	ans := 0
+	for j := range nv {
+		ans += dfs(n-1, j)
+	}
+	return ans % mod
+}
+```
+
+#### 复杂度分析
+
+有多少个状态？$\textit{valid}$ 有多长？
+
+对于一列长为 $m$ 的涂色方案，第一个颜色有 $3$ 种，其余颜色不能与上一个颜色相同，所以都是 $2$ 种。所以 $\textit{valid}$ 的长度为
+
+$$
+3\cdot 2^{m-1}
+$$
+
+所以状态个数为 $i$ 的个数 $\mathcal{O}(n)$ 乘以 $j$ 的个数 $\mathcal{O}(2^m)$，一共有 $\mathcal{O}(n2^m)$ 个状态。
+
+- 时间复杂度：$\mathcal{O}(n4^m)$。由于每个状态只会计算一次，动态规划的时间复杂度 $=$ 状态个数 $\times$ 单个状态的计算时间。本题状态个数等于 $\mathcal{O}(n2^m)$，单个状态的计算时间为 $\mathcal{O}(2^m)$，所以总的时间复杂度为 $\mathcal{O}(n4^m)$。
+- 空间复杂度：$\mathcal{O}(4^m + n2^m)$。其中 $\mathcal{O}(4^m)$ 是 $\textit{nxt}$ 需要的空间，$\mathcal{O}(n2^m)$ 是记忆化搜索需要的空间。
+
+## 方法二：递推
+
+把记忆化搜索 1:1 翻译成递推，原理见 [动态规划入门：从记忆化搜索到递推【基础算法精讲 17】](https://www.bilibili.com/video/BV1Xj411K7oF/)。
+
+```py [sol-Python3]
+class Solution:
+    def colorTheGrid(self, m: int, n: int) -> int:
+        pow3 = [3 ** i for i in range(m)]
+        valid = []
+        for color in range(3 ** m):
+            for i in range(1, m):
+                if color // pow3[i] % 3 == color // pow3[i - 1] % 3:  # 相邻颜色相同
+                    break
+            else:  # 没有中途 break，合法
+                valid.append(color)
+
+        nv = len(valid)
+        nxt = [[] for _ in range(nv)]
+        for i, color1 in enumerate(valid):
+            for j, color2 in enumerate(valid):
+                for p3 in pow3:
+                    if color1 // p3 % 3 == color2 // p3 % 3:  # 相邻颜色相同
+                        break
+                else:  # 没有中途 break，合法
+                    nxt[i].append(j)
+
+        MOD = 1_000_000_007
+        f = [[0] * nv for _ in range(n)]
+        f[0] = [1] * nv  # dfs 的递归边界就是 DP 数组的初始值
+        for i in range(1, n):
+            for j in range(nv):
+                f[i][j] = sum(f[i - 1][k] for k in nxt[j]) % MOD
+        return sum(f[-1]) % MOD  # 递归入口就是答案
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public int colorTheGrid(int m, int n) {
+        int[] pow3 = new int[m];
+        pow3[0] = 1;
+        for (int i = 1; i < m; i++) {
+            pow3[i] = pow3[i - 1] * 3;
+        }
+
+        List<Integer> valid = new ArrayList<>();
+        next:
+        for (int color = 0; color < pow3[m - 1] * 3; color++) {
+            for (int i = 1; i < m; i++) {
+                if (color / pow3[i] % 3 == color / pow3[i - 1] % 3) { // 相邻颜色相同
+                    continue next;
+                }
+            }
+            valid.add(color);
+        }
+
+        int nv = valid.size();
+        List<Integer>[] nxt = new ArrayList[nv];
+        Arrays.setAll(nxt, i -> new ArrayList<>());
+        for (int i = 0; i < nv; i++) {
+            next2:
+            for (int j = 0; j < nv; j++) {
+                for (int p3 : pow3)
+                    if (valid.get(i) / p3 % 3 == valid.get(j) / p3 % 3) { // 相邻颜色相同
+                        continue next2;
+                    }
+                nxt[i].add(j);
+            }
+        }
+
+        int[][] f = new int[n][nv];
+        Arrays.fill(f[0], 1);
+        for (int i = 1; i < n; i++) {
+            for (int j = 0; j < nv; j++) {
+                for (int k : nxt[j]) {
+                    f[i][j] = (f[i][j] + f[i - 1][k]) % MOD;
+                }
+            }
+        }
+
+        long ans = 0;
+        for (int j = 0; j < nv; j++) {
+            ans += f[n - 1][j];
+        }
+        return (int) (ans % MOD);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+    const int MOD = 1'000'000'007;
+public:
+    int colorTheGrid(int m, int n) {
+        vector<int> pow3(m);
+        pow3[0] = 1;
+        for (int i = 1; i < m; i++) {
+            pow3[i] = pow3[i - 1] * 3;
+        }
+
+        vector<int> valid;
+        for (int color = 0; color < pow3[m - 1] * 3; color++) {
+            bool ok = true;
+            for (int i = 1; i < m; i++) {
+                if (color / pow3[i] % 3 == color / pow3[i - 1] % 3) { // 相邻颜色相同
+                    ok = false;
+                    break;
+                }
+            }
+            if (ok) {
+                valid.push_back(color);
+            }
+        }
+
+        int nv = valid.size();
+        vector<vector<int>> nxt(nv);
+        for (int i = 0; i < nv; i++) {
+            for (int j = 0; j < nv; j++) {
+                bool ok = true;
+                for (int k = 0; k < m; k++) {
+                    if (valid[i] / pow3[k] % 3 == valid[j] / pow3[k] % 3) { // 相邻颜色相同
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) {
+                    nxt[i].push_back(j);
+                }
+            }
+        }
+
+        vector f(n, vector<int>(nv));
+        ranges::fill(f[0], 1);
+        for (int i = 1; i < n; i++) {
+            for (int j = 0; j < nv; j++) {
+                for (int k : nxt[j]) {
+                    f[i][j] = (f[i][j] + f[i - 1][k]) % MOD;
+                }
+            }
+        }
+
+        long long ans = 0;
+        for (int j = 0; j < nv; j++) {
+            ans += f[n - 1][j];
+        }
+        return ans % MOD;
+    }
+};
+```
+
+```go [sol-Go]
+func colorTheGrid(m, n int) int {
+	const mod = 1_000_000_007
+	pow3 := make([]int, m)
+	pow3[0] = 1
+	for i := 1; i < m; i++ {
+		pow3[i] = pow3[i-1] * 3
+	}
+
+	valid := []int{}
+next:
+	for color := range pow3[m-1] * 3 {
+		for i := range m - 1 {
+			if color/pow3[i+1]%3 == color/pow3[i]%3 { // 相邻颜色相同
+				continue next
+			}
+		}
+		valid = append(valid, color)
+	}
+
+	nv := len(valid)
+	nxt := make([][]int, nv)
+	for i, color1 := range valid {
+	next2:
+		for j, color2 := range valid {
+			for _, p3 := range pow3 {
+				if color1/p3%3 == color2/p3%3 { // 相邻颜色相同
+					continue next2
+				}
+			}
+			nxt[i] = append(nxt[i], j)
+		}
+	}
+
+	f := make([][]int, n)
+	for i := range f {
+		f[i] = make([]int, nv)
+	}
+	for j := range f[0] {
+		f[0][j] = 1
+	}
+	for i := 1; i < n; i++ {
+		for j := range f[i] {
+			for _, k := range nxt[j] {
+				f[i][j] += f[i-1][k]
+			}
+			f[i][j] %= mod
+		}
+	}
+
+	ans := 0
+	for _, fv := range f[n-1] {
+		ans += fv
+	}
+	return ans % mod
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n4^m)$。理由同写法一。
+- 空间复杂度：$\mathcal{O}(4^m + n2^m)$。**注**：用滚动数组可以优化至 $\mathcal{O}(4^m)$。
+
+## 方法三：矩阵快速幂
+
+$n=10^{18}$ 也可以通过。
+
+[原理讲解](https://leetcode.cn/problems/knight-dialer/solutions/3004116/jiao-ni-yi-bu-bu-si-kao-dpcong-ji-yi-hua-x06l/)
+
+```py [sol-NumPy]
+import numpy as np
+
+MOD = 1_000_000_007
+
+# a^n @ f0
+def pow(a: np.ndarray, n: int, f0: np.ndarray) -> np.ndarray:
+    res = f0
+    while n:
+        if n & 1:
+            res = a @ res % MOD
+        a = a @ a % MOD
+        n >>= 1
+    return res
+
+class Solution:
+    def colorTheGrid(self, m: int, n: int) -> int:
+        pow3 = [3 ** i for i in range(m)]
+        valid = []
+        for color in range(3 ** m):
+            for i in range(1, m):
+                if color // pow3[i] % 3 == color // pow3[i - 1] % 3:  # 相邻颜色相同
+                    break
+            else:  # 没有中途 break，合法
+                valid.append(color)
+
+        nv = len(valid)
+        m = np.zeros((nv, nv), dtype=object)
+        for i, color1 in enumerate(valid):
+            for j, color2 in enumerate(valid):
+                for p3 in pow3:
+                    if color1 // p3 % 3 == color2 // p3 % 3:  # 相邻颜色相同
+                        break
+                else:  # 没有中途 break，合法
+                    m[i, j] = 1
+
+        f0 = np.ones((nv,), dtype=object)
+        res = pow(m, n - 1, f0)
+        return np.sum(res) % MOD
+```
+
+```py [sol-NumPy 写法二]
+import numpy as np
+
+MOD = 1_000_000_007
+
+class Solution:
+    def colorTheGrid(self, m: int, n: int) -> int:
+        pow3 = [3 ** i for i in range(m)]
+        valid = []
+        for color in range(3 ** m):
+            for i in range(1, m):
+                if color // pow3[i] % 3 == color // pow3[i - 1] % 3:  # 相邻颜色相同
+                    break
+            else:  # 没有中途 break，合法
+                valid.append(color)
+
+        nv = len(valid)
+        m = np.zeros((nv, nv), dtype=object)
+        for i, color1 in enumerate(valid):
+            for j, color2 in enumerate(valid):
+                for p3 in pow3:
+                    if color1 // p3 % 3 == color2 // p3 % 3:  # 相邻颜色相同
+                        break
+                else:  # 没有中途 break，合法
+                    m[i, j] = 1
+
+        f0 = np.ones((nv,), dtype=object)
+        res = np.linalg.matrix_power(m, n - 1) @ f0
+        return np.sum(res) % MOD
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(2^{m\omega} \log n)$。矩阵长宽均为 $\mathcal{O}(2^m)$，计算一次矩阵乘法需要 $\mathcal{O}((2^m)^\omega)$ 的时间，其中 $\omega\le 3$。
+- 空间复杂度：$\mathcal{O}(4^m)$。
+
+## 方法四：Berlekamp-Massey 算法 + Kitamasa 算法
+
+使用 [Berlekamp-Massey 算法](https://zhuanlan.zhihu.com/p/1966417899825665440) 找规律，可以直接得到线性递推式。
+
+$m=1,2,3,4,5$ 时的递推式分别为
+
+$$
+\begin{aligned}
+f_n &= 2f_{n-1} \ \ (n \ge 1)     \\
+f_n &= 3f_{n-1} \ \ (n \ge 1)     \\
+f_n &= 5f_{n-1}-2f_{n-2} \ \ (n \ge 2)     \\
+f_n &= 9f_{n-1}-15f_{n-2}+6f_{n-3} \ \ (n \ge 3)     \\
+f_n &= 16f_{n-1}-65f_{n-2}+92f_{n-3}-48f_{n-4}+8f_{n-5} \ \ (n \ge 5)     \\
+\end{aligned}
+$$
+
+初始值分别为
+
+$$
+\begin{aligned}
+& f = [3]    \\
+& f = [6]    \\
+& f = [12,54]   \\
+& f = [24,162,1122]    \\
+& f = [48,486,5118,54450,580986]    \\
+\end{aligned}
+$$
+
+然后使用 [Kitamasa 算法](https://zhuanlan.zhihu.com/p/1964051212304364939) 解决。
+
+```py [sol-Python3]
+MOD = 1_000_000_007
+
+# 注意 kitamasa 入参的顺序
+coef = [
+    [2],
+    [3],
+    [-2, 5],
+    [6, -15, 9],
+    [8, -48, 92, -65, 16],
+]
+
+a = [
+    [3],
+    [6],
+    [12, 54],
+    [24, 162, 1122],
+    [48, 486, 5118, 54450, 580986],
+]
+
+class Solution:
+    # 给定常系数齐次线性递推式 f(n) = coef[k-1] * f(n-1) + coef[k-2] * f(n-2) + ... + coef[0] * f(n-k)
+    # 以及初始值 f(i) = a[i] (0 <= i < k)
+    # 返回 f(n) % MOD，其中参数 n 从 0 开始
+    # 注意 coef 的顺序
+    # 时间复杂度 O(k^2 log n)，其中 k 是 coef 的长度
+    def kitamasa(self, coef: List[int], a: List[int], n: int) -> int:
+        if n < len(a):
+            return a[n] % MOD
+
+        k = len(coef)
+        if k == 1:
+            return a[0] * pow(coef[0], n, MOD) % MOD
+
+        # 已知 f(n) 的各项系数为 a，f(m) 的各项系数为 b
+        # 计算并返回 f(n+m) 的各项系数 c
+        def compose(a: List[int], b: List[int]) -> List[int]:
+            c = [0] * k
+            for v in a:
+                for j, w in enumerate(b):
+                    c[j] = (c[j] + v * w) % MOD
+                # 原地计算下一组系数，比如已知 f(4) 的各项系数，现在要计算 f(5) 的各项系数
+                # 倒序遍历，避免提前覆盖旧值
+                bk1 = b[-1]
+                for i in range(k - 1, 0, -1):
+                    b[i] = (b[i - 1] + bk1 * coef[i]) % MOD
+                b[0] = bk1 * coef[0] % MOD
+            return c
+
+        # 计算 res_c，以表出 f(n) = res_c[k-1] * a[k-1] + res_c[k-2] * a[k-2] + ... + res_c[0] * a[0]
+        res_c = [0] * k
+        c = [0] * k
+        res_c[0] = c[1] = 1
+        while n > 0:
+            if n % 2:
+                res_c = compose(c, res_c)
+            # 由于会修改 compose 的第二个参数，这里把 c 复制一份再传入
+            c = compose(c, c[:])
+            n //= 2
+
+        return sum(c * v for c, v in zip(res_c, a)) % MOD
+
+    def colorTheGrid(self, m: int, n: int) -> int:
+        return self.kitamasa(coef[m - 1], a[m - 1], n - 1)
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    // 注意 kitamasa 入参的顺序
+    private static final int[][] coef = {
+        {2},
+        {3},
+        {-2, 5},
+        {6, -15, 9},
+        {8, -48, 92, -65, 16},
+    };
+
+    private static final int[][] a = {
+        {3},
+        {6},
+        {12, 54},
+        {24, 162, 1122},
+        {48, 486, 5118, 54450, 580986},
+    };
+
+    public int colorTheGrid(int m, int n) {
+        return kitamasa(coef[m - 1], a[m - 1], n - 1);
+    }
+
+    // 给定常系数齐次线性递推式 f(n) = coef[k-1] * f(n-1) + ... + coef[0] * f(n-k)
+    // 以及初始值 f(i) = a[i] (0 <= i < k)
+    // 返回 f(n) % MOD，其中参数 n 从 0 开始
+    // 注意 coef 的顺序
+    // 时间复杂度 O(k^2 log n)，其中 k 是 coef 的长度
+    private int kitamasa(int[] coef, int[] a, long n) {
+        if (n < a.length) {
+            return a[(int) n] % MOD;
+        }
+
+        int k = coef.length;
+        if (k == 1) {
+            return (int) ((long) a[0] * pow(coef[0], n) % MOD);
+        }
+
+        // 计算 resC，以表出 f(n) = resC[k-1] * a[k-1] + ... + resC[0] * a[0]
+        int[] resC = new int[k];
+        int[] c = new int[k];
+        resC[0] = c[1] = 1;
+        for (; n > 0; n /= 2) {
+            if (n % 2 > 0) {
+                resC = compose(coef, c, resC);
+            }
+            // 由于会修改 compose 的第三个参数，这里把 c 复制一份再传入
+            c = compose(coef, c, c.clone());
+        }
+
+        long ans = 0;
+        for (int i = 0; i < k; i++) {
+            ans = (ans + (long) resC[i] * a[i]) % MOD;
+        }
+
+        return (int) ((ans + MOD) % MOD); // 保证返回值非负
+    }
+
+    // 已知 f(n) 的各项系数为 a，f(m) 的各项系数为 b
+    // 计算并返回 f(n+m) 的各项系数 c
+    private int[] compose(int[] coef, int[] a, int[] b) {
+        int k = a.length;
+        int[] c = new int[k];
+        for (int v : a) {
+            for (int j = 0; j < k; j++) {
+                c[j] = (int) ((c[j] + (long) v * b[j]) % MOD);
+            }
+            // 原地计算下一组系数，比如已知 f(4) 的各项系数，现在要计算 f(5) 的各项系数
+            // 倒序遍历，避免提前覆盖旧值
+            long bk1 = b[k - 1];
+            for (int i = k - 1; i > 0; i--) {
+                b[i] = (int) ((b[i - 1] + bk1 * coef[i]) % MOD);
+            }
+            b[0] = (int) (bk1 * coef[0] % MOD);
+        }
+        return c;
+    }
+    
+    private int pow(long x, long n) {
+        long res = 1;
+        for (; n > 0; n /= 2) {
+            if (n % 2 > 0) {
+                res = res * x % MOD;
+            }
+            x = x * x % MOD;
+        }
+        return (int) res;
+    }
+}
+```
+
+```cpp [sol-C++]
+// 注意 kitamasa 入参的顺序
+vector<vector<int>> coef = {
+    {2},
+    {3},
+    {-2, 5},
+    {6, -15, 9},
+    {8, -48, 92, -65, 16},
+};
+
+vector<vector<int>> a = {
+    {3},
+    {6},
+    {12, 54},
+    {24, 162, 1122},
+    {48, 486, 5118, 54450, 580986},
+};
+
+class Solution {
+    static constexpr int MOD = 1'000'000'007;
+
+    int pow(long long x, int n) {
+        long long res = 1;
+        for (; n > 0; n /= 2) {
+            if (n % 2) {
+                res = res * x % MOD;
+            }
+            x = x * x % MOD;
+        }
+        return res;
+    }
+
+    // 给定常系数齐次线性递推式 f(n) = coef[k-1] * f(n-1) + coef[k-2] * f(n-2) + ... + coef[0] * f(n-k)
+    // 以及初始值 f(i) = a[i] (0 <= i < k)
+    // 返回 f(n) % MOD，其中参数 n 从 0 开始
+    // 注意 coef 的顺序
+    // 时间复杂度 O(k^2 log n)，其中 k 是 coef 的长度
+    int kitamasa(const vector<int>& coef, const vector<int>& a, long long n) {
+        if (n < a.size()) {
+            return a[n] % MOD;
+        }
+
+        int k = coef.size();
+        if (k == 1) {
+            return 1LL * a[0] * pow(coef[0], n) % MOD;
+        }
+
+        // 已知 f(n) 的各项系数为 A，f(m) 的各项系数为 B
+        // 计算并返回 f(n+m) 的各项系数 C
+        auto compose = [&](const vector<int>& A, vector<int> B) -> vector<int> {
+            vector<int> C(k);
+            for (int v : A) {
+                for (int j = 0; j < k; j++) {
+                    C[j] = (C[j] + 1LL * v * B[j]) % MOD;
+                }
+                // 原地计算下一组系数，比如已知 f(4) 的各项系数，现在要计算 f(5) 的各项系数
+                // 倒序遍历，避免提前覆盖旧值
+                int bk1 = B.back();
+                for (int i = k - 1; i > 0; i--) {
+                    B[i] = (B[i - 1] + 1LL * bk1 * coef[i]) % MOD;
+                }
+                B[0] = 1LL * bk1 * coef[0] % MOD;
+            }
+            return C;
+        };
+
+        // 计算 res_c，以表出 f(n) = res_c[k-1] * a[k-1] + res_c[k-2] * a[k-2] + ... + res_c[0] * a[0]
+        vector<int> res_c(k), c(k);
+        res_c[0] = c[1] = 1;
+        for (; n > 0; n /= 2) {
+            if (n % 2) {
+                res_c = compose(c, move(res_c));
+            }
+            c = compose(c, c);
+        }
+
+        long long ans = 0;
+        for (int i = 0; i < k; i++) {
+            ans = (ans + 1LL * res_c[i] * a[i]) % MOD;
+        }
+
+        return (ans + MOD) % MOD; // 保证返回值非负
+    }
+
+public:
+    int colorTheGrid(int m, int n) {
+        return kitamasa(coef[m - 1], a[m - 1], n - 1);
+    }
+};
+```
+
+```go [sol-Go]
+const mod = 1_000_000_007
+
+func pow(x, n int) int {
+	res := 1
+	for ; n > 0; n /= 2 {
+		if n%2 > 0 {
+			res = res * x % mod
+		}
+		x = x * x % mod
+	}
+	return res
+}
+
+// 给定常系数齐次线性递推式 f(n) = coef[k-1] * f(n-1) + coef[k-2] * f(n-2) + ... + coef[0] * f(n-k)
+// 以及初始值 f(i) = a[i] (0 <= i < k)
+// 返回 f(n) % mod，其中参数 n 从 0 开始
+// 注意 coef 的顺序
+// 时间复杂度 O(k^2 log n)，其中 k 是 coef 的长度
+func kitamasa(coef, a []int, n int) (ans int) {
+	if n < len(a) {
+		return a[n] % mod
+	}
+
+	k := len(coef)
+	if k == 1 {
+		return a[0] * pow(coef[0], n) % mod
+	}
+
+	// 已知 f(n) 的各项系数为 a，f(m) 的各项系数为 b
+	// 计算并返回 f(n+m) 的各项系数 c
+	compose := func(a, b []int) []int {
+		c := make([]int, k)
+		for _, v := range a {
+			for j, w := range b {
+				c[j] = (c[j] + v*w) % mod
+			}
+			// 原地计算下一组系数，比如已知 f(4) 的各项系数，现在要计算 f(5) 的各项系数
+			// 倒序遍历，避免提前覆盖旧值
+			bk1 := b[k-1]
+			for i := k - 1; i > 0; i-- {
+				b[i] = (b[i-1] + bk1*coef[i]) % mod
+			}
+			b[0] = bk1 * coef[0] % mod
+		}
+		return c
+	}
+
+	// 计算 resC，以表出 f(n) = resC[k-1] * a[k-1] + resC[k-2] * a[k-2] + ... + resC[0] * a[0]
+	resC := make([]int, k)
+	resC[0] = 1
+	c := make([]int, k)
+	c[1] = 1
+	for ; n > 0; n /= 2 {
+		if n%2 > 0 {
+			resC = compose(c, resC)
+		}
+		// 由于会修改 compose 的第二个参数，这里把 c 复制一份再传入
+		c = compose(c, slices.Clone(c))
+	}
+
+	for i, c := range resC {
+		ans = (ans + c*a[i]) % mod
+	}
+
+	return (ans + mod) % mod // 保证结果非负
+}
+
+// 注意 kitamasa 入参的顺序
+var coef = [][]int{
+	{2},
+	{3},
+	{-2, 5},
+	{6, -15, 9},
+	{8, -48, 92, -65, 16},
+}
+var a = [][]int{
+	{3},
+	{6},
+	{12, 54},
+	{24, 162, 1122},
+	{48, 486, 5118, 54450, 580986},
+}
+
+func colorTheGrid(m, n int) int {
+	return kitamasa(coef[m-1], a[m-1], n-1)
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(m^2\log n)$。
+- 空间复杂度：$\mathcal{O}(1)$。外部空间不计入。
+
+## 双倍经验
+
+[1411. 给 N x 3 网格图涂色的方案数](https://leetcode.cn/problems/number-of-ways-to-paint-n-3-grid/)
+
+## 专题训练
+
+见下面动态规划题单的「**§11.6 矩阵快速幂优化 DP**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 前言
+
+如果只有红绿两种颜色，可以把这两种颜色分别用 $0$ 和 $1$ 表示，用一个长为 $m$ 的**二进制数**表示一列的颜色。
+
+例如 $m=5$，二进制数 $01010_{(2)}$ 表示红绿红绿红。
+
+本题有红绿蓝三种颜色，可以分别用 $0,1,2$ 表示，用一个长为 $m$ 的**三进制数**表示一列的颜色。
+
+例如 $m=5$，三进制数 $01202_{(3)}$ 表示红绿蓝红蓝。
+
+> 注：本题不区分左右，三进制数从高到低读还是从低到高读都可以。
+
+## 思路
+
+首先预处理所有合法的（没有相邻相同颜色的）三进制数，记在数组 $\textit{valid}$ 中。
+
+然后对于每个 $\textit{valid}[i]$，预处理它的下一列颜色，要求左右相邻颜色不同。把 $\textit{valid}$ 的下标记在数组 $\textit{nxt}[i]$ 中。
+
+预处理这些数据之后，就可以 DP 了。
+
+对于 $m\times n$ 的网格，如果最后一列填的是三进制数 $\textit{valid}[j]$，那么问题为：对于 $m\times (n-1)$ 的网格，最后一列填的是三进制数 $\textit{valid}[j]$ 的情况下的涂色方案数。
+
+继续，如果倒数第二列填的是三进制数 $\textit{valid}[k]$，那么接下来要解决的问题为：对于 $m\times (n-2)$ 的网格，右边一列填的是三进制数 $\textit{valid}[k]$ 的情况下的涂色方案数。
+
+所以定义 $\textit{dfs}(i,j)$ 表示对于 $m\times i$ 的网格，右边第 $i+1$ 列填的是三进制数 $\textit{valid}[j]$ 的情况下的涂色方案数。
+
+枚举第 $i$ 列填颜色 $\textit{valid}[k]$（其中 $k$ 是 $\textit{nxt}[j]$ 中的元素），问题变成对于 $m\times (i-1)$ 的网格，右边第 $i$ 列填的是三进制数 $\textit{valid}[k]$ 的情况下的涂色方案数。
+
+累加得
+
+$$
+\textit{dfs}(i,j) = \sum_{k} \textit{dfs}(i-1,k)
+$$
+
+递归边界：$\textit{dfs}(0,j) = 1$，表示找到了一个合法涂色方案。
+
+递归入口：$\displaystyle\sum\limits_{j} \textit{dfs}(n-1, j)$。第 $n$ 列填颜色 $\textit{valid}[j]$。
+
+## 细节
+
+三进制数最大为 $22\ldots 2_{(3)} = 3^m-1$。枚举 $[0,3^m-1]$ 中的三进制数，怎么判断一个三进制数是否合法？
+
+我们需要取出三进制数中的每一位。
+
+回想一下十进制数 $12345$ 怎么取出百位的 $3$：$12345$ 除以 $100$ 下取整，得到 $123$，再模 $10$，得到 $3$。
+
+所以对于三进制数，可以除以 $3^i$ 下取整，再模 $3$。
+
+为什么可以在 DP 的计算过程中取模？可以看 [模运算的世界：当加减乘除遇上取模](https://leetcode.cn/circle/discuss/mDfnkW/)。
+
+## 方法一：记忆化搜索
+
+```py [sol-Python3]
+class Solution:
+    def colorTheGrid(self, m: int, n: int) -> int:
+        pow3 = [3 ** i for i in range(m)]
+        valid = []
+        for color in range(3 ** m):
+            for i in range(1, m):
+                if color // pow3[i] % 3 == color // pow3[i - 1] % 3:  # 相邻颜色相同
+                    break
+            else:  # 没有中途 break，合法
+                valid.append(color)
+
+        nv = len(valid)
+        nxt = [[] for _ in range(nv)]
+        for i, color1 in enumerate(valid):
+            for j, color2 in enumerate(valid):
+                for p3 in pow3:
+                    if color1 // p3 % 3 == color2 // p3 % 3:  # 相邻颜色相同
+                        break
+                else:  # 没有中途 break，合法
+                    nxt[i].append(j)
+
+        MOD = 1_000_000_007
+        @cache  # 缓存装饰器，避免重复计算 dfs（一行代码实现记忆化）
+        def dfs(i: int, j: int) -> int:
+            if i == 0:
+                return 1  # 找到了一个合法涂色方案
+            return sum(dfs(i - 1, k) for k in nxt[j]) % MOD
+        return sum(dfs(n - 1, j) for j in range(nv)) % MOD
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public int colorTheGrid(int m, int n) {
+        int[] pow3 = new int[m];
+        pow3[0] = 1;
+        for (int i = 1; i < m; i++) {
+            pow3[i] = pow3[i - 1] * 3;
+        }
+
+        List<Integer> valid = new ArrayList<>();
+        next:
+        for (int color = 0; color < pow3[m - 1] * 3; color++) {
+            for (int i = 1; i < m; i++) {
+                if (color / pow3[i] % 3 == color / pow3[i - 1] % 3) { // 相邻颜色相同
+                    continue next;
+                }
+            }
+            valid.add(color);
+        }
+
+        int nv = valid.size();
+        List<Integer>[] nxt = new ArrayList[nv];
+        Arrays.setAll(nxt, i -> new ArrayList<>());
+        for (int i = 0; i < nv; i++) {
+            next2:
+            for (int j = 0; j < nv; j++) {
+                for (int p3 : pow3)
+                    if (valid.get(i) / p3 % 3 == valid.get(j) / p3 % 3) { // 相邻颜色相同
+                        continue next2;
+                    }
+                nxt[i].add(j);
+            }
+        }
+
+        int[][] memo = new int[n][nv];
+        for (int[] row : memo) {
+            Arrays.fill(row, -1);
+        }
+
+        long ans = 0;
+        for (int j = 0; j < nv; j++) {
+            ans += dfs(n - 1, j, nxt, memo);
+        }
+        return (int) (ans % MOD);
+    }
+
+    private int dfs(int i, int j, List<Integer>[] nxt, int[][] memo) {
+        if (i == 0) {
+            return 1; // 找到了一个合法涂色方案
+        }
+        if (memo[i][j] != -1) { // 之前计算过
+            return memo[i][j];
+        }
+        long res = 0;
+        for (int k : nxt[j]) {
+            res += dfs(i - 1, k, nxt, memo);
+        }
+        return memo[i][j] = (int) (res % MOD); // 记忆化
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+    const int MOD = 1'000'000'007;
+public:
+    int colorTheGrid(int m, int n) {
+        vector<int> pow3(m);
+        pow3[0] = 1;
+        for (int i = 1; i < m; i++) {
+            pow3[i] = pow3[i - 1] * 3;
+        }
+
+        vector<int> valid;
+        for (int color = 0; color < pow3[m - 1] * 3; color++) {
+            bool ok = true;
+            for (int i = 1; i < m; i++) {
+                if (color / pow3[i] % 3 == color / pow3[i - 1] % 3) { // 相邻颜色相同
+                    ok = false;
+                    break;
+                }
+            }
+            if (ok) {
+                valid.push_back(color);
+            }
+        }
+
+        int nv = valid.size();
+        vector<vector<int>> nxt(nv);
+        for (int i = 0; i < nv; i++) {
+            for (int j = 0; j < nv; j++) {
+                bool ok = true;
+                for (int k = 0; k < m; k++) {
+                    if (valid[i] / pow3[k] % 3 == valid[j] / pow3[k] % 3) { // 相邻颜色相同
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) {
+                    nxt[i].push_back(j);
+                }
+            }
+        }
+
+        vector memo(n, vector<int>(nv, -1));
+        auto dfs = [&](this auto&& dfs, int i, int j) -> int {
+            if (i == 0) {
+                return 1; // 找到了一个合法涂色方案
+            }
+            int& res = memo[i][j]; // 注意这里是引用
+            if (res != -1) { // 之前计算过
+                return res;
+            }
+            res = 0;
+            for (int k : nxt[j]) {
+                res = (res + dfs(i - 1, k)) % MOD;
+            }
+            return res;
+        };
+
+        long long ans = 0;
+        for (int j = 0; j < nv; j++) {
+            ans += dfs(n - 1, j);
+        }
+        return ans % MOD;
+    }
+};
+```
+
+```go [sol-Go]
+func colorTheGrid(m, n int) int {
+	const mod = 1_000_000_007
+	pow3 := make([]int, m)
+	pow3[0] = 1
+	for i := 1; i < m; i++ {
+		pow3[i] = pow3[i-1] * 3
+	}
+
+	valid := []int{}
+next:
+	for color := range pow3[m-1] * 3 {
+		for i := range m - 1 {
+			if color/pow3[i+1]%3 == color/pow3[i]%3 { // 相邻颜色相同
+				continue next
+			}
+		}
+		valid = append(valid, color)
+	}
+
+	nv := len(valid)
+	nxt := make([][]int, nv)
+	for i, color1 := range valid {
+	next2:
+		for j, color2 := range valid {
+			for _, p3 := range pow3 {
+				if color1/p3%3 == color2/p3%3 { // 相邻颜色相同
+					continue next2
+				}
+			}
+			nxt[i] = append(nxt[i], j)
+		}
+	}
+
+	memo := make([][]int, n)
+	for i := range memo {
+		memo[i] = make([]int, nv)
+		for j := range memo[i] {
+			memo[i][j] = -1
+		}
+	}
+	var dfs func(int, int) int
+	dfs = func(i, j int) (res int) {
+		if i == 0 {
+			return 1 // 找到了一个合法涂色方案
+		}
+		p := &memo[i][j]
+		if *p != -1 { // 之前计算过
+			return *p
+		}
+		defer func() { *p = res }() // 记忆化
+		for _, k := range nxt[j] {
+			res += dfs(i-1, k)
+		}
+		return res % mod
+	}
+
+	ans := 0
+	for j := range nv {
+		ans += dfs(n-1, j)
+	}
+	return ans % mod
+}
+```
+
+#### 复杂度分析
+
+有多少个状态？$\textit{valid}$ 有多长？
+
+对于一列长为 $m$ 的涂色方案，第一个颜色有 $3$ 种，其余颜色不能与上一个颜色相同，所以都是 $2$ 种。所以 $\textit{valid}$ 的长度为
+
+$$
+3\cdot 2^{m-1}
+$$
+
+所以状态个数为 $i$ 的个数 $\mathcal{O}(n)$ 乘以 $j$ 的个数 $\mathcal{O}(2^m)$，一共有 $\mathcal{O}(n2^m)$ 个状态。
+
+- 时间复杂度：$\mathcal{O}(n4^m)$。由于每个状态只会计算一次，动态规划的时间复杂度 $=$ 状态个数 $\times$ 单个状态的计算时间。本题状态个数等于 $\mathcal{O}(n2^m)$，单个状态的计算时间为 $\mathcal{O}(2^m)$，所以总的时间复杂度为 $\mathcal{O}(n4^m)$。
+- 空间复杂度：$\mathcal{O}(4^m + n2^m)$。其中 $\mathcal{O}(4^m)$ 是 $\textit{nxt}$ 需要的空间，$\mathcal{O}(n2^m)$ 是记忆化搜索需要的空间。
+
+## 方法二：递推
+
+把记忆化搜索 1:1 翻译成递推，原理见 [动态规划入门：从记忆化搜索到递推【基础算法精讲 17】](https://www.bilibili.com/video/BV1Xj411K7oF/)。
+
+```py [sol-Python3]
+class Solution:
+    def colorTheGrid(self, m: int, n: int) -> int:
+        pow3 = [3 ** i for i in range(m)]
+        valid = []
+        for color in range(3 ** m):
+            for i in range(1, m):
+                if color // pow3[i] % 3 == color // pow3[i - 1] % 3:  # 相邻颜色相同
+                    break
+            else:  # 没有中途 break，合法
+                valid.append(color)
+
+        nv = len(valid)
+        nxt = [[] for _ in range(nv)]
+        for i, color1 in enumerate(valid):
+            for j, color2 in enumerate(valid):
+                for p3 in pow3:
+                    if color1 // p3 % 3 == color2 // p3 % 3:  # 相邻颜色相同
+                        break
+                else:  # 没有中途 break，合法
+                    nxt[i].append(j)
+
+        MOD = 1_000_000_007
+        f = [[0] * nv for _ in range(n)]
+        f[0] = [1] * nv  # dfs 的递归边界就是 DP 数组的初始值
+        for i in range(1, n):
+            for j in range(nv):
+                f[i][j] = sum(f[i - 1][k] for k in nxt[j]) % MOD
+        return sum(f[-1]) % MOD  # 递归入口就是答案
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public int colorTheGrid(int m, int n) {
+        int[] pow3 = new int[m];
+        pow3[0] = 1;
+        for (int i = 1; i < m; i++) {
+            pow3[i] = pow3[i - 1] * 3;
+        }
+
+        List<Integer> valid = new ArrayList<>();
+        next:
+        for (int color = 0; color < pow3[m - 1] * 3; color++) {
+            for (int i = 1; i < m; i++) {
+                if (color / pow3[i] % 3 == color / pow3[i - 1] % 3) { // 相邻颜色相同
+                    continue next;
+                }
+            }
+            valid.add(color);
+        }
+
+        int nv = valid.size();
+        List<Integer>[] nxt = new ArrayList[nv];
+        Arrays.setAll(nxt, i -> new ArrayList<>());
+        for (int i = 0; i < nv; i++) {
+            next2:
+            for (int j = 0; j < nv; j++) {
+                for (int p3 : pow3)
+                    if (valid.get(i) / p3 % 3 == valid.get(j) / p3 % 3) { // 相邻颜色相同
+                        continue next2;
+                    }
+                nxt[i].add(j);
+            }
+        }
+
+        int[][] f = new int[n][nv];
+        Arrays.fill(f[0], 1);
+        for (int i = 1; i < n; i++) {
+            for (int j = 0; j < nv; j++) {
+                for (int k : nxt[j]) {
+                    f[i][j] = (f[i][j] + f[i - 1][k]) % MOD;
+                }
+            }
+        }
+
+        long ans = 0;
+        for (int j = 0; j < nv; j++) {
+            ans += f[n - 1][j];
+        }
+        return (int) (ans % MOD);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+    const int MOD = 1'000'000'007;
+public:
+    int colorTheGrid(int m, int n) {
+        vector<int> pow3(m);
+        pow3[0] = 1;
+        for (int i = 1; i < m; i++) {
+            pow3[i] = pow3[i - 1] * 3;
+        }
+
+        vector<int> valid;
+        for (int color = 0; color < pow3[m - 1] * 3; color++) {
+            bool ok = true;
+            for (int i = 1; i < m; i++) {
+                if (color / pow3[i] % 3 == color / pow3[i - 1] % 3) { // 相邻颜色相同
+                    ok = false;
+                    break;
+                }
+            }
+            if (ok) {
+                valid.push_back(color);
+            }
+        }
+
+        int nv = valid.size();
+        vector<vector<int>> nxt(nv);
+        for (int i = 0; i < nv; i++) {
+            for (int j = 0; j < nv; j++) {
+                bool ok = true;
+                for (int k = 0; k < m; k++) {
+                    if (valid[i] / pow3[k] % 3 == valid[j] / pow3[k] % 3) { // 相邻颜色相同
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) {
+                    nxt[i].push_back(j);
+                }
+            }
+        }
+
+        vector f(n, vector<int>(nv));
+        ranges::fill(f[0], 1);
+        for (int i = 1; i < n; i++) {
+            for (int j = 0; j < nv; j++) {
+                for (int k : nxt[j]) {
+                    f[i][j] = (f[i][j] + f[i - 1][k]) % MOD;
+                }
+            }
+        }
+
+        long long ans = 0;
+        for (int j = 0; j < nv; j++) {
+            ans += f[n - 1][j];
+        }
+        return ans % MOD;
+    }
+};
+```
+
+```go [sol-Go]
+func colorTheGrid(m, n int) int {
+	const mod = 1_000_000_007
+	pow3 := make([]int, m)
+	pow3[0] = 1
+	for i := 1; i < m; i++ {
+		pow3[i] = pow3[i-1] * 3
+	}
+
+	valid := []int{}
+next:
+	for color := range pow3[m-1] * 3 {
+		for i := range m - 1 {
+			if color/pow3[i+1]%3 == color/pow3[i]%3 { // 相邻颜色相同
+				continue next
+			}
+		}
+		valid = append(valid, color)
+	}
+
+	nv := len(valid)
+	nxt := make([][]int, nv)
+	for i, color1 := range valid {
+	next2:
+		for j, color2 := range valid {
+			for _, p3 := range pow3 {
+				if color1/p3%3 == color2/p3%3 { // 相邻颜色相同
+					continue next2
+				}
+			}
+			nxt[i] = append(nxt[i], j)
+		}
+	}
+
+	f := make([][]int, n)
+	for i := range f {
+		f[i] = make([]int, nv)
+	}
+	for j := range f[0] {
+		f[0][j] = 1
+	}
+	for i := 1; i < n; i++ {
+		for j := range f[i] {
+			for _, k := range nxt[j] {
+				f[i][j] += f[i-1][k]
+			}
+			f[i][j] %= mod
+		}
+	}
+
+	ans := 0
+	for _, fv := range f[n-1] {
+		ans += fv
+	}
+	return ans % mod
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n4^m)$。理由同写法一。
+- 空间复杂度：$\mathcal{O}(4^m + n2^m)$。**注**：用滚动数组可以优化至 $\mathcal{O}(4^m)$。
+
+## 方法三：矩阵快速幂
+
+$n=10^{18}$ 也可以通过。
+
+[原理讲解](https://leetcode.cn/problems/knight-dialer/solutions/3004116/jiao-ni-yi-bu-bu-si-kao-dpcong-ji-yi-hua-x06l/)
+
+```py [sol-NumPy]
+import numpy as np
+
+MOD = 1_000_000_007
+
+# a^n @ f0
+def pow(a: np.ndarray, n: int, f0: np.ndarray) -> np.ndarray:
+    res = f0
+    while n:
+        if n & 1:
+            res = a @ res % MOD
+        a = a @ a % MOD
+        n >>= 1
+    return res
+
+class Solution:
+    def colorTheGrid(self, m: int, n: int) -> int:
+        pow3 = [3 ** i for i in range(m)]
+        valid = []
+        for color in range(3 ** m):
+            for i in range(1, m):
+                if color // pow3[i] % 3 == color // pow3[i - 1] % 3:  # 相邻颜色相同
+                    break
+            else:  # 没有中途 break，合法
+                valid.append(color)
+
+        nv = len(valid)
+        m = np.zeros((nv, nv), dtype=object)
+        for i, color1 in enumerate(valid):
+            for j, color2 in enumerate(valid):
+                for p3 in pow3:
+                    if color1 // p3 % 3 == color2 // p3 % 3:  # 相邻颜色相同
+                        break
+                else:  # 没有中途 break，合法
+                    m[i, j] = 1
+
+        f0 = np.ones((nv,), dtype=object)
+        res = pow(m, n - 1, f0)
+        return np.sum(res) % MOD
+```
+
+```py [sol-NumPy 写法二]
+import numpy as np
+
+MOD = 1_000_000_007
+
+class Solution:
+    def colorTheGrid(self, m: int, n: int) -> int:
+        pow3 = [3 ** i for i in range(m)]
+        valid = []
+        for color in range(3 ** m):
+            for i in range(1, m):
+                if color // pow3[i] % 3 == color // pow3[i - 1] % 3:  # 相邻颜色相同
+                    break
+            else:  # 没有中途 break，合法
+                valid.append(color)
+
+        nv = len(valid)
+        m = np.zeros((nv, nv), dtype=object)
+        for i, color1 in enumerate(valid):
+            for j, color2 in enumerate(valid):
+                for p3 in pow3:
+                    if color1 // p3 % 3 == color2 // p3 % 3:  # 相邻颜色相同
+                        break
+                else:  # 没有中途 break，合法
+                    m[i, j] = 1
+
+        f0 = np.ones((nv,), dtype=object)
+        res = np.linalg.matrix_power(m, n - 1) @ f0
+        return np.sum(res) % MOD
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(2^{m\omega} \log n)$。矩阵长宽均为 $\mathcal{O}(2^m)$，计算一次矩阵乘法需要 $\mathcal{O}((2^m)^\omega)$ 的时间，其中 $\omega\le 3$。
+- 空间复杂度：$\mathcal{O}(4^m)$。
+
+## 方法四：Berlekamp-Massey 算法 + Kitamasa 算法
+
+使用 [Berlekamp-Massey 算法](https://zhuanlan.zhihu.com/p/1966417899825665440) 找规律，可以直接得到线性递推式。
+
+$m=1,2,3,4,5$ 时的递推式分别为
+
+$$
+\begin{aligned}
+f_n &= 2f_{n-1} \ \ (n \ge 1)     \\
+f_n &= 3f_{n-1} \ \ (n \ge 1)     \\
+f_n &= 5f_{n-1}-2f_{n-2} \ \ (n \ge 2)     \\
+f_n &= 9f_{n-1}-15f_{n-2}+6f_{n-3} \ \ (n \ge 3)     \\
+f_n &= 16f_{n-1}-65f_{n-2}+92f_{n-3}-48f_{n-4}+8f_{n-5} \ \ (n \ge 5)     \\
+\end{aligned}
+$$
+
+初始值分别为
+
+$$
+\begin{aligned}
+& f = [3]    \\
+& f = [6]    \\
+& f = [12,54]   \\
+& f = [24,162,1122]    \\
+& f = [48,486,5118,54450,580986]    \\
+\end{aligned}
+$$
+
+然后使用 [Kitamasa 算法](https://zhuanlan.zhihu.com/p/1964051212304364939) 解决。
+
+```py [sol-Python3]
+MOD = 1_000_000_007
+
+# 注意 kitamasa 入参的顺序
+coef = [
+    [2],
+    [3],
+    [-2, 5],
+    [6, -15, 9],
+    [8, -48, 92, -65, 16],
+]
+
+a = [
+    [3],
+    [6],
+    [12, 54],
+    [24, 162, 1122],
+    [48, 486, 5118, 54450, 580986],
+]
+
+class Solution:
+    # 给定常系数齐次线性递推式 f(n) = coef[k-1] * f(n-1) + coef[k-2] * f(n-2) + ... + coef[0] * f(n-k)
+    # 以及初始值 f(i) = a[i] (0 <= i < k)
+    # 返回 f(n) % MOD，其中参数 n 从 0 开始
+    # 注意 coef 的顺序
+    # 时间复杂度 O(k^2 log n)，其中 k 是 coef 的长度
+    def kitamasa(self, coef: List[int], a: List[int], n: int) -> int:
+        if n < len(a):
+            return a[n] % MOD
+
+        k = len(coef)
+        if k == 1:
+            return a[0] * pow(coef[0], n, MOD) % MOD
+
+        # 已知 f(n) 的各项系数为 a，f(m) 的各项系数为 b
+        # 计算并返回 f(n+m) 的各项系数 c
+        def compose(a: List[int], b: List[int]) -> List[int]:
+            c = [0] * k
+            for v in a:
+                for j, w in enumerate(b):
+                    c[j] = (c[j] + v * w) % MOD
+                # 原地计算下一组系数，比如已知 f(4) 的各项系数，现在要计算 f(5) 的各项系数
+                # 倒序遍历，避免提前覆盖旧值
+                bk1 = b[-1]
+                for i in range(k - 1, 0, -1):
+                    b[i] = (b[i - 1] + bk1 * coef[i]) % MOD
+                b[0] = bk1 * coef[0] % MOD
+            return c
+
+        # 计算 res_c，以表出 f(n) = res_c[k-1] * a[k-1] + res_c[k-2] * a[k-2] + ... + res_c[0] * a[0]
+        res_c = [0] * k
+        c = [0] * k
+        res_c[0] = c[1] = 1
+        while n > 0:
+            if n % 2:
+                res_c = compose(c, res_c)
+            # 由于会修改 compose 的第二个参数，这里把 c 复制一份再传入
+            c = compose(c, c[:])
+            n //= 2
+
+        return sum(c * v for c, v in zip(res_c, a)) % MOD
+
+    def colorTheGrid(self, m: int, n: int) -> int:
+        return self.kitamasa(coef[m - 1], a[m - 1], n - 1)
+```
+
+```java [sol-Java]
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    // 注意 kitamasa 入参的顺序
+    private static final int[][] coef = {
+        {2},
+        {3},
+        {-2, 5},
+        {6, -15, 9},
+        {8, -48, 92, -65, 16},
+    };
+
+    private static final int[][] a = {
+        {3},
+        {6},
+        {12, 54},
+        {24, 162, 1122},
+        {48, 486, 5118, 54450, 580986},
+    };
+
+    public int colorTheGrid(int m, int n) {
+        return kitamasa(coef[m - 1], a[m - 1], n - 1);
+    }
+
+    // 给定常系数齐次线性递推式 f(n) = coef[k-1] * f(n-1) + ... + coef[0] * f(n-k)
+    // 以及初始值 f(i) = a[i] (0 <= i < k)
+    // 返回 f(n) % MOD，其中参数 n 从 0 开始
+    // 注意 coef 的顺序
+    // 时间复杂度 O(k^2 log n)，其中 k 是 coef 的长度
+    private int kitamasa(int[] coef, int[] a, long n) {
+        if (n < a.length) {
+            return a[(int) n] % MOD;
+        }
+
+        int k = coef.length;
+        if (k == 1) {
+            return (int) ((long) a[0] * pow(coef[0], n) % MOD);
+        }
+
+        // 计算 resC，以表出 f(n) = resC[k-1] * a[k-1] + ... + resC[0] * a[0]
+        int[] resC = new int[k];
+        int[] c = new int[k];
+        resC[0] = c[1] = 1;
+        for (; n > 0; n /= 2) {
+            if (n % 2 > 0) {
+                resC = compose(coef, c, resC);
+            }
+            // 由于会修改 compose 的第三个参数，这里把 c 复制一份再传入
+            c = compose(coef, c, c.clone());
+        }
+
+        long ans = 0;
+        for (int i = 0; i < k; i++) {
+            ans = (ans + (long) resC[i] * a[i]) % MOD;
+        }
+
+        return (int) ((ans + MOD) % MOD); // 保证返回值非负
+    }
+
+    // 已知 f(n) 的各项系数为 a，f(m) 的各项系数为 b
+    // 计算并返回 f(n+m) 的各项系数 c
+    private int[] compose(int[] coef, int[] a, int[] b) {
+        int k = a.length;
+        int[] c = new int[k];
+        for (int v : a) {
+            for (int j = 0; j < k; j++) {
+                c[j] = (int) ((c[j] + (long) v * b[j]) % MOD);
+            }
+            // 原地计算下一组系数，比如已知 f(4) 的各项系数，现在要计算 f(5) 的各项系数
+            // 倒序遍历，避免提前覆盖旧值
+            long bk1 = b[k - 1];
+            for (int i = k - 1; i > 0; i--) {
+                b[i] = (int) ((b[i - 1] + bk1 * coef[i]) % MOD);
+            }
+            b[0] = (int) (bk1 * coef[0] % MOD);
+        }
+        return c;
+    }
+    
+    private int pow(long x, long n) {
+        long res = 1;
+        for (; n > 0; n /= 2) {
+            if (n % 2 > 0) {
+                res = res * x % MOD;
+            }
+            x = x * x % MOD;
+        }
+        return (int) res;
+    }
+}
+```
+
+```cpp [sol-C++]
+// 注意 kitamasa 入参的顺序
+vector<vector<int>> coef = {
+    {2},
+    {3},
+    {-2, 5},
+    {6, -15, 9},
+    {8, -48, 92, -65, 16},
+};
+
+vector<vector<int>> a = {
+    {3},
+    {6},
+    {12, 54},
+    {24, 162, 1122},
+    {48, 486, 5118, 54450, 580986},
+};
+
+class Solution {
+    static constexpr int MOD = 1'000'000'007;
+
+    int pow(long long x, int n) {
+        long long res = 1;
+        for (; n > 0; n /= 2) {
+            if (n % 2) {
+                res = res * x % MOD;
+            }
+            x = x * x % MOD;
+        }
+        return res;
+    }
+
+    // 给定常系数齐次线性递推式 f(n) = coef[k-1] * f(n-1) + coef[k-2] * f(n-2) + ... + coef[0] * f(n-k)
+    // 以及初始值 f(i) = a[i] (0 <= i < k)
+    // 返回 f(n) % MOD，其中参数 n 从 0 开始
+    // 注意 coef 的顺序
+    // 时间复杂度 O(k^2 log n)，其中 k 是 coef 的长度
+    int kitamasa(const vector<int>& coef, const vector<int>& a, long long n) {
+        if (n < a.size()) {
+            return a[n] % MOD;
+        }
+
+        int k = coef.size();
+        if (k == 1) {
+            return 1LL * a[0] * pow(coef[0], n) % MOD;
+        }
+
+        // 已知 f(n) 的各项系数为 A，f(m) 的各项系数为 B
+        // 计算并返回 f(n+m) 的各项系数 C
+        auto compose = [&](const vector<int>& A, vector<int> B) -> vector<int> {
+            vector<int> C(k);
+            for (int v : A) {
+                for (int j = 0; j < k; j++) {
+                    C[j] = (C[j] + 1LL * v * B[j]) % MOD;
+                }
+                // 原地计算下一组系数，比如已知 f(4) 的各项系数，现在要计算 f(5) 的各项系数
+                // 倒序遍历，避免提前覆盖旧值
+                int bk1 = B.back();
+                for (int i = k - 1; i > 0; i--) {
+                    B[i] = (B[i - 1] + 1LL * bk1 * coef[i]) % MOD;
+                }
+                B[0] = 1LL * bk1 * coef[0] % MOD;
+            }
+            return C;
+        };
+
+        // 计算 res_c，以表出 f(n) = res_c[k-1] * a[k-1] + res_c[k-2] * a[k-2] + ... + res_c[0] * a[0]
+        vector<int> res_c(k), c(k);
+        res_c[0] = c[1] = 1;
+        for (; n > 0; n /= 2) {
+            if (n % 2) {
+                res_c = compose(c, move(res_c));
+            }
+            c = compose(c, c);
+        }
+
+        long long ans = 0;
+        for (int i = 0; i < k; i++) {
+            ans = (ans + 1LL * res_c[i] * a[i]) % MOD;
+        }
+
+        return (ans + MOD) % MOD; // 保证返回值非负
+    }
+
+public:
+    int colorTheGrid(int m, int n) {
+        return kitamasa(coef[m - 1], a[m - 1], n - 1);
+    }
+};
+```
+
+```go [sol-Go]
+const mod = 1_000_000_007
+
+func pow(x, n int) int {
+	res := 1
+	for ; n > 0; n /= 2 {
+		if n%2 > 0 {
+			res = res * x % mod
+		}
+		x = x * x % mod
+	}
+	return res
+}
+
+// 给定常系数齐次线性递推式 f(n) = coef[k-1] * f(n-1) + coef[k-2] * f(n-2) + ... + coef[0] * f(n-k)
+// 以及初始值 f(i) = a[i] (0 <= i < k)
+// 返回 f(n) % mod，其中参数 n 从 0 开始
+// 注意 coef 的顺序
+// 时间复杂度 O(k^2 log n)，其中 k 是 coef 的长度
+func kitamasa(coef, a []int, n int) (ans int) {
+	if n < len(a) {
+		return a[n] % mod
+	}
+
+	k := len(coef)
+	if k == 1 {
+		return a[0] * pow(coef[0], n) % mod
+	}
+
+	// 已知 f(n) 的各项系数为 a，f(m) 的各项系数为 b
+	// 计算并返回 f(n+m) 的各项系数 c
+	compose := func(a, b []int) []int {
+		c := make([]int, k)
+		for _, v := range a {
+			for j, w := range b {
+				c[j] = (c[j] + v*w) % mod
+			}
+			// 原地计算下一组系数，比如已知 f(4) 的各项系数，现在要计算 f(5) 的各项系数
+			// 倒序遍历，避免提前覆盖旧值
+			bk1 := b[k-1]
+			for i := k - 1; i > 0; i-- {
+				b[i] = (b[i-1] + bk1*coef[i]) % mod
+			}
+			b[0] = bk1 * coef[0] % mod
+		}
+		return c
+	}
+
+	// 计算 resC，以表出 f(n) = resC[k-1] * a[k-1] + resC[k-2] * a[k-2] + ... + resC[0] * a[0]
+	resC := make([]int, k)
+	resC[0] = 1
+	c := make([]int, k)
+	c[1] = 1
+	for ; n > 0; n /= 2 {
+		if n%2 > 0 {
+			resC = compose(c, resC)
+		}
+		// 由于会修改 compose 的第二个参数，这里把 c 复制一份再传入
+		c = compose(c, slices.Clone(c))
+	}
+
+	for i, c := range resC {
+		ans = (ans + c*a[i]) % mod
+	}
+
+	return (ans + mod) % mod // 保证结果非负
+}
+
+// 注意 kitamasa 入参的顺序
+var coef = [][]int{
+	{2},
+	{3},
+	{-2, 5},
+	{6, -15, 9},
+	{8, -48, 92, -65, 16},
+}
+var a = [][]int{
+	{3},
+	{6},
+	{12, 54},
+	{24, 162, 1122},
+	{48, 486, 5118, 54450, 580986},
+}
+
+func colorTheGrid(m, n int) int {
+	return kitamasa(coef[m-1], a[m-1], n-1)
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(m^2\log n)$。
+- 空间复杂度：$\mathcal{O}(1)$。外部空间不计入。
+
+## 双倍经验
+
+[1411. 给 N x 3 网格图涂色的方案数](https://leetcode.cn/problems/number-of-ways-to-paint-n-3-grid/)
+
+## 专题训练
+
+见下面动态规划题单的「**§11.6 矩阵快速幂优化 DP**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `九、状态压缩 DP（状压 DP） / §9.5 轮廓线 DP`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `九、状态压缩 DP（状压 DP） / §9.5 轮廓线 DP`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。

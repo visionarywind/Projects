@@ -1,0 +1,352 @@
+# 1111. 有效括号的嵌套深度
+
+## 元信息
+
+- LeetCode 链接：https://leetcode.cn/problems/maximum-nesting-depth-of-two-valid-parentheses-strings/
+- 题目 slug：`maximum-nesting-depth-of-two-valid-parentheses-strings`
+- 来源专题：常用数据结构
+- 来源分类路径：三、栈 / §3.4 合法括号字符串（RBS）
+- 难度分：1749
+- 外部题解来源：https://leetcode.cn/problems/maximum-nesting-depth-of-two-valid-parentheses-strings/solutions/4026271/yi-tu-miao-dong-pythonjavacgo-by-endless-5exs/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
+- C++ 验证状态：not-run
+- 生成时间：2026-09-16 11:11:08 +0800
+
+## 授权导入：灵茶山艾府题解过程
+
+- 题解标题：[一图秒懂（Python/Java/C++/Go）](https://leetcode.cn/problems/maximum-nesting-depth-of-two-valid-parentheses-strings/solutions/4026271/yi-tu-miao-dong-pythonjavacgo-by-endless-5exs/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`yi-tu-miao-dong-pythonjavacgo-by-endless-5exs`
+- topic id：`4026271`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-16 11:19:29 +0800
+
+从一个简单的例子开始。例如 $S = \texttt{(((())))}$，看成一个套娃（或者洋葱），题目让我们把它分成两个套娃，使得最大嵌套数尽量小。那么均分最好，把最内部的一半套娃拿出来即可。或者，把偶数层的分成一组，奇数层的分成另一组。
+
+对于更复杂的嵌套情况，求出每个括号的深度，才能看清楚怎么分。怎么求深度？例如 $S = \texttt{(()(( X )))}$，只看 $\texttt{X}$ 的左边，有 $4$ 个左括号，其中有 $3$ 个未闭合（未配对）的左括号，所以 $\texttt{X}$ 的外面套了 $3$ 层括号。
+
+定义：
+
+- **左括号的深度**为该括号左侧未闭合（未配对）的左括号的个数。
+- **右括号的深度**为该括号及其左侧未闭合（未配对）的左括号的个数。
+
+求出每个括号的深度，可以得到下面这张图。
+
+![lc1111-c.png](https://pic.leetcode.cn/1789013007-ZaIOFm-lc1111-c.png){:width=550px}
+
+**思路一**：横着一刀两半，把深度 $0,1$ 分到 $A$ 中，深度 $2,3$ 分到 $B$ 中。但这需要先求出最大深度再拆分，需要两次遍历。
+
+**思路二**：更好的做法是**按照深度的奇偶性拆分**，偶数深度分到 $A$ 中，奇数深度分到 $B$ 中，这样只需一次遍历。
+
+## 写法一
+
+```py [sol-Python3]
+class Solution:
+    def maxDepthAfterSplit(self, seq: str) -> List[int]:
+        ans = [0] * len(seq)
+        depth = 0
+        for i, ch in enumerate(seq):
+            if ch == '(':
+                ans[i] = depth % 2
+                depth += 1
+            else:
+                depth -= 1
+                ans[i] = depth % 2
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int[] maxDepthAfterSplit(String seq) {
+        char[] s = seq.toCharArray();
+        int[] ans = new int[s.length];
+        int depth = 0;
+        for (int i = 0; i < s.length; i++) {
+            if (s[i] == '(') {
+                ans[i] = depth % 2;
+                depth++;
+            } else {
+                depth--;
+                ans[i] = depth % 2;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<int> maxDepthAfterSplit(string seq) {
+        vector<int> ans(seq.size());
+        int depth = 0;
+        for (int i = 0; i < seq.size(); i++) {
+            if (seq[i] == '(') {
+                ans[i] = depth % 2;
+                depth++;
+            } else {
+                depth--;
+                ans[i] = depth % 2;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func maxDepthAfterSplit(seq string) []int {
+	ans := make([]int, len(seq))
+	depth := 0
+	for i, ch := range seq {
+		if ch == '(' {
+			ans[i] = depth % 2
+			depth++
+		} else {
+			depth--
+			ans[i] = depth % 2
+		}
+	}
+	return ans
+}
+```
+
+## 写法二
+
+设 $[0,i-1]$ 中有 $L$ 个左括号，$R$ 个右括号，那么一共有 $L+R = i$ 个括号。
+
+如果 $\textit{seq}[i]$ 是左括号，那么 $\textit{seq}[i]$ 的深度 
+
+$$
+\textit{depth} = L - R = (i-R) - R = i-2R
+$$
+
+两边同时模 $2$，得
+
+$$
+\textit{depth}\bmod 2 = i\bmod 2
+$$
+
+如果 $\textit{seq}[i]$ 是右括号，其深度 $\textit{depth} = L-R - 1$，同理可得 $\textit{depth}\bmod 2 = (i-1)\bmod 2 = (i+1)\bmod 2$。
+
+所以 $\textit{depth}$ 变量是多余的，用 $i$ 的奇偶性就能算出答案。
+
+```py [sol-Python3]
+class Solution:
+    def maxDepthAfterSplit(self, seq: str) -> List[int]:
+        ans = [0] * len(seq)
+        for i, ch in enumerate(seq):
+            if ch == '(':
+                ans[i] = i % 2
+            else:
+                ans[i] = (i + 1) % 2
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int[] maxDepthAfterSplit(String seq) {
+        char[] s = seq.toCharArray();
+        int[] ans = new int[s.length];
+        for (int i = 0; i < s.length; i++) {
+            if (s[i] == '(') {
+                ans[i] = i % 2;
+            } else {
+                ans[i] = (i + 1) % 2;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<int> maxDepthAfterSplit(string seq) {
+        vector<int> ans(seq.size());
+        for (int i = 0; i < seq.size(); i++) {
+            if (seq[i] == '(') {
+                ans[i] = i % 2;
+            } else {
+                ans[i] = (i + 1) % 2;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func maxDepthAfterSplit(seq string) []int {
+	ans := make([]int, len(seq))
+	for i, ch := range seq {
+		if ch == '(' {
+			ans[i] = i % 2
+		} else {
+			ans[i] = (i + 1) % 2
+		}
+	}
+	return ans
+}
+```
+
+## 写法三
+
+可以用左右括号的 ASCII 值简化代码。
+
+- 左括号的 ASCII 值是 $40$，模 $2$ 后是 $0$。
+- 右括号的 ASCII 值是 $41$，模 $2$ 后是 $1$。
+
+所以有
+
+$$
+\textit{answer}[i] = (i + \text{ASCII}(\textit{seq}[i])) \bmod 2
+$$
+
+> **问**：这也太巧了吧。如果左右括号的 ASCII 值都是偶数呢？
+> 
+> **答**：看成两个二进制数 $x$ 和 $y$。在 $x\ne y$ 的情况下，总有一个比特位上的数字不同，即一个是 $0$ 另一个是 $1$。
+
+```py [sol-Python3]
+class Solution:
+    def maxDepthAfterSplit(self, seq: str) -> List[int]:
+        ans = [0] * len(seq)
+        for i, ch in enumerate(seq):
+            ans[i] = (i + ord(ch)) % 2
+        return ans
+```
+
+```py [sol-Python3 一行]
+class Solution:
+    def maxDepthAfterSplit(self, seq: str) -> List[int]:
+        return [(i + ord(ch)) % 2 for i, ch in enumerate(seq)]
+```
+
+```java [sol-Java]
+class Solution {
+    public int[] maxDepthAfterSplit(String seq) {
+        char[] s = seq.toCharArray();
+        int[] ans = new int[s.length];
+        for (int i = 0; i < s.length; i++) {
+            ans[i] = (i + s[i]) % 2;
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<int> maxDepthAfterSplit(string seq) {
+        vector<int> ans(seq.size());
+        for (int i = 0; i < seq.size(); i++) {
+            ans[i] = (i + seq[i]) % 2;
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func maxDepthAfterSplit(seq string) []int {
+	ans := make([]int, len(seq))
+	for i, ch := range seq {
+		ans[i] = (i + int(ch)) % 2
+	}
+	return ans
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是 $\textit{nums}$ 的长度。
+- 空间复杂度：$\mathcal{O}(1)$。返回值不计入。
+
+## 专题训练
+
+见下面数据结构题单的「**§3.4 合法括号字符串**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/discuss/post/3141566/ru-he-ke-xue-shua-ti-by-endlesscheng-q3yd/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/discuss/post/3578981/ti-dan-hua-dong-chuang-kou-ding-chang-bu-rzz7/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/discuss/post/3579164/ti-dan-er-fen-suan-fa-er-fen-da-an-zui-x-3rqn/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/discuss/post/3579480/ti-dan-dan-diao-zhan-ju-xing-xi-lie-zi-d-u4hk/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/discuss/post/3580195/fen-xiang-gun-ti-dan-wang-ge-tu-dfsbfszo-l3pa/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/discuss/post/3580371/fen-xiang-gun-ti-dan-wei-yun-suan-ji-chu-nth4/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/discuss/post/3581143/fen-xiang-gun-ti-dan-tu-lun-suan-fa-dfsb-qyux/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/discuss/post/3581838/fen-xiang-gun-ti-dan-dong-tai-gui-hua-ru-007o/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/discuss/post/3583665/fen-xiang-gun-ti-dan-chang-yong-shu-ju-j-bvmv/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/discuss/post/3584388/fen-xiang-gun-ti-dan-shu-xue-suan-fa-shu-gcai/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/discuss/post/3091107/fen-xiang-gun-ti-dan-tan-xin-ji-ben-tan-k58yb/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/discuss/post/3142882/fen-xiang-gun-ti-dan-lian-biao-er-cha-sh-6srp/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/discuss/post/3144832/fen-xiang-gun-ti-dan-zi-fu-chuan-kmpzhan-ugt4/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+## 本地原创解析
+
+### 1. 题意重述
+
+本题来自 `三、栈 / §3.4 合法括号字符串（RBS）`。先把题目抽象为该分类下的标准模型：确定要维护的对象、合法状态和答案更新时机，再用来源题解正文校准细节。
+
+### 2. 暴力思路与瓶颈
+
+直接枚举所有候选并逐个重新计算属性，通常会产生 $O(nk)$、$O(n^2)$ 或更高复杂度。瓶颈在于相邻候选之间有大量重复计算。
+
+### 3. 关键观察
+
+相邻状态通常只差少量元素或一个转移边界。只要把重复计算沉淀为可增量维护的统计量、单调结构、状态转移或图搜索标记，就能显著降低复杂度。
+
+### 4. 算法设计
+
+1. 根据题目约束确定窗口、前缀、二分、栈、图搜索、动态规划或数学变换的核心状态。
+2. 初始化边界状态。
+3. 按来源分类的套路推进枚举或转移，并在状态合法时更新答案。
+4. 对边界不足、空状态、重复元素、负数、溢出、取模和不可达状态单独处理。
+
+### 5. 正确性说明
+
+枚举或转移过程覆盖所有合法候选；维护量在每一步与当前候选状态保持一致；答案只在候选合法或状态最优性成立时更新，因此最终结果等于所有合法候选的最优值、计数或可行性判断。
+
+### 6. 复杂度分析
+
+- 时间复杂度：依据具体题解正文确认；常见为 $O(n)$、$O(n\log n)$、$O(nm)$ 或状态数乘转移数。
+- 空间复杂度：依据维护状态确认；常见为 $O(1)$、$O(k)$、$O(n)$ 或 DP/图状态规模。
+
+### 7. C++17 实现
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    // TODO: 根据题目签名补全。当前批次先建立详解结构，代码需按题面签名复核。
+};
+```
+
+### 8. 样例推演
+
+当前本地层不复制题面样例。导入授权题解正文后，应结合正文中的示例或手工构造小样例，列出状态变化和答案更新时机。
+
+### 9. 易错点
+
+- 更新答案前必须确认当前状态已经合法。
+- 删除、回退或转移状态时不要漏更新计数、和、频率表、访问标记或单调结构。
+- 若题目含负数、重复值、空集合、取模、长整型溢出或特殊图结构，需单独核对边界。
+
+### 10. 扩展解析
+
+同一分类下的题目通常共享维护框架，差异主要在状态定义和合法性条件。复盘时应总结“状态是什么、何时合法、如何转移、答案如何更新”。
+
+### 11. 同类题迁移
+
+回到来源分类 `三、栈 / §3.4 合法括号字符串（RBS）`，选择同小节后续题目训练。若新题只是维护量变化，优先复用当前框架；若合法性条件变化，再调整枚举顺序、收缩策略或状态转移。
