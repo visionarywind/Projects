@@ -1,2 +1,5 @@
 # Upstream source checkouts are managed as Git submodules.
 /source/
+
+# Temp file
+.obsidian/
