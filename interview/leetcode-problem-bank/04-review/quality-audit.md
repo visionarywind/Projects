@@ -18,8 +18,8 @@
 - [x] 每个来源题单保留 URL。
 - [x] 题目索引表仅包含元数据和链接。
 - [x] 已生成 12 个分类解析文件和 3459 个按来源分类出现记录展开的单题详解文件。
-- [x] 已通过 LeetCode GraphQL `questionSolutionArticles` + `solutionArticle` 成功导入 2094 个灵茶山艾府正文，并保留来源、作者和导入时间。
-- [ ] 其余正文尚未全部导入：35 个仍为 `pending-fetch`，1330 个当前完整检索中未找到对应文章；重试批次已采用低速请求、持久缓存和断点参数。
+- [x] 已通过 LeetCode GraphQL `questionSolutionArticles` + `solutionArticle` 成功导入 2317 个灵茶山艾府正文，并保留来源、作者和导入时间。
+- [ ] 其余正文尚未全部导入：`pending-fetch` 为 0，1142 个经当前接口检索未找到匹配正文；不能据此认定作者从未发表题解。
 
 ## 待验证项
 

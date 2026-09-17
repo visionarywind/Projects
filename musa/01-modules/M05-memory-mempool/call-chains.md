@@ -277,7 +277,7 @@ muMemPoolImportFromShareableHandle                       [src/driver/mu_mempool.
 
 当前源码中 `InitFromHandle` 没有取得或创建 `m_pHalPool`；它建立的是 IPC metadata ownership。相应地，driver 的 `SetAttribute` 会拒绝 imported pool，且异步 pool allocation 路径也明确拒绝 imported pool。[`src/driver/mu_mempool.cpp:153-169`、`src/driver/mu_memory.cpp:349-390`]
 
-### 11.3 Shared-memory cleanup
+### 10.3 Shared-memory cleanup
 
 ```text
 MemoryPool::~MemoryPool
@@ -330,20 +330,64 @@ MemMgr::~MemMgr
 
 `SplayTree::Get` 不存在 key 时也返回 splay 后的根节点，因此 `MemMgr::Allocate` 的后续属性比较是必要的防护；不能把 `Get` 的非空返回直接当成精确命中。[`src/util/utilSplayTree.h:87-93`、`src/hal/m3d/memMgr.cpp:116-133`]
 
-## 13. 当前证据边界
+## 13. current pool 与 live allocation 生命周期
 
-已确认到源码适配边界：
+```text
+muDeviceSetMemPool / muMemSetMemPool
+  -> Device::SetCurrentMemoryPool(pPool)
+       -> m_CurrentMemoryPool = pPool
 
-- pool key、registry、bucket、split、merge、reuse、trim；
-- Core virtual/physical bind 和 stream callback；
-- graph host-device submission；
-- IPC pool handle 的 metadata export/import 和 shared-memory cleanup；
-- automatic pool registry 的 splay lookup 和 value ownership。
+muMemAllocAsync
+  -> Device::GetMemoryPool()
+       -> current pool（非空时优先）
+       -> 否则 default pool
 
-仍未确认：
+muMemPoolDestroy
+  -> ValidatePool
+  -> delete Core MemoryPool
+       -> DestroyUserPool(m_pHalPool)
+```
 
-- `IM3d::IDevice::CreateGpuMemory` 之后的 kernel driver/firmware 资源结果；
-- M3D 子模块的实际 page size、fence 和硬件错误码；
-- SplayTree `Find` 当前比较方向在真实 registry 树形下的行为；
-- IPC pool 的跨进程 owners 竞态和故障回滚运行结果；
-- 真实 workload 的碎片、延迟和 reserved-memory 曲线。
+当前 destroy 入口没有显示清理 `m_CurrentMemoryPool`、Platform host current 或 NUMA current slot。若被删除 pool 仍被 current 指针引用，后续 allocation 可能继续使用悬空 raw pointer；这是静态风险，未运行验证。[`src/musa/core/device.h:87-95,224-228`]、[`src/driver/mu_device.cpp:328-348`]、[`src/musa/core/platform.cpp:575-645`]、[`src/driver/mu_mempool.cpp:118-150`]
+
+imported pool 还存在一条特殊链：`ValidatePool` 对 imported pool 返回 true，但 `muMemSetMemPool` 随后读取 `pMemPool->Hal()->GetInfo()`；而 imported wrapper 没有 HAL pool。不能把 ValidatePool 成功理解为 imported pool 可作为 current pool。[`src/musa/core/memoryPool.cpp:473-510`]、[`src/musa/core/device.h:93-95`]、[`src/driver/mu_mempool.cpp:504-553`]
+
+## 14. pool allocation ownership 与 teardown
+
+```text
+MemoryPool::CreateMemory
+  -> shared_ptr<Memory>
+  -> Platform::MemoryTracker.TrackMemory
+  -> m_MemoryAllocations.insert(raw Memory*)
+
+muMemPoolDestroy
+  -> delete MemoryPool
+       -> DestroyUserPool(m_pHalPool)
+
+最后一个 shared_ptr<Memory> 释放
+  -> Memory::~Memory
+       -> m_pPool->Hal()->Free(...)
+```
+
+Core pool 析构没有显示遍历或拒绝非空 `m_MemoryAllocations`；因此 live allocation + explicit pool destroy 的行为仍是必须验证的 ownership 边界。[`src/musa/core/memoryPool.cpp:86-99,380-427`]、[`src/musa/core/memory.cpp:360-379`]
+
+## 15. pointer IPC 的实际 owner
+
+```text
+muMemPoolExportPointer
+  -> current Context virtual Memory
+  -> associated physical Memory
+  -> physical->ExportIpcHandle
+
+muMemPoolImportPointer(pool, data)
+  -> pool->GetDevice()                 // 当前片段只用于 device
+  -> current Context::CreateMemory
+       -> memoryTypeIpcImport
+       -> Platform MemoryTracker
+```
+
+当前入口没有 `ValidatePool`、没有调用 pool `CreateMemory`，也没有将 imported Memory 插入该 pool 的 allocation set。其实际 Core owner 是 current Context/MemoryTracker；是否允许任意同设备 pool 句柄属于 API contract 待确认。[`src/driver/mu_mempool.cpp:322-390`]
+
+## 16. 当前证据边界
+
+上述 ownership、current pointer、IPC metadata/pointer 和 SplayTree registry 均已追到本地可见 Core/HAL 适配代码；M3D 子模块、kernel driver、firmware、跨进程竞态和真实硬件结果仍未验证。

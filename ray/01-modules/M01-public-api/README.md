@@ -25,14 +25,17 @@
 → worker.remote overload/option validation
 → RemoteFunction.__init__ 创建 remote proxy
 → RemoteFunction._remote 检查连接、导出函数、归一化资源/重试/调度选项
-→ worker.core_worker.submit_task(...)
+→ _raylet.pyx submit_task：序列化参数并构造 CTaskOptions
+→ CoreWorker::SubmitTask：生成 TaskID、TaskSpec，TaskManager::AddPendingTask
+→ NormalTaskSubmitter：解析依赖、排队、申请 worker lease、PushNormalTask RPC
+→ worker 执行并写入返回对象
 → ObjectRef
 → ray.get
 → worker.get_objects
 → Python value 或 RayError
 ```
 
-精确证据：`RemoteFunction.__init__` 在 90-182 行保存函数/选项并将 `remote` 指向 `_remote_proxy`；`_remote` 在 355-430 行检查连接、注入 tracing、pickle/export 函数并填默认选项；527-574 行扁平化参数并调用 `core_worker.submit_task`。`get` 在 2986-3029 行归一化输入、调用 `get_objects`、翻译错误并返回值。
+精确证据：`RemoteFunction.__init__` 在 90-182 行保存函数/选项并将 `remote` 指向 `_remote_proxy`；`_remote` 在 355-574 行扁平化参数并调用 `core_worker.submit_task`。Cython binding 在 `_raylet.pyx:3938-4032` 转换资源、调度、重试和 labels，并调用 `CCoreWorkerProcess.GetCoreWorker().SubmitTask`；C++ 入口在 `src/ray/core_worker/core_worker.cc:2056-2135`，随后异步投递 `NormalTaskSubmitter::SubmitTask`（`src/ray/core_worker/task_submission/normal_task_submitter.cc:33-504`）。`get` 在 2986-3029 行归一化输入、调用 `get_objects`、翻译错误并返回值。
 
 ## 关键状态与不变量
 
@@ -65,7 +68,7 @@
 `python/ray/__init__.py:80-130`；`python/ray/remote_function.py:90-182,355-574`；`python/ray/_private/worker.py:2881-3029`。
 
 ## 未解决问题
-`core_worker.submit_task` 进入 Cython/C++ 的完整绑定链、Actor 创建/方法调用和跨语言描述符仍待深化。
+`core_worker.submit_task` 的 Cython/C++ 绑定和 Actor 创建/方法调用、跨语言描述符仍需单独补充。
 
 ## 下一步阅读建议
 读 implementation，再沿 M02 的 CoreWorker 提交和 M04 调度继续。

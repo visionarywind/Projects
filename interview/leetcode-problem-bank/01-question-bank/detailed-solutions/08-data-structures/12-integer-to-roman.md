@@ -7,15 +7,166 @@
 - 来源专题：常用数据结构
 - 来源分类路径：编程能力强化训练 / Part A
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：missing-endlesscheng-solution
+- 外部题解来源：https://leetcode.cn/problems/integer-to-roman/solutions/2848775/jian-ji-xie-fa-pythonjavaccgojsrust-by-e-kmp6/
+- 外部题解授权状态：authorized-import
 - 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[简洁写法（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/integer-to-roman/solutions/2848775/jian-ji-xie-fa-pythonjavaccgojsrust-by-e-kmp6/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`jian-ji-xie-fa-pythonjavaccgojsrust-by-e-kmp6`
+- topic id：`2848775`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 16:46:02 +0800
+
+把 $\textit{num}$ 拆分成千位数、百位数、十位数和个位数，分别用罗马数字表示。
+
+例如示例 1 的 $\textit{num}=3749$，拆分后对应的罗马数字分别为 $\texttt{MMM},\texttt{DCC},\texttt{XL},\texttt{IX}$。
+
+根据题意，从千位数到个位数，阿拉伯数字与罗马数字的转换关系为：
+
+- **千位**从 $1$ 到 $3$ 依次为 $\texttt{M},\texttt{MM},\texttt{MMM}$。
+- **百位**从 $1$ 到 $9$ 依次为 $\texttt{C},\texttt{CC},\texttt{CCC},\texttt{CD},\texttt{D},\texttt{DC},\texttt{DCC},\texttt{DCCC},\texttt{CM}$。
+- **十位**从 $1$ 到 $9$ 依次为 $\texttt{X},\texttt{XX},\texttt{XXX},\texttt{XL},\texttt{L},\texttt{LX},\texttt{LXX},\texttt{LXXX},\texttt{XC}$。
+- **个位**从 $1$ 到 $9$ 依次为 $\texttt{I},\texttt{II},\texttt{III},\texttt{IV},\texttt{V},\texttt{VI},\texttt{VII},\texttt{VIII},\texttt{IX}$。
+
+把 $\textit{num}$ 拆分成各个数位的公式为：
+
+- **千位**：$\left\lfloor\dfrac{\textit{num}}{1000}\right\rfloor$。例如 $\left\lfloor\dfrac{3749}{1000}\right\rfloor = 3$。
+- **百位**：$\left\lfloor\dfrac{\textit{num}}{100}\right\rfloor\bmod 10$。例如 $\left\lfloor\dfrac{3749}{100}\right\rfloor\bmod 10 = 37\bmod 10 = 7$。
+- **十位**：$\left\lfloor\dfrac{\textit{num}}{10}\right\rfloor\bmod 10$。例如 $\left\lfloor\dfrac{3749}{10}\right\rfloor\bmod 10 = 374\bmod 10 = 4$。
+- **个位**：$\textit{num} \bmod 10$。例如 $3749 \bmod 10 = 9$。
+
+用**字符串数组**存储罗马数字，用上述公式计算出的数位当作数组下标，取出对应的罗马数字（字符串）。把这些字符串拼接起来，得到答案。
+
+```py [sol-Python3]
+R = (
+    ("", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"),  # 个位
+    ("", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"),  # 十位
+    ("", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"),  # 百位
+    ("", "M", "MM", "MMM"),  # 千位
+)
+
+class Solution:
+    def intToRoman(self, num: int) -> str:
+        return R[3][num // 1000] + R[2][num // 100 % 10] + R[1][num // 10 % 10] + R[0][num % 10]
+```
+
+```java [sol-Java]
+class Solution {
+    private static final String[][] R = new String[][]{
+        {"", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"}, // 个位
+        {"", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"}, // 十位
+        {"", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"}, // 百位
+        {"", "M", "MM", "MMM"}, // 千位
+    };
+
+    public String intToRoman(int num) {
+        return R[3][num / 1000] + R[2][num / 100 % 10] + R[1][num / 10 % 10] + R[0][num % 10];
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+    static constexpr string R[4][10] = {
+        {"", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"}, // 个位
+        {"", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"}, // 十位
+        {"", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"}, // 百位
+        {"", "M", "MM", "MMM"}, // 千位
+    };
+
+public:
+    string intToRoman(int num) {
+        return R[3][num / 1000] + R[2][num / 100 % 10] + R[1][num / 10 % 10] + R[0][num % 10];
+    }
+};
+```
+
+```c [sol-C]
+const char* R[4][10] = {
+    {"", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"}, // 个位
+    {"", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"}, // 十位
+    {"", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"}, // 百位
+    {"", "M", "MM", "MMM"}, // 千位
+};
+
+char* intToRoman(int num) {
+    char* ans = malloc(16);
+    strcpy(ans, R[3][num / 1000]);
+    strcat(ans, R[2][num / 100 % 10]);
+    strcat(ans, R[1][num / 10 % 10]);
+    strcat(ans, R[0][num % 10]);
+    return ans;
+}
+```
+
+```go [sol-Go]
+var R = [4][10]string{
+    {"", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"}, // 个位
+    {"", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"}, // 十位
+    {"", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"}, // 百位
+    {"", "M", "MM", "MMM"}, // 千位
+}
+
+func intToRoman(num int) string {
+    return R[3][num/1000] + R[2][num/100%10] + R[1][num/10%10] + R[0][num%10]
+}
+```
+
+```js [sol-JavaScript]
+const R = [
+    ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"], // 个位
+    ["", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"], // 十位
+    ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"], // 百位
+    ["", "M", "MM", "MMM"], // 千位
+];
+
+var intToRoman = function(num) {
+    return R[3][Math.floor(num / 1000)] + R[2][Math.floor(num / 100) % 10] + R[1][Math.floor(num / 10) % 10] + R[0][num % 10];
+};
+```
+
+```rust [sol-Rust]
+const ONES: [&str; 10] = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"]; // 个位
+const TENS: [&str; 10] = ["", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"]; // 十位
+const HUNDREDS: [&str; 10] = ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"]; // 百位
+const THOUSANDS: [&str; 4] = ["", "M", "MM", "MMM"]; // 千位
+
+impl Solution {
+    pub fn int_to_roman(num: i32) -> String {
+        let n = num as usize;
+        format!("{}{}{}{}", THOUSANDS[n / 1000], HUNDREDS[n / 100 % 10], TENS[n / 10 % 10], ONES[n % 10])
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(1)$。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口（定长/不定长/多指针）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/最短路/最小生成树/二分图/基环树/欧拉路径）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/状态机/划分/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心算法（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

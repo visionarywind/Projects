@@ -449,7 +449,221 @@ node launch failure
 1. QMD semaphore pool 注册失败发生在 `graphExec->ctxLocks` 保存之后，统一错误路径中的 lock-array 生命周期需要注入失败验证。
 2. Graph launch 替换 API stream 为临时 stream 后，节点中途失败时的恢复路径需要专门验证。
 
-## 11. 控制流、数据流和资源流的区别
+## 11. DAG 的数据结构与设计层次
+
+CUDA Graph 的 DAG 可以抽象为：
+
+```text
+Graph = 节点集合 + 有向依赖边 + 节点执行 Context
+      + 条件控制信息 + 实例化后的调度元数据
+```
+
+在源码中，`CUIgraph` 保存 graph 级链表、clone 映射、capture 状态和 per-context execution data；`CUIgraphNode` 保存节点类型、前驱/后继集合、所属 graph、执行 Context、条件父节点、调度分组、launch mode 以及节点专用参数。一个节点同时可能属于以下几种关系：
+
+```text
+逻辑关系：predecessors / successors
+结构关系：graph / parentConditional / conditional body
+资源关系：node->ctx / internal stream / QMD / marker
+调度关系：schedulingGroup / launchMode / deviceNodeIdx
+```
+
+因此，DAG 设计不能只看节点链表。至少要同时观察五个层次：
+
+| 层次 | 表达内容 | 主要载体 |
+|---|---|---|
+| 逻辑节点层 | kernel、memcpy、memset、host、empty、conditional | `CUIgraphNode` 类型和 node data |
+| 依赖边层 | predecessor 到 successor 的先后约束 | dependency/successor 集合 |
+| Context 层 | 节点在哪个 Context 执行、资源归谁 | `node->ctx`、`graphExec->ctxData` |
+| 调度层 | 依赖如何映射到设备提交 | `launchMode`、scheduling group、scheduler node |
+| 完成层 | 节点何时完成、何时释放资源 | marker、semaphore、UVM DAG、tracking |
+
+### 11.1 逻辑边与物理执行机制
+
+一条逻辑边：
+
+```text
+A → B
+```
+
+只表达 B 必须等待 A 的完成条件。实例化后，它可能被实现为：
+
+```text
+A → B
+  ├── host pushbuffer 顺序
+  ├── marker wait
+  ├── QMD chaining
+  └── device scheduler dependency
+```
+
+所以：
+
+```text
+dependency edge = 逻辑控制流
+launchMode      = 逻辑控制流的物理实现
+```
+
+拓扑排序也只保证合法的先后顺序，不会把所有节点强制串行化。对于：
+
+```text
+A → B
+A → C
+B → D
+C → D
+```
+
+B 和 C 仍可并行；D 必须在 B、C 两条完成边都满足后才成为可运行节点。
+
+### 11.2 一个完整 DAG 例子
+
+捕获如下关系：
+
+```text
+A ──→ B ──→ D
+ \\          ↑
+  └──→ C ────┘
+```
+
+Graph 数据为：
+
+```text
+nodes = {A, B, C, D}
+edges = {
+    A → B,
+    A → C,
+    B → D,
+    C → D,
+}
+```
+
+实例化时，拓扑 ready 集合的变化为：
+
+```text
+初始：{A}
+执行 A 后：{B, C}
+执行 B/C 后：{D}
+执行 D 后：graph complete
+```
+
+实际 launch 可能是：
+
+```text
+API stream marker
+  → A
+
+A completion
+  → B ready
+  → C ready
+
+B completion + C completion
+  → D ready
+
+D completion
+  → graph completion marker
+```
+
+B 和 C 是否真正并行，还取决于 Context、stream、channel、硬件资源和选定的 launch mode；D 的汇聚依赖不能被优化掉。
+
+### 11.3 Context 归属对 DAG 的影响
+
+instantiate 阶段先为每个节点确定 Context：
+
+```text
+kernel
+  → function->mod->ctx
+
+memcpy
+  → source/destination owning Context
+  → 必要时选择 pull Context
+
+host/empty
+  → current Context
+
+conditional
+  → body node Context
+```
+
+随后通过 `cuiGraphRegisterCtx` 建立 `graphExec->ctxData`。Context 归属直接影响：
+
+- QMD、constant bank 和 internal stream 的所有权；
+- launch 时需要持有的 Context lock；
+- 是否可以使用 QMD chaining；
+- 跨 Context 边是否需要 pushbuffer、marker 或 backend synchronization。
+
+不同 Context 的 kernel 通常不能直接用简单 QMD chaining 表达：
+
+```text
+Context A: A
+              \\
+               └──→ B : Context B
+```
+
+这类边需要更显式的提交和完成机制。
+
+## 12. DAG 如何被编译为控制流
+
+### 12.1 Capture 产生逻辑图
+
+capture 只构建 host-side graph：
+
+```text
+API operation
+  → node
+  → dependency edges
+  → capture state update
+```
+
+它不产生最终的 QMD chain 或 device scheduler layout。这样同一个 capture graph 可以在 instantiate 时根据设备能力、Context 组合、CNP 使用情况和 Graph 配置选择不同的执行实现。
+
+### 12.2 Instantiate 产生执行图
+
+```text
+original graph
+  → cycle/conditional validation
+  → clone
+  → child graph flatten
+  → memset lowering
+  → Context assignment
+  → topological order
+  → scheduling group
+  → launch mode
+  → QMD/marker/scheduler resources
+```
+
+原始 graph 是用户逻辑控制流，graph exec 是针对当前设备和 Context 编译后的执行计划。Graph Exec 因此不是原 graph 的简单可变别名。
+
+### 12.3 Launch mode 的选择
+
+`cuiGraphSetupScheduling` 会先用依赖计数进行拓扑排序，再按每条边和节点关系选择实现：
+
+```text
+复杂边、跨 Context、CNP、非 kernel 节点
+  → pushbuffer
+
+简单同 Context kernel-to-kernel 单链
+  → QMD chaining
+
+conditional body、复杂分叉或需动态选择 successor
+  → device scheduler
+```
+
+如果 kernel 后继需要 scheduler，代码还可以插入 scheduler node；conditional body root 会获得 scheduler launch mode。非 sink 节点在不需要向下游传播独立完成信号时，可能关闭 semaphore release，以减少冗余同步。
+
+### 12.4 Graph Update 的限制
+
+Graph Exec 已经保存了拓扑、launch mode、scheduling group、QMD 数量、constant-bank 布局和 scheduler dependency index。因此 update 可以修改兼容的 kernel 参数，但不能任意改变控制流：
+
+```text
+参数变化
+  → 可能原地更新 graph exec
+
+topology / node type / Context / resource shape 变化
+  → 原执行计划不再匹配
+  → update failure，需重新 instantiate
+```
+
+node ID 和 clone map 用于将新旧 graph node 对齐，但它们不会把不同拓扑伪装成同一执行计划。
+
+## 13. 控制流、数据流和资源流的区别
 
 | 流程 | 表示什么 | 主要载体 |
 |---|---|---|
@@ -461,7 +675,7 @@ node launch failure
 
 Graph 的实现价值在于将控制流和提交流分离：同一逻辑 DAG 可以根据 Context、CNP、硬件能力和分支复杂度选择不同的提交实现。
 
-## 12. 证据边界和验证计划
+## 14. 证据边界和验证计划
 
 ### 静态确认
 

@@ -1,16 +1,16 @@
 # 详解覆盖审计
 
-生成时间：2026-09-17 14:29:02 +0800
+生成时间：2026-09-17 18:54:16 +0800
 批次：full（按来源分类出现记录生成）
 
 ## 汇总
 
 - 来源分类解析文件：12
 - 单题详解文件：3459
-- 已导入灵茶山艾府正文：2110
-- `authorized-import`：2110
+- 已导入灵茶山艾府正文：2317
+- `authorized-import`：2317
 - `pending-fetch`：0
-- `missing-endlesscheng-solution`：1349
+- `missing-endlesscheng-solution`：1142
 - 其他/缺少状态：0
 - 导入接口：LeetCode GraphQL `questionSolutionArticles` + `solutionArticle`；批量运行可能受到站点频率限制或超时影响。
 - 本地解析状态：当前仍为生成模板，C++ 答案和逐题原创推导需独立复核。
@@ -19,15 +19,15 @@
 
 | 专题目录 | 详解文件数 | 已导入正文 | pending/缺失 |
 |---|---:|---:|---:|
-| 01-sliding-window-two-pointers | 279 | 171 | 108 |
-| 02-binary-search | 138 | 79 | 59 |
-| 03-monotonic-stack | 63 | 42 | 21 |
-| 04-grid-graph | 74 | 36 | 38 |
-| 05-bit-manipulation | 129 | 79 | 50 |
-| 06-graph-algorithms | 180 | 92 | 88 |
-| 07-dynamic-programming | 633 | 393 | 240 |
-| 08-data-structures | 603 | 344 | 259 |
-| 09-math-algorithms | 333 | 201 | 132 |
+| 01-sliding-window-two-pointers | 279 | 199 | 80 |
+| 02-binary-search | 138 | 90 | 48 |
+| 03-monotonic-stack | 63 | 43 | 20 |
+| 04-grid-graph | 74 | 37 | 37 |
+| 05-bit-manipulation | 129 | 103 | 26 |
+| 06-graph-algorithms | 180 | 96 | 84 |
+| 07-dynamic-programming | 633 | 467 | 166 |
+| 08-data-structures | 603 | 392 | 211 |
+| 09-math-algorithms | 333 | 217 | 116 |
 | 10-greedy-thinking | 521 | 389 | 132 |
 | 11-linked-list-tree-backtracking | 424 | 233 | 191 |
 | 12-string-algorithms | 82 | 51 | 31 |
@@ -36,7 +36,7 @@
 
 | 文件 | 授权正文状态 |
 |---|---|
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1004-max-consecutive-ones-iii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1004-max-consecutive-ones-iii.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1016-binary-string-with-substrings-representing-1-to-n.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1023-camelcase-matching.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1040-moving-stones-until-consecutive-ii.md | authorized-import |
@@ -58,7 +58,7 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1343-number-of-sub-arrays-of-size-k-and-average-greater-than-or-equal-to-threshold.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/135-candy.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1351-count-negative-numbers-in-a-sorted-matrix.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1358-number-of-substrings-containing-all-three-characters.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1358-number-of-substrings-containing-all-three-characters.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1385-find-the-distance-value-between-two-arrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1423-maximum-points-you-can-obtain-from-cards.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1446-consecutive-characters.md | missing-endlesscheng-solution |
@@ -66,7 +66,7 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1461-check-if-a-string-contains-all-binary-codes-of-size-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1470-shuffle-the-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1471-the-k-strongest-values-in-an-array.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1493-longest-subarray-of-1s-after-deleting-one-element.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1493-longest-subarray-of-1s-after-deleting-one-element.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1498-number-of-subsequences-that-satisfy-the-given-sum-condition.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/15-3sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/151-reverse-words-in-a-string.md | missing-endlesscheng-solution |
@@ -83,7 +83,7 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1652-defuse-the-bomb.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1658-minimum-operations-to-reduce-x-to-zero.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/167-two-sum-ii-input-array-is-sorted.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1695-maximum-erasure-value.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1695-maximum-erasure-value.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1712-ways-to-split-array-into-three-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1750-minimum-length-of-string-after-deleting-similar-ends.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1759-count-number-of-homogenous-substrings.md | missing-endlesscheng-solution |
@@ -110,7 +110,7 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/1989-maximum-number-of-people-that-can-be-caught-in-tag.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2000-reverse-prefix-of-word.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2009-minimum-number-of-operations-to-make-array-continuous.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2024-maximize-the-confusion-of-an-exam.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2024-maximize-the-confusion-of-an-exam.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2038-remove-colored-pieces-if-both-neighbors-are-the-same-color.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2062-count-vowel-substrings-of-a-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2067-number-of-equal-count-substrings.md | missing-endlesscheng-solution |
@@ -127,11 +127,11 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2156-find-substring-with-given-hash-value.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2200-find-all-k-distant-indices-in-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2234-maximum-total-beauty-of-the-gardens.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2264-largest-3-same-digit-number-in-string.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2264-largest-3-same-digit-number-in-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2271-maximum-white-tiles-covered-by-a-carpet.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2273-find-resultant-array-after-removing-anagrams.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/228-summary-ranges.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2302-count-subarrays-with-score-less-than-k.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2302-count-subarrays-with-score-less-than-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2337-move-pieces-to-obtain-a-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2348-number-of-zero-filled-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2367-number-of-arithmetic-triplets.md | authorized-import |
@@ -159,15 +159,15 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/259-3sum-smaller.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2593-find-score-of-an-array-after-marking-all-elements.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/26-remove-duplicates-from-sorted-array.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2653-sliding-subarray-beauty.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2653-sliding-subarray-beauty.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2697-lexicographically-smallest-palindrome.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/27-remove-element.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2730-find-the-longest-semi-repetitive-substring.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/27-remove-element.md | authorized-import |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2730-find-the-longest-semi-repetitive-substring.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2743-count-substrings-without-repeating-character.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2760-longest-even-odd-subarray-with-threshold.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2762-continuous-subarrays.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2762-continuous-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2765-longest-alternating-subarray.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2779-maximum-beauty-of-an-array-after-applying-operation.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2779-maximum-beauty-of-an-array-after-applying-operation.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2781-length-of-the-longest-valid-substring.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2784-check-if-array-is-good.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2799-count-complete-subarrays-in-an-array.md | authorized-import |
@@ -182,26 +182,26 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2904-shortest-and-lexicographically-smallest-beautiful-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2948-make-lexicographically-smallest-array-by-swapping-elements.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2953-count-complete-substrings.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2958-length-of-longest-subarray-with-at-most-k-frequency.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2962-count-subarrays-where-max-element-appears-at-least-k-times.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2958-length-of-longest-subarray-with-at-most-k-frequency.md | authorized-import |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2962-count-subarrays-where-max-element-appears-at-least-k-times.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2968-apply-operations-to-maximize-frequency-score.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/2972-count-the-number-of-incremovable-subarrays-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3-longest-substring-without-repeating-characters.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3-longest-substring-without-repeating-characters.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/30-substring-with-concatenation-of-all-words.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3011-find-if-array-can-be-sorted.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3063-linked-list-frequency.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3090-maximum-length-substring-with-two-occurrences.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3090-maximum-length-substring-with-two-occurrences.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3105-longest-strictly-increasing-or-strictly-decreasing-subarray.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3132-find-the-integer-added-to-array-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3134-find-the-median-of-the-uniqueness-array.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3134-find-the-median-of-the-uniqueness-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3255-find-the-power-of-k-size-subarrays-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3258-count-substrings-that-satisfy-k-constraint-i.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3261-count-substrings-that-satisfy-k-constraint-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3258-count-substrings-that-satisfy-k-constraint-i.md | authorized-import |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3261-count-substrings-that-satisfy-k-constraint-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3298-count-substrings-that-can-be-rearranged-to-contain-a-string-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3302-find-the-lexicographically-smallest-valid-sequence.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3306-count-of-substrings-containing-every-vowel-and-k-consonants-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3323-minimize-connected-groups-by-inserting-interval.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3325-count-substrings-with-k-frequency-characters-i.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3325-count-substrings-with-k-frequency-characters-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3347-maximum-frequency-of-an-element-after-performing-operations-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3350-adjacent-increasing-subarrays-detection-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/340-longest-substring-with-at-most-k-distinct-characters.md | missing-endlesscheng-solution |
@@ -214,10 +214,10 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3464-maximize-the-distance-between-points-on-a-square.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3467-transform-array-by-parity.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3499-maximize-active-section-with-trade-i.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/350-intersection-of-two-arrays-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/350-intersection-of-two-arrays-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3555-smallest-subarray-to-sort-in-every-sliding-window.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/360-sort-transformed-array.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3634-minimum-removals-to-balance-array.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3634-minimum-removals-to-balance-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3640-trionic-array-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3641-longest-semi-repeating-subarray.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3643-flip-square-submatrix-vertically.md | authorized-import |
@@ -247,13 +247,13 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3940-limit-occurrences-in-sorted-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3948-lexicographically-maximum-mex-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/395-longest-substring-with-at-least-k-repeating-characters.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3952-maximum-total-value-of-covered-indices.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3952-maximum-total-value-of-covered-indices.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3983-subsequence-after-one-replacement.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3992-rearrange-string-to-avoid-character-pair.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/3998-transform-binary-string-using-subsequence-sort.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/4001-aggregate-two-time-series.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/4026-maximum-gap-between-stations.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/4032-longest-subarray-with-at-most-k-distinct-prime-factors.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/4032-longest-subarray-with-at-most-k-distinct-prime-factors.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/4033-valid-k-unique-subarrays-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/4038-count-integers-appearing-in-a-single-block.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/4043-count-rotations-with-exactly-k-equal-adjacent-pairs.md | authorized-import |
@@ -283,7 +283,7 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/674-longest-continuous-increasing-subsequence.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/68-text-justification.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/696-count-binary-substrings.md | authorized-import |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/713-subarray-product-less-than-k.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/713-subarray-product-less-than-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/75-sort-colors.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/76-minimum-window-substring.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/777-swap-adjacent-in-lr-string.md | authorized-import |
@@ -296,8 +296,8 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/838-push-dominoes.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/844-backspace-string-compare.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/845-longest-mountain-in-array.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/88-merge-sorted-array.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/904-fruit-into-baskets.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/88-merge-sorted-array.md | authorized-import |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/904-fruit-into-baskets.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/905-sort-array-by-parity.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/917-reverse-only-letters.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/922-sort-array-by-parity-ii.md | authorized-import |
@@ -312,7 +312,7 @@
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/992-subarrays-with-k-different-integers.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/LCP-18-2vYnGI.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/LCP-28-4xy4Wx.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/LCP-68-1GxJYY.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/LCP-68-1GxJYY.md | authorized-import |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/LCR-180-he-wei-sde-lian-xu-zheng-shu-xu-lie-lcof.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/01-sliding-window-two-pointers/面试题-16.06-smallest-difference-lcci.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/02-binary-search/1011-capacity-to-ship-packages-within-d-days.md | missing-endlesscheng-solution |
@@ -339,7 +339,7 @@
 | 01-question-bank/detailed-solutions/02-binary-search/1533-find-the-index-of-the-large-integer.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/02-binary-search/1539-kth-missing-positive-number.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/154-find-minimum-in-rotated-sorted-array-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/02-binary-search/1552-magnetic-force-between-two-balls.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/02-binary-search/1552-magnetic-force-between-two-balls.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/1618-maximum-font-to-fit-a-sentence-in-a-screen.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/02-binary-search/162-find-peak-element.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/1631-path-with-minimum-effort.md | missing-endlesscheng-solution |
@@ -371,19 +371,19 @@
 | 01-question-bank/detailed-solutions/02-binary-search/2439-minimize-maximum-of-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/2476-closest-nodes-queries-in-a-binary-search-tree.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/2513-minimize-the-maximum-of-two-arrays.md | authorized-import |
-| 01-question-bank/detailed-solutions/02-binary-search/2517-maximum-tastiness-of-candy-basket.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/02-binary-search/2528-maximize-the-minimum-powered-city.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/02-binary-search/2517-maximum-tastiness-of-candy-basket.md | authorized-import |
+| 01-question-bank/detailed-solutions/02-binary-search/2528-maximize-the-minimum-powered-city.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/2529-maximum-count-of-positive-integer-and-negative-integer.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/2560-house-robber-iv.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/2563-count-the-number-of-fair-pairs.md | authorized-import |
-| 01-question-bank/detailed-solutions/02-binary-search/2576-find-the-maximum-number-of-marked-indices.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/02-binary-search/2576-find-the-maximum-number-of-marked-indices.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/2594-minimum-time-to-repair-cars.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/2604-minimum-time-to-eat-all-grains.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/02-binary-search/2616-minimize-the-maximum-difference-of-pairs.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/2702-minimum-operations-to-make-numbers-non-positive.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/02-binary-search/275-h-index-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/278-first-bad-version.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/02-binary-search/2812-find-the-safest-path-in-a-grid.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/02-binary-search/2812-find-the-safest-path-in-a-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/2819-minimum-relative-loss-after-buying-chocolates.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/02-binary-search/2861-maximum-number-of-alloys.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/2936-number-of-equal-numbers-blocks.md | missing-endlesscheng-solution |
@@ -392,9 +392,9 @@
 | 01-question-bank/detailed-solutions/02-binary-search/302-smallest-rectangle-enclosing-black-pixels.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/02-binary-search/3048-earliest-second-to-mark-indices-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/3116-kth-smallest-amount-with-single-denomination-combination.md | authorized-import |
-| 01-question-bank/detailed-solutions/02-binary-search/3134-find-the-median-of-the-uniqueness-array.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/02-binary-search/3134-find-the-median-of-the-uniqueness-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/3143-maximum-points-inside-the-square.md | authorized-import |
-| 01-question-bank/detailed-solutions/02-binary-search/3281-maximize-score-of-numbers-in-ranges.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/02-binary-search/3281-maximize-score-of-numbers-in-ranges.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/3296-minimum-number-of-seconds-to-make-mountain-height-zero.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/33-search-in-rotated-sorted-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/3344-maximum-sized-array.md | missing-endlesscheng-solution |
@@ -406,15 +406,15 @@
 | 01-question-bank/detailed-solutions/02-binary-search/3464-maximize-the-distance-between-points-on-a-square.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/3488-closest-equal-element-queries.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/35-search-insert-position.md | authorized-import |
-| 01-question-bank/detailed-solutions/02-binary-search/3508-implement-router.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/02-binary-search/3508-implement-router.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/3520-minimum-threshold-for-inversion-pairs-count.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/02-binary-search/3600-maximize-spanning-tree-stability-with-upgrades.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/02-binary-search/3600-maximize-spanning-tree-stability-with-upgrades.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/3605-minimum-stability-factor-of-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/3613-minimize-maximum-component-cost.md | authorized-import |
-| 01-question-bank/detailed-solutions/02-binary-search/3620-network-recovery-pathways.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/02-binary-search/3620-network-recovery-pathways.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/3639-minimum-time-to-activate-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/3691-maximum-total-subarray-value-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/02-binary-search/3710-maximum-partition-factor.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/02-binary-search/3710-maximum-partition-factor.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/373-find-k-pairs-with-smallest-sums.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/3733-minimum-time-to-complete-all-deliveries.md | authorized-import |
 | 01-question-bank/detailed-solutions/02-binary-search/374-guess-number-higher-or-lower.md | missing-endlesscheng-solution |
@@ -485,7 +485,7 @@
 | 01-question-bank/detailed-solutions/03-monotonic-stack/2832-maximal-range-that-each-element-is-maximum-in-it.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/03-monotonic-stack/2863-maximum-length-of-semi-decreasing-subarrays.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/03-monotonic-stack/2866-beautiful-towers-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/03-monotonic-stack/2962-count-subarrays-where-max-element-appears-at-least-k-times.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/03-monotonic-stack/2962-count-subarrays-where-max-element-appears-at-least-k-times.md | authorized-import |
 | 01-question-bank/detailed-solutions/03-monotonic-stack/3113-find-the-number-of-subarrays-where-boundary-elements-are-maximum.md | authorized-import |
 | 01-question-bank/detailed-solutions/03-monotonic-stack/316-remove-duplicate-letters.md | authorized-import |
 | 01-question-bank/detailed-solutions/03-monotonic-stack/321-create-maximum-number.md | missing-endlesscheng-solution |
@@ -550,7 +550,7 @@
 | 01-question-bank/detailed-solutions/04-grid-graph/2617-minimum-number-of-visited-cells-in-a-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/04-grid-graph/2658-maximum-number-of-fish-in-a-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/04-grid-graph/2684-maximum-number-of-moves-in-a-grid.md | authorized-import |
-| 01-question-bank/detailed-solutions/04-grid-graph/2812-find-the-safest-path-in-a-grid.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/04-grid-graph/2812-find-the-safest-path-in-a-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/04-grid-graph/2814-minimum-time-takes-to-reach-destination-without-drowning.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/04-grid-graph/2852-sum-of-remoteness-of-all-cells.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/04-grid-graph/286-walls-and-gates.md | missing-endlesscheng-solution |
@@ -601,7 +601,7 @@
 | 01-question-bank/detailed-solutions/05-bit-manipulation/137-single-number-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/1415-the-k-th-lexicographical-string-of-all-happy-strings-of-length-n.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/1442-count-triplets-that-can-form-two-arrays-of-equal-xor.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/1486-xor-operation-in-an-array.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/1486-xor-operation-in-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/1521-find-a-value-of-a-mysterious-function-closest-to-target.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/1545-find-kth-bit-in-nth-binary-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/1558-minimum-numbers-of-function-calls-to-make-target-array.md | missing-endlesscheng-solution |
@@ -613,7 +613,7 @@
 | 01-question-bank/detailed-solutions/05-bit-manipulation/1829-maximum-xor-for-each-query.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/1835-find-xor-sum-of-all-pairs-bitwise-and.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/1863-sum-of-all-subset-xor-totals.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/190-reverse-bits.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/190-reverse-bits.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/191-number-of-1-bits.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/201-bitwise-and-of-numbers-range.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2126-destroying-asteroids.md | authorized-import |
@@ -622,7 +622,7 @@
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2275-largest-combination-with-bitwise-and-greater-than-zero.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/231-power-of-two.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2317-maximum-xor-after-operations.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/2354-number-of-excellent-pairs.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/2354-number-of-excellent-pairs.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2401-longest-nice-subarray.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2411-smallest-subarrays-with-maximum-bitwise-or.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2419-longest-subarray-with-maximum-bitwise-and.md | authorized-import |
@@ -632,12 +632,12 @@
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2438-range-product-queries-of-powers.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2447-number-of-subarrays-with-gcd-equal-to-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2505-bitwise-or-of-all-subsequence-sums.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/2509-cycle-length-queries-in-a-tree.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/2509-cycle-length-queries-in-a-tree.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2527-find-xor-beauty-of-array.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/2546-apply-bitwise-operations-to-make-strings-equal.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/2546-apply-bitwise-operations-to-make-strings-equal.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2564-substring-xor-queries.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/2568-minimum-impossible-or.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/2571-minimum-operations-to-reduce-an-integer-to-0.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/2568-minimum-impossible-or.md | authorized-import |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/2571-minimum-operations-to-reduce-an-integer-to-0.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2588-count-the-number-of-beautiful-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2595-number-of-even-and-odd-bits.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/26-remove-duplicates-from-sorted-array.md | authorized-import |
@@ -646,20 +646,20 @@
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2657-find-the-prefix-common-array-of-two-arrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2680-maximum-or.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2683-neighboring-bitwise-xor.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/2749-minimum-operations-to-make-the-integer-zero.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/2835-minimum-operations-to-form-subsequence-with-target-sum.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/2749-minimum-operations-to-make-the-integer-zero.md | authorized-import |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/2835-minimum-operations-to-form-subsequence-with-target-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2857-count-pairs-of-points-with-distance-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2871-split-array-into-maximum-number-of-subarrays.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/2897-apply-operations-on-array-to-maximize-sum-of-squares.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/2897-apply-operations-on-array-to-maximize-sum-of-squares.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2917-find-the-k-or-of-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2935-maximum-strong-pair-xor-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/2939-maximum-xor-product.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/2939-maximum-xor-product.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2941-maximum-gcd-sum-of-a-subarray.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2965-find-missing-and-repeated-values.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2980-check-if-bitwise-or-has-trailing-zeros.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/2997-minimum-number-of-operations-to-make-array-xor-equal-to-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3007-maximum-number-that-sum-of-the-prices-is-less-than-or-equal-to-k.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/3022-minimize-or-of-remaining-elements-using-operations.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/3022-minimize-or-of-remaining-elements-using-operations.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3064-guess-the-number-using-bitwise-questions-i.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3094-guess-the-number-using-bitwise-questions-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3097-shortest-subarray-with-or-at-least-k-ii.md | authorized-import |
@@ -668,16 +668,16 @@
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3125-maximum-number-that-makes-result-of-bitwise-and-zero.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3133-minimum-array-end.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3141-maximum-hamming-distances.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/3145-find-products-of-elements-of-big-array.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/3145-find-products-of-elements-of-big-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3153-sum-of-digit-differences-of-all-pairs.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3171-find-subarray-with-bitwise-or-closest-to-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3209-number-of-subarrays-with-and-value-of-k.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/3211-generate-binary-strings-without-adjacent-zeros.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/3211-generate-binary-strings-without-adjacent-zeros.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3215-count-triplets-with-even-xor-set-bits-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3226-number-of-bit-changes-to-make-two-integers-equal.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/3287-find-the-maximum-sequence-value-of-array.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/3287-find-the-maximum-sequence-value-of-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3307-find-the-k-th-character-in-string-game-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/3315-construct-the-minimum-bitwise-array-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/3315-construct-the-minimum-bitwise-array-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3344-maximum-sized-array.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3370-smallest-number-with-all-set-bits.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/338-counting-bits.md | missing-endlesscheng-solution |
@@ -686,16 +686,16 @@
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3574-maximize-subarray-gcd-score.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3595-once-twice.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3605-minimum-stability-factor-of-array.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/3630-partition-array-for-maximum-xor-and-and.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/3644-maximum-k-to-sort-a-permutation.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/3681-maximum-xor-of-subsequences.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/3630-partition-array-for-maximum-xor-and-and.md | authorized-import |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/3644-maximum-k-to-sort-a-permutation.md | authorized-import |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/3681-maximum-xor-of-subsequences.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3688-bitwise-or-of-even-numbers-in-an-array.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/3690-split-and-merge-array-transformation.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/3690-split-and-merge-array-transformation.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3702-longest-subsequence-with-non-zero-bitwise-xor.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/371-sum-of-two-integers.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/3750-minimum-number-of-flips-to-reverse-binary-string.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/3750-minimum-number-of-flips-to-reverse-binary-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3766-minimum-operations-to-make-binary-palindrome.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/3769-sort-integers-by-binary-reflection.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/3769-sort-integers-by-binary-reflection.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3782-last-remaining-integer-after-alternating-deletion-operations.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3806-maximum-bitwise-and-after-increment-operations.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3827-count-monobit-integers.md | authorized-import |
@@ -704,7 +704,7 @@
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3878-count-good-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/390-elimination-game.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/3950-exactly-one-consecutive-set-bits-pair.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/4030-check-ascii-palindromic.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/4030-check-ascii-palindromic.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/421-maximum-xor-of-two-numbers-in-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/461-hamming-distance.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/476-number-complement.md | authorized-import |
@@ -718,7 +718,7 @@
 | 01-question-bank/detailed-solutions/05-bit-manipulation/898-bitwise-ors-of-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/982-triples-with-bitwise-and-equal-to-zero.md | authorized-import |
 | 01-question-bank/detailed-solutions/05-bit-manipulation/LCP-81-ryfUiz.md | authorized-import |
-| 01-question-bank/detailed-solutions/05-bit-manipulation/面试题-05.01-insert-into-bits-lcci.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/05-bit-manipulation/面试题-05.01-insert-into-bits-lcci.md | authorized-import |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/1042-flower-planting-with-no-adjacent.md | authorized-import |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/1066-campus-bikes-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/1129-shortest-path-with-alternating-colors.md | missing-endlesscheng-solution |
@@ -843,16 +843,16 @@
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3481-apply-substitutions.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3594-minimum-time-to-transport-all-individuals.md | authorized-import |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3599-partition-array-to-minimize-xor.md | authorized-import |
-| 01-question-bank/detailed-solutions/06-graph-algorithms/3600-maximize-spanning-tree-stability-with-upgrades.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/06-graph-algorithms/3600-maximize-spanning-tree-stability-with-upgrades.md | authorized-import |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3604-minimum-time-to-reach-destination-in-directed-graph.md | authorized-import |
-| 01-question-bank/detailed-solutions/06-graph-algorithms/3620-network-recovery-pathways.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/06-graph-algorithms/3620-network-recovery-pathways.md | authorized-import |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3629-minimum-jumps-to-reach-end-via-prime-teleportation.md | authorized-import |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3650-minimum-cost-path-with-edge-reversals.md | authorized-import |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3656-determine-if-a-simple-graph-exists.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3666-minimum-operations-to-equalize-binary-string.md | authorized-import |
-| 01-question-bank/detailed-solutions/06-graph-algorithms/3690-split-and-merge-array-transformation.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/06-graph-algorithms/3690-split-and-merge-array-transformation.md | authorized-import |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3695-maximize-alternating-sum-using-swaps.md | authorized-import |
-| 01-question-bank/detailed-solutions/06-graph-algorithms/3710-maximum-partition-factor.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/06-graph-algorithms/3710-maximum-partition-factor.md | authorized-import |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3778-minimum-distance-excluding-one-maximum-weighted-edge.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3807-minimum-cost-to-repair-edges-to-traverse-a-graph.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/06-graph-algorithms/3877-minimum-removals-to-achieve-target-xor.md | authorized-import |
@@ -903,7 +903,7 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1000-minimum-cost-to-merge-stones.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1012-numbers-with-repeated-digits.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1025-divisor-game.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1027-longest-arithmetic-subsequence.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1027-longest-arithmetic-subsequence.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1031-maximum-sum-of-two-non-overlapping-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1035-uncrossed-lines.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1039-minimum-score-triangulation-of-polygon.md | authorized-import |
@@ -918,14 +918,14 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1125-smallest-sufficient-team.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1130-minimum-cost-tree-from-leaf-values.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1137-n-th-tribonacci-number.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1140-stone-game-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1140-stone-game-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1143-longest-common-subsequence.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/115-distinct-subsequences.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1155-number-of-dice-rolls-with-target-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1186-maximum-subarray-sum-with-one-deletion.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1187-make-array-strictly-increasing.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1187-make-array-strictly-increasing.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1191-k-concatenation-maximum-sum.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/120-triangle.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/120-triangle.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/121-best-time-to-buy-and-sell-stock.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1215-stepping-numbers.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1216-valid-palindrome-iii.md | missing-endlesscheng-solution |
@@ -945,10 +945,10 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1277-count-square-submatrices-with-all-ones.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1278-palindrome-partitioning-iii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1289-minimum-falling-path-sum-ii.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1301-number-of-paths-with-max-score.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1301-number-of-paths-with-max-score.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1306-jump-game-iii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1312-minimum-insertion-steps-to-make-a-string-palindrome.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/132-palindrome-partitioning-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/132-palindrome-partitioning-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1320-minimum-distance-to-type-a-word-using-two-fingers.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1335-minimum-difficulty-of-a-job-schedule.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1340-jump-game-v.md | authorized-import |
@@ -956,10 +956,10 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1363-largest-multiple-of-three.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1387-sort-integers-by-the-power-value.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1388-pizza-with-3n-slices.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/139-word-break.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/139-word-break.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1397-find-all-good-strings.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1399-count-largest-group.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1406-stone-game-iii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1406-stone-game-iii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1411-number-of-ways-to-paint-n-3-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1416-restore-the-array.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1420-build-array-where-you-can-find-the-maximum-exactly-k-comparisons.md | missing-endlesscheng-solution |
@@ -974,9 +974,9 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1473-paint-house-iii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1477-find-two-non-overlapping-sub-arrays-each-with-target-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1478-allocate-mailboxes.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1493-longest-subarray-of-1s-after-deleting-one-element.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1493-longest-subarray-of-1s-after-deleting-one-element.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1494-parallel-courses-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1510-stone-game-iv.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1510-stone-game-iv.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/152-maximum-product-subarray.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1522-diameter-of-n-ary-tree.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1525-number-of-good-ways-to-split-a-string.md | missing-endlesscheng-solution |
@@ -988,27 +988,27 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1563-stone-game-v.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1567-maximum-length-of-subarray-with-positive-product.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1575-count-all-possible-routes.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1594-maximum-non-negative-product-in-a-matrix.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1594-maximum-non-negative-product-in-a-matrix.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1595-minimum-cost-to-connect-two-groups-of-points.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1617-count-subtrees-with-max-distance-between-cities.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1626-best-team-with-no-conflicts.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1626-best-team-with-no-conflicts.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1639-number-of-ways-to-form-a-target-string-given-a-dictionary.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1653-minimum-deletions-to-make-string-balanced.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1654-minimum-jumps-to-reach-home.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1655-distribute-repeating-integers.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1659-maximize-grid-happiness.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1664-ways-to-make-a-fair-array.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1671-minimum-number-of-removals-to-make-mountain-array.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1671-minimum-number-of-removals-to-make-mountain-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1681-minimum-incompatibility.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1682-longest-palindromic-subsequence-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1687-delivering-boxes-from-storage-to-ports.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1690-stone-game-vii.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1691-maximum-height-by-stacking-cuboids.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1690-stone-game-vii.md | authorized-import |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1691-maximum-height-by-stacking-cuboids.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1692-count-ways-to-distribute-candies.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1696-jump-game-vi.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1696-jump-game-vi.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1713-minimum-operations-to-make-a-subsequence.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1723-find-minimum-time-to-finish-all-jobs.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1728-cat-and-mouse-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1728-cat-and-mouse-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/174-dungeon-game.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1742-maximum-number-of-balls-in-a-box.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1745-palindrome-partitioning-iv.md | authorized-import |
@@ -1026,10 +1026,10 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1857-largest-color-value-in-a-directed-graph.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1866-number-of-ways-to-rearrange-sticks-with-k-sticks-visible.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1871-jump-game-vii.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1872-stone-game-viii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1872-stone-game-viii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1879-minimum-xor-sum-of-two-arrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/188-best-time-to-buy-and-sell-stock-iv.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1883-minimum-skips-to-arrive-at-meeting-on-time.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1883-minimum-skips-to-arrive-at-meeting-on-time.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1884-egg-drop-with-2-eggs-and-n-floors.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1896-minimum-cost-to-change-the-final-value-of-expression.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1900-the-earliest-and-latest-rounds-where-players-compete.md | authorized-import |
@@ -1040,7 +1040,7 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1931-painting-a-grid-with-three-different-colors.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1937-maximum-number-of-points-with-cost.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1947-maximum-compatibility-score-sum.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/1955-count-number-of-special-subsequences.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/1955-count-number-of-special-subsequences.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1959-minimum-total-space-wasted-with-k-resizing-operations.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1964-find-the-longest-valid-obstacle-course-at-each-position.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/1976-number-of-ways-to-arrive-at-destination.md | authorized-import |
@@ -1058,7 +1058,7 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2012-sum-of-beauty-in-the-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2019-the-score-of-students-solving-math-expression.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2036-maximum-alternating-subarray-sum.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2044-count-number-of-maximum-bitwise-or-subsets.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2044-count-number-of-maximum-bitwise-or-subsets.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2050-parallel-courses-iii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2052-minimum-cost-to-separate-sentence-into-rows.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2054-two-best-non-overlapping-events.md | authorized-import |
@@ -1083,15 +1083,15 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2246-longest-path-with-different-adjacent-characters.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2247-maximum-cost-of-trip-with-k-highways.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2256-minimum-average-difference.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2262-total-appeal-of-a-string.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2262-total-appeal-of-a-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2263-make-array-non-decreasing-or-non-increasing.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2266-count-number-of-texts.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2267-check-if-there-is-a-valid-parentheses-string-path.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2270-number-of-ways-to-split-array.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2272-substring-with-largest-variance.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2272-substring-with-largest-variance.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2291-maximum-profit-from-trading-stocks.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2297-jump-game-viii.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2304-minimum-path-cost-in-a-grid.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2304-minimum-path-cost-in-a-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2305-fair-distribution-of-cookies.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2312-selling-pieces-of-wood.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2313-minimum-flips-in-binary-tree-to-get-result.md | missing-endlesscheng-solution |
@@ -1103,27 +1103,27 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/233-number-of-digit-one.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2355-maximum-number-of-books-you-can-take.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2361-minimum-costs-using-the-train-line.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2369-check-if-there-is-a-valid-partition-for-the-array.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2370-longest-ideal-subsequence.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2369-check-if-there-is-a-valid-partition-for-the-array.md | authorized-import |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2370-longest-ideal-subsequence.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2376-count-special-integers.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2378-choose-edges-to-maximize-score-in-a-tree.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/238-product-of-array-except-self.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2385-amount-of-time-for-binary-tree-to-be-infected.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2400-number-of-ways-to-reach-a-position-after-exactly-k-steps.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2403-minimum-time-to-kill-all-monsters.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2407-longest-increasing-subsequence-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2407-longest-increasing-subsequence-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2420-find-all-good-indices.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2430-maximum-deletions-on-a-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2431-maximize-total-tastiness-of-purchased-fruits.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2435-paths-in-matrix-whose-sum-is-divisible-by-k.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2435-paths-in-matrix-whose-sum-is-divisible-by-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2463-minimum-total-distance-traveled.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2464-minimum-subarrays-in-a-valid-split.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2466-count-ways-to-build-good-strings.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2466-count-ways-to-build-good-strings.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2472-maximum-number-of-non-overlapping-palindrome-substrings.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2478-number-of-beautiful-partitions.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2483-minimum-penalty-for-a-shop.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2484-count-palindromic-subsequences.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2501-longest-square-streak-in-an-array.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2501-longest-square-streak-in-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2510-check-if-there-is-a-path-with-equal-number-of-0s-and-1s.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2518-number-of-great-partitions.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2533-number-of-good-binary-strings.md | missing-endlesscheng-solution |
@@ -1144,36 +1144,36 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/265-paint-house-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2680-maximum-or.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2684-maximum-number-of-moves-in-a-grid.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2707-extra-characters-in-a-string.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2707-extra-characters-in-a-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2708-maximum-strength-of-a-group.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2711-difference-of-number-of-distinct-values-on-diagonals.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2713-maximum-strictly-increasing-cells-in-a-matrix.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2719-count-of-integers.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2732-find-a-good-subset-of-the-matrix.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2732-find-a-good-subset-of-the-matrix.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2741-special-permutations.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2742-painting-the-walls.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2746-decremental-string-concatenation.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/276-paint-fence.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2767-partition-string-into-minimum-beautiful-substrings.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2770-maximum-number-of-jumps-to-reach-the-last-index.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2770-maximum-number-of-jumps-to-reach-the-last-index.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2771-longest-non-decreasing-subarray-from-two-arrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2780-minimum-index-of-a-valid-split.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2786-visit-array-positions-to-maximize-score.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2787-ways-to-express-an-integer-as-sum-of-powers.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/279-perfect-squares.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2801-count-stepping-numbers-in-range.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2801-count-stepping-numbers-in-range.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2809-minimum-time-to-make-array-sum-at-most-x.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2826-sorting-three-groups.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2827-number-of-beautiful-integers-in-the-range.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2830-maximize-the-profit-as-the-salesman.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2843-count-symmetric-integers.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2843-count-symmetric-integers.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2850-minimum-moves-to-spread-stones-over-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2851-string-transformation.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2858-minimum-edge-reversals-so-every-node-is-reachable.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2866-beautiful-towers-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2874-maximum-value-of-an-ordered-triplet-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2874-maximum-value-of-an-ordered-triplet-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2896-apply-operations-to-make-two-strings-equal.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2901-longest-unequal-adjacent-groups-subsequence-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2901-longest-unequal-adjacent-groups-subsequence-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2902-count-of-sub-multisets-with-bounded-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2906-construct-product-matrix.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2909-minimum-sum-of-mountain-triplets-ii.md | authorized-import |
@@ -1181,14 +1181,14 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2912-number-of-ways-to-reach-destination-in-the-grid.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2915-length-of-the-longest-subsequence-that-sums-to-target.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2916-subarrays-distinct-element-sum-of-squares-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2919-minimum-increment-operations-to-make-array-beautiful.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2919-minimum-increment-operations-to-make-array-beautiful.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2920-maximum-points-after-collecting-coins-from-all-nodes.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2925-maximum-score-after-applying-operations-on-a-tree.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2926-maximum-balanced-subsequence-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2930-number-of-strings-which-can-be-rearranged-to-contain-substring.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/294-flip-game-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2944-minimum-number-of-coins-for-fruits.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/2945-find-maximum-non-decreasing-array-length.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/2945-find-maximum-non-decreasing-array-length.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2969-minimum-number-of-coins-for-fruits-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2977-minimum-cost-to-convert-string-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/2992-number-of-self-divisible-permutations.md | missing-endlesscheng-solution |
@@ -1201,7 +1201,7 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3032-count-numbers-with-unique-digits-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3040-maximum-number-of-operations-with-the-same-score-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3041-maximize-consecutive-elements-in-an-array-after-modification.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3068-find-the-maximum-sum-of-node-values.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3068-find-the-maximum-sum-of-node-values.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3077-maximum-strength-of-k-disjoint-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3082-find-the-sum-of-the-power-of-all-subsequences.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/309-best-time-to-buy-and-sell-stock-with-cooldown.md | authorized-import |
@@ -1244,8 +1244,8 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3276-select-cells-in-grid-with-maximum-score.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3277-maximum-xor-score-subarray-queries.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3283-maximum-number-of-moves-to-kill-all-pawns.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3287-find-the-maximum-sequence-value-of-array.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3288-length-of-the-longest-increasing-path.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3287-find-the-maximum-sequence-value-of-array.md | authorized-import |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3288-length-of-the-longest-increasing-path.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/329-longest-increasing-path-in-a-matrix.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3290-maximum-multiplication-score.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3292-minimum-number-of-valid-strings-to-form-target-ii.md | authorized-import |
@@ -1275,14 +1275,14 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3376-minimum-time-to-break-locks-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3381-maximum-subarray-sum-with-length-divisible-by-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3389-minimum-operations-to-make-character-frequencies-equal.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3393-count-paths-with-the-given-xor-value.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3393-count-paths-with-the-given-xor-value.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3404-count-special-subsequences.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3409-longest-subsequence-with-decreasing-adjacent-difference.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3410-maximize-subarray-sum-after-removing-all-occurrences-of-one-element.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3414-maximum-score-of-non-overlapping-intervals.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3418-maximum-amount-of-money-robot-can-earn.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3418-maximum-amount-of-money-robot-can-earn.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3429-paint-house-iv.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3434-maximum-frequency-after-subarray-operation.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3434-maximum-frequency-after-subarray-operation.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3441-minimum-cost-good-caption.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3444-minimum-increments-for-target-multiples-in-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3448-count-substrings-divisible-by-last-digit.md | authorized-import |
@@ -1305,8 +1305,8 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3533-concatenated-divisibility.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3538-merge-operations-for-minimum-travel-time.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3539-find-sum-of-array-product-of-magical-sequences.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/354-russian-doll-envelopes.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3543-maximum-weighted-k-edge-path.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/354-russian-doll-envelopes.md | authorized-import |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3543-maximum-weighted-k-edge-path.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3544-subtree-inversion-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3562-maximum-profit-from-trading-stocks-with-discounts.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3563-lexicographically-smallest-string-after-adjacent-removals.md | authorized-import |
@@ -1321,22 +1321,22 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3594-minimum-time-to-transport-all-individuals.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3598-longest-common-prefix-between-adjacent-strings-after-removals.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3599-partition-array-to-minimize-xor.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3603-minimum-cost-path-with-alternating-directions-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3603-minimum-cost-path-with-alternating-directions-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3610-minimum-number-of-primes-to-sum-to-target.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3615-longest-palindromic-path-in-graph.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3620-network-recovery-pathways.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3620-network-recovery-pathways.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3621-number-of-integers-with-popcount-depth-equal-to-k-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3628-maximum-number-of-subsequences-after-one-inserting.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3640-trionic-array-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3647-maximum-weight-in-two-bags.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3651-minimum-cost-path-with-teleportations.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3654-minimum-sum-after-divisible-sum-deletions.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3661-maximum-walls-destroyed-by-robots.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3665-twisted-mirror-path-count.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3661-maximum-walls-destroyed-by-robots.md | authorized-import |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3665-twisted-mirror-path-count.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3670-maximum-product-of-two-integers-with-no-common-bits.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3671-sum-of-beautiful-subsequences.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3677-count-binary-palindromic-numbers.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/368-largest-divisible-subset.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/368-largest-divisible-subset.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3685-subsequence-sum-after-capping-elements.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3686-number-of-stable-subsequences.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3693-climbing-stairs-ii.md | authorized-import |
@@ -1347,12 +1347,12 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3707-equal-score-substrings.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3725-count-ways-to-choose-coprime-integers-from-rows.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3738-longest-non-decreasing-subarray-after-replacing-at-most-one-element.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3742-maximum-path-score-in-a-grid.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3742-maximum-path-score-in-a-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3743-maximize-cyclic-partition-score.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3747-count-distinct-integers-after-removing-zeros.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/375-guess-number-higher-or-lower-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3753-total-waviness-of-numbers-in-range-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3757-number-of-effective-subsequences.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3757-number-of-effective-subsequences.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/376-wiggle-subsequence.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/377-combination-sum-iv.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3772-maximum-subgraph-score-in-a-tree.md | authorized-import |
@@ -1361,7 +1361,7 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3791-number-of-balanced-integers-in-a-range.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3797-count-routes-to-climb-a-rectangular-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3801-minimum-cost-to-merge-sorted-lists.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3811-number-of-alternating-xor-partitions.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3811-number-of-alternating-xor-partitions.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3825-longest-strictly-increasing-subsequence-with-non-zero-bitwise-and.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3826-minimum-partition-score.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3830-longest-alternating-subarray-after-removing-at-most-one-element.md | authorized-import |
@@ -1375,30 +1375,30 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3877-minimum-removals-to-achieve-target-xor.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3882-minimum-xor-path-in-a-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3883-count-non-decreasing-arrays-with-given-digit-sums.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3891-minimum-increase-to-maximize-special-indices.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3891-minimum-increase-to-maximize-special-indices.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3892-minimum-operations-to-achieve-at-least-k-peaks.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3904-smallest-stable-index-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3906-count-good-integers-on-a-grid-path.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3912-valid-elements-in-an-array.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3915-maximum-sum-of-alternating-subsequence-with-distance-at-least-k.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3915-maximum-sum-of-alternating-subsequence-with-distance-at-least-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3916-number-of-zigzag-arrays-iii.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3920-maximize-fixed-points-after-deletions.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3920-maximize-fixed-points-after-deletions.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3929-minimum-partition-score-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3938-maximum-path-intersection-sum-in-a-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3939-count-non-adjacent-subsets-in-a-rooted-tree.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3946-maximum-number-of-items-from-sale-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3949-subtree-inversion-sum-ii.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3952-maximum-total-value-of-covered-indices.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3952-maximum-total-value-of-covered-indices.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3954-sum-of-compatible-numbers-in-range-i.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3956-maximum-sum-of-m-non-overlapping-subarrays-i.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3956-maximum-sum-of-m-non-overlapping-subarrays-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3957-maximum-sum-of-m-non-overlapping-subarrays-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3966-count-good-integers-in-a-range.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3967-finish-time-of-tasks-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/397-integer-replacement.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3976-maximum-subarray-sum-after-multiplier.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3976-maximum-subarray-sum-after-multiplier.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3977-minimum-time-to-reach-target-with-limited-power.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3980-minimum-operations-to-transform-binary-string.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/3981-count-distinct-ways-to-form-target-from-two-strings.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/3981-count-distinct-ways-to-form-target-from-two-strings.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3983-subsequence-after-one-replacement.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3984-divisible-game.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/3989-maximum-consistent-columns-in-a-grid.md | authorized-import |
@@ -1419,7 +1419,7 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/472-concatenated-words.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/473-matchsticks-to-square.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/474-ones-and-zeroes.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/486-predict-the-winner.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/486-predict-the-winner.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/487-max-consecutive-ones-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/494-target-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/5-longest-palindromic-substring.md | authorized-import |
@@ -1437,19 +1437,19 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/576-out-of-boundary-paths.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/583-delete-operation-for-two-strings.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/600-non-negative-integers-without-consecutive-ones.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/62-unique-paths.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/62-unique-paths.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/629-k-inverse-pairs-array.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/63-unique-paths-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/63-unique-paths-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/638-shopping-offers.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/639-decode-ways-ii.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/64-minimum-path-sum.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/64-minimum-path-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/647-palindromic-substrings.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/650-2-keys-keyboard.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/656-coin-path.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/664-strange-printer.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/673-number-of-longest-increasing-subsequence.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/687-longest-univalue-path.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/688-knight-probability-in-chessboard.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/688-knight-probability-in-chessboard.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/689-maximum-sum-of-3-non-overlapping-subarrays.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/691-stickers-to-spell-word.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/698-partition-to-k-equal-sum-subsets.md | missing-endlesscheng-solution |
@@ -1468,12 +1468,12 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/787-cheapest-flights-within-k-stops.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/788-rotated-digits.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/790-domino-and-tromino-tiling.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/801-minimum-swaps-to-make-sequences-increasing.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/801-minimum-swaps-to-make-sequences-increasing.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/808-soup-servings.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/813-largest-sum-of-averages.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/818-race-car.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/823-binary-trees-with-factors.md | authorized-import |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/828-count-unique-characters-of-all-substrings-of-a-given-string.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/828-count-unique-characters-of-all-substrings-of-a-given-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/834-sum-of-distances-in-tree.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/837-new-21-game.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/845-longest-mountain-in-array.md | missing-endlesscheng-solution |
@@ -1482,23 +1482,23 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/87-scramble-string.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/871-minimum-number-of-refueling-stops.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/873-length-of-longest-fibonacci-subsequence.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/877-stone-game.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/877-stone-game.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/879-profitable-schemes.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/887-super-egg-drop.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/902-numbers-at-most-n-given-digit-set.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/903-valid-permutations-for-di-sequence.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/91-decode-ways.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/913-cat-and-mouse.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/913-cat-and-mouse.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/918-maximum-sum-circular-subarray.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/920-number-of-music-playlists.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/926-flip-string-to-monotone-increasing.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/931-minimum-falling-path-sum.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/931-minimum-falling-path-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/935-knight-dialer.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/940-distinct-subsequences-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/943-find-the-shortest-superstring.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/956-tallest-billboard.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/96-unique-binary-search-trees.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/960-delete-columns-to-make-sorted-iii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/960-delete-columns-to-make-sorted-iii.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/964-least-operators-to-express-number.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/968-binary-tree-cameras.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/97-interleaving-string.md | authorized-import |
@@ -1522,7 +1522,7 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/LCP-53-EJvmW4.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/LCP-57-ZbAuEH.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/LCP-59-NfY1m5.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/07-dynamic-programming/LCP-64-U7WvvU.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/07-dynamic-programming/LCP-64-U7WvvU.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/LCP-65-3aqs1c.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/LCP-69-rMeRt2.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/LCP-76-1ybDKD.md | authorized-import |
@@ -1532,7 +1532,7 @@
 | 01-question-bank/detailed-solutions/07-dynamic-programming/面试题-08.14-boolean-evaluation-lcci.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/面试题-17.06-number-of-2s-in-range-lcci.md | authorized-import |
 | 01-question-bank/detailed-solutions/07-dynamic-programming/面试题-17.13-re-space-lcci.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/1-two-sum.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/1-two-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1003-check-if-word-is-valid-after-substitutions.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1006-clumsy-factorial.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1010-pairs-of-songs-with-total-durations-divisible-by-60.md | authorized-import |
@@ -1563,7 +1563,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/1177-can-make-palindrome-from-substring.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1190-reverse-substrings-between-each-pair-of-parentheses.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1199-minimum-time-to-build-blocks.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/12-integer-to-roman.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/12-integer-to-roman.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1202-smallest-string-with-swaps.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1206-design-skiplist.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1209-remove-all-adjacent-duplicates-in-string-ii.md | authorized-import |
@@ -1575,19 +1575,19 @@
 | 01-question-bank/detailed-solutions/08-data-structures/1258-synonymous-sentences.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1268-search-suggestions-system.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1292-maximum-side-length-of-a-square-with-sum-less-than-or-equal-to-threshold.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/13-roman-to-integer.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/13-roman-to-integer.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1310-xor-queries-of-a-subarray.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1314-matrix-block-sum.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/1329-sort-the-matrix-diagonally.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/1329-sort-the-matrix-diagonally.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1331-rank-transform-of-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1348-tweet-counts-per-frequency.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/1353-maximum-number-of-events-that-can-be-attended.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/1354-construct-target-array-with-multiple-sums.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/1353-maximum-number-of-events-that-can-be-attended.md | authorized-import |
+| 01-question-bank/detailed-solutions/08-data-structures/1354-construct-target-array-with-multiple-sums.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1371-find-the-longest-substring-containing-vowels-in-even-counts.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1381-design-a-stack-with-increment-operation.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1383-maximum-performance-of-a-team.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1388-pizza-with-3n-slices.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/139-word-break.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/139-word-break.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1395-count-number-of-teams.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/140-word-break-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1405-longest-happy-string.md | missing-endlesscheng-solution |
@@ -1598,7 +1598,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/1439-find-the-kth-smallest-sum-of-a-matrix-with-sorted-rows.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1441-build-an-array-with-stack-operations.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1442-count-triplets-that-can-form-two-arrays-of-equal-xor.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/146-lru-cache.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/146-lru-cache.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1472-design-browser-history.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1477-find-two-non-overlapping-sub-arrays-each-with-target-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1488-avoid-flood-in-the-city.md | authorized-import |
@@ -1607,11 +1607,11 @@
 | 01-question-bank/detailed-solutions/08-data-structures/150-evaluate-reverse-polish-notation.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1500-design-a-file-sharing-system.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1505-minimum-possible-integer-after-at-most-k-adjacent-swaps-on-digits.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/1512-number-of-good-pairs.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/1512-number-of-good-pairs.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1523-count-odd-numbers-in-an-interval-range.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1524-number-of-sub-arrays-with-odd-sum.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1526-minimum-number-of-increments-on-subarrays-to-form-a-target-array.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/1534-count-good-triplets.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/1534-count-good-triplets.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1541-minimum-insertions-to-balance-a-parentheses-string.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1542-find-longest-awesome-substring.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1544-make-the-string-great.md | missing-endlesscheng-solution |
@@ -1625,7 +1625,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/1606-find-servers-that-handled-most-number-of-requests.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1614-maximum-nesting-depth-of-the-parentheses.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1622-fancy-sequence.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/1626-best-team-with-no-conflicts.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/1626-best-team-with-no-conflicts.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1627-graph-connectivity-with-threshold.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1628-design-an-expression-tree-with-evaluate-function.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1631-path-with-minimum-effort.md | missing-endlesscheng-solution |
@@ -1639,7 +1639,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/1685-sum-of-absolute-differences-in-a-sorted-array.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1697-checking-existence-of-edge-length-limited-paths.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1703-minimum-adjacent-swaps-for-k-consecutive-ones.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/1705-maximum-number-of-eaten-apples.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/1705-maximum-number-of-eaten-apples.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1707-maximum-xor-with-an-element-from-array.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/1712-ways-to-split-array-into-three-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/1714-sum-of-special-evenly-spaced-elements-in-array.md | missing-endlesscheng-solution |
@@ -1688,7 +1688,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/20-valid-parentheses.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2001-number-of-pairs-of-interchangeable-rectangles.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2015-average-height-of-buildings-in-each-segment.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/2016-maximum-difference-between-increasing-elements.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/2016-maximum-difference-between-increasing-elements.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2021-brightest-position-on-street.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/2025-maximum-number-of-ways-to-partition-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2031-count-subarrays-with-more-ones-than-zeros.md | missing-endlesscheng-solution |
@@ -1699,7 +1699,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/2071-maximum-number-of-tasks-you-can-assign.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2076-process-restricted-friend-requests.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2078-two-furthest-houses-with-different-colors.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/208-implement-trie-prefix-tree.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/208-implement-trie-prefix-tree.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2092-find-all-people-with-secret.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2102-sequentially-ordinal-rank-tracker.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/211-design-add-and-search-words-data-structure.md | missing-endlesscheng-solution |
@@ -1712,7 +1712,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/2168-unique-substrings-with-equal-digit-frequency.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/2179-count-good-triplets-in-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/218-the-skyline-problem.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/219-contains-duplicate-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/219-contains-duplicate-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2193-minimum-number-of-moves-to-make-palindrome.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/2197-replace-non-coprime-numbers-in-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/220-contains-duplicate-iii.md | missing-endlesscheng-solution |
@@ -1756,12 +1756,12 @@
 | 01-question-bank/detailed-solutions/08-data-structures/2398-maximum-number-of-robots-within-budget.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2402-meeting-rooms-iii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2406-divide-intervals-into-minimum-number-of-groups.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/2407-longest-increasing-subsequence-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/2407-longest-increasing-subsequence-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2416-sum-of-prefix-scores-of-strings.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2421-number-of-good-paths.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2426-number-of-pairs-satisfying-inequality.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2434-using-a-robot-to-print-the-lexicographically-smallest-string.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/2441-largest-positive-integer-that-exists-with-its-negative.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/2441-largest-positive-integer-that-exists-with-its-negative.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2459-sort-array-by-moving-items-to-empty-space.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/2462-total-cost-to-hire-k-workers.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2471-minimum-number-of-operations-to-sort-a-binary-tree-by-level.md | authorized-import |
@@ -1773,13 +1773,13 @@
 | 01-question-bank/detailed-solutions/08-data-structures/2506-count-pairs-of-similar-strings.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2519-count-the-number-of-k-big-indices.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/2524-maximum-frequency-score-of-a-subarray.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/2528-maximize-the-minimum-powered-city.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/2528-maximize-the-minimum-powered-city.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/253-meeting-rooms-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/2530-maximal-score-after-applying-k-operations.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2532-time-to-cross-a-bridge.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2534-time-taken-to-cross-the-door.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/2536-increment-submatrices-by-one.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/2542-maximum-subsequence-score.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/2542-maximum-subsequence-score.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2547-minimum-cost-to-split-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2552-count-increasing-quadruplets.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2555-maximize-win-from-two-segments.md | authorized-import |
@@ -1795,30 +1795,30 @@
 | 01-question-bank/detailed-solutions/08-data-structures/2615-sum-of-distances.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2617-minimum-number-of-visited-cells-in-a-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/264-ugly-number-ii.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/2653-sliding-subarray-beauty.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/2653-sliding-subarray-beauty.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2659-make-array-empty.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2696-minimum-string-length-after-removing-substrings.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2709-greatest-common-divisor-traversal.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/2711-difference-of-number-of-distinct-values-on-diagonals.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/273-integer-to-english-words.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/273-integer-to-english-words.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2736-maximum-sum-queries.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2747-count-zero-request-servers.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2748-number-of-beautiful-pairs.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2751-robot-collisions.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/2762-continuous-subarrays.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/2770-maximum-number-of-jumps-to-reach-the-last-index.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/2762-continuous-subarrays.md | authorized-import |
+| 01-question-bank/detailed-solutions/08-data-structures/2770-maximum-number-of-jumps-to-reach-the-last-index.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2772-apply-operations-to-make-all-array-elements-equal-to-zero.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2791-count-paths-that-can-form-a-palindrome-in-a-tree.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2810-faulty-keyboard.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/2812-find-the-safest-path-in-a-grid.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/2812-find-the-safest-path-in-a-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2813-maximum-elegance-of-a-k-length-subsequence.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2815-max-pair-sum-in-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2819-minimum-relative-loss-after-buying-chocolates.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/2845-count-of-interesting-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2846-minimum-edge-weight-equilibrium-queries-in-a-tree.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2848-points-that-intersect-with-cars.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/2867-count-valid-paths-in-a-tree.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/2874-maximum-value-of-an-ordered-triplet-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/2867-count-valid-paths-in-a-tree.md | authorized-import |
+| 01-question-bank/detailed-solutions/08-data-structures/2874-maximum-value-of-an-ordered-triplet-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2905-find-indices-with-index-and-value-difference-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2909-minimum-sum-of-mountain-triplets-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2916-subarrays-distinct-element-sum-of-squares-ii.md | authorized-import |
@@ -1827,7 +1827,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/2931-maximum-spending-after-buying-items.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2935-maximum-strong-pair-xor-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2940-find-building-where-alice-and-bob-can-meet.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/2949-count-beautiful-substrings-ii.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/2949-count-beautiful-substrings-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/295-find-median-from-data-stream.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2950-number-of-divisible-substrings.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/2955-number-of-same-end-substrings.md | missing-endlesscheng-solution |
@@ -1835,19 +1835,19 @@
 | 01-question-bank/detailed-solutions/08-data-structures/2964-number-of-divisible-triplet-sums.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/2968-apply-operations-to-maximize-frequency-score.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/2977-minimum-cost-to-convert-string-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/2983-palindrome-rearrangement-queries.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/2983-palindrome-rearrangement-queries.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3009-maximum-number-of-intersections-on-the-chart.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/3013-divide-an-array-into-subarrays-with-minimum-cost-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3017-count-the-number-of-houses-at-a-certain-distance-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3026-maximum-good-subarray-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3027-find-the-number-of-ways-to-place-people-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/303-range-sum-query-immutable.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/304-range-sum-query-2d-immutable.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/3043-find-the-length-of-the-longest-common-prefix.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/303-range-sum-query-immutable.md | authorized-import |
+| 01-question-bank/detailed-solutions/08-data-structures/304-range-sum-query-2d-immutable.md | authorized-import |
+| 01-question-bank/detailed-solutions/08-data-structures/3043-find-the-length-of-the-longest-common-prefix.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3045-count-prefix-and-suffix-pairs-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3049-earliest-second-to-mark-indices-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3066-minimum-operations-to-exceed-threshold-value-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/3067-count-pairs-of-connectable-servers-in-a-weighted-tree-network.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3067-count-pairs-of-connectable-servers-in-a-weighted-tree-network.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/307-range-sum-query-mutable.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3070-count-submatrices-with-top-left-element-and-sum-less-than-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3072-distribute-elements-into-two-arrays-ii.md | authorized-import |
@@ -1858,7 +1858,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/3092-most-frequent-ids.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3093-longest-common-suffix-queries.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3109-find-the-index-of-permutation.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/3128-right-triangles.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3128-right-triangles.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3148-maximum-difference-score-in-a-grid.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/315-count-of-smaller-numbers-after-self.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/3152-special-array-ii.md | authorized-import |
@@ -1892,7 +1892,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/336-palindrome-pairs.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/3361-shift-distance-between-two-strings.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3362-zero-array-transformation-iii.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/3364-minimum-positive-sum-subarray.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3364-minimum-positive-sum-subarray.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3369-design-an-array-statistics-tracker.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/3371-identify-the-largest-outlier-in-an-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3378-count-connected-components-in-lcm-graph.md | authorized-import |
@@ -1908,10 +1908,10 @@
 | 01-question-bank/detailed-solutions/08-data-structures/3422-minimum-operations-to-make-subarray-elements-equal.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/3427-sum-of-variable-length-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3445-maximum-difference-between-even-and-odd-frequency-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/3446-sort-matrix-by-diagonals.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3446-sort-matrix-by-diagonals.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3453-separate-squares-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3454-separate-squares-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/3455-shortest-matching-substring.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3455-shortest-matching-substring.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/346-moving-average-from-data-stream.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/3478-choose-k-elements-with-maximum-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3479-fruits-into-baskets-iii.md | authorized-import |
@@ -1920,7 +1920,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/3501-maximize-active-section-with-trade-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3505-minimum-operations-to-make-elements-within-k-subarrays-equal.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3506-find-time-required-to-eliminate-bacterial-strains.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/3508-implement-router.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3508-implement-router.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3510-minimum-pair-removal-to-sort-array-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3511-make-a-positive-array.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/3515-shortest-path-in-a-weighted-tree.md | authorized-import |
@@ -1938,8 +1938,8 @@
 | 01-question-bank/detailed-solutions/08-data-structures/3584-maximum-product-of-first-and-last-elements-of-a-subsequence.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3589-count-prime-gap-balanced-subarrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3590-kth-smallest-path-xor-sum.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/3597-partition-string.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/3600-maximize-spanning-tree-stability-with-upgrades.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3597-partition-string.md | authorized-import |
+| 01-question-bank/detailed-solutions/08-data-structures/3600-maximize-spanning-tree-stability-with-upgrades.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3607-power-grid-maintenance.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3608-minimum-time-for-k-connected-components.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3613-minimize-maximum-component-cost.md | authorized-import |
@@ -1959,13 +1959,13 @@
 | 01-question-bank/detailed-solutions/08-data-structures/370-range-addition.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/3703-remove-k-balanced-substrings.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3709-design-exam-scores-tracker.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/3710-maximum-partition-factor.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3710-maximum-partition-factor.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3711-maximum-transactions-without-negative-balance.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/3713-longest-balanced-substring-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3714-longest-balanced-substring-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3721-longest-balanced-subarray-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3728-stable-subarrays-with-equal-boundary-and-interior-sum.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/3729-count-distinct-subarrays-divisible-by-k-in-sorted-array.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3729-count-distinct-subarrays-divisible-by-k-in-sorted-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/373-find-k-pairs-with-smallest-sums.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3739-count-subarrays-with-majority-element-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3748-count-stable-subarrays.md | authorized-import |
@@ -1990,7 +1990,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/3851-maximum-requests-without-violating-the-limit.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/3853-merge-close-characters.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3873-maximum-points-activated-with-one-addition.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/3880-minimum-absolute-difference-between-two-values.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3880-minimum-absolute-difference-between-two-values.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3885-design-event-manager.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3887-incremental-even-weighted-cycle-queries.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3888-minimum-operations-to-make-all-grid-elements-equal.md | missing-endlesscheng-solution |
@@ -1999,7 +1999,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/3901-good-subsequence-queries.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3907-count-smaller-elements-with-opposite-parity.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/3914-minimum-operations-to-make-array-non-decreasing.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/3915-maximum-sum-of-alternating-subsequence-with-distance-at-least-k.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3915-maximum-sum-of-alternating-subsequence-with-distance-at-least-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3917-count-indices-with-opposite-parity.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3919-minimum-cost-to-move-between-indices.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3933-largest-local-values-in-a-matrix-ii.md | authorized-import |
@@ -2008,7 +2008,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/3943-number-of-pairs-after-increment.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3962-maximum-subarray-sum-after-at-most-k-swaps.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3964-minimum-lights-to-illuminate-a-road.md | authorized-import |
-| 01-question-bank/detailed-solutions/08-data-structures/3969-valid-subarrays-with-matching-sum-digits-i.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/3969-valid-subarrays-with-matching-sum-digits-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3979-maximum-valid-pair-sum.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/399-evaluate-division.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/3994-minimum-adjacent-swaps-to-partition-array.md | authorized-import |
@@ -2029,7 +2029,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/472-concatenated-words.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/480-sliding-window-median.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/493-reverse-pairs.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/498-diagonal-traverse.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/498-diagonal-traverse.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/502-ipo.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/523-continuous-subarray-sum.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/525-contiguous-array.md | authorized-import |
@@ -2046,7 +2046,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/616-add-bold-tag-in-string.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/621-task-scheduler.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/622-design-circular-queue.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/624-maximum-distance-in-arrays.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/624-maximum-distance-in-arrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/630-course-schedule-iii.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/632-smallest-range-covering-elements-from-k-lists.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/636-exclusive-time-of-functions.md | missing-endlesscheng-solution |
@@ -2085,7 +2085,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/772-basic-calculator-iii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/778-swim-in-rising-water.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/786-k-th-smallest-prime-fraction.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/798-smallest-rotation-with-highest-score.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/798-smallest-rotation-with-highest-score.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/8-string-to-integer-atoi.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/803-bricks-falling-when-hit.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/820-short-encoding-of-words.md | missing-endlesscheng-solution |
@@ -2134,7 +2134,7 @@
 | 01-question-bank/detailed-solutions/08-data-structures/面试题-16.24-pairs-with-sum-lcci.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/08-data-structures/面试题-17.05-find-longest-subarray-lcci.md | authorized-import |
 | 01-question-bank/detailed-solutions/08-data-structures/面试题-17.13-re-space-lcci.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/08-data-structures/面试题-17.23-max-black-square-lcci.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/08-data-structures/面试题-17.23-max-black-square-lcci.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1015-smallest-integer-divisible-by-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1017-convert-to-base-2.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1018-binary-prefix-divisible-by-5.md | authorized-import |
@@ -2188,10 +2188,10 @@
 | 01-question-bank/detailed-solutions/09-math-algorithms/1690-stone-game-vii.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1692-count-ways-to-distribute-candies.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1716-calculate-money-in-leetcode-bank.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/172-factorial-trailing-zeroes.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/172-factorial-trailing-zeroes.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1723-find-minimum-time-to-finish-all-jobs.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1728-cat-and-mouse-ii.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/1735-count-ways-to-make-array-with-product.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/1735-count-ways-to-make-array-with-product.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1739-building-boxes.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1766-tree-of-coprimes.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1780-check-if-number-is-a-sum-of-powers-of-three.md | authorized-import |
@@ -2209,7 +2209,7 @@
 | 01-question-bank/detailed-solutions/09-math-algorithms/1924-erect-the-fence-ii.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1925-count-square-sum-triples.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1927-sum-game.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/1952-three-divisors.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/1952-three-divisors.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1954-minimum-garden-perimeter-to-collect-enough-apples.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1956-minimum-time-for-k-virus-variants-to-spread.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/1968-array-with-elements-not-equal-to-average-of-neighbors.md | authorized-import |
@@ -2236,15 +2236,15 @@
 | 01-question-bank/detailed-solutions/09-math-algorithms/2240-number-of-ways-to-buy-pens-and-pencils.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2280-minimum-lines-to-represent-a-line-chart.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/229-majority-element-ii.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/09-math-algorithms/2306-naming-a-company.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/2306-naming-a-company.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2310-sum-of-numbers-with-units-digit-k.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2316-count-unreachable-pairs-of-nodes-in-an-undirected-graph.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/2338-count-the-number-of-ideal-arrays.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/2338-count-the-number-of-ideal-arrays.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2344-minimum-deletions-to-make-array-divisible.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2396-strictly-palindromic-number.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2400-number-of-ways-to-reach-a-position-after-exactly-k-steps.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2413-smallest-even-multiple.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/2427-number-of-common-factors.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/2427-number-of-common-factors.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2436-minimum-split-into-subarrays-with-gcd-greater-than-one.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2443-sum-of-number-and-its-reverse.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2447-number-of-subarrays-with-gcd-equal-to-k.md | authorized-import |
@@ -2264,7 +2264,7 @@
 | 01-question-bank/detailed-solutions/09-math-algorithms/2543-check-if-point-is-reachable.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2550-count-collisions-of-monkeys-on-a-polygon.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2579-count-total-number-of-colored-cells.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/2584-split-the-array-to-make-coprime-products.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/2584-split-the-array-to-make-coprime-products.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/259-3sum-smaller.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2598-smallest-missing-non-negative-integer-after-operations.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2601-prime-subtraction-operation.md | authorized-import |
@@ -2286,8 +2286,8 @@
 | 01-question-bank/detailed-solutions/09-math-algorithms/2834-find-the-minimum-possible-sum-of-a-beautiful-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2842-count-k-subsequences-of-a-string-with-maximum-beauty.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2847-smallest-number-with-given-digit-product.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/09-math-algorithms/2862-maximum-element-sum-of-a-complete-subset-of-indices.md | missing-endlesscheng-solution |
-| 01-question-bank/detailed-solutions/09-math-algorithms/2867-count-valid-paths-in-a-tree.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/2862-maximum-element-sum-of-a-complete-subset-of-indices.md | authorized-import |
+| 01-question-bank/detailed-solutions/09-math-algorithms/2867-count-valid-paths-in-a-tree.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2868-the-wording-game.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/292-nim-game.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/2927-distribute-candies-among-children-iii.md | missing-endlesscheng-solution |
@@ -2301,7 +2301,7 @@
 | 01-question-bank/detailed-solutions/09-math-algorithms/2979-most-expensive-item-that-can-not-be-bought.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3012-minimize-length-of-array-using-operations.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3044-most-frequent-prime.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/3067-count-pairs-of-connectable-servers-in-a-weighted-tree-network.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/3067-count-pairs-of-connectable-servers-in-a-weighted-tree-network.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3078-match-alphanumerical-pattern-in-matrix-i.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3082-find-the-sum-of-the-power-of-all-subsequences.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3091-apply-operations-to-make-sum-of-array-greater-than-or-equal-to-k.md | authorized-import |
@@ -2309,7 +2309,7 @@
 | 01-question-bank/detailed-solutions/09-math-algorithms/3102-minimize-manhattan-distances.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3115-maximum-prime-difference.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3116-kth-smallest-amount-with-single-denomination-combination.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/3128-right-triangles.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/3128-right-triangles.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3130-find-all-possible-stable-binary-arrays-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3154-find-number-of-ways-to-reach-the-k-th-stair.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3164-find-the-number-of-good-pairs-ii.md | authorized-import |
@@ -2325,7 +2325,7 @@
 | 01-question-bank/detailed-solutions/09-math-algorithms/3272-find-the-count-of-good-integers.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3312-sorted-gcd-pair-queries.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3317-find-the-number-of-possible-ways-for-an-event.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/3326-minimum-division-operations-to-make-array-non-decreasing.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/3326-minimum-division-operations-to-make-array-non-decreasing.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3333-find-the-original-typed-string-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3334-find-the-maximum-factor-score-of-array.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3336-find-the-number-of-subsequences-with-equal-gcd.md | authorized-import |
@@ -2366,11 +2366,11 @@
 | 01-question-bank/detailed-solutions/09-math-algorithms/3671-sum-of-beautiful-subsequences.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3677-count-binary-palindromic-numbers.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3680-generate-schedule.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/3715-sum-of-perfect-square-ancestors.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/3715-sum-of-perfect-square-ancestors.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/372-super-pow.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3725-count-ways-to-choose-coprime-integers-from-rows.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3733-minimum-time-to-complete-all-deliveries.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/3757-number-of-effective-subsequences.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/3757-number-of-effective-subsequences.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3765-complete-prime-number.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3766-minimum-operations-to-make-binary-palindrome.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/3770-largest-prime-from-consecutive-prime-sum.md | authorized-import |
@@ -2401,7 +2401,7 @@
 | 01-question-bank/detailed-solutions/09-math-algorithms/4010-maximize-pair-strength-using-gcd.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/4021-minimum-operations-to-make-a-rotated-palindrome-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/4022-k-th-digit-in-infinite-string.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/4032-longest-subarray-with-at-most-k-distinct-prime-factors.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/4032-longest-subarray-with-at-most-k-distinct-prime-factors.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/4033-valid-k-unique-subarrays-i.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/4037-maximum-valid-split-positions-ii.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/458-poor-pigs.md | missing-endlesscheng-solution |
@@ -2421,7 +2421,7 @@
 | 01-question-bank/detailed-solutions/09-math-algorithms/593-valid-square.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/60-permutation-sequence.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/611-valid-triangle-number.md | authorized-import |
-| 01-question-bank/detailed-solutions/09-math-algorithms/62-unique-paths.md | missing-endlesscheng-solution |
+| 01-question-bank/detailed-solutions/09-math-algorithms/62-unique-paths.md | authorized-import |
 | 01-question-bank/detailed-solutions/09-math-algorithms/625-minimum-factorization.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/629-k-inverse-pairs-array.md | missing-endlesscheng-solution |
 | 01-question-bank/detailed-solutions/09-math-algorithms/633-sum-of-square-numbers.md | authorized-import |

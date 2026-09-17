@@ -7,15 +7,245 @@
 - 来源专题：数学算法
 - 来源分类路径：二、组合数学 / §2.1 乘法原理
 - 难度分：1909
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：missing-endlesscheng-solution
+- 外部题解来源：https://leetcode.cn/problems/count-pairs-of-connectable-servers-in-a-weighted-tree-network/solutions/2664330/mei-ju-gen-dfs-cheng-fa-yuan-li-pythonja-ivw5/
+- 外部题解授权状态：authorized-import
 - 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[枚举根 DFS + 乘法原理（Python/Java/C++/Go）](https://leetcode.cn/problems/count-pairs-of-connectable-servers-in-a-weighted-tree-network/solutions/2664330/mei-ju-gen-dfs-cheng-fa-yuan-li-pythonja-ivw5/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`mei-ju-gen-dfs-cheng-fa-yuan-li-pythonja-ivw5`
+- topic id：`2664330`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 16:46:02 +0800
+
+枚举服务器 $c$，作为树的根，按照下图计算（下图 $c=0$）。
+
+![b125C.png](https://pic.leetcode.cn/1709427910-nOCIAc-b125C.png)
+
+**优化**：如果 $c$ 只有一个邻居，则答案为 $0$，不调用 $\text{dfs}$。
+
+根据论文 [On the number of leaves in a random recursive tree](https://projecteuclid.org/journals/brazilian-journal-of-probability-and-statistics/volume-29/issue-4/On-the-number-of-leaves-in-a-random-recursive-tree/10.1214/14-BJPS252.pdf)，在随机数据下，这可以减少一半的计算量。
+
+[视频讲解](https://www.bilibili.com/video/BV1AU411F7Fp/) 第三题。
+
+```py [sol-Python3]
+# 更快的写法见【Python3 写法二】
+class Solution:
+    def countPairsOfConnectableServers(self, edges: List[List[int]], signalSpeed: int) -> List[int]:
+        n = len(edges) + 1
+        g = [[] for _ in range(n)]
+        for x, y, wt in edges:
+            g[x].append((y, wt))
+            g[y].append((x, wt))
+
+        def dfs(x: int, fa: int, s: int) -> int:
+            cnt = 0 if s % signalSpeed else 1
+            for y, wt in g[x]:
+                if y != fa:
+                    cnt += dfs(y, x, s + wt)
+            return cnt
+
+        ans = [0] * n
+        for i, gi in enumerate(g):
+            if len(gi) == 1:
+                continue
+            s = 0
+            for y, wt in gi:
+                cnt = dfs(y, i, wt)
+                ans[i] += cnt * s
+                s += cnt
+        return ans
+```
+
+```py [sol-Python3 写法二]
+class Solution:
+    def countPairsOfConnectableServers(self, edges: List[List[int]], signalSpeed: int) -> List[int]:
+        n = len(edges) + 1
+        g = [[] for _ in range(n)]
+        for x, y, wt in edges:
+            g[x].append((y, wt))
+            g[y].append((x, wt))
+
+        @cache
+        def dfs(x: int, fa: int, s: int) -> int:
+            cnt = 0 if s else 1
+            for y, wt in g[x]:
+                if y != fa:
+                    cnt += dfs(y, x, (s + wt) % signalSpeed)
+            return cnt
+
+        ans = [0] * n
+        for i, gi in enumerate(g):
+            if len(gi) == 1:
+                continue
+            s = 0
+            for y, wt in gi:
+                cnt = dfs(y, i, wt % signalSpeed)
+                ans[i] += cnt * s
+                s += cnt
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int[] countPairsOfConnectableServers(int[][] edges, int signalSpeed) {
+        int n = edges.length + 1;
+        List<int[]>[] g = new ArrayList[n];
+        Arrays.setAll(g, i -> new ArrayList<>());
+        for (int[] e : edges) {
+            int x = e[0];
+            int y = e[1];
+            int wt = e[2];
+            g[x].add(new int[]{y, wt});
+            g[y].add(new int[]{x, wt});
+        }
+
+        int[] ans = new int[n];
+        for (int i = 0; i < n; i++) {
+            if (g[i].size() == 1) {
+                continue;
+            }
+            int sum = 0;
+            for (int[] e : g[i]) {
+                int cnt = dfs(e[0], i, e[1], g, signalSpeed);
+                ans[i] += cnt * sum;
+                sum += cnt;
+            }
+        }
+        return ans;
+    }
+
+    private int dfs(int x, int fa, int sum, List<int[]>[] g, int signalSpeed) {
+        int cnt = sum % signalSpeed == 0 ? 1 : 0;
+        for (int[] e : g[x]) {
+            int y = e[0];
+            if (y != fa) {
+                cnt += dfs(y, x, sum + e[1], g, signalSpeed);
+            }
+        }
+        return cnt;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<int> countPairsOfConnectableServers(vector<vector<int>> &edges, int signalSpeed) {
+        int n = edges.size() + 1;
+        vector<vector<pair<int, int>>> g(n);
+        for (auto &e : edges) {
+            int x = e[0], y = e[1], wt = e[2];
+            g[x].push_back({y, wt});
+            g[y].push_back({x, wt});
+        }
+
+        auto dfs = [&](this auto&& dfs, int x, int fa, int sum) -> int {
+            int cnt = sum % signalSpeed == 0;
+            for (auto &[y, wt] : g[x]) {
+                if (y != fa) {
+                    cnt += dfs(y, x, sum + wt);
+                }
+            }
+            return cnt;
+        };
+
+        vector<int> ans(n);
+        for (int i = 0; i < n; i++) {
+            if (g[i].size() == 1) {
+                continue;
+            }
+            int sum = 0;
+            for (auto &[y, wt] : g[i]) {
+                int cnt = dfs(y, i, wt);
+                ans[i] += cnt * sum;
+                sum += cnt;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func countPairsOfConnectableServers(edges [][]int, signalSpeed int) []int {
+	n := len(edges) + 1
+	type edge struct{ to, wt int }
+	g := make([][]edge, n)
+	for _, e := range edges {
+		x, y, wt := e[0], e[1], e[2]
+		g[x] = append(g[x], edge{y, wt})
+		g[y] = append(g[y], edge{x, wt})
+	}
+
+	ans := make([]int, n)
+	for i, gi := range g {
+		if len(gi) == 1 {
+			continue
+		}
+		var cnt int
+		var dfs func(int, int, int)
+		dfs = func(x, fa, sum int) {
+			if sum%signalSpeed == 0 {
+				cnt++
+			}
+			for _, e := range g[x] {
+				if e.to != fa {
+					dfs(e.to, x, sum+e.wt)
+				}
+			}
+		}
+		sum := 0
+		for _, e := range gi {
+			cnt = 0
+			dfs(e.to, i, e.wt)
+			ans[i] += cnt * sum
+			sum += cnt
+		}
+	}
+	return ans
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n^2)$，其中 $n$ 为 $\textit{edges}$ 的长度加一。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 相似题目
+
+- [2867. 统计树中的合法路径数目](https://leetcode.cn/problems/count-valid-paths-in-a-tree/)
+
+## 思考题
+
+如果 $n=10^5,\ \textit{signalSpeed}=10$，你能想出一个更快的做法吗？
+
+- 可以参考 [CF791D Bear and Tree Jumps](https://codeforces.com/problemset/problem/791/D)
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

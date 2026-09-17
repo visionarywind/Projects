@@ -9,10 +9,10 @@
 ## 单题详解正文导入
 
 - 详细文件数：3459（按来源分类出现记录展开；同一去重题目可能跨专题重复）。
-- `authorized-import`：2110。
+- `authorized-import`：2317。
 - `pending-fetch`：0。
-- `missing-endlesscheng-solution`：1349。
-- 本轮最终重试新增 16 个正文；剩余 1349 条为完整检索未匹配。
+- `missing-endlesscheng-solution`：1142。
+- 2026-09-17 再检索一轮新增 207 个正文；四次超时在重试后恢复，最终临时失败 0 个。未匹配不等于证明不存在作者题解。
 - 导入接口：LeetCode GraphQL `questionSolutionArticles` + `solutionArticle`。
 - 批量策略：成功正文写入持久缓存；已有 `authorized-import` 跳过；限流、超时和网络错误保留为可重试状态，不作为无题解证据。
 

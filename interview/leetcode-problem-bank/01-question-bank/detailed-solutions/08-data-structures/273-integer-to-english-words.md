@@ -7,15 +7,339 @@
 - 来源专题：常用数据结构
 - 来源分类路径：编程能力强化训练 / Part A
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：missing-endlesscheng-solution
+- 外部题解来源：https://leetcode.cn/problems/integer-to-english-words/solutions/3823589/chai-fen-cheng-ruo-gan-xiao-yu-1000-de-s-okt8/
+- 外部题解授权状态：authorized-import
 - 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[拆分成若干小于 1000 的数（Python/Java/C++/Go/JS/Rust）](https://leetcode.cn/problems/integer-to-english-words/solutions/3823589/chai-fen-cheng-ruo-gan-xiao-yu-1000-de-s-okt8/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`chai-fen-cheng-ruo-gan-xiao-yu-1000-de-s-okt8`
+- topic id：`3823589`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 16:46:02 +0800
+
+例如 $\textit{num} = 1\ 234\ 567\ 811$，可以拆分成如下四段：
+
+- $\texttt{One Billion}$。
+- $\texttt{Two Hundred Thirty Four Million}$。
+- $\texttt{Five Hundred Sixty Seven Thousand}$。
+- $\texttt{Eight Hundred Eleven}$。
+
+每一段都是一个小于 $1000$ 的数 $x$，跟着一个大数单位（$\texttt{Billion}$/$\texttt{Million}$/$\texttt{Thousand}$/空）。
+
+对于每一段：
+
+- 如果 $x=0$，跳过，继续处理下一段。
+- 如果 $x\ge 100$，添加百位 $\left\lfloor\dfrac{x}{100}\right\rfloor$ 的对应单词，然后添加 $\texttt{Hundred}$。
+- 然后，如果 $x\bmod 100 < 20$，添加 $x\bmod 100$ 对应单词；否则正常拆分成十位 $\left\lfloor\dfrac{x}{10}\right\rfloor\bmod 10$ 和个位 $x\bmod 10$，添加对应单词。
+
+特殊情况：如果 $\textit{num}=0$，返回 $\texttt{Zero}$。
+
+```py [sol-Python3]
+ones = ("", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+        "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen")
+tens = ("", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety")
+large_numbers = ("", "Thousand", "Million", "Billion")
+
+class Solution:
+    def numberToWords(self, num: int) -> str:
+        if num == 0:
+            return "Zero"
+
+        ans = []
+
+        # 1_234_567_811
+        # One Billion + Two Hundred Thirty Four Million + Five Hundred Sixty Seven Thousand + Eight Hundred Eleven
+        # 拆分后，都是小于 1000 的数 + 大数单位（Billion/Million/Thousand/空）
+        for i in range(len(large_numbers) - 1, -1, -1):
+            x = num // 10 ** (i * 3) % 1000
+            if x == 0:
+                continue
+            # 百位
+            if x >= 100:
+                ans.append(ones[x // 100])
+                ans.append("Hundred")
+            # 十位和个位
+            if x % 100 < 20:  # 特殊处理小于 20 的数
+                ans.append(ones[x % 100])
+            else:
+                ans.append(tens[x // 10 % 10])
+                ans.append(ones[x % 10])
+            ans.append(large_numbers[i])  # 大数单位
+
+        return ' '.join(s for s in ans if s)
+```
+
+```java [sol-Java]
+class Solution {
+    private static final String[] ones = {"", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+            "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"};
+    private static final String[] tens = {"", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"};
+    private static final String[] largeNumbers = {"", "Thousand", "Million", "Billion"};
+
+    public String numberToWords(int num) {
+        if (num == 0) {
+            return "Zero";
+        }
+
+        StringBuilder ans = new StringBuilder();
+
+        // 1_234_567_811
+        // One Billion + Two Hundred Thirty Four Million + Five Hundred Sixty Seven Thousand + Eight Hundred Eleven
+        // 拆分后，都是小于 1000 的数 + 大数单位（Billion/Million/Thousand/空）
+        for (int i = largeNumbers.length - 1; i >= 0; i--) {
+            int x = num / (int) Math.pow(10, i * 3) % 1000;
+            if (x == 0) {
+                continue;
+            }
+            // 百位
+            if (x >= 100) {
+                add(ans, ones[x / 100]);
+                add(ans, "Hundred");
+            }
+            // 十位和个位
+            if (x % 100 < 20) { // 特殊处理小于 20 的数
+                add(ans, ones[x % 100]);
+            } else {
+                add(ans, tens[x / 10 % 10]);
+                add(ans, ones[x % 10]);
+            }
+            add(ans, largeNumbers[i]); // 大数单位
+        }
+
+        return ans.toString();
+    }
+
+    private void add(StringBuilder ans, String s) {
+        if (s.isEmpty()) {
+            return;
+        }
+        if (!ans.isEmpty()) {
+            ans.append(' '); // 相邻单词之间添加空格
+        }
+        ans.append(s);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+    static constexpr string ones[20] = {"", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+                                        "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"};
+    static constexpr string tens[10] = {"", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"};
+    static constexpr string large_numbers[4] = {"", "Thousand", "Million", "Billion"};
+
+public:
+    string numberToWords(int num) {
+        if (num == 0) {
+            return "Zero";
+        }
+
+        string ans;
+        auto add = [&](const string& s) -> void {
+            if (s.empty()) {
+                return;
+            }
+            if (!ans.empty()) {
+                ans += ' '; // 相邻单词之间添加空格
+            }
+            ans += s;
+        };
+
+        // 1'234'567'811
+        // One Billion + Two Hundred Thirty Four Million + Five Hundred Sixty Seven Thousand + Eight Hundred Eleven
+        // 拆分后，都是小于 1000 的数 + 大数单位（Billion/Million/Thousand/空）
+        for (int i = 3; i >= 0; i--) {
+            int x = num / (int) pow(10, i * 3) % 1000;
+            if (x == 0) {
+                continue;
+            }
+            // 百位
+            if (x >= 100) {
+                add(ones[x / 100]);
+                add("Hundred");
+            }
+            // 十位和个位
+            if (x % 100 < 20) { // 特殊处理小于 20 的数
+                add(ones[x % 100]);
+            } else {
+                add(tens[x / 10 % 10]);
+                add(ones[x % 10]);
+            }
+            add(large_numbers[i]); // 大数单位
+        }
+
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+var ones = []string{"", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+	"Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"}
+var tens = []string{"", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"}
+var largeNumbers = []string{"", "Thousand", "Million", "Billion"}
+
+func numberToWords(num int) string {
+	if num == 0 {
+		return "Zero"
+	}
+
+	ans := &strings.Builder{}
+	add := func(s string) {
+		if s == "" {
+			return
+		}
+		if ans.Len() > 0 {
+			ans.WriteByte(' ') // 相邻单词之间添加空格
+		}
+		ans.WriteString(s)
+	}
+
+	// 1_234_567_811
+	// One Billion + Two Hundred Thirty Four Million + Five Hundred Sixty Seven Thousand + Eight Hundred Eleven
+	// 拆分后，都是小于 1000 的数 + 大数单位（Billion/Million/Thousand/空）
+	for i := len(largeNumbers) - 1; i >= 0; i-- {
+		x := num / int(math.Pow10(i*3)) % 1000
+		if x == 0 {
+			continue
+		}
+		// 百位
+		if x >= 100 {
+			add(ones[x/100])
+			add("Hundred")
+		}
+		// 十位和个位
+		if x%100 < 20 { // 特殊处理小于 20 的数
+			add(ones[x%100])
+		} else {
+			add(tens[x/10%10])
+			add(ones[x%10])
+		}
+		add(largeNumbers[i]) // 大数单位
+	}
+
+	return ans.String()
+}
+```
+
+```js [sol-JavaScript]
+var ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+var tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+var largeNumbers = ["", "Thousand", "Million", "Billion"];
+
+var numberToWords = function(num) {
+    if (num === 0) {
+        return "Zero";
+    }
+
+    const ans = [];
+
+    // 1_234_567_811
+    // One Billion + Two Hundred Thirty Four Million + Five Hundred Sixty Seven Thousand + Eight Hundred Eleven
+    // 拆分后，都是小于 1000 的数 + 大数单位（Billion/Million/Thousand/空）
+    for (let i = largeNumbers.length - 1; i >= 0; i--) {
+        const x = Math.floor(num / Math.pow(10, i * 3)) % 1000;
+        if (x === 0) {
+            continue;
+        }
+        // 百位
+        if (x >= 100) {
+            ans.push(ones[Math.floor(x / 100)], "Hundred");
+        }
+        // 十位和个位
+        if (x % 100 < 20) { // 特殊处理小于 20 的数
+            ans.push(ones[x % 100]);
+        } else {
+            ans.push(tens[Math.floor(x / 10) % 10], ones[x % 10]);
+        }
+        ans.push(largeNumbers[i]); // 大数单位
+    }
+
+    return ans.filter(Boolean).join(' ');
+};
+```
+
+```rust [sol-Rust]
+const ONES: [&str; 20] = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+const TENS: [&str; 10] = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+const LARGE_NUMBERS: [&str; 4] = ["", "Thousand", "Million", "Billion"];
+
+impl Solution {
+    pub fn number_to_words(num: i32) -> String {
+        if num == 0 {
+            return "Zero".to_string();
+        }
+
+        let mut ans = vec![];
+
+        // 1_234_567_811
+        // One Billion + Two Hundred Thirty Four Million + Five Hundred Sixty Seven Thousand + Eight Hundred Eleven
+        // 拆分后，都是小于 1000 的数 + 大数单位（Billion/Million/Thousand/空）
+        for (i, large_num) in LARGE_NUMBERS.iter().enumerate().rev() {
+            let x = (num / 10_i32.pow(i as u32 * 3) % 1000) as usize;
+            if x == 0 {
+                continue;
+            }
+            // 百位
+            if x >= 100 {
+                ans.push(ONES[x / 100]);
+                ans.push("Hundred");
+            }
+            // 十位和个位
+            if x % 100 < 20 {
+                ans.push(ONES[x % 100]);
+            } else {
+                ans.push(TENS[x / 10 % 10]);
+                ans.push(ONES[x % 10]);
+            }
+            ans.push(large_num);
+        }
+
+        ans.into_iter().filter(|s| !s.is_empty()).collect::<Vec<_>>().join(" ")
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(1)$。由于循环次数是固定的，可以认为这题是 $\mathcal{O}(1)$ 的。
+- 空间复杂度：$\mathcal{O}(\log \textit{num})$ 或 $\mathcal{O}(1)$。
+
+## 相似题目
+
+[12. 整数转罗马数字](https://leetcode.cn/problems/integer-to-roman/)
+
+## 专题训练
+
+见下面数据结构题单的「**专题：比较复杂的题目**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 
