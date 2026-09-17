@@ -152,6 +152,7 @@ DeepSeek 官方使用文档也明确把 TP+DP Attention、EP+DP Attention 和纯
 - [M19 入口](README.md)
 - [模型家族与 Forward](model-family.md)
 - [源码证据与调试地图](source-map.md)
+- [M20 通用并行策略源码分析](../M20-parallel-strategies/README.md)
 - [M07 分布式并行](../M07-分布式并行.md)
 
 ## 源码证据摘要

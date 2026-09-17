@@ -59,6 +59,7 @@ ServerArgs.resolve
 - [项目入口](../../README.md)
 - [分析状态](../../00-overview/analysis-state.md)
 - [源码证据索引](../../00-overview/evidence-index.md)
+- [M20 通用并行策略源码分析](../M20-parallel-strategies/README.md)
 
 ## 源码证据摘要
 本文引用以 `source/sglang` 当前 checkout 为准；行号随上游变更需要复核。

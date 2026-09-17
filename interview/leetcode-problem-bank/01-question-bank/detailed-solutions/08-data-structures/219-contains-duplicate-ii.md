@@ -7,15 +7,277 @@
 - 来源专题：常用数据结构
 - 来源分类路径：零、常用枚举技巧 / §0.1 枚举右，维护左 / §0.1.1 基础
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：missing-endlesscheng-solution
+- 外部题解来源：https://leetcode.cn/problems/contains-duplicate-ii/solutions/3041742/liang-chong-fang-fa-mei-ju-you-wei-hu-zu-kwjf/
+- 外部题解授权状态：authorized-import
 - 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[两种方法：枚举右维护左/定长滑动窗口（Python/Java/C++/Go/JS/Rust）](https://leetcode.cn/problems/contains-duplicate-ii/solutions/3041742/liang-chong-fang-fa-mei-ju-you-wei-hu-zu-kwjf/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`liang-chong-fang-fa-mei-ju-you-wei-hu-zu-kwjf`
+- topic id：`3041742`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 16:46:02 +0800
+
+## 方法一：枚举右，维护左
+
+看示例 1，$\textit{nums}=[1,2,3,1],\ k=3$。
+
+我们可以在遍历 $\textit{nums}$ 的同时，用一个哈希表 $\textit{last}$ 记录每个数 $x$ 上一次出现的位置（下标）$\textit{last}[x]$。
+
+比如遍历到 $\textit{nums}[3]=1$，整数 $1$ 上一次出现的下标为 $\textit{last}[1]=0$。
+
+因为 $3-0=3\le k$，满足题目要求，返回 $\texttt{true}$。
+
+### 答疑
+
+**问**：为什么只需要看 $x$ 左边的数，如果 $x$ 右边也有一个等于 $x$ 的数呢？
+
+**答**：如果 $x$ 右边也有等于 $x$ 的数 $\textit{nums}[j]$，那么在遍历到 $\textit{nums}[j]$ 的时候，此时哈希表中记录的 $\textit{last}[x]=i$，我们会判断 $j-\textit{last}[x]=j-i\le k$ 是否成立。换句话说，对于临近的相同元素，我们都会去判断，不会漏掉。
+
+```py [sol-Python3]
+class Solution:
+    def containsNearbyDuplicate(self, nums: List[int], k: int) -> bool:
+        last = {}
+        for i, x in enumerate(nums):
+            if x in last and i - last[x] <= k:
+                return True
+            last[x] = i
+        return False
+```
+
+```java [sol-Java]
+class Solution {
+    public boolean containsNearbyDuplicate(int[] nums, int k) {
+        Map<Integer, Integer> last = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int x = nums[i];
+            if (last.containsKey(x) && i - last.get(x) <= k) {
+                return true;
+            }
+            last.put(x, i);
+        }
+        return false;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    bool containsNearbyDuplicate(vector<int>& nums, int k) {
+        unordered_map<int, int> last;
+        for (int i = 0; i < nums.size(); i++) {
+            int x = nums[i];
+            if (last.contains(x) && i - last[x] <= k) {
+                return true;
+            }
+            last[x] = i;
+        }
+        return false;
+    }
+};
+```
+
+```go [sol-Go]
+func containsNearbyDuplicate(nums []int, k int) bool {
+    last := map[int]int{}
+    for i, x := range nums {
+        if j, ok := last[x]; ok && i-j <= k {
+            return true
+        }
+        last[x] = i
+    }
+    return false
+}
+```
+
+```js [sol-JavaScript]
+var containsNearbyDuplicate = function(nums, k) {
+    const last = new Map();
+    for (let i = 0; i < nums.length; i++) {
+        const x = nums[i];
+        if (last.has(x) && i - last.get(x) <= k) {
+            return true;
+        }
+        last.set(x, i);
+    }
+    return false;
+};
+```
+
+```rust [sol-Rust]
+use std::collections::HashMap;
+
+impl Solution {
+    pub fn contains_nearby_duplicate(nums: Vec<i32>, k: i32) -> bool {
+        let mut last = HashMap::new();
+        for (i, x) in nums.iter().enumerate() {
+            if let Some(&j) = last.get(x) {
+                if i - j <= k as usize {
+                    return true;
+                }
+            }
+            last.insert(x, i);
+        }
+        false
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是 $\textit{nums}$ 的长度。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 方法二：定长滑动窗口
+
+问题等价于：
+
+- 判断 $\textit{nums}$ 是否存在一个长为 $\min(k+1,n)$ 的连续子数组，包含相同元素。
+
+这可以用**定长滑动窗口**解决，原理见[【套路】教你解决定长滑窗！适用于所有定长滑窗题目！](https://leetcode.cn/problems/maximum-number-of-vowels-in-a-substring-of-given-length/solutions/2809359/tao-lu-jiao-ni-jie-jue-ding-chang-hua-ch-fzfo/)
+
+**核心思路**：维护一个长为 $\min(k+1,n)$ 的滑动窗口，用哈希集合维护窗口内的元素。在元素 $x$ 进入窗口**之前**，判断 $x$ 是否在哈希集合中，如果在，则说明把 $x$ 加入窗口之后，窗口内有重复元素。
+
+**具体思路**：
+
+1. 创建一个空的哈希集合。
+2. 遍历 $\textit{nums}$。
+3. 先判断 $x=\textit{nums}[i]$ 是否在哈希集合中，如果在，返回 $\texttt{true}$。
+4. 如果不在，把 $x$ 加到哈希集合中。
+5. 如果 $i\ge k$，那么下一轮循环 $\textit{nums}[i-k]$ 不在窗口中，将其移出哈希集合。
+
+```py [sol-Python3]
+class Solution:
+    def containsNearbyDuplicate(self, nums: List[int], k: int) -> bool:
+        st = set()
+        for i, x in enumerate(nums):
+            if x in st:
+                return True
+            st.add(x)
+            if i >= k:
+                st.remove(nums[i - k])
+        return False
+```
+
+```java [sol-Java]
+class Solution {
+    public boolean containsNearbyDuplicate(int[] nums, int k) {
+        HashSet<Integer> set = new HashSet<>();
+        for (int i = 0; i < nums.length; i++) {
+            if (!set.add(nums[i])) { // set 中有 nums[i]
+                return true;
+            }
+            if (i >= k) {
+                set.remove(nums[i - k]);
+            }
+        }
+        return false;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    bool containsNearbyDuplicate(vector<int>& nums, int k) {
+        unordered_set<int> st;
+        for (int i = 0; i < nums.size(); i++) {
+            if (!st.insert(nums[i]).second) { // st 中有 nums[i]
+                return true;
+            }
+            if (i >= k) {
+                st.erase(nums[i - k]);
+            }
+        }
+        return false;
+    }
+};
+```
+
+```go [sol-Go]
+func containsNearbyDuplicate(nums []int, k int) bool {
+    set := map[int]struct{}{}
+    for i, x := range nums {
+        if _, ok := set[x]; ok {
+            return true
+        }
+        set[x] = struct{}{}
+        if i >= k {
+            delete(set, nums[i-k])
+        }
+    }
+    return false
+}
+```
+
+```js [sol-JavaScript]
+var containsNearbyDuplicate = function(nums, k) {
+    const set = new Set();
+    for (let i = 0; i < nums.length; i++) {
+        if (set.has(nums[i])) {
+            return true;
+        }
+        set.add(nums[i]);
+        if (i >= k) {
+            set.delete(nums[i - k]);
+        }
+    }
+    return false;
+};
+```
+
+```rust [sol-Rust]
+use std::collections::HashSet;
+
+impl Solution {
+    pub fn contains_nearby_duplicate(nums: Vec<i32>, k: i32) -> bool {
+        let k = k as usize;
+        let mut set = HashSet::new();
+        for (i, &x) in nums.iter().enumerate() {
+            if !set.insert(x) { // set 中有 x
+                return true;
+            }
+            if i >= k {
+                set.remove(&nums[i - k]);
+            }
+        }
+        false
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是 $\textit{nums}$ 的长度。
+- 空间复杂度：$\mathcal{O}(\min(k,n))$。
+
+更多相似题目，见下面数据结构题单中的「**§0.1 枚举右，维护左**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/最短路/最小生成树/二分图/基环树/欧拉路径）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/状态机/划分/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

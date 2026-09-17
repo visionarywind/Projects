@@ -70,6 +70,18 @@
 - `[python/sglang/srt/models/llama.py:742-778]`、`[python/sglang/srt/models/qwen2.py:1-660]`：Llama/Qwen2 v2 权重入口。
 - `[python/sglang/srt/configs/model_config.py:692-809]`：`from_server_args` 字段投影和 draft architecture 改写。
 
+## 通用并行策略专题
+
+- `[python/sglang/srt/server_args.py:438-442,516-522,715-716,757-766,909-947]`：TP/PP/DP/CP/MoE 并行字段及配置处理顺序。
+- `[python/sglang/srt/server_args.py:2974-3028,3138-3201,3259-3264]`：DP/CP/EP/PP 整除、A2A backend 和 overlap 约束。
+- `[python/sglang/srt/distributed/bootstrap.py:70-172,250-308]`：WORLD 初始化、rank 推导、并行组入口和通信预热。
+- `[python/sglang/srt/distributed/parallel_state.py:1820-2044]`：TP、attention CP/TP、MoE DP/EP/TP 和 PP group 构造/复用。
+- `[python/sglang/srt/layers/dp_attention.py:240-316,388-420,568-622]`：attention DP/CP/TP 坐标、token slice、padding、collective 和 MoE/CP token 协调。
+- `[python/sglang/srt/layers/linear.py:1510-1548]`、`[python/sglang/srt/layers/communicator.py:247-292]`：parallel linear 与 attention TP hidden-state 通信。
+- `[python/sglang/srt/layers/logits_processor.py:1016-1023]`、`[python/sglang/srt/layers/moe/token_dispatcher/standard.py:145-224]`：vocab logits all-to-all 与 MoE token dispatch/local expert mapping。
+- `[test/registered/distributed/test_parallel_state.py]`、`[test/registered/distributed/test_dp_attention.py]`、`[test/registered/dcp/]`、`[test/registered/ep/]`、`[test/registered/moe/]`、`[test/registered/pp/]`：并行策略测试入口；存在性不等于已执行。
+- 当前源码未发现 `SPTD`/`CPTD` 精确 CLI flag、类、函数或 parallel group；专题按源码中的 TP、PP、DP Attention、CP/DCP、EP、MoE DP/TP 展开。
+
 ## DeepSeek 模型与并行策略
 
 - `[python/sglang/srt/server_args.py:1764-1853]`：DeepSeek architecture/DSA 识别、NSA backend 默认值及 DSA prefill CP 限制。

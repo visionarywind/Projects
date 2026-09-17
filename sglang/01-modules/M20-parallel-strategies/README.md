@@ -53,7 +53,7 @@ ServerArgs / ModelConfig
 
 ## 3. 配置入口：宽度先被解析和约束
 
-`ServerArgs` 保存 `tp_size`、`pp_size`、`dp_size`、`attn_cp_size`、`moe_dp_size`、`ep_size` 和 DP/CP/A2A backend 选项。初始化阶段依次执行模型特化、数据并行、context parallel、EPLB/dispatch、pipeline parallel 和 speculative decoding 处理。[`python/sglang/srt/server_args.py:438-442,516-522,715-716,757-766,909-947`]
+`ServerArgs` 保存 `tp_size`、`pp_size`、`dp_size`、`attn_cp_size`、`moe_dp_size`、`ep_size` 和 DP/CP/A2A backend 选项。初始化阶段依次执行模型特化、数据并行、context parallel、EPLB/dispatch、pipeline parallel 和 speculative decoding 处理。[`source/sglang/python/sglang/srt/server_args.py:438-442,516-522,715-716,757-766,909-947`]
 
 关键约束包括：
 
@@ -63,7 +63,7 @@ ServerArgs / ModelConfig
 - `attn_cp_size != moe_dp_size` 只有在 `moe_dp_size == 1` 时支持；
 - DP Attention 需要 `tp_size % dp_size == 0`，并会调整 chunked prefill 和调度参数；
 - `pp_size > 1` 会影响 overlap schedule；
-- 部分 A2A backend 会将 `ep_size` 调整为 `tp_size`，并改变 CUDA Graph 或 shared-expert 约束。[`python/sglang/srt/server_args.py:2974-3028,3138-3201,3259-3264`]
+- 部分 A2A backend 会将 `ep_size` 调整为 `tp_size`，并改变 CUDA Graph 或 shared-expert 约束。[`source/sglang/srt/server_args.py:2974-3028,3138-3201,3259-3264`]
 
 这些检查发生在建组之前；不能只看命令行参数推断最终拓扑，必须以 resolved `ServerArgs` 为准。
 
@@ -71,13 +71,13 @@ ServerArgs / ModelConfig
 
 ### 4.1 TP group 与 linear 消费
 
-`initialize_model_parallel` 先按连续 global rank 创建 `_TP`。例如 `world_size=8,tp_size=4` 时，TP groups 为 `[0,1,2,3]`、`[4,5,6,7]`。[`python/sglang/srt/distributed/parallel_state.py:1820-1840`]
+`initialize_model_parallel` 先按连续 global rank 创建 `_TP`。例如 `world_size=8,tp_size=4` 时，TP groups 为 `[0,1,2,3]`、`[4,5,6,7]`。[`source/sglang/srt/distributed/parallel_state.py:1820-1840`]
 
-模型层通过 parallel linear 消费该 group：column-parallel 权重保留输出分片，row-parallel 权重在输入分片后按需要 all-reduce；attention 专用 TP 可能是 `_ATTN_TP` 而非全 `_TP`。[`python/sglang/srt/layers/linear.py:1510-1548`]
+模型层通过 parallel linear 消费该 group：column-parallel 权重保留输出分片，row-parallel 权重在输入分片后按需要 all-reduce；attention 专用 TP 可能是 `_ATTN_TP` 而非全 `_TP`。[`source/sglang/srt/layers/linear.py:1510-1548`]
 
 ### 4.2 PP group 与 layer ownership
 
-PP group 按跨区间步长构造。例如 `tp=2,pp=4,world=8` 时，PP group 是 `[0,2,4,6]` 和 `[1,3,5,7]`，不是连续的 `[0,1,2,3]`。[`python/sglang/srt/distributed/parallel_state.py:2026-2044`]
+PP group 按跨区间步长构造。例如 `tp=2,pp=4,world=8` 时，PP group 是 `[0,2,4,6]` 和 `[1,3,5,7]`，不是连续的 `[0,1,2,3]`。[`source/sglang/srt/distributed/parallel_state.py:2026-2044`]
 
 PP 的消费不在 collective 名称本身，而在模型构造：`get_pp_indices`/`make_layers` 只实例化当前 stage 的 layer range；first rank 持有 embedding，last rank 持有 norm/lm head，中间 rank 通过 proxy tensors 传递 hidden/residual。DeepSeek 的具体实例见 [M19 模型家族](../M19-deepseek-models/model-family.md)。
 
@@ -96,17 +96,17 @@ attn_tp_rank = tp_rank % attn_tp_size
 attn_dp_rank = tp_rank // (attn_tp_size * attn_cp_size)
 ```
 
-该逻辑由 `compute_dp_attention_world_info` 和 `initialize_dp_attention` 建立；因此 `tp=8,dp=2,cp=1` 时，每个 attention DP replica 使用 4-way attention TP，而不是继续使用 8-way attention TP。[`python/sglang/srt/layers/dp_attention.py:240-316`]
+该逻辑由 `compute_dp_attention_world_info` 和 `initialize_dp_attention` 建立；因此 `tp=8,dp=2,cp=1` 时，每个 attention DP replica 使用 4-way attention TP，而不是继续使用 8-way attention TP。[`source/sglang/srt/layers/dp_attention.py:240-316`]
 
 ### 5.2 token buffer 与 collective
 
-`initialize_dp_attention` 保存 global/local DP rank、hidden size、dtype 和 device。执行时根据每个 DP rank 的 token 数计算 local slice；非 graph 模式按前序 token 数定位，graph 模式使用固定 batch slot。padding mode 在 `MAX_LEN` 与 `SUM_LEN` 之间选择，影响 gather buffer 和 graph/symmetric-memory 兼容性。[`python/sglang/srt/layers/dp_attention.py:275-316,388-420`]
+`initialize_dp_attention` 保存 global/local DP rank、hidden size、dtype 和 device。执行时根据每个 DP rank 的 token 数计算 local slice；非 graph 模式按前序 token 数定位，graph 模式使用固定 batch slot。padding mode 在 `MAX_LEN` 与 `SUM_LEN` 之间选择，影响 gather buffer 和 graph/symmetric-memory 兼容性。[`source/sglang/srt/layers/dp_attention.py:275-316,388-420`]
 
-collective 路径可能包含 TP all-gather、attention-TP reduce-scatter 以及 WORLD/TP all-gather；其作用是形成正确的 global token buffer，而非单纯减少通信。[`python/sglang/srt/layers/dp_attention.py:568-602`]
+collective 路径可能包含 TP all-gather、attention-TP reduce-scatter 以及 WORLD/TP all-gather；其作用是形成正确的 global token buffer，而非单纯减少通信。[`source/sglang/srt/layers/dp_attention.py:568-602`]
 
 ### 5.3 DP Attention 与模型消费
 
-模型 attention 初始化使用 `get_attention_tp_rank/size`，并以派生后的宽度计算 local heads；MLA/DSA、其他支持 DP Attention 的模型和 logits processor 都必须匹配同一坐标。DP LM head 还依赖 DP Attention。[`python/sglang/srt/models/deepseek_v2.py:1273-1433`][`python/sglang/srt/server_args.py:3012-3028`]
+模型 attention 初始化使用 `get_attention_tp_rank/size`，并以派生后的宽度计算 local heads；MLA/DSA、其他支持 DP Attention 的模型和 logits processor 都必须匹配同一坐标。DP LM head 还依赖 DP Attention。[`source/sglang/srt/models/deepseek_v2.py:1273-1433`][`source/sglang/srt/server_args.py:3012-3028`]
 
 ## 6. CP 与 DCP：序列维度和 decode 维度的不同路径
 
@@ -116,7 +116,7 @@ collective 路径可能包含 TP all-gather、attention-TP reduce-scatter 以及
 - DSA prefill CP 还要 split hidden/position、重建 latent/rope KV 并按全局顺序 rerange；
 - DCP (`decode_context_parallel_size`) 是 decode 阶段的独立 context-parallel group，建组和平台限制不同。
 
-`parallel_state` 先在 TP 内构造 DCP/attention CP 派生组；当 CP 覆盖整个 TP 时可能复用 `_TP`，否则创建专用 `_ATTN_CP`/`_ATTN_TP`。[`python/sglang/srt/distributed/parallel_state.py:1869-1938`]
+`parallel_state` 先在 TP 内构造 DCP/attention CP 派生组；当 CP 覆盖整个 TP 时可能复用 `_TP`，否则创建专用 `_ATTN_CP`/`_ATTN_TP`。[`source/sglang/srt/distributed/parallel_state.py:1869-1938`]
 
 DeepSeek forward 的典型生命周期是：
 
@@ -128,9 +128,9 @@ hidden/position
   -> 恢复全局 token 顺序
 ```
 
-[`python/sglang/srt/models/deepseek_v2.py:2160-2296,1716-1728`]
+[`source/sglang/srt/models/deepseek_v2.py:2160-2296,1716-1728`]
 
-DCP 需要额外检查设备、`tp_size % decode_context_parallel_size` 以及 decode attention backend；相关配置验证位于 `server_args.py` 的 DCP 处理逻辑。[`python/sglang/srt/server_args.py:1342-1344,486-492`]
+DCP 需要额外检查设备、`tp_size % decode_context_parallel_size` 以及 decode attention backend；相关配置验证位于 `server_args.py` 的 DCP 处理逻辑。[`source/sglang/srt/server_args.py:1342-1344,486-492`]
 
 ## 7. EP、MoE DP 与 MoE TP：专家维度的三套坐标
 
@@ -142,7 +142,7 @@ moe_dp_size = moe_data_model_parallel_size
 moe_tp_size = tensor_model_parallel_size // moe_ep_size // moe_dp_size
 ```
 
-然后构造或复用 `_MOE_DP`、`_MOE_EP`、`_MOE_TP`。满足宽度条件时 group 可能直接复用 `_TP` 或 `_ATTN_CP`；group 名称不代表对象一定独立。[`python/sglang/srt/distributed/parallel_state.py:1940-2024`]
+然后构造或复用 `_MOE_DP`、`_MOE_EP`、`_MOE_TP`。满足宽度条件时 group 可能直接复用 `_TP` 或 `_ATTN_CP`；group 名称不代表对象一定独立。[`source/sglang/srt/distributed/parallel_state.py:1940-2024`]
 
 MoE forward 的实际边界是 dispatcher/runner：
 
@@ -156,21 +156,21 @@ router/top-k
   -> 必要时 TP all-reduce
 ```
 
-standard dispatcher 负责 top-k、hidden payload 和 local expert mapping；A2A backend（例如 DeepEP、Mooncake、NIXL、FlashInfer 变体）改变 token 交换方式，不改变 router 的逻辑专家语义。[`python/sglang/srt/layers/moe/token_dispatcher/standard.py:145-224`][`python/sglang/srt/models/deepseek_v2.py:386-428,622-697,748-858`]
+standard dispatcher 负责 top-k、hidden payload 和 local expert mapping；A2A backend（例如 DeepEP、Mooncake、NIXL、FlashInfer 变体）改变 token 交换方式，不改变 router 的逻辑专家语义。[`source/sglang/srt/layers/moe/token_dispatcher/standard.py:145-224`][`source/sglang/srt/models/deepseek_v2.py:386-428,622-697,748-858`]
 
-MoE DP 与 attention DP 的 token ownership 不一定一致。当 `attn_cp_size > moe_dp_size` 时，MoE 前需要跨 CP rank 共享 token；这也是配置中对 `attn_cp_size != moe_dp_size` 施加限制的原因。[`python/sglang/srt/layers/dp_attention.py:605-622`]
+MoE DP 与 attention DP 的 token ownership 不一定一致。当 `attn_cp_size > moe_dp_size` 时，MoE 前需要跨 CP rank 共享 token；这也是配置中对 `attn_cp_size != moe_dp_size` 施加限制的原因。[`source/sglang/srt/layers/dp_attention.py:605-622`]
 
 ## 8. collective 与通信实现
 
-`GroupCoordinator` 根据 tensor 所在设备和注册的 communicator 执行 collective：GPU 可能走 device group/custom op，CPU 可能走 shared-memory 或 PyTorch distributed，最后按调用者期望 reshape/movedim。[`python/sglang/srt/distributed/parallel_state.py:1281-1353`]
+`GroupCoordinator` 根据 tensor 所在设备和注册的 communicator 执行 collective：GPU 可能走 device group/custom op，CPU 可能走 shared-memory 或 PyTorch distributed，最后按调用者期望 reshape/movedim。[`source/sglang/srt/distributed/parallel_state.py:1281-1353`]
 
 典型消费点：
 
-- attention TP hidden-state gather，并用 `is_pre_gathered` 防止重复聚合；[`python/sglang/srt/layers/communicator.py:247-292`]
-- DP Attention gather/reduce-scatter；[`python/sglang/srt/layers/dp_attention.py:568-602`]
-- vocab-parallel logits 的 TP all-to-all 和 row 重组；[`python/sglang/srt/layers/logits_processor.py:1016-1023`]
-- MoE token dispatcher 的 TP all-gatherv 和 expert mapping；[`python/sglang/srt/layers/moe/token_dispatcher/standard.py:145-224`]
-- PP proxy/P2P 的 stage 间 activation 传输；[`python/sglang/srt/distributed/parallel_state.py:2026-2044`]
+- attention TP hidden-state gather，并用 `is_pre_gathered` 防止重复聚合；[`source/sglang/srt/layers/communicator.py:247-292`]
+- DP Attention gather/reduce-scatter；[`source/sglang/srt/layers/dp_attention.py:568-602`]
+- vocab-parallel logits 的 TP all-to-all 和 row 重组；[`source/sglang/srt/layers/logits_processor.py:1016-1023`]
+- MoE token dispatcher 的 TP all-gatherv 和 expert mapping；[`source/sglang/srt/layers/moe/token_dispatcher/standard.py:145-224`]
+- PP proxy/P2P 的 stage 间 activation 传输；[`source/sglang/srt/distributed/parallel_state.py:2026-2044`]
 
 因此排查 hang、shape mismatch 或数值重复时，要同时记录 group members、rank-in-group、输入/输出 shape、padding mode 和 collective 次序；只确认 world size 不足以证明拓扑正确。
 
@@ -217,7 +217,7 @@ init_process_group
   -> destroy_distributed_environment
 ```
 
-启动时会校验 WORLD 与 TP×PP、DCP 整除和 backend；某 rank 在模型加载或 collective 中失败，可能经 barrier、worker/scheduler 异常路径传播到父进程。清理时必须注意 `_MOE_DP` 可能复用 `_ATTN_CP` 或 `_TP`，按对象身份避免重复销毁。[`python/sglang/srt/distributed/bootstrap.py:70-172,250-308`][`python/sglang/srt/distributed/parallel_state.py:1-2417`]
+启动时会校验 WORLD 与 TP×PP、DCP 整除和 backend；某 rank 在模型加载或 collective 中失败，可能经 barrier、worker/scheduler 异常路径传播到父进程。清理时必须注意 `_MOE_DP` 可能复用 `_ATTN_CP` 或 `_TP`，按对象身份避免重复销毁。[`source/sglang/srt/distributed/bootstrap.py:70-172,250-308`][`source/sglang/srt/distributed/parallel_state.py:1-2417`]
 
 ## 11. 推荐断点
 

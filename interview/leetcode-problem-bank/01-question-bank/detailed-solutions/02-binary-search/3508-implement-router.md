@@ -7,15 +7,508 @@
 - 来源专题：二分算法
 - 来源分类路径：一、二分查找 / §1.2 进阶
 - 难度分：1851
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：missing-endlesscheng-solution
+- 外部题解来源：https://leetcode.cn/problems/implement-router/solutions/3641772/mo-ni-ha-xi-biao-dui-lie-er-fen-cha-zhao-y7l7/
+- 外部题解授权状态：authorized-import
 - 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[哈希表 + 队列 + 二分查找（Python/Java/C++/Go/JS/Rust）](https://leetcode.cn/problems/implement-router/solutions/3641772/mo-ni-ha-xi-biao-dui-lie-er-fen-cha-zhao-y7l7/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`mo-ni-ha-xi-biao-dui-lie-er-fen-cha-zhao-y7l7`
+- topic id：`3641772`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 16:46:02 +0800
+
+题目要求 FIFO（先进先出），这可以用**队列**实现。
+
+为了判重，可以用哈希表记录数据包。
+
+对于 $\texttt{getCount}$，需要按照 $\textit{destination}$ 分组，所以要用哈希表套队列。
+
+具体来说，创建三个数据结构：
+
+1. $\textit{packetQ}$：存储数据包的队列。
+2. $\textit{packetSet}$：存储所有未转发的数据包，方便判重。
+3. $\textit{destToTimestamps}$：哈希表套队列，哈希表的 key 是 $\textit{destination}$，value 是对应的由 $\textit{timestamp}$ 组成的队列。
+
+$\texttt{addPacket}$ 和 $\textit{forwardPacket}$ 按题目要求实现，具体见代码。
+
+$\texttt{getCount}$ 可以用二分查找，见 [34. 在排序数组中查找元素的第一个和最后一个位置](https://leetcode.cn/problems/find-first-and-last-position-of-element-in-sorted-array/)。
+
+部分语言为了方便二分，可以用列表（数组）模拟队列，额外用一个变量 $\textit{head}$ 表示队首的下标。
+
+具体请看 [视频讲解](https://www.bilibili.com/video/BV1ezRvYiE27/)，欢迎点赞关注~
+
+```py [sol-Python3]
+class Router:
+    def __init__(self, memoryLimit: int):
+        self.memory_limit = memoryLimit
+        self.packet_q = deque()  # packet 队列
+        self.packet_set = set()  # packet 集合
+        self.dest_to_timestamps = defaultdict(deque)  # destination -> [timestamp]
+
+    def addPacket(self, source: int, destination: int, timestamp: int) -> bool:
+        packet = (source, destination, timestamp)
+        if packet in self.packet_set:
+            return False
+        self.packet_set.add(packet)
+        if len(self.packet_q) == self.memory_limit:  # 太多了
+            self.forwardPacket()
+        self.packet_q.append(packet)  # 入队
+        self.dest_to_timestamps[destination].append(timestamp)
+        return True
+
+    def forwardPacket(self) -> List[int]:
+        if not self.packet_q:
+            return []
+        packet = self.packet_q.popleft()  # 出队
+        self.packet_set.remove(packet)
+        self.dest_to_timestamps[packet[1]].popleft()
+        return packet  # list(packet)
+
+    def getCount(self, destination: int, startTime: int, endTime: int) -> int:
+        timestamps = self.dest_to_timestamps[destination]
+        left = bisect_left(timestamps, startTime)  # deque 访问不是 O(1) 的，可以看另一份代码【Python3 list】
+        right = bisect_right(timestamps, endTime)
+        return right - left
+```
+
+```py [sol-Python3 list]
+class Router:
+    def __init__(self, memoryLimit: int):
+        self.memory_limit = memoryLimit
+        self.packet_q = deque()  # packet 队列
+        self.packet_set = set()  # packet 集合
+        self.dest_to_timestamps = defaultdict(lambda: [[], 0])  # destination -> [[timestamp], head]
+
+    def addPacket(self, source: int, destination: int, timestamp: int) -> bool:
+        packet = (source, destination, timestamp)
+        if packet in self.packet_set:
+            return False
+        self.packet_set.add(packet)
+        if len(self.packet_q) == self.memory_limit:  # 太多了
+            self.forwardPacket()
+        self.packet_q.append(packet)  # 入队
+        self.dest_to_timestamps[destination][0].append(timestamp)
+        return True
+
+    def forwardPacket(self) -> List[int]:
+        if not self.packet_q:
+            return []
+        packet = self.packet_q.popleft()  # 出队
+        self.packet_set.remove(packet)
+        self.dest_to_timestamps[packet[1]][1] += 1  # 队首下标加一，模拟出队
+        return packet  # list(packet)
+
+    def getCount(self, destination: int, startTime: int, endTime: int) -> int:
+        timestamps, head = self.dest_to_timestamps[destination]
+        left = bisect_left(timestamps, startTime, head)
+        right = bisect_right(timestamps, endTime, head)
+        return right - left
+```
+
+```java [sol-Java]
+class Router {
+    private record Packet(int source, int destination, int timestamp) {
+    }
+
+    private record Pair(List<Integer> timestamps, int head) {
+    }
+
+    private final int memoryLimit;
+    private final Queue<Packet> packetQ = new ArrayDeque<>(); // Packet 队列
+    private final Set<Packet> packetSet = new HashSet<>(); // Packet 集合
+    private final Map<Integer, Pair> destToTimestamps = new HashMap<>(); // destination -> ([timestamp], head)
+
+    public Router(int memoryLimit) {
+        this.memoryLimit = memoryLimit;
+    }
+
+    public boolean addPacket(int source, int destination, int timestamp) {
+        Packet packet = new Packet(source, destination, timestamp);
+        if (!packetSet.add(packet)) { // packet 在 packetSet 中
+            return false;
+        }
+        if (packetQ.size() == memoryLimit) { // 太多了
+            forwardPacket();
+        }
+        packetQ.add(packet); // 入队
+        destToTimestamps.computeIfAbsent(destination, k -> new Pair(new ArrayList<>(), 0)).timestamps.add(timestamp);
+        return true;
+    }
+
+    public int[] forwardPacket() {
+        if (packetQ.isEmpty()) {
+            return new int[]{};
+        }
+        Packet packet = packetQ.poll(); // 出队
+        packetSet.remove(packet);
+        destToTimestamps.compute(packet.destination, (k, p) -> new Pair(p.timestamps, p.head + 1)); // 队首下标加一，模拟出队
+        return new int[]{packet.source, packet.destination, packet.timestamp};
+    }
+
+    public int getCount(int destination, int startTime, int endTime) {
+        Pair p = destToTimestamps.get(destination);
+        if (p == null) {
+            return 0;
+        }
+        int left = lowerBound(p.timestamps, startTime, p.head - 1);
+        int right = lowerBound(p.timestamps, endTime + 1, p.head - 1);
+        return right - left;
+    }
+
+    // https://www.bilibili.com/video/BV1AP41137w7/
+    private int lowerBound(List<Integer> nums, int target, int left) {
+        int right = nums.size();
+        while (left + 1 < right) {
+            int mid = left + (right - left) / 2;
+            if (nums.get(mid) >= target) {
+                right = mid;
+            } else {
+                left = mid;
+            }
+        }
+        return right;
+    }
+}
+```
+
+```cpp [sol-C++]
+// 更通用的写法见另一份代码【C++ 模板元编程】
+struct TupleHash {
+    template<typename T>
+    static void hash_combine(size_t& seed, const T& v) {
+        // 参考 boost::hash_combine
+        seed ^= hash<T>{}(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+
+    size_t operator()(const tuple<int, int, int>& t) const {
+        auto& [a, b, c] = t;
+        size_t seed = 0;
+        hash_combine(seed, a);
+        hash_combine(seed, b);
+        hash_combine(seed, c);
+        return seed;
+    }
+};
+
+class Router {
+    int memory_limit;
+    queue<tuple<int, int, int>> packet_q; // packet 队列
+    // 注：如果不想手写 TupleHash，可以用 set
+    unordered_set<tuple<int, int, int>, TupleHash> packet_set; // packet 集合
+    // deque 支持随机访问，方便二分
+    unordered_map<int, deque<int>> dest_to_timestamps; // destination -> [timestamp]
+
+public:
+    Router(int memoryLimit) {
+        memory_limit = memoryLimit;
+    }
+
+    bool addPacket(int source, int destination, int timestamp) {
+        auto packet = tuple(source, destination, timestamp);
+        if (!packet_set.insert(packet).second) { // packet 在 packet_set 中
+            return false;
+        }
+        if (packet_q.size() == memory_limit) { // 太多了
+            forwardPacket();
+        }
+        packet_q.push(packet); // 入队
+        dest_to_timestamps[destination].push_back(timestamp);
+        return true;
+    }
+
+    vector<int> forwardPacket() {
+        if (packet_q.empty()) {
+            return {};
+        }
+        auto packet = packet_q.front(); // 出队
+        packet_q.pop();
+        packet_set.erase(packet);
+        auto [source, destination, timestamp] = packet;
+        dest_to_timestamps[destination].pop_front();
+        return {source, destination, timestamp};
+    }
+
+    int getCount(int destination, int startTime, int endTime) {
+        auto& timestamps = dest_to_timestamps[destination];
+        auto left = ranges::lower_bound(timestamps, startTime);
+        auto right = ranges::upper_bound(timestamps, endTime);
+        return right - left;
+    }
+};
+```
+
+```cpp [sol-C++ 模板元编程]
+struct TupleHash {
+    template<typename T>
+    static void hash_combine(size_t& seed, const T& v) {
+        // 参考 boost::hash_combine
+        seed ^= hash<T>{}(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+
+    template<typename Tuple, size_t Index = 0>
+    static void hash_tuple(size_t& seed, const Tuple& t) {
+        if constexpr (Index < tuple_size_v<Tuple>) {
+            hash_combine(seed, get<Index>(t));
+            hash_tuple<Tuple, Index + 1>(seed, t);
+        }
+    }
+
+    template<typename... Ts>
+    size_t operator()(const tuple<Ts...>& t) const {
+        size_t seed = 0;
+        hash_tuple(seed, t);
+        return seed;
+    }
+};
+
+class Router {
+    int memory_limit;
+    queue<tuple<int, int, int>> packet_q; // packet 队列
+    // 注：如果不想手写 TupleHash，可以用 set
+    unordered_set<tuple<int, int, int>, TupleHash> packet_set; // packet 集合
+    // deque 支持随机访问，方便二分
+    unordered_map<int, deque<int>> dest_to_timestamps; // destination -> [timestamp]
+
+public:
+    Router(int memoryLimit) {
+        memory_limit = memoryLimit;
+    }
+
+    bool addPacket(int source, int destination, int timestamp) {
+        auto packet = tuple(source, destination, timestamp);
+        if (!packet_set.insert(packet).second) { // packet 在 packet_set 中
+            return false;
+        }
+        if (packet_q.size() == memory_limit) { // 太多了
+            forwardPacket();
+        }
+        packet_q.push(packet); // 入队
+        dest_to_timestamps[destination].push_back(timestamp);
+        return true;
+    }
+
+    vector<int> forwardPacket() {
+        if (packet_q.empty()) {
+            return {};
+        }
+        auto packet = packet_q.front(); // 出队
+        packet_q.pop();
+        packet_set.erase(packet);
+        auto [source, destination, timestamp] = packet;
+        dest_to_timestamps[destination].pop_front();
+        return {source, destination, timestamp};
+    }
+
+    int getCount(int destination, int startTime, int endTime) {
+        auto& timestamps = dest_to_timestamps[destination];
+        auto left = ranges::lower_bound(timestamps, startTime);
+        auto right = ranges::upper_bound(timestamps, endTime);
+        return right - left;
+    }
+};
+```
+
+```go [sol-Go]
+type packet struct {
+	source, destination, timestamp int
+}
+
+type Router struct {
+	memoryLimit      int
+	packetQ          []packet            // packet 队列
+	packetSet        map[packet]struct{} // packet 集合
+	destToTimestamps map[int][]int       // destination -> [timestamp]
+}
+
+func Constructor(memoryLimit int) Router {
+	return Router{
+		memoryLimit:      memoryLimit,
+		packetSet:        map[packet]struct{}{},
+		destToTimestamps: map[int][]int{},
+	}
+}
+
+func (r *Router) AddPacket(source, destination, timestamp int) bool {
+	pkt := packet{source, destination, timestamp}
+	if _, ok := r.packetSet[pkt]; ok {
+		return false
+	}
+	r.packetSet[pkt] = struct{}{}
+	if len(r.packetQ) == r.memoryLimit { // 太多了
+		r.ForwardPacket()
+	}
+	r.packetQ = append(r.packetQ, pkt) // 入队
+	r.destToTimestamps[destination] = append(r.destToTimestamps[destination], timestamp)
+	return true
+}
+
+func (r *Router) ForwardPacket() []int {
+	if len(r.packetQ) == 0 {
+		return nil
+	}
+	pkt := r.packetQ[0]
+	r.packetQ = r.packetQ[1:] // 出队
+	r.destToTimestamps[pkt.destination] = r.destToTimestamps[pkt.destination][1:]
+	delete(r.packetSet, pkt)
+	return []int{pkt.source, pkt.destination, pkt.timestamp}
+}
+
+func (r *Router) GetCount(destination, startTime, endTime int) int {
+	timestamps := r.destToTimestamps[destination]
+	return sort.SearchInts(timestamps, endTime+1) - sort.SearchInts(timestamps, startTime)
+}
+```
+
+```js [sol-JS]
+class Router {
+    constructor(memoryLimit) {
+        this.memory_limit = memoryLimit;
+        this.packetQ = new Queue(); // packet 队列，Queue 来自 datastructures-js 库
+        this.packetSet = new Set(); // packet 集合
+        this.destToTimestamps = new Map(); // destination -> [[timestamp], head]
+    }
+
+    addPacket(source, destination, timestamp) {
+        const key = `${source},${destination},${timestamp}`;
+        if (this.packetSet.has(key)) {
+            return false;
+        }
+        this.packetSet.add(key);
+
+        if (this.packetQ.size() === this.memory_limit) { // 太多了
+            this.forwardPacket();
+        }
+        this.packetQ.enqueue([source, destination, timestamp]); // 入队
+
+        if (!this.destToTimestamps.has(destination)) {
+            this.destToTimestamps.set(destination, [[], 0]);
+        }
+        this.destToTimestamps.get(destination)[0].push(timestamp);
+        return true;
+    };
+
+    forwardPacket() {
+        if (this.packetQ.isEmpty()) {
+            return [];
+        }
+        const [source, destination, timestamp] = this.packetQ.dequeue(); // 出队
+        this.packetSet.delete(`${source},${destination},${timestamp}`);
+        this.destToTimestamps.get(destination)[1]++; // 队首下标加一，模拟出队
+        return [source, destination, timestamp];
+    };
+
+    getCount(destination, startTime, endTime) {
+        if (!this.destToTimestamps.has(destination)) {
+            return 0;
+        }
+        const [timestamps, head] = this.destToTimestamps.get(destination);
+        const left = this.#lowerBound(timestamps, startTime, head - 1);
+        const right = this.#lowerBound(timestamps, endTime + 1, head - 1);
+        return right - left;
+    }
+
+    // https://www.bilibili.com/video/BV1AP41137w7/
+    #lowerBound(nums, target, left) {
+        let right = nums.length;
+        while (left + 1 < right) {
+            const mid = Math.floor((left + right) / 2);
+            if (nums[mid] >= target) {
+                right = mid;
+            } else {
+                left = mid;
+            }
+        }
+        return right;
+    }
+}
+```
+
+```rust [sol-Rust]
+use std::collections::{VecDeque, HashSet, HashMap};
+
+struct Router {
+    memory_limit: usize,
+    packet_q: VecDeque<(i32, i32, i32)>, // packet 队列
+    packet_set: HashSet<(i32, i32, i32)>, // packet 集合
+    dest_to_timestamps: HashMap<i32, (Vec<i32>, usize)>, // destination -> ([timestamp], head)
+}
+
+impl Router {
+    fn new(memory_limit: i32) -> Self {
+        Self {
+            memory_limit: memory_limit as usize,
+            packet_q: VecDeque::new(),
+            packet_set: HashSet::new(),
+            dest_to_timestamps: HashMap::new(),
+        }
+    }
+
+    fn add_packet(&mut self, source: i32, destination: i32, timestamp: i32) -> bool {
+        let packet = (source, destination, timestamp);
+        if !self.packet_set.insert(packet) { // packet 在 packet_set 中
+            return false;
+        }
+        if self.packet_q.len() == self.memory_limit { // 太多了
+            self.forward_packet();
+        }
+        self.packet_q.push_back(packet); // 入队
+        self.dest_to_timestamps.entry(destination).or_insert_with(|| (vec![], 0)).0.push(timestamp);
+        true
+    }
+
+    fn forward_packet(&mut self) -> Vec<i32> {
+        if let Some(packet) = self.packet_q.pop_front() {
+            self.packet_set.remove(&packet);
+            let (source, destination, timestamp) = packet;
+            self.dest_to_timestamps.get_mut(&destination).unwrap().1 += 1; // 队首下标加一，模拟出队
+            vec![source, destination, timestamp]
+        } else {
+            vec![]
+        }
+    }
+
+    fn get_count(&self, destination: i32, start_time: i32, end_time: i32) -> i32 {
+        if let Some((timestamps, head)) = self.dest_to_timestamps.get(&destination) {
+            let left = timestamps[*head..].partition_point(|&x| x < start_time);
+            let right = timestamps[*head..].partition_point(|&x| x <= end_time);
+            (right - left) as _
+        } else {
+            0
+        }
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\texttt{getCount}$ 是 $\mathcal{O}(\log \min(q, \textit{memoryLimit}))$，其中 $q$ 是 $\texttt{addPacket}$ 的调用次数。其余操作为 $\mathcal{O}(1)$。
+- 空间复杂度：$\mathcal{O}(\min(q, \textit{memoryLimit}))$。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

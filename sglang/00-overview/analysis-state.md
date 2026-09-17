@@ -24,8 +24,8 @@
 
 | 阶段 | 目标 | 状态 | 证据/说明 |
 |---|---|---|---|
-| 0 | 版本确认、仓库盘点、模块划分、总览层 | 已完成（首轮） | 版本锚点、仓库地图、M01-M18 注册表、总览文章和 README 导航已建立；后续源码变化仍需复核行号 |
-| 1 | 模块实现层 | 已完成静态首轮，代表路径深审已完成 | M01-M19 实现层文章已建立；M06-M10 已补充 loader/weight mapping、group 拓扑、allocator/eviction、capture/fallback 和 sampler/grammar 代表路径；M19 已补充 DeepSeek 模型与并行策略专题；全部硬件行为仍需运行验证 |
+| 0 | 版本确认、仓库盘点、模块划分、总览层 | 已完成（首轮） | 版本锚点、仓库地图、M01-M20 注册表、总览文章和 README 导航已建立；后续源码变化仍需复核行号 |
+| 1 | 模块实现层 | 已完成静态首轮，代表路径深审已完成 | M01-M20 实现层文章已建立；M06-M10 已补充 loader/weight mapping、group 拓扑、allocator/eviction、capture/fallback 和 sampler/grammar 代表路径；M19 已补充 DeepSeek 模型专题，M20 已补充通用并行策略源码分析；全部硬件行为仍需运行验证 |
 | 2 | 真实 Demo 解剖 | 进行中 | 已建立 D01 注册和离线 Engine 深度文章，并登记 D02 协议/结构化输出、D03 speculative 静态链路；尚未运行 |
 | 3 | 跨模块串联 | 进行中 | 已建立 system wiring、接口契约、运行轨迹、端到端流程，并补充调用链、共享数据、配置影响、错误边界、修改影响和性能路径；仍需与后续专题复核 |
 | 4 | 开发实践层 | 进行中 | 已创建 `99-roadmap/` 导航、快速上手、阅读、调试、开发、测试、性能、风险、技术债务和后续步骤文档；仍需随模块证据更新 |
@@ -56,11 +56,12 @@
 - `sglang/01-modules/M11-speculative-decoding/README.md`、`M12-multimodal-runtime/README.md`、`M13-disaggregation-hicache/README.md`、`M14-moe-quantization-lora/README.md`、`M15-ipc-control-plane/README.md`、`M16-kernel-device-backend/README.md`、`M17-rust-router-gateway/README.md`、`M18-testing-benchmark-ci/README.md` 已建立，覆盖各模块的入口、生命周期、调用链、边界、测试和修改影响；`M15-ipc/README.md` 保留为兼容入口；真实硬件/网络行为仍未验证。
 - 新增 [池化与资源管理专题](../90-cross-module/pooling-and-resource-management.md)，按当前 `78be4b50af` 复核 request row、slot/page allocator、物理 KV/Mamba buffer、Radix ownership、retraction、flush、CudaGraphRunner capture batch/static buffers/global graph pool 和 KV custom pool 边界。
 
-- 新增 [DeepSeek 系列模型与并行策略专题](../01-modules/M19-deepseek-models/README.md)，覆盖 V2/V3/V3.1/R1/V3.2/V4 相关实现、MLA/DSA、MTP/NextN、TP、DP Attention、EP、MoE DP/TP、CP、PP 及源码调试地图；当前 checkout 未发现 `CPTD` 精确配置、类、函数或并行 group，需外部全称后再映射。
+- 新增 [DeepSeek 系列模型与并行策略专题](../01-modules/M19-deepseek-models/README.md)，覆盖 V2/V3/V3.1/R1/V3.2/V4 相关实现、MLA/DSA、MTP/NextN 及模型内并行消费点。
+- 新增 [SGLang 并行策略源码分析](../01-modules/M20-parallel-strategies/README.md)，覆盖 TP、PP、DP Attention、CP/DCP、EP、MoE DP/TP、collective、rank 示例和组合约束；当前 checkout 未发现 `SPTD`/`CPTD` 精确配置、类、函数或并行 group，需外部全称后再映射。
 
 ## project-prompt 合规状态
 
-根入口、M01-M18 模块、D01、关联层和实践层均已建立；模块/Demo 审计表与资源专题已补齐。GPU、多卡、HiCache、Graph capture/replay 和网络行为继续标记为未验证。
+根入口、M01-M20 模块、D01、关联层和实践层均已建立；模块/Demo 审计表与资源专题已补齐。GPU、多卡、HiCache、Graph capture/replay 和网络行为继续标记为未验证。
 
 ## 未验证事项
 
