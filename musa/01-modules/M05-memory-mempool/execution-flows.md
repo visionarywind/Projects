@@ -162,3 +162,13 @@ device default/graph 的创建证据为 [`src/musa/core/device.cpp:439-519`]；h
 Device 析构先等待 contexts，释放 primary context，再 delete default/graph Core pools。[`src/musa/core/device.cpp:680-700`]
 
 具体 HAL splay tree value 的最终 delete 语义仍依赖 `Util::SplayTree` 实现，本文不越过已读证据。
+
+## 10. IPC pool handle 与 pointer import 的边界
+
+pool handle export/import 只共享 POSIX metadata ownership，不创建接收侧 HAL pool；imported wrapper 不能用于异步 pool allocation。pointer export/import 则是独立的 physical IPC memory 路径，传入 pool 句柄当前仅用于解析 device，源码片段未显示将 imported physical memory 登记进该 Core pool 的 allocation set。[`src/musa/core/memoryPool.cpp:439-609`、`src/driver/mu_mempool.cpp:264-390`]
+
+静态审计注意：两处 `mmap` 结果使用 `nullptr` 而非 `MAP_FAILED` 判断；shared `owners` 的 mutex 是进程内锁；imported wrapper 的 dup fd 清理受 `m_IpcName` 分支控制。以上均未通过故障注入或跨进程运行验证。
+
+## 11. 当前证据边界
+
+已追到 Core/HAL/M3D 适配边界的内容包括：普通、async、graph allocation/free，chunk/segment split/merge/reuse/trim，pool registry/key，IPC metadata ownership 和 SplayTree value ownership。M3D 子模块、kernel driver、firmware、硬件完成结果及真实性能仍未验证。

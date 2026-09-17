@@ -1,8 +1,8 @@
 # M05：Memory 与 MemoryPool
 
-- 源码范围：`src/driver/mu_memory.cpp`、`src/driver/mu_mempool.cpp`、`src/musa/core/memory.cpp`、`src/musa/core/memoryPool.cpp`、`src/musa/core/device.cpp`、`src/musa/core/stream.cpp`、`src/musa/core/node/graphMemoryAllocNode.cpp`、`src/hal/m3d/memMgr.cpp`、`src/hal/m3d/memoryPool.cpp`
+- 源码范围：`src/driver/mu_memory.cpp`、`src/driver/mu_mempool.cpp`、`src/driver/mu_device.cpp`、`src/musa/core/memory.cpp`、`src/musa/core/memoryPool.cpp`、`src/musa/core/device.{h,cpp}`、`src/musa/core/platform.cpp`、`src/musa/core/stream.cpp`、`src/musa/core/node/graphMemory{Alloc,Free}Node.cpp`、`src/musa/core/graph.cpp`、`src/musa/core/graph/graph1/universalManager.cpp`、`src/hal/m3d/memMgr.cpp`、`src/hal/m3d/memoryPool.cpp`、`src/util/utilSplayTree.h`
 - 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`
-- 最后专题更新：2026-09-16
+- 最后专题更新：2026-09-17
 - 证据状态：**静态源码已确认**；M3D 子模块内部、目标机分配性能和真实硬件结果**未验证**。
 
 ## 结论先行
@@ -37,6 +37,7 @@ MemoryPool
 4. [`call-chains.md`](call-chains.md)：从 Driver API 到 HAL/M3D 的源码链。
 5. [`execution-flows.md`](execution-flows.md)：同步、异步、graph、free 的状态时序。
 6. [`line-level-analysis.md`](line-level-analysis.md)：行号证据与静态风险。
+7. [`async-rollback-and-locking.md`](async-rollback-and-locking.md)：异步失败回滚矩阵、callback raw-pointer 生命周期、SetAccess 部分提交和锁域。
 
 ## 最小源码调用图
 
@@ -49,7 +50,7 @@ muapiMemAlloc_v2
   -> pool lookup/create by MakeKey
   -> MemoryPool::FullAllocate
        -> SubAllocate
-       -> [not found] ChunkAllocate
+       -> [errorNotFound] ChunkAllocate
        -> SubAllocate
        -> ResourceSplit
   -> Memory { pHalMemory=chunk, m_Offset=offset }
@@ -82,14 +83,16 @@ muapiMemAllocAsync
 - segment 的选择、对齐、切分、相邻合并、完整 chunk 回收；
 - HAL MemMgr 的 key 打包及 internal/user/自动 pool registry；
 - default、graph、host/NUMA、internal pool 的创建入口；
-- async alloc/free 和 graph memory alloc/free 的 Core 级路径。
+- async alloc/free 和 graph memory alloc/free 的 Core 级路径；
+- pool-handle IPC 只导入 metadata，pointer IPC 单独创建 `memoryTypeIpcImport`；
+- SplayTree automatic pool value 的 teardown ownership。
 
 仍未知或未验证：
 
 - `IM3d::IDevice::CreateGpuMemory`、`IM3d::IQueue` 之后的内核驱动/firmware 行为；
 - M3D 实际 page size、物理碎片、分配耗时和回收性能；
 - 所有异常分支在真实硬件上的错误码映射；
-- `Util::SplayTree` 删除节点时对 pool value 的最终所有权细节（本专题只确认调用点）。
+- destroy current pool/live-allocation、imported fd、跨进程 IPC owners 和 SplayTree `Find` 风险的运行结果。
 
 ## 相关文档
 

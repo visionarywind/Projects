@@ -7,15 +7,123 @@
 - 来源专题：贪心与思维
 - 来源分类路径：二、区间贪心 / §2.5 合并区间
 - 难度分：1483
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/count-days-without-meetings/solutions/2798193/zheng-nan-ze-fan-he-bing-qu-jian-pythonj-r0gi/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[正难则反+合并区间（Python/Java/C++/Go）](https://leetcode.cn/problems/count-days-without-meetings/solutions/2798193/zheng-nan-ze-fan-he-bing-qu-jian-pythonj-r0gi/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`zheng-nan-ze-fan-he-bing-qu-jian-pythonj-r0gi`
+- topic id：`2798193`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 10:54:06 +0800
+
+正难则反，答案等于 $\textit{days}$ 减「有会议安排的天数」。
+
+要计算有会议安排的天数，做法同 [56. 合并区间的题解](https://leetcode.cn/problems/merge-intervals/solution/jian-dan-zuo-fa-yi-ji-wei-shi-yao-yao-zh-f2b3/)。累加每个区间的长度，即为有会议安排的天数。
+
+由于本题只需计算合并区间的长度，所以只需记录当前合并区间的左右端点。
+
+```py [sol-Python3]
+class Solution:
+    def countDays(self, days: int, meetings: List[List[int]]) -> int:
+        meetings.sort(key=lambda p: p[0])  # 按照左端点从小到大排序
+        start, end = 1, 0  # 当前合并区间的左右端点
+        for s, e in meetings:
+            if s > end:  # 不相交
+                days -= end - start + 1  # 当前合并区间的长度
+                start = s  # 下一个合并区间的左端点
+            end = max(end, e)
+        days -= end - start + 1  # 最后一个合并区间的长度
+        return days
+```
+
+```java [sol-Java]
+class Solution {
+    public int countDays(int days, int[][] meetings) {
+        Arrays.sort(meetings, (p, q) -> p[0] - q[0]); // 按照左端点从小到大排序
+        int start = 1, end = 0; // 当前合并区间的左右端点
+        for (int[] p : meetings) {
+            if (p[0] > end) { // 不相交
+                days -= end - start + 1; // 当前合并区间的长度
+                start = p[0]; // 下一个合并区间的左端点
+            }
+            end = Math.max(end, p[1]);
+        }
+        days -= end - start + 1; // 最后一个合并区间的长度
+        return days;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int countDays(int days, vector<vector<int>>& meetings) {
+        ranges::sort(meetings); // 按照左端点从小到大排序
+        int start = 1, end = 0; // 当前合并区间的左右端点
+        for (auto& p : meetings) {
+            if (p[0] > end) { // 不相交
+                days -= end - start + 1; // 当前合并区间的长度
+                start = p[0]; // 下一个合并区间的左端点
+            }
+            end = max(end, p[1]);
+        }
+        days -= end - start + 1; // 最后一个合并区间的长度
+        return days;
+    }
+};
+```
+
+```go [sol-Go]
+func countDays(days int, meetings [][]int) int {
+	slices.SortFunc(meetings, func(p, q []int) int { return p[0] - q[0] }) // 按照左端点从小到大排序
+	start, end := 1, 0 // 当前合并区间的左右端点
+	for _, p := range meetings {
+		if p[0] > end { // 不相交
+			days -= end - start + 1 // 当前合并区间的长度
+			start = p[0] // 下一个合并区间的左端点
+		}
+		end = max(end, p[1])
+	}
+	days -= end - start + 1 // 最后一个合并区间的长度
+	return days
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\log n)$，其中 $n$ 是 $\textit{meetings}$ 的长度。瓶颈在排序上。
+- 空间复杂度：$\mathcal{O}(1)$。忽略排序的栈开销。
+
+## 相似题目
+
+见下面贪心题单的「**§2.5 合并区间**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

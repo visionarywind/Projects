@@ -7,15 +7,602 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：四、回溯 / §4.8 折半搜索
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/minimum-removals-to-achieve-target-xor/solutions/3933376/mo-ban-qia-hao-zhuang-man-xing-0-1-bei-b-llbw/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[两种方法：0-1 背包 / BFS（Python/Java/C++/Go）](https://leetcode.cn/problems/minimum-removals-to-achieve-target-xor/solutions/3933376/mo-ban-qia-hao-zhuang-man-xing-0-1-bei-b-llbw/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`mo-ban-qia-hao-zhuang-man-xing-0-1-bei-b-llbw`
+- topic id：`3933376`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 12:05:27 +0800
+
+## 方法一：0-1 背包
+
+移除次数尽量小，等价于保留的元素个数尽量多。
+
+问题相当于：
+
+- 给你 $n$ 个数，每个数要么选，要么不选。选的数的异或和恰好等于 $\textit{target}$，最多能选多少个数？
+
+这是恰好装满型 0-1 背包，原理见视频讲解：[0-1 背包 完全背包【基础算法精讲 18】](https://www.bilibili.com/video/BV16Y411v7Y6/)。
+
+类似题目是 [2915. 和为目标值的最长子序列的长度](https://leetcode.cn/problems/length-of-the-longest-subsequence-that-sums-to-target/)，[我的题解](https://leetcode.cn/problems/length-of-the-longest-subsequence-that-sums-to-target/solutions/2502839/mo-ban-qia-hao-zhuang-man-xing-0-1-bei-b-0nca/)。由于 2915 题用的是大家熟悉的加法，推荐先完成 2915 题，再做本题。
+
+和 2915 题一样，定义 $f[i+1][j]$ 表示在 $\textit{nums}[0]$ 到 $\textit{nums}[i]$ 中的，异或和为 $j$ 的子序列的最长长度。
+
+异或运算 $\oplus$ 本质是模 $2$ 加法，满足交换律和结合律，把 $v \oplus \textit{nums}[i] = j$ 移项可得 $v = j\oplus \textit{nums}[i]$。我们只需把 2915 转移方程中的 $j - \textit{nums}[i]$ 改成 $j\oplus  \textit{nums}[i]$ 即可。
+
+$$
+f[i+1][j] = \max(f[i][j],f[i][j\oplus\textit{nums}[i]] + 1)
+$$
+
+初始值 $f[0][0]=0$，其余为 $f[0][j] = -\infty$。
+
+答案为 $f[n][\textit{target}]$。
+
+**特殊情况**：设 $m$ 为 $\max(\textit{nums})$ 的二进制长度。如果 $m$ 小于 $\textit{target}$ 的二进制长度，那么 XOR 的二进制长度也小于 $\textit{target}$ 的二进制长度，必然无解，返回 $-1$。否则可以计算 DP，看看是否有解。由于 XOR 最大是 $2^m-1$，所以数组第二维的大小为 $2^m$。
+
+代码实现时，「$m$ 小于 $\textit{target}$ 的二进制长度」等价于 $2^m\le \textit{target}$，这样无需计算 $\textit{target}$ 的二进制长度。
+
+### 答疑
+
+**问**：为什么数组第二维的大小不能是 $\textit{target}+1$？
+
+**答**：比如 $\textit{target}$ 的二进制是 $100$。在 DP 过程中，我们可能先异或得到 $1101$，再异或一个等于 $1001$ 的数，得到 $100$。一般地，在计算过程中，可能先算出比 $\textit{target}$ 大的数，再减小到 $\textit{target}$。所以要用 XOR 的最大值加一作为数组大小。
+
+[本题视频讲解](https://www.bilibili.com/video/BV1vfAuzyEp8/?t=12m)，欢迎点赞关注~
+
+### 优化前
+
+```py [sol-Python3]
+class Solution:
+    def minRemovals(self, nums: List[int], target: int) -> int:
+        m = max(nums).bit_length()
+        if (1 << m) <= target:
+            return -1
+
+        n = len(nums)
+        f = [[-inf] * (1 << m) for _ in range(n + 1)]
+        f[0][0] = 0
+
+        for i, x in enumerate(nums):
+            for j in range(1 << m):
+                f[i + 1][j] = max(f[i][j], f[i][j ^ x] + 1)  # x 不选 or 选
+
+        if f[n][target] < 0:
+            return -1
+        return len(nums) - f[n][target]
+```
+
+```java [sol-Java]
+class Solution {
+    public int minRemovals(int[] nums, int target) {
+        int mx = 0;
+        for (int x : nums) {
+            mx = Math.max(mx, x);
+        }
+
+        int m = 32 - Integer.numberOfLeadingZeros(mx); // mx 的二进制长度
+        if ((1 << m) <= target) {
+            return -1;
+        }
+
+        int n = nums.length;
+        int[][] f = new int[n + 1][1 << m];
+        for (int[] row : f) {
+            Arrays.fill(row, Integer.MIN_VALUE);
+        }
+        f[0][0] = 0;
+
+        for (int i = 0; i < n; i++) {
+            int x = nums[i];
+            for (int j = 0; j < (1 << m); j++) {
+                f[i + 1][j] = Math.max(f[i][j], f[i][j ^ x] + 1); // x 不选 or 选
+            }
+        }
+
+        if (f[n][target] < 0) {
+            return -1;
+        }
+        return nums.length - f[n][target];
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int minRemovals(vector<int>& nums, int target) {
+        int m = bit_width(1u * ranges::max(nums));
+        if ((1 << m) <= target) {
+            return -1;
+        }
+
+        int n = nums.size();
+        vector f(n + 1, vector<int>(1 << m, INT_MIN));
+        f[0][0] = 0;
+
+        for (int i = 0; i < n; i++) {
+            int x = nums[i];
+            for (int j = 0; j < (1 << m); j++) {
+                f[i + 1][j] = max(f[i][j], f[i][j ^ x] + 1); // x 不选 or 选
+            }
+        }
+
+        if (f[n][target] < 0) {
+            return -1;
+        }
+        return nums.size() - f[n][target];
+    }
+};
+```
+
+```go [sol-Go]
+func minRemovals(nums []int, target int) int {
+	m := bits.Len(uint(slices.Max(nums)))
+	if 1<<m <= target {
+		return -1
+	}
+
+	n := len(nums)
+	f := make([][]int, n+1)
+	for i := range f {
+		f[i] = make([]int, 1<<m)
+		for j := range f[i] {
+			f[i][j] = math.MinInt
+		}
+	}
+	f[0][0] = 0
+
+	for i, x := range nums {
+		for j := range 1 << m {
+			f[i+1][j] = max(f[i][j], f[i][j^x]+1) // x 不选 or 选
+		}
+	}
+
+	if f[n][target] < 0 {
+		return -1
+	}
+	return len(nums) - f[n][target]
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nU)$，其中 $n$ 是 $\textit{nums}$ 的长度，$U=\max(\textit{nums})$。
+- 空间复杂度：$\mathcal{O}(nU)$。
+
+### 空间优化（查表法）
+
+```py [sol-Python3]
+class Solution:
+    def minRemovals(self, nums: List[int], target: int) -> int:
+        m = max(nums).bit_length()
+        if (1 << m) <= target:
+            return -1
+
+        f = [-inf] * (1 << m)
+        f[0] = 0
+
+        nf = [0] * (1 << m)
+        for x in nums:
+            for j in range(1 << m):
+                nf[j] = max(f[j], f[j ^ x] + 1)  # x 不选 or 选
+            f, nf = nf, f
+
+        if f[target] < 0:
+            return -1
+        return len(nums) - f[target]
+```
+
+```java [sol-Java]
+class Solution {
+    public int minRemovals(int[] nums, int target) {
+        int mx = 0;
+        for (int x : nums) {
+            mx = Math.max(mx, x);
+        }
+
+        int m = 32 - Integer.numberOfLeadingZeros(mx);
+        if ((1 << m) <= target) {
+            return -1;
+        }
+
+        int[] f = new int[1 << m];
+        Arrays.fill(f, Integer.MIN_VALUE);
+        f[0] = 0;
+
+        int[] nf = new int[1 << m];
+        for (int x : nums) {
+            for (int j = 0; j < (1 << m); j++) {
+                nf[j] = Math.max(f[j], f[j ^ x] + 1); // x 不选 or 选
+            }
+            int[] tmp = f;
+            f = nf;
+            nf = tmp;
+        }
+
+        if (f[target] < 0) {
+            return -1;
+        }
+        return nums.length - f[target];
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int minRemovals(vector<int>& nums, int target) {
+        int m = bit_width(1u * ranges::max(nums));
+        if ((1 << m) <= target) {
+            return -1;
+        }
+
+        vector<int> f(1 << m, INT_MIN);
+        f[0] = 0;
+
+        vector<int> nf(1 << m);
+        for (int x : nums) {
+            for (int j = 0; j < (1 << m); j++) {
+                nf[j] = max(f[j], f[j ^ x] + 1); // x 不选 or 选
+            }
+            swap(f, nf);
+        }
+
+        if (f[target] < 0) {
+            return -1;
+        }
+        return nums.size() - f[target];
+    }
+};
+```
+
+```go [sol-Go]
+func minRemovals(nums []int, target int) int {
+	m := bits.Len(uint(slices.Max(nums)))
+	if 1<<m <= target {
+		return -1
+	}
+
+	f := make([]int, 1<<m)
+	for i := range f {
+		f[i] = math.MinInt
+	}
+	f[0] = 0
+
+	nf := make([]int, 1<<m)
+	for _, x := range nums {
+		for j := range 1 << m {
+			nf[j] = max(f[j], f[j^x]+1) // x 不选 or 选
+		}
+		f, nf = nf, f
+	}
+
+	if f[target] < 0 {
+		return -1
+	}
+	return len(nums) - f[target]
+}
+```
+
+### 空间优化（刷表法）
+
+如果修改问题，把 XOR 改成没有逆运算的 AND 或者 OR，用**刷表法**更合适。也就是用当前状态更新其他状态。
+
+```py [sol-Python3]
+class Solution:
+    def minRemovals(self, nums: List[int], target: int) -> int:
+        m = max(nums).bit_length()
+        if (1 << m) <= target:
+            return -1
+
+        f = [-inf] * (1 << m)
+        f[0] = 0
+
+        for x in nums:
+            nf = f[:]
+            for j, fj in enumerate(f):
+                nf[j ^ x] = max(nf[j ^ x], fj + 1)  # x 不选 or 选
+            f = nf
+
+        if f[target] < 0:
+            return -1
+        return len(nums) - f[target]
+```
+
+```java [sol-Java]
+class Solution {
+    public int minRemovals(int[] nums, int target) {
+        int mx = 0;
+        for (int x : nums) {
+            mx = Math.max(mx, x);
+        }
+
+        int m = 32 - Integer.numberOfLeadingZeros(mx);
+        if ((1 << m) <= target) {
+            return -1;
+        }
+
+        int[] f = new int[1 << m];
+        Arrays.fill(f, Integer.MIN_VALUE);
+        f[0] = 0;
+
+        for (int x : nums) {
+            int[] nf = f.clone();
+            for (int j = 0; j < (1 << m); j++) {
+                nf[j ^ x] = Math.max(nf[j ^ x], f[j] + 1); // x 不选 or 选
+            }
+            f = nf;
+        }
+
+        if (f[target] < 0) {
+            return -1;
+        }
+        return nums.length - f[target];
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int minRemovals(vector<int>& nums, int target) {
+        int m = bit_width(1u * ranges::max(nums));
+        if ((1 << m) <= target) {
+            return -1;
+        }
+
+        vector<int> f(1 << m, INT_MIN);
+        f[0] = 0;
+
+        for (int x : nums) {
+            auto nf = f;
+            for (int j = 0; j < (1 << m); j++) {
+                nf[j ^ x] = max(nf[j ^ x], f[j] + 1); // x 不选 or 选
+            }
+            f = nf;
+        }
+
+        if (f[target] < 0) {
+            return -1;
+        }
+        return nums.size() - f[target];
+    }
+};
+```
+
+```go [sol-Go]
+func minRemovals(nums []int, target int) int {
+	m := bits.Len(uint(slices.Max(nums)))
+	if 1<<m <= target {
+		return -1
+	}
+
+	f := make([]int, 1<<m)
+	for i := range f {
+		f[i] = math.MinInt
+	}
+	f[0] = 0
+
+	for _, x := range nums {
+		nf := slices.Clone(f)
+		for j, fj := range f {
+			nf[j^x] = max(nf[j^x], fj+1) // x 不选 or 选
+		}
+		f = nf
+	}
+
+	if f[target] < 0 {
+		return -1
+	}
+	return len(nums) - f[target]
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nU)$，其中 $n$ 是 $\textit{nums}$ 的长度，$U=\max(\textit{nums})$。
+- 空间复杂度：$\mathcal{O}(U)$。
+
+## 方法二：BFS
+
+设当前剩余元素的异或和为 $s$。移除一个 $\textit{nums}[i]$ 后，$s$ 变成了 $s\oplus \textit{nums}[i]$。
+
+把异或和当作节点编号，从 $s$ 到 $s\oplus \textit{nums}[i]$ 连一条有向边，我们可以得到一张有向图。
+
+设 $\textit{nums}$ 的异或和为 $\textit{start}$。本题相当于：
+
+- 计算从起点 $\textit{start}$ 到终点 $\textit{target}$ 的**最短路长度**。
+
+这可以用 **BFS** 解决。
+
+下面代码用双数组实现 BFS，原理请看[【基础算法精讲 13】](https://www.bilibili.com/video/BV1hG4y1277i/)。
+
+### 答疑
+
+**问**：为什么代码遍历了整个 $\textit{nums}$ 数组，万一 $\textit{nums}[i]$ 不在剩余元素中呢？
+
+**答**：同一个数删掉又加回来，相当于走回头路，这样的路径一定不是最短路径，不影响正确答案。
+
+```py [sol-Python3]
+class Solution:
+    def minRemovals(self, nums: List[int], target: int) -> int:
+        m = max(nums).bit_length()
+        if (1 << m) <= target:
+            return -1
+
+        start = reduce(xor, nums)
+        q = [start]
+        vis = [False] * (1 << m)
+        vis[start] = True
+        step = 0
+
+        while q:
+            nxt = []
+            for s in q:
+                if s == target:
+                    return step
+                for x in nums:
+                    if not vis[s ^ x]:  # 之前没有访问过
+                        vis[s ^ x] = True
+                        nxt.append(s ^ x)  # 避免重复访问
+            q = nxt
+            step += 1
+
+        return -1
+```
+
+```java [sol-Java]
+class Solution {
+    public int minRemovals(int[] nums, int target) {
+        int mx = 0;
+        int start = 0;
+        for (int x : nums) {
+            mx = Math.max(mx, x);
+            start ^= x;
+        }
+
+        int m = 32 - Integer.numberOfLeadingZeros(mx);
+        if ((1 << m) <= target) {
+            return -1;
+        }
+
+        List<Integer> q = List.of(start);
+        boolean[] vis = new boolean[1 << m];
+        vis[start] = true;
+
+        for (int step = 0; !q.isEmpty(); step++) {
+            List<Integer> nxt = new ArrayList<>();
+            for (int s : q) {
+                if (s == target) {
+                    return step;
+                }
+                for (int x : nums) {
+                    if (!vis[s ^ x]) { // 之前没有访问过
+                        vis[s ^ x] = true; // 避免重复访问
+                        nxt.add(s ^ x);
+                    }
+                }
+            }
+            q = nxt;
+        }
+
+        return -1;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int minRemovals(vector<int>& nums, int target) {
+        int m = bit_width(1u * ranges::max(nums));
+        if ((1 << m) <= target) {
+            return -1;
+        }
+
+        int start = reduce(nums.begin(), nums.end(), 0, bit_xor());
+        vector<int> q = {start};
+        vector<int8_t> vis(1 << m);
+        vis[start] = true;
+
+        for (int step = 0; !q.empty(); step++) {
+            auto tmp = move(q);
+            for (int s : tmp) {
+                if (s == target) {
+                    return step;
+                }
+                for (int x : nums) {
+                    if (!vis[s ^ x]) { // 之前没有访问过
+                        vis[s ^ x] = true; // 避免重复访问
+                        q.push_back(s ^ x);
+                    }
+                }
+            }
+        }
+
+        return -1;
+    }
+};
+```
+
+```go [sol-Go]
+func minRemovals(nums []int, target int) int {
+	m := bits.Len(uint(slices.Max(nums)))
+	if 1<<m <= target {
+		return -1
+	}
+
+	start := 0
+	for _, x := range nums {
+		start ^= x
+	}
+	q := []int{start}
+	vis := make([]bool, 1<<m)
+	vis[start] = true
+
+	for step := 0; len(q) > 0; step++ {
+		nxt := []int{}
+		for _, s := range q {
+			if s == target {
+				return step
+			}
+			for _, x := range nums {
+				if !vis[s^x] { // 之前没有访问过
+					vis[s^x] = true // 避免重复访问
+					nxt = append(nxt, s^x)
+				}
+			}
+		}
+		q = nxt
+	}
+
+	return -1
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(nU)$，其中 $n$ 是 $\textit{nums}$ 的长度，$U=\max(\textit{nums})$。
+- 空间复杂度：$\mathcal{O}(U)$。
+
+## 注
+
+本题还有和值域无关的 $\mathcal{O}(2^{n/2})$ 折半搜索做法，见 [494. 目标和](https://leetcode.cn/problems/target-sum/)，[我的题解](https://leetcode.cn/problems/target-sum/solutions/2119041/jiao-ni-yi-bu-bu-si-kao-dong-tai-gui-hua-s1cx/)。
+
+## 专题训练
+
+1. 动态规划题单的「**§3.1 0-1 背包**」。
+2. 图论题单的「**§1.3 图论建模 + BFS 最短路**」。
+3. 回溯题单的「**§4.8 折半搜索**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/discuss/post/3141566/ru-he-ke-xue-shua-ti-by-endlesscheng-q3yd/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/discuss/post/3578981/ti-dan-hua-dong-chuang-kou-ding-chang-bu-rzz7/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/discuss/post/3579164/ti-dan-er-fen-suan-fa-er-fen-da-an-zui-x-3rqn/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/discuss/post/3579480/ti-dan-dan-diao-zhan-ju-xing-xi-lie-zi-d-u4hk/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/discuss/post/3580195/fen-xiang-gun-ti-dan-wang-ge-tu-dfsbfszo-l3pa/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/discuss/post/3580371/fen-xiang-gun-ti-dan-wei-yun-suan-ji-chu-nth4/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/discuss/post/3581143/fen-xiang-gun-ti-dan-tu-lun-suan-fa-dfsb-qyux/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/discuss/post/3581838/fen-xiang-gun-ti-dan-dong-tai-gui-hua-ru-007o/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/discuss/post/3583665/fen-xiang-gun-ti-dan-chang-yong-shu-ju-j-bvmv/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/discuss/post/3584388/fen-xiang-gun-ti-dan-shu-xue-suan-fa-shu-gcai/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/discuss/post/3091107/fen-xiang-gun-ti-dan-tan-xin-ji-ben-tan-k58yb/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/discuss/post/3142882/fen-xiang-gun-ti-dan-lian-biao-er-cha-sh-6srp/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/discuss/post/3144832/fen-xiang-gun-ti-dan-zi-fu-chuan-kmpzhan-ugt4/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

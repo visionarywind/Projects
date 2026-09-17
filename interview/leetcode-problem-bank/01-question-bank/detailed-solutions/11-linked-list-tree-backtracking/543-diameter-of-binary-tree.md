@@ -7,15 +7,366 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：二、二叉树 / §2.6 二叉树的直径
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/diameter-of-binary-tree/solutions/2227017/shi-pin-che-di-zhang-wo-zhi-jing-dpcong-taqma/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[【视频】彻底掌握直径 DP，从二叉树到一般树（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/diameter-of-binary-tree/solutions/2227017/shi-pin-che-di-zhang-wo-zhi-jing-dpcong-taqma/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`shi-pin-che-di-zhang-wo-zhi-jing-dpcong-taqma`
+- topic id：`2227017`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:39:45 +0800
+
+## 视频讲解
+
+本题视频讲解：[树形 DP【基础算法精讲 23】](https://www.bilibili.com/video/BV17o4y187h1/)，制作不易，欢迎点赞~
+
+## 视频内容补充
+
+设 $\textit{node}$ 是二叉树中的一个节点。
+
+本题有两个关键概念：
+
+- **链**：从 $\textit{node}$ 子树中的叶子节点到 $\textit{node}$ 的路径。把 $\textit{node}$ 子树中的最长链的长度，作为 $\textit{dfs}(\textit{node})$ 的返回值。
+- **直径**：等价于由两条（或者一条）链拼成的路径。我们枚举二叉树的每个 $\textit{node}$，假设直径在这里「拐弯」，也就是计算由左右两条从下面的叶子节点到 $\textit{node}$ 的链的节点值之和，去更新答案的最大值。
+
+⚠**注意**：直径可能在 $\textit{root}$ 下面的某个节点拐弯，不一定会经过 $\textit{root}$。
+
+⚠**注意**：$\textit{dfs}(\textit{node})$ 返回的是**链**的长度，不是**直径**的长度。如果返回直径，那么在上面与其他的链继续拼接，得到的就不是直径了。
+
+## 写法一
+
+$\textit{dfs}(\textit{node})$ 返回的是 $\textit{node}$ 子树的最大链长，不包含 $\textit{node}$ 到其父节点的边。如果严格按照这个定义，空节点要返回 $-1$，这样叶子算出的链长才是 $0$。
+
+如果你觉得这样写有些奇怪，可以看等价的写法二。
+
+```py [sol-Python3]
+class Solution:
+    def diameterOfBinaryTree(self, root: Optional[TreeNode]) -> int:
+        ans = 0
+
+        # 返回 node 子树的最大链长
+        def dfs(node: Optional[TreeNode]) -> int:
+            if node is None:
+                return -1  # 对于叶子来说，链长就是 -1+1=0
+            l_len = dfs(node.left) + 1  # 左子树最大链长+1
+            r_len = dfs(node.right) + 1  # 右子树最大链长+1
+            nonlocal ans
+            ans = max(ans, l_len + r_len)  # 两条链拼成路径
+            return max(l_len, r_len)  # 当前子树最大链长
+
+        dfs(root)
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    private int ans;
+
+    public int diameterOfBinaryTree(TreeNode root) {
+        dfs(root);
+        return ans;
+    }
+
+    // 返回 node 子树的最大链长
+    private int dfs(TreeNode node) {
+        if (node == null) {
+            return -1; // 对于叶子来说，链长就是 -1+1=0
+        }
+        int lLen = dfs(node.left) + 1; // 左子树最大链长+1
+        int rLen = dfs(node.right) + 1; // 右子树最大链长+1
+        ans = Math.max(ans, lLen + rLen); // 两条链拼成路径
+        return Math.max(lLen, rLen); // 当前子树最大链长
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int diameterOfBinaryTree(TreeNode* root) {
+        int ans = 0;
+
+        // 返回 node 子树的最大链长
+        auto dfs = [&](this auto&& dfs, TreeNode* node) -> int {
+            if (node == nullptr) {
+                return -1; // 对于叶子来说，链长就是 -1+1=0
+            }
+            int l_len = dfs(node->left) + 1; // 左子树最大链长+1
+            int r_len = dfs(node->right) + 1; // 右子树最大链长+1
+            ans = max(ans, l_len + r_len); // 两条链拼成路径
+            return max(l_len, r_len); // 当前子树最大链长
+        };
+
+        dfs(root);
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+#define MAX(a, b) ((b) > (a) ? (b) : (a))
+
+// 返回 node 子树的最大链长
+int dfs(struct TreeNode* node, int* ans) {
+    if (node == NULL) {
+        return -1; // 对于叶子来说，链长就是 -1+1=0
+    }
+    int l_len = dfs(node->left, ans) + 1; // 左子树最大链长+1
+    int r_len = dfs(node->right, ans) + 1; // 右子树最大链长+1
+    *ans = MAX(*ans, l_len + r_len); // 两条链拼成路径
+    return MAX(l_len, r_len); // 当前子树最大链长
+}
+
+int diameterOfBinaryTree(struct TreeNode* root) {
+    int ans = 0;
+    dfs(root, &ans);
+    return ans;
+}
+```
+
+```go [sol-Go]
+func diameterOfBinaryTree(root *TreeNode) (ans int) {
+    // 返回 node 子树的最大链长
+    var dfs func(*TreeNode) int
+    dfs = func(node *TreeNode) int {
+        if node == nil {
+            return -1 // 对于叶子来说，链长就是 -1+1=0
+        }
+        lLen := dfs(node.Left) + 1  // 左子树最大链长+1
+        rLen := dfs(node.Right) + 1 // 右子树最大链长+1
+        ans = max(ans, lLen+rLen)   // 两条链拼成路径
+        return max(lLen, rLen)      // 当前子树最大链长
+    }
+
+    dfs(root)
+    return
+}
+```
+
+```js [sol-JavaScript]
+var diameterOfBinaryTree = function(root) {
+    let ans = 0;
+
+    // 返回 node 子树的最大链长
+    function dfs(node) {
+        if (node === null) {
+            return -1; // 对于叶子来说，链长就是 -1+1=0
+        }
+        const lLen = dfs(node.left) + 1; // 左子树最大链长+1
+        const rLen = dfs(node.right) + 1; // 右子树最大链长+1
+        ans = Math.max(ans, lLen + rLen); // 两条链拼成路径
+        return Math.max(lLen, rLen); // 当前子树最大链长
+    }
+
+    dfs(root);
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+use std::rc::Rc;
+use std::cell::RefCell;
+
+impl Solution {
+    pub fn diameter_of_binary_tree(root: Option<Rc<RefCell<TreeNode>>>) -> i32 {
+        // 返回 node 子树的最大链长
+        fn dfs(node: &Option<Rc<RefCell<TreeNode>>>, ans: &mut i32) -> i32 {
+            let Some(node) = node else {
+                return -1; // 对于叶子来说，链长就是 -1+1=0
+            };
+            let node = node.borrow();
+            let l_len = dfs(&node.left, ans) + 1; // 左子树最大链长+1
+            let r_len = dfs(&node.right, ans) + 1; // 右子树最大链长+1
+            *ans = (*ans).max(l_len + r_len); // 两条链拼成路径
+            l_len.max(r_len) // 当前子树最大链长
+        }
+
+        let mut ans = 0;
+        dfs(&root, &mut ans);
+        ans
+    }
+}
+```
+
+## 写法二
+
+```py [sol-Python3]
+class Solution:
+    def diameterOfBinaryTree(self, root: Optional[TreeNode]) -> int:
+        ans = 0
+
+        def dfs(node: Optional[TreeNode]) -> int:
+            if node is None:
+                return 0
+            l_len = dfs(node.left)
+            r_len = dfs(node.right)
+            nonlocal ans
+            ans = max(ans, l_len + r_len)  # 两条链拼成路径
+            return max(l_len, r_len) + 1
+
+        dfs(root)
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    private int ans;
+
+    public int diameterOfBinaryTree(TreeNode root) {
+        dfs(root);
+        return ans;
+    }
+
+    private int dfs(TreeNode node) {
+        if (node == null) {
+            return 0;
+        }
+        int lLen = dfs(node.left);
+        int rLen = dfs(node.right);
+        ans = Math.max(ans, lLen + rLen); // 两条链拼成路径
+        return Math.max(lLen, rLen) + 1;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int diameterOfBinaryTree(TreeNode* root) {
+        int ans = 0;
+
+        auto dfs = [&](this auto&& dfs, TreeNode* node) -> int {
+            if (node == nullptr) {
+                return 0;
+            }
+            int l_len = dfs(node->left);
+            int r_len = dfs(node->right);
+            ans = max(ans, l_len + r_len); // 两条链拼成路径
+            return max(l_len, r_len) + 1;
+        };
+
+        dfs(root);
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+#define MAX(a, b) ((b) > (a) ? (b) : (a))
+
+int dfs(struct TreeNode* node, int* ans) {
+    if (node == NULL) {
+        return 0;
+    }
+    int l_len = dfs(node->left, ans);
+    int r_len = dfs(node->right, ans);
+    *ans = MAX(*ans, l_len + r_len); // 两条链拼成路径
+    return MAX(l_len, r_len) + 1;
+}
+
+int diameterOfBinaryTree(struct TreeNode* root) {
+    int ans = 0;
+    dfs(root, &ans);
+    return ans;
+}
+```
+
+```go [sol-Go]
+func diameterOfBinaryTree(root *TreeNode) (ans int) {
+    var dfs func(*TreeNode) int
+    dfs = func(node *TreeNode) int {
+        if node == nil {
+            return 0
+        }
+        lLen := dfs(node.Left)
+        rLen := dfs(node.Right)
+        ans = max(ans, lLen+rLen) // 两条链拼成路径
+        return max(lLen, rLen) + 1
+    }
+
+    dfs(root)
+    return
+}
+```
+
+```js [sol-JavaScript]
+var diameterOfBinaryTree = function(root) {
+    let ans = 0;
+
+    function dfs(node) {
+        if (node === null) {
+            return 0;
+        }
+        const lLen = dfs(node.left);
+        const rLen = dfs(node.right);
+        ans = Math.max(ans, lLen + rLen); // 两条链拼成路径
+        return Math.max(lLen, rLen) + 1;
+    }
+
+    dfs(root);
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+use std::rc::Rc;
+use std::cell::RefCell;
+
+impl Solution {
+    pub fn diameter_of_binary_tree(root: Option<Rc<RefCell<TreeNode>>>) -> i32 {
+        fn dfs(node: &Option<Rc<RefCell<TreeNode>>>, ans: &mut i32) -> i32 {
+            let Some(node) = node else {
+                return 0;
+            };
+            let node = node.borrow();
+            let l_len = dfs(&node.left, ans);
+            let r_len = dfs(&node.right, ans);
+            *ans = (*ans).max(l_len + r_len); // 两条链拼成路径
+            l_len.max(r_len) + 1
+        }
+
+        let mut ans = 0;
+        dfs(&root, &mut ans);
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是二叉树的节点个数。
+- 空间复杂度：$\mathcal{O}(h)$，其中 $h$ 是二叉树的高度。递归需要 $\mathcal{O}(h)$ 的栈空间。
+
+## 相似题目
+
+见下面树题单的「**§2.6 二叉树的直径**」和「**§3.5 树的直径**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

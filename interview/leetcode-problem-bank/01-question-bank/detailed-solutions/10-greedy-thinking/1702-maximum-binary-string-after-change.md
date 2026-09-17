@@ -7,15 +7,161 @@
 - 来源专题：贪心与思维
 - 来源分类路径：五、思维题 / §5.1 从特殊到一般
 - 难度分：1825
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/maximum-binary-string-after-change/solutions/2732155/tan-xin-jian-ji-xie-fa-pythonjavacgojsru-szie/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[贪心，简洁写法（Python/Java/C++/Go/JS/Rust）](https://leetcode.cn/problems/maximum-binary-string-after-change/solutions/2732155/tan-xin-jian-ji-xie-fa-pythonjavacgojsru-szie/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`tan-xin-jian-ji-xie-fa-pythonjavacgojsru-szie`
+- topic id：`2732155`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:07:12 +0800
+
+## 提示 1
+
+答案不会包含 $00$（连续的 $0$）。
+
+**证明**：反证法。假设答案包含 $00$，我们可以通过操作 1 将其变为 $10$，从而得到更大的答案。所以答案不会包含 $00$。
+
+## 提示 2
+
+答案至多包含一个 $0$。
+
+**证明**：反证法。假设至少有两个 $0$，我们随意选择其中两个 $0$，由提示 1 可知这两个 $0$ 不相邻。例如 $10110$，我们可以通过操作 2 将右边的 $0$「移动」到第一个 $0$ 的右边，即 $10011$，然后通过操作 1 将其变为 $11011$。由于左边更高位的 $0$ 变成了 $1$，所以我们得到了比 $10110$ 更大的答案。一般地，在有多个 $0$ 的情况下，总是可以通过操作 2 让最高位的 $0$ 的右侧也是 $0$，然后通过操作 1 让最高位的 $0$ 变成 $1$，从而得到更大的答案。所以答案至多包含一个 $0$。
+
+## 提示 3
+
+如果 $\textit{binary}$ 全是 $1$，那么返回 $\textit{binary}$ 即可。
+
+如果 $\textit{binary}$ 中有 $0$，由于操作 1 和操作 2 的结果都包含 $0$，所以我们无法把所有的 $0$ 都变成 $1$。结合提示 2，**最终答案会恰好包含一个** $0$。
+
+此外，提示 2 相当于给出了一个让二进制更大的方案：只要还有两个 $0$，那么用操作 2 把右边的 $0$ 往左移，当出现 $00$ 时就通过操作 1 把左边的 $0$ 变成 $1$，这会让二进制更大。
+
+设 $\textit{binary}$ 从左到右第一个 $0$ 的下标为 $i$，为了得到更大的二进制，下标在 $[i,n-1]$ 中的 $1$ 会随着 $0$ 的左移被「挤到」$\textit{binary}$ 的末尾。例如
+
+$$
+101010\xrightarrow{操作\ 2} 100110\xrightarrow{操作\ 1} 110110\xrightarrow{操作\ 2} 110011\xrightarrow{操作\ 1} 111011
+$$
+
+或者
+
+$$
+101010\xrightarrow{操作\ 2} 100011\xrightarrow{操作\ 1} 111011
+$$
+
+注意 $101010\rightarrow 111110$ 是无法做到的，在末尾 $0$ 不移动的情况下，我们无法把前面的 $0$ 全部变成 $1$。一般地，在有多个不相邻 $0$ 的情况下，不移动末尾 $0$ 又能把前面所有 $0$ 都变成 $1$ 是做不到的，因为 $0$ 只能左移不能右移。
+
+设 $[i,n-1]$ 中有 $\textit{cnt}_1$ 个 $1$，那么当上述操作完成时，有 $\textit{cnt}_1$ 个 $1$ 被挤到答案的末尾，那唯一的 $0$ 就在这 $\textit{cnt}_1$ 个 $1$ 的左边。所以最后答案**从左到右**依次为：
+
+- $n-1-\textit{cnt}_1$ 个 $1$。
+- $1$ 个 $0$。
+- $\textit{cnt}_1$ 个 $1$。
+
+```py [sol-Python3]
+class Solution:
+    def maximumBinaryString(self, binary: str) -> str:
+        i = binary.find('0')
+        if i < 0:  # binary 全是 '1'
+            return binary
+        cnt1 = binary.count('1', i)  # 统计 binary[i:] 中 '1' 的个数
+        return '1' * (len(binary) - 1 - cnt1) + '0' + '1' * cnt1
+```
+
+```java [sol-Java]
+class Solution {
+    public String maximumBinaryString(String binary) {
+        int i = binary.indexOf('0');
+        if (i < 0) { // binary 全是 '1'
+            return binary;
+        }
+        char[] s = binary.toCharArray();
+        int cnt1 = 0;
+        for (i++; i < s.length; i++) {
+            cnt1 += s[i] - '0'; // 统计 [i, n-1] 中 '1' 的个数
+        }
+        return "1".repeat(s.length - 1 - cnt1) + '0' + "1".repeat(cnt1);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    string maximumBinaryString(string binary) {
+        int i = binary.find('0');
+        if (i < 0) { // binary 全是 '1'
+            return binary;
+        }
+        int cnt1 = count(binary.begin() + i, binary.end(), '1'); // 统计 [i, n-1] 中 '1' 的个数
+        return string(binary.size() - 1 - cnt1, '1') + '0' + string(cnt1, '1');
+    }
+};
+```
+
+```go [sol-Go]
+func maximumBinaryString(binary string) string {
+    i := strings.Index(binary, "0")
+    if i < 0 { // binary 全是 '1'
+        return binary
+    }
+    cnt1 := strings.Count(binary[i:], "1") // 统计 binary[i:] 中 '1' 的个数
+    return strings.Repeat("1", len(binary)-1-cnt1) + "0" + strings.Repeat("1", cnt1)
+}
+```
+
+```js [sol-JavaScript]
+var maximumBinaryString = function(binary) {
+    let i = binary.indexOf('0');
+    if (i < 0) { // binary 全是 '1'
+        return binary;
+    }
+    let cnt1 = 0;
+    for (i++; i < binary.length; i++) {
+        if (binary[i] === '1') {
+            cnt1++; // 统计 [i, n-1] 中 '1' 的个数
+        }
+    }
+    return '1'.repeat(binary.length - 1 - cnt1) + '0' + '1'.repeat(cnt1);
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn maximum_binary_string(binary: String) -> String {
+        if let Some(i) = binary.find('0') {
+            let cnt1 = binary[i..].bytes().filter(|&c| c == b'1').count(); // 统计 binary[i..] 中 '1' 的个数
+            return "1".repeat(binary.len() - 1 - cnt1) + "0" + &"1".repeat(cnt1);
+        }
+        binary // binary 全是 '1'
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 为 $\textit{binary}$ 的长度。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 分类题单
+
+1. [滑动窗口（定长/不定长/多指针）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（矩形系列/字典序最小/贡献法）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/贪心/脑筋急转弯）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/最短路/最小生成树/二分图/基环树/欧拉路径）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/状态机/划分/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+
+更多题单，点我个人主页 - 讨论发布。
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
+
+[往期题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
 
 ## 本地原创解析
 

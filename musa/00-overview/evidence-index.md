@@ -3,7 +3,7 @@
 - 文档目的：集中维护首批分析使用的源码、构建、CI 和脚本证据，便于后续增量校正行号与结论。
 - 适用范围：MUSA Driver 知识库全部文档。
 - 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`。
-- 证据状态：部分推断
+- 证据状态：静态源码分析已确认到 Core/HAL/M3D 适配边界；M3D 子模块、硬件和构建运行仍未验证
 - 最后更新：2026-09-16
 - 前置阅读：[`project-overview.md`](project-overview.md)
 - 后续阅读：所有模块文档
@@ -131,7 +131,7 @@
 | [install.sh:51-80] | 根据架构/发行版选择库目录 |
 | [install.sh:83-105] | 创建目录并复制 `libmusa*`、`musa_driver_version`、`muInfo` |
 
-## 8. MemoryPool 深挖证据
+## 9. MemoryPool 深挖证据
 
 | 证据 | 证明内容 |
 |---|---|
@@ -155,9 +155,11 @@
 | [src/hal/m3d/memoryPool.h:48-150] | ResSegment、free buckets、bitmap、segment list、virtual range tracker、watermark |
 | [src/hal/m3d/memoryPool.cpp:14-40,42-61,82-211] | FindBucket、默认 policy、FullAllocate、SubAllocate、ChunkAllocate |
 | [src/hal/m3d/memoryPool.cpp:214-259,318-331,358-510] | Free、左右合并、lazy reuse、ResourceSplit、free list、TrimPool 和析构 |
+| [src/util/utilSplayTree.h:61-100,144-212] | automatic pool registry 的 splay Get/Find/Insert/Delete 及 `deleteValue` ownership 语义 |
+| [src/hal/m3d/memMgr.cpp:20-34,36-43,149-215] | automatic/user/internal pool 的析构、lookup、Free 和 registry 删除路径 |
 
 这些证据把 M05 从 API/Core 入口追到 HAL pool 的 chunk/segment 副作用；M3D 子模块内部、kernel driver 和硬件完成结果仍未验证。
-
+## 相关文档
 
 - [`project-overview.md`](project-overview.md)
 - [`architecture.md`](architecture.md)

@@ -7,15 +7,343 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：一、链表 / §1.6 快慢指针
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/delete-the-middle-node-of-a-linked-list/solutions/1139401/kuai-man-zhi-zhen-by-endlesscheng-jodm/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[龟兔赛跑（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/delete-the-middle-node-of-a-linked-list/solutions/1139401/kuai-man-zhi-zhen-by-endlesscheng-jodm/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`kuai-man-zhi-zhen-by-endlesscheng-jodm`
+- topic id：`1139401`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:30:25 +0800
+
+**前置题目**：[876. 链表的中间结点](https://leetcode.cn/problems/middle-of-the-linked-list/)，[我的题解](https://leetcode.cn/problems/middle-of-the-linked-list/solutions/1999265/mei-xiang-ming-bai-yi-ge-shi-pin-jiang-t-wzwm/)。
+
+为了删除链表的中间节点，我们需要让慢指针少走一步，移动到中间节点的前一个节点。怎么让慢指针少走一步？
+
+## 写法一
+
+可以先让快指针走两步，少循环一次，这样慢指针就少走一步了。
+
+特判只有一个节点的情况（快指针没法走两步），返回空节点。
+
+```py [sol-Python3]
+class Solution:
+    def deleteMiddle(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        if head.next is None:  # 只有一个节点
+            return None
+
+        # 876. 链表的中间结点
+        # 本题先让快指针走两步，这样慢指针少走一步，刚好落在中间节点的前一个节点
+        slow = head
+        fast = head.next.next
+        while fast and fast.next:
+            slow = slow.next
+            fast = fast.next.next
+
+        slow.next = slow.next.next  # 删除 slow 的下一个节点
+        return head
+```
+
+```java [sol-Java]
+class Solution {
+    public ListNode deleteMiddle(ListNode head) {
+        if (head.next == null) { // 只有一个节点
+            return null;
+        }
+
+        // 876. 链表的中间结点
+        // 本题先让快指针走两步，这样慢指针少走一步，刚好落在中间节点的前一个节点
+        ListNode slow = head;
+        ListNode fast = head.next.next;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+
+        slow.next = slow.next.next; // 删除 slow 的下一个节点
+        return head;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    ListNode* deleteMiddle(ListNode* head) {
+        if (head->next == nullptr) { // 只有一个节点
+            return nullptr;
+        }
+
+        // 876. 链表的中间结点
+        // 本题先让快指针走两步，这样慢指针少走一步，刚好落在中间节点的前一个节点
+        ListNode* slow = head;
+        ListNode* fast = head->next->next;
+        while (fast && fast->next) {
+            slow = slow->next;
+            fast = fast->next->next;
+        }
+
+        slow->next = slow->next->next; // 删除 slow 的下一个节点
+        return head;
+    }
+};
+```
+
+```c [sol-C]
+struct ListNode* deleteMiddle(struct ListNode* head) {
+    if (head->next == NULL) { // 只有一个节点
+        return NULL;
+    }
+
+    // 876. 链表的中间结点
+    // 本题先让快指针走两步，这样慢指针少走一步，刚好落在中间节点的前一个节点
+    struct ListNode* slow = head;
+    struct ListNode* fast = head->next->next;
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    slow->next = slow->next->next; // 删除 slow 的下一个节点
+    return head;
+}
+```
+
+```go [sol-Go]
+func deleteMiddle(head *ListNode) *ListNode {
+	if head.Next == nil { // 只有一个节点
+		return nil
+	}
+
+	// 876. 链表的中间结点
+	// 本题先让快指针走两步，这样慢指针少走一步，刚好落在中间节点的前一个节点
+	slow := head
+	fast := head.Next.Next
+	for fast != nil && fast.Next != nil {
+		slow = slow.Next
+		fast = fast.Next.Next
+	}
+
+	slow.Next = slow.Next.Next // 删除 slow 的下一个节点
+	return head
+}
+```
+
+```js [sol-JavaScript]
+var deleteMiddle = function(head) {
+    if (head.next === null) { // 只有一个节点
+        return null;
+    }
+
+    // 876. 链表的中间结点
+    // 本题先让快指针走两步，这样慢指针少走一步，刚好落在中间节点的前一个节点
+    let slow = head;
+    let fast = head.next.next;
+    while (fast && fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    slow.next = slow.next.next; // 删除 slow 的下一个节点
+    return head;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn delete_middle(head: Option<Box<ListNode>>) -> Option<Box<ListNode>> {
+        if head.as_ref()?.next.is_none() { // 只有一个节点
+            return None;
+        }
+
+        // 876. 链表的中间结点
+        // 本题先让快指针走两步，这样慢指针少走一步，刚好落在中间节点的前一个节点
+        let mut slow = &head;
+        let mut fast = &head.as_ref()?.next.as_ref()?.next;
+        while fast.is_some() && fast.as_ref()?.next.is_some() {
+            slow = &slow.as_ref()?.next;
+            fast = &fast.as_ref()?.next.as_ref()?.next;
+        }
+
+        // 只读引用 -> 只读裸指针 -> 可变裸指针
+        let mut slow = slow as *const Option<Box<ListNode>> as *mut Option<Box<ListNode>>;
+        // 可变裸指针 -> 可变引用
+        let slow = unsafe { &mut *slow };
+        slow.as_mut()?.next = slow.as_mut()?.next.take()?.next; // 删除 slow 的下一个节点
+
+        head
+    }
+}
+```
+
+## 写法二
+
+在链表前面插入一个 $\textit{dummy}$ 节点，让慢指针改从 $\textit{dummy}$ 开始移动。循环次数和 876 题是一样的，但由于慢指针的出发位置往前移了一个节点，所以最后慢指针会停在中间节点的前一个节点。
+
+```py [sol-Python3]
+class Solution:
+    def deleteMiddle(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        # 876. 链表的中间结点
+        slow = dummy = ListNode(next=head)
+        fast = head
+        while fast and fast.next:
+            slow = slow.next
+            fast = fast.next.next
+
+        slow.next = slow.next.next  # 删除 slow 的下一个节点
+        return dummy.next
+```
+
+```java [sol-Java]
+class Solution {
+    public ListNode deleteMiddle(ListNode head) {
+        ListNode dummy = new ListNode(0, head);
+
+        // 876. 链表的中间结点
+        ListNode slow = dummy;
+        ListNode fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+
+        slow.next = slow.next.next; // 删除 slow 的下一个节点
+        return dummy.next;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    ListNode* deleteMiddle(ListNode* head) {
+        ListNode dummy = {0, head};
+
+        // 876. 链表的中间结点
+        ListNode* slow = &dummy;
+        ListNode* fast = head;
+        while (fast && fast->next) {
+            slow = slow->next;
+            fast = fast->next->next;
+        }
+
+        slow->next = slow->next->next; // 删除 slow 的下一个节点
+        return dummy.next;
+    }
+};
+```
+
+```c [sol-C]
+struct ListNode* deleteMiddle(struct ListNode* head) {
+    struct ListNode dummy = {0, head};
+
+    // 876. 链表的中间结点
+    struct ListNode* slow = &dummy;
+    struct ListNode* fast = head;
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    slow->next = slow->next->next; // 删除 slow 的下一个节点
+    return dummy.next;
+}
+```
+
+```go [sol-Go]
+func deleteMiddle(head *ListNode) *ListNode {
+	dummy := ListNode{Next: head}
+
+	// 876. 链表的中间结点
+	slow := &dummy
+	fast := head
+	for fast != nil && fast.Next != nil {
+		slow = slow.Next
+		fast = fast.Next.Next
+	}
+
+	slow.Next = slow.Next.Next // 删除 slow 的下一个节点
+	return dummy.Next
+}
+```
+
+```js [sol-JavaScript]
+var deleteMiddle = function(head) {
+    const dummy = new ListNode(0, head);
+
+    // 876. 链表的中间结点
+    let slow = dummy;
+    let fast = head;
+    while (fast && fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    slow.next = slow.next.next; // 删除 slow 的下一个节点
+    return dummy.next;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn delete_middle(head: Option<Box<ListNode>>) -> Option<Box<ListNode>> {
+        // 这里 move 了 head，下面的 fast 只能从 dummy 中获取 head
+        let mut dummy = Some(Box::new(ListNode { val: 0, next: head }));
+
+        // 876. 链表的中间结点
+        let mut slow = &dummy;
+        let mut fast = &dummy.as_ref()?.next; // head
+        while fast.is_some() && fast.as_ref()?.next.is_some() {
+            slow = &slow.as_ref()?.next;
+            fast = &fast.as_ref()?.next.as_ref()?.next;
+        }
+
+        // 只读引用 -> 只读裸指针 -> 可变裸指针
+        let mut slow = slow as *const Option<Box<ListNode>> as *mut Option<Box<ListNode>>;
+        // 可变裸指针 -> 可变引用
+        let slow = unsafe { &mut *slow };
+        slow.as_mut()?.next = slow.as_mut()?.next.take()?.next; // 删除 slow 的下一个节点
+
+        dummy?.next
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是链表的长度。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 专题训练
+
+见下面链表题单的「**§1.6 快慢指针**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

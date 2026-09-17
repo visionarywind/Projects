@@ -7,15 +7,119 @@
 - 来源专题：贪心与思维
 - 来源分类路径：二、区间贪心 / §2.2 区间分组
 - 难度分：1713
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/divide-intervals-into-minimum-number-of-groups/solutions/1816294/by-endlesscheng-ze3t/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[一题双解：贪心+堆 / 差分](https://leetcode.cn/problems/divide-intervals-into-minimum-number-of-groups/solutions/1816294/by-endlesscheng-ze3t/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`by-endlesscheng-ze3t`
+- topic id：`1816294`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 10:54:06 +0800
+
+本题 [视频讲解](https://www.bilibili.com/video/BV1it4y1L7kL) 已出炉，欢迎点赞三连，在评论区分享你对这场周赛的看法~
+
+---
+ 
+按照 $\textit{left}$ 排序后，用最小堆模拟，堆顶存储每个组最后一个区间的 $\textit{right}$。
+
+遍历区间：
+
+- 如果当前的 $\textit{left}$ 大于堆顶，则可以接在这个组的末尾，更新堆顶为 $\textit{right}$；
+- 否则需要创建一个新的组。
+
+```py [sol1-Python3]
+class Solution:
+    def minGroups(self, intervals: List[List[int]]) -> int:
+        intervals.sort(key=lambda p: p[0])
+        h = []
+        for left, right in intervals:
+            if h and left > h[0]: heapreplace(h, right)
+            else: heappush(h, right)
+        return len(h)
+```
+
+```java [sol1-Java]
+class Solution {
+    public int minGroups(int[][] intervals) {
+        Arrays.sort(intervals, (a, b) -> a[0] - b[0]);
+        var pq = new PriorityQueue<Integer>();
+        for (var p : intervals) {
+            if (!pq.isEmpty() && pq.peek() < p[0]) pq.poll();
+            pq.offer(p[1]);
+        }
+        return pq.size();
+    }
+}
+```
+
+```cpp [sol1-C++]
+class Solution {
+public:
+    int minGroups(vector<vector<int>> &intervals) {
+        sort(intervals.begin(), intervals.end(), [](auto &a, auto &b) { return a[0] < b[0]; });
+        priority_queue<int, vector<int>, greater<>> pq;
+        for (auto &p : intervals) {
+            if (!pq.empty() && pq.top() < p[0]) pq.pop();
+            pq.push(p[1]);
+        }
+        return pq.size();
+    }
+};
+```
+
+```go [sol1-Go]
+func minGroups(intervals [][]int) int {
+	h := hp{}
+	sort.Slice(intervals, func(i, j int) bool { return intervals[i][0] < intervals[j][0] })
+	for _, p := range intervals {
+		if h.Len() == 0 || p[0] <= h.IntSlice[0] {
+			heap.Push(&h, p[1])
+		} else {
+			h.IntSlice[0] = p[1]
+			heap.Fix(&h, 0)
+		}
+	}
+	return h.Len()
+}
+
+type hp struct{ sort.IntSlice }
+func (h *hp) Push(v interface{}) { h.IntSlice = append(h.IntSlice, v.(int)) }
+func (h *hp) Pop() interface{}   { a := h.IntSlice; v := a[len(a)-1]; h.IntSlice = a[:len(a)-1]; return v }
+```
+
+另外一种思路是转换成上下车模型，每个区间看成一个人，他在 $\textit{left}$ 时刻上车，$\textit{right}+1$ 时刻下车，最后答案为同时在车上的人数的最大值。
+
+这可以用差分数组实现，下面代码用的平衡树，方便从小到大计算。
+
+```cpp [sol2-C++]
+class Solution {
+public:
+    int minGroups(vector<vector<int>> &intervals) {
+        map<int, int> diff;
+        for (auto &p : intervals)
+            ++diff[p[0]], --diff[p[1] + 1];
+        int ans = 0, sum = 0;
+        for (auto &[_, d] : diff)
+            ans = max(ans, sum += d);
+        return ans;
+    }
+};
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$O(n\log n)$，其中 $n$ 为 $\textit{nums}$ 的长度。
+- 空间复杂度：$O(n)$。
+
+#### 思考题
+
+从所有满足 $1\le\textit{left}\le\textit{right}\le m$ 的一共 $\dfrac{m(m+1)}{2}$ 个区间中，随机选择 $n$ 个区间作为本题的输入，得到的答案的期望是多少？
 
 ## 本地原创解析
 

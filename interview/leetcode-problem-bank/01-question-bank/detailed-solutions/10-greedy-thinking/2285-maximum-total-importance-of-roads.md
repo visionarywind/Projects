@@ -7,15 +7,59 @@
 - 来源专题：贪心与思维
 - 来源分类路径：四、数学贪心 / §4.3 排序不等式
 - 难度分：1496
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/maximum-total-importance-of-roads/solutions/1523886/by-endlesscheng-9p6y/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[排序不等式](https://leetcode.cn/problems/maximum-total-importance-of-roads/solutions/1523886/by-endlesscheng-9p6y/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`by-endlesscheng-9p6y`
+- topic id：`1523886`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:01:04 +0800
+
+本题的 [视频讲解](https://www.bilibili.com/video/BV1iF41157dG/) 已出炉，欢迎三连~
+
+---
+
+
+设点 $i$ 的度数（与点 $i$ 相邻的城市数）为 $\textit{deg}[i]$，点 $i$ 被安排的整数值为 $p[i]$，问题即最大化
+
+$$
+\sum_{i=0}^{n-1} \textit{deg}[i]\cdot p[i]
+$$
+
+根据 [排序不等式](https://baike.baidu.com/item/%E6%8E%92%E5%BA%8F%E4%B8%8D%E7%AD%89%E5%BC%8F/7775728) 可知，$\textit{deg}$ 最小的安排 $1$，次小的安排 $2$，依此类推。因此排序后累加即得到答案。
+
+```Python [sol1-Python3]
+class Solution:
+    def maximumImportance(self, n: int, roads: List[List[int]]) -> int:
+        deg = [0] * n
+        for x, y in roads:
+            deg[x] += 1
+            deg[y] += 1
+        deg.sort()
+        return sum(d * i for i, d in enumerate(deg, 1))
+```
+
+```go [sol1-Go]
+func maximumImportance(n int, roads [][]int) (ans int64) {
+	deg := make([]int, n)
+	for _, r := range roads {
+		deg[r[0]]++
+		deg[r[1]]++
+	}
+	sort.Ints(deg)
+	for i, d := range deg {
+		ans += int64(d) * int64(i+1)
+	}
+	return
+}
+```
 
 ## 本地原创解析
 

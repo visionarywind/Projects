@@ -34,6 +34,7 @@
 | M16 | Kernel 与设备后端 | `kernels`、`platforms`、`hardware_backend` | device dispatch、JIT/AOT ops | 已有实现层文章；设备行为未验证 |
 | M17 | Rust 扩展、Router、Gateway | `rust`、`experimental/sgl-router`、`sgl-model-gateway` | PyO3 modules、独立服务 | 已有实现层文章；跨语言/网络行为未验证 |
 | M18 | 测试、Benchmark 与 CI | `test`、`benchmark`、`.github/workflows` | registration、suite runner | 已有实现层文章；实际 suite 未运行 |
+| M19 | DeepSeek 系列模型与并行策略 | `models/deepseek*.py`、`layers/dp_attention.py`、`distributed/parallel_state.py`、`server_args.py` | `DeepseekV2ForCausalLM`、`DeepseekV2MoE`、`DeepseekV2AttentionMLA`、并行 group 初始化 | 已完成静态专题；GPU、多卡通信、权重和性能未验证 |
 
 ## 模块文章的最低完成标准
 

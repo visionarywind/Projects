@@ -7,15 +7,98 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：二、二叉树 / §2.13 二叉树 BFS
 - 难度分：1431
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/reverse-odd-levels-of-binary-tree/solutions/1831556/zhi-jie-jiao-huan-zhi-by-endlesscheng-o8ze/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[直接交换值：BFS / DFS](https://leetcode.cn/problems/reverse-odd-levels-of-binary-tree/solutions/1831556/zhi-jie-jiao-huan-zhi-by-endlesscheng-o8ze/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`zhi-jie-jiao-huan-zhi-by-endlesscheng-o8ze`
+- topic id：`1831556`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:49:15 +0800
+
+[视频讲解](https://www.bilibili.com/video/BV1AP411p7pK) 已出炉，欢迎点赞三连，在评论区分享你对这场周赛的看法~
+
+---
+
+#### 方法一：BFS
+
+BFS 这棵树，对于奇数层，直接交换层里面的所有元素值（交换的是元素值，不是节点）。
+
+```py [sol1-Python3]
+class Solution:
+    def reverseOddLevels(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
+        q, level = [root], 0
+        while q[0].left:
+            q = list(chain.from_iterable((node.left, node.right) for node in q))
+            if level == 0:
+                for i in range(len(q) // 2):
+                    x, y = q[i], q[len(q) - 1 - i]
+                    x.val, y.val = y.val, x.val
+            level ^= 1
+        return root
+```
+
+```go [sol1-Go]
+func reverseOddLevels(root *TreeNode) *TreeNode {
+	q := []*TreeNode{root}
+	for level := 0; q[0].Left != nil; level ^= 1 {
+		next := make([]*TreeNode, 0, len(q)*2)
+		for _, node := range q {
+			next = append(next, node.Left, node.Right)
+		}
+		q = next
+		if level == 0 {
+			for i, n := 0, len(q); i < n/2; i++ {
+				x, y := q[i], q[n-1-i]
+				x.Val, y.Val = y.Val, x.Val
+			}
+		}
+	}
+	return root
+}
+```
+
+#### 方法二：DFS
+
+依然是交换值的思路，通过同时递归左右子树实现。
+
+不了解这一做法的同学可以做做 [101. 对称二叉树](https://leetcode.cn/problems/symmetric-tree/)。
+
+```py [sol2-Python3]
+class Solution:
+    def reverseOddLevels(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
+        def dfs(node1: Optional[TreeNode], node2: Optional[TreeNode], is_odd_level: bool) -> None:
+            if node1 is None: return
+            if is_odd_level: node1.val, node2.val = node2.val, node1.val
+            dfs(node1.left, node2.right, not is_odd_level)
+            dfs(node1.right, node2.left, not is_odd_level)
+        dfs(root.left, root.right, True)
+        return root
+```
+
+```go [sol2-Go]
+func dfs(node1 *TreeNode, node2 *TreeNode, isOddLevel bool) {
+	if node1 == nil {
+		return
+	}
+	if isOddLevel {
+		node1.Val, node2.Val = node2.Val, node1.Val
+	}
+	dfs(node1.Left, node2.Right, !isOddLevel)
+	dfs(node1.Right, node2.Left, !isOddLevel)
+}
+
+func reverseOddLevels(root *TreeNode) *TreeNode {
+	dfs(root.Left, root.Right, true)
+	return root
+}
+```
 
 ## 本地原创解析
 

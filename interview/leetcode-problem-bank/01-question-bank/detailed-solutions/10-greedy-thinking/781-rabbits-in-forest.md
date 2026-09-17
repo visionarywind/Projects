@@ -7,15 +7,271 @@
 - 来源专题：贪心与思维
 - 来源分类路径：八、其他
 - 难度分：1453
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/rabbits-in-forest/solutions/3636906/luo-ji-tui-li-ti-pythonjavaccgojsrust-by-kix7/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[逻辑推理题（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/rabbits-in-forest/solutions/3636906/luo-ji-tui-li-ti-pythonjavaccgojsrust-by-kix7/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`luo-ji-tui-li-ti-pythonjavaccgojsrust-by-kix7`
+- topic id：`3636906`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:22:48 +0800
+
+示例 1 的 $\textit{answers} = [1,1,2]$，其中只有一个 $2$，我们可以从中获取到什么信息？
+
+1. 这只回答 $2$ 的兔子（假设是蓝色），它认为与自己颜色相同的还有 $2$ 只兔子，所以森林中**恰好**有 $3$ 只蓝色的兔子。
+2. $\textit{answers}$ 数组中的其他兔子没有回答 $2$，这意味着数组中的其他兔子都不是蓝色。所以还有 $2$ 只蓝色的兔子，不在数组中（不是被提问的兔子），需要额外统计。
+
+如果 $\textit{answers}$ 中有 $2$ 个 $2$，$3$ 个 $2$，$4$ 个 $2$ 呢？看看能否找到规律：
+
+- 如果 $\textit{answers}$ 中有 $2$ 个 $2$，那么有两种情况：
+    - 情况一：这 $2$ 只回答我们问题的兔子，都是蓝色，并且一共有 $3$ 只蓝色的兔子。
+    - 情况二：这 $2$ 只回答我们问题的兔子，一只是蓝色，另一只是其他颜色（假设是灰色），并且一共有 $3$ 只蓝色的兔子，以及 $3$ 只灰色的兔子。
+    - 因为 $3<6$，所以选择情况一，可以最小化森林中兔子的数量。
+- 如果 $\textit{answers}$ 中有 $3$ 个 $2$，那么这 $3$ 只兔子可以都是蓝色，并且一共有 $3$ 只蓝色的兔子。同上，还有其他情况。选择这 $3$ 只兔子都是蓝色的情况，可以最小化森林中兔子的数量。
+- 如果 $\textit{answers}$ 中有 $4$ 个 $2$，那么其中 $3$ 只兔子可以都是蓝色，另外 $1$ 只兔子是其他颜色（假设是灰色），并且一共有 $3$ 只灰色的兔子。所以「$4$ 个 $2$」意味着有 $\left\lceil\dfrac{4}{3}\right\rceil=2$ 个颜色组，每个颜色组的大小都是 $3$，所以「$4$ 个 $2$」对答案的贡献是 $2\cdot 3=6$。
+
+一般地，如果有 $c$ 只兔子都回答了 $x$，那么每只兔子都在大小为 $x+1$ 的颜色组中，最少有 $\left\lceil\dfrac{c}{x+1}\right\rceil$ 个颜色组。所以「$c$ 只兔子都回答了 $x$」会让答案增加
+
+$$
+\left\lceil\dfrac{c}{x+1}\right\rceil(x+1) = \left\lfloor\dfrac{c + x}{x + 1}\right\rfloor(x+1)
+$$
+
+见 [上取整下取整转换公式的证明](https://zhuanlan.zhihu.com/p/1890356682149838951)。
+
+用哈希表统计 $\textit{answers}$ 中的每个数的出现次数，用上式计算，累加到答案中。
+
+## 写法一：两次遍历
+
+```py [sol-Python3]
+class Solution:
+    def numRabbits(self, answers: List[int]) -> int:
+        ans = 0
+        for x, c in Counter(answers).items():
+            ans += (c + x) // (x + 1) * (x + 1)
+        return ans
+```
+
+```py [sol-Python3 一行]
+class Solution:
+    def numRabbits(self, answers: List[int]) -> int:
+        return sum((c + x) // (x + 1) * (x + 1) for x, c in Counter(answers).items())
+```
+
+```java [sol-Java]
+class Solution {
+    public int numRabbits(int[] answers) {
+        Map<Integer, Integer> cnt = new HashMap<>();
+        for (int x : answers) {
+            cnt.merge(x, 1, Integer::sum); // cnt[x]++
+        }
+
+        int ans = 0;
+        for (Map.Entry<Integer, Integer> e : cnt.entrySet()) {
+            int x = e.getKey();
+            int c = e.getValue();
+            ans += (c + x) / (x + 1) * (x + 1);
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int numRabbits(vector<int>& answers) {
+        unordered_map<int, int> cnt;
+        for (int x : answers) {
+            cnt[x]++;
+        }
+        int ans = 0;
+        for (auto& [x, c] : cnt) {
+            ans += (c + x) / (x + 1) * (x + 1);
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func numRabbits(answers []int) (ans int) {
+    cnt := map[int]int{}
+    for _, x := range answers {
+        cnt[x]++
+    }
+    for x, c := range cnt {
+        ans += (c + x) / (x + 1) * (x + 1)
+    }
+    return
+}
+```
+
+```js [sol-JavaScript]
+var numRabbits = function(answers) {
+    const cnt = new Map();
+    for (const x of answers) {
+        cnt.set(x, (cnt.get(x) ?? 0) + 1);
+    }
+    let ans = 0;
+    for (const [x, c] of cnt) {
+        ans += Math.ceil(c / (x + 1)) * (x + 1);
+    }
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+use std::collections::HashMap;
+
+impl Solution {
+    pub fn num_rabbits(answers: Vec<i32>) -> i32 {
+        let mut cnt = HashMap::new();
+        for x in answers {
+            *cnt.entry(x).or_insert(0) += 1;
+        }
+        cnt.into_iter().map(|(x, c)| (c + x) / (x + 1) * (x + 1)).sum()
+    }
+}
+```
+
+## 写法二：一次遍历
+
+```py [sol-Python3]
+class Solution:
+    def numRabbits(self, answers: List[int]) -> int:
+        ans = 0
+        left = defaultdict(int)
+        for x in answers:
+            if left[x] == 0:
+                ans += x + 1  # 找到了一个大小为 x+1 的颜色组
+                left[x] = x  # 允许其他 x 只兔子也回答 x
+            else:
+                left[x] -= 1
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int numRabbits(int[] answers) {
+        int ans = 0;
+        Map<Integer, Integer> left = new HashMap<>();
+        for (int x : answers) {
+            int c = left.getOrDefault(x, 0);
+            if (c == 0) {
+                ans += x + 1; // 找到了一个大小为 x+1 的颜色组
+                left.put(x, x); // 允许其他 x 只兔子也回答 x
+            } else {
+                left.put(x, c - 1);
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int numRabbits(vector<int>& answers) {
+        int ans = 0;
+        unordered_map<int, int> left;
+        for (int x : answers) {
+            if (left[x] == 0) {
+                ans += x + 1; // 找到了一个大小为 x+1 的颜色组
+                left[x] = x; // 允许其他 x 只兔子也回答 x
+            } else {
+                left[x]--;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func numRabbits(answers []int) (ans int) {
+    left := map[int]int{}
+    for _, x := range answers {
+        if left[x] == 0 {
+            ans += x + 1 // 找到了一个大小为 x+1 的颜色组
+            left[x] = x  // 允许其他 x 只兔子也回答 x
+        } else {
+            left[x]--
+        }
+    }
+    return
+}
+```
+
+```js [sol-JavaScript]
+var numRabbits = function(answers) {
+    let ans = 0;
+    const left = new Map();
+    for (const x of answers) {
+        const c = left.get(x) ?? 0;
+        if (c == 0) {
+            ans += x + 1; // 找到了一个大小为 x+1 的颜色组
+            left.set(x, x); // 允许其他 x 只兔子也回答 x
+        } else {
+            left.set(x, c - 1);
+        }
+    }
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+use std::collections::HashMap;
+
+impl Solution {
+    pub fn num_rabbits(answers: Vec<i32>) -> i32 {
+        let mut ans = 0;
+        let mut left = HashMap::new();
+        for x in answers {
+            let c = left.entry(x).or_insert(0);
+            if *c == 0 {
+                ans += x + 1; // 找到了一个大小为 x+1 的颜色组
+                *c = x; // 允许其他 x 只兔子也回答 x
+            } else {
+                *c -= 1;
+            }
+        }
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是 $\textit{answers}$ 的长度。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/最短路/最小生成树/二分图/基环树/欧拉路径）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/状态机/划分/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

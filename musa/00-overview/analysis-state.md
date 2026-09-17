@@ -4,7 +4,7 @@
 - 适用范围：本知识库全部后续续作。
 - 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`。
 - 证据状态：静态源码分析已扩展；构建与硬件运行未验证
-- 最后更新：2026-09-16
+- 最后更新：2026-09-17
 - 前置阅读：[`../README.md`](../README.md)
 - 后续阅读：下一批模块深挖文档
 
@@ -46,6 +46,18 @@
 | `90-cross-module` | 已生成 | 契约、运行时轨迹、端到端流、影响和性能路径 |
 | `99-roadmap` | 已生成 | 阅读、调试、开发、测试、性能、风险和下一步 |
 
+## 2.2 M05 MemoryPool 专题深挖结果
+
+| 范围 | 状态 | 说明 |
+|---|---|---|
+| Driver memory/pool API | 静态已确认 | 普通、async、pool create/destroy/trim/default/current 入口已展开 |
+| Core Memory/MemoryPool | 静态已确认 | virtual/physical、bind、access mapping、tracker、统计和析构边界已展开 |
+| HAL MemMgr registry/key | 静态已确认 | automatic/user/internal registry 和 key bit packing 已展开 |
+| HAL MemoryPool allocator | 静态已确认 | bucket、bitmap、FullAllocate、chunk、prefix/suffix split、merge、lazy reuse、trim 已展开 |
+| async stream ordering | Core 静态已确认 | paging + callback 生命周期已展开；底层 fence/硬件完成未验证 |
+| graph memory | Core 静态已确认 | graph virtual reserve、host-device submission、UniversalManager、resource destroy 已展开 |
+| M3D 子模块/硬件 | 未验证 | `CreateGpuMemory` 之后的页分配、fence、错误码和性能未确认 |
+
 ## 3. 已分析文件
 
 | 类别 | 文件/范围 | 分析深度 |
@@ -68,7 +80,6 @@
 | P0 | `src/musa/core/command/dispatchCommand.cpp`、`memcpyCommand.cpp`、`command.cpp` | Kernel/memcpy/stream 提交流程核心 |
 | P0 | `src/tools/muInfo.cpp` | 主 Demo 入口 |
 | P1 | `src/musa/core/graph*`、`src/musa/core/node/*`、`src/driver/mu_graph.cpp` | Graph 是近期提交相关重点之一 |
-| P1 | `src/musa/core/memoryPool.cpp`、`src/driver/mu_mempool.cpp` | 内存池与异步分配 |
 | P1 | `src/driver/mu_error.cpp` | 错误模型 |
 | P1 | `src/gdb`、`src/driver/mupti`、`mugdb`、`muasan` | 调试/观测接口 |
 | P2 | `tests/*.cu`、`unittest/**/*.cpp` | Demo 和测试映射 |
@@ -178,7 +189,7 @@ muapiLaunchKernel(...) [src/driver/mu_module.cpp:232-285]
 | M02 API | 部分完成 | 部分完成 | 未开始 | 部分完成 | 部分完成 | 部分完成 | 未开始 | 已有 | 候选 | 部分完成：wrapper/export 缺失 |
 | M03 平台设备 | 部分完成 | 部分完成 | 部分完成 | 未开始 | 部分完成 | 部分完成 | 未开始 | 已有 | D01 候选 | 部分完成：HAL 缺失 |
 | M04 Context | 部分完成 | 部分完成 | 未开始 | 未开始 | 部分完成 | 部分完成 | 未开始 | 已有 | D02/D03 候选 | 部分完成：锁/清理缺失 |
-| M05 Memory | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 未开始 | 已有 | D02 候选 | 部分完成：HAL allocation 缺失 |
+| M05 Memory | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 未开始 | 已有 | D02 候选 | 已完成普通/async/graph、Core/HAL pool、IPC metadata 和 registry 的函数级静态深挖；M3D 子模块和硬件仍未验证 |
 | M06 Stream | 部分完成 | 部分完成 | 未开始 | 未开始 | 未开始 | 部分完成 | 部分完成 | 已有 | D02/D03 候选 | 部分完成：queue submit 缺失 |
 | M07 Module/Kernel | 部分完成 | 部分完成 | 未开始 | 未开始 | 未开始 | 部分完成 | 部分完成 | 已有 | kernel 候选 | 部分完成：dispatch 缺失 |
 | M08 Graph | 部分完成 | 未开始 | 未开始 | 未开始 | 未开始 | 未开始 | 未开始 | 部分 | D03 候选 | 待深入 |

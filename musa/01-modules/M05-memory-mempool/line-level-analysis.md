@@ -33,7 +33,7 @@
 | [`src/hal/m3d/memMgr.cpp:163-197`] | user-managed、internal、自动 pool 分别注册到 user list、internal list、splay tree | 已确认 |
 | [`src/hal/m3d/memMgr.cpp:229-235`] | `UpdateUserPools` 只遍历 user pool 并执行 threshold trim | 已确认 |
 
-注意：`m_PoolRefs` 使用 `Util::SplayTree` 的删除节点最终 value ownership 尚未在当前专题中追到，因此不对其析构细节下结论。
+注意：`m_PoolRefs` 的自动 pool value ownership 已由 `SplayTree::Delete(..., true)` 和 `MemMgr` teardown 路径确认；`Find` 的比较方向仍是静态风险，真实树形行为未运行验证。[`src/util/utilSplayTree.h:87-100,182-212,215-226`、`src/hal/m3d/memMgr.cpp:20-34`]
 
 ## 4. HAL pool 分配算法
 
@@ -80,10 +80,29 @@
 - `m_RequestedBytes` 表示 Core logical request，`m_TotalSize` 表示 HAL reserved chunks；二者跨大对齐、chunk 保留和 graph deferred physical allocation 时可能显著不同；[`src/musa/core/memoryPool.cpp:380-427`、`src/hal/m3d/memoryPool.h:28-35`]
 - `pPool->SetStream(this)` 为 pool 级写入；多个 stream 共享 pool 时的顺序和数据竞争需要目标环境验证；[`src/musa/core/stream.cpp:561-570`]
 
-## 8. 尚未逐行确认的范围
+## 8. IPC pool handle 路径与静态风险
 
-1. `MemoryPool::InitFromHandle` 的 imported/external pool 完整创建语义。
-2. Core reuse attribute 字段在其他源码文件中的实际读取者。
-3. `Util::SplayTree` 的空 key、删除和并发语义。
-4. M3D 子模块的 page allocation、queue fence、paging 和错误码映射。
+| 证据 | 观察 | 结论状态 |
+|---|---|---|
+| [`src/musa/core/memoryPool.cpp:16-64`] | `GeneralAlloc` 创建 HAL user pool；`ExternalAlloc` 只调用 `InitFromHandle`；`InternalAlloc` 取得 HAL internal pool | 已确认 |
+| [`src/musa/core/memoryPool.cpp:439-469`] | export 通过共享内存初始化后 dup IPC fd 返回调用方 | 已确认 |
+| [`src/musa/core/memoryPool.cpp:473-510`] | import 只校验 POSIX fd/flags，dup fd、mmap metadata、递增 owners 并标记 imported；没有创建 HAL pool | 已确认 |
+| [`src/musa/core/memoryPool.cpp:512-569`] | export 侧使用 `mkstemp`、`shm_open`、`ftruncate`、`mmap`，以 `call_once` 初始化 shared state | 已确认 |
+| [`src/musa/core/memoryPool.cpp:575-609`] | 析构递减 owners、munmap、关闭 fd；非 imported 且 owners 为 0 时 unlink | 已确认 |
+| [`src/driver/mu_mempool.cpp:153-169`] | SetAttribute 拒绝 imported pool | 已确认 |
+| [`src/driver/mu_mempool.cpp:264-319`] | export/import handle 经过 Core pool wrapper；import 失败时 delete wrapper | 已确认 |
+
+### 8.1 需要特别审计的实现问题
+
+- 两处 `mmap` 结果都与 `nullptr` 比较，而 POSIX 失败值是 `MAP_FAILED`；这是真实的静态代码风险，但尚未通过故障注入复现。[`src/musa/core/memoryPool.cpp:491-503,551-562`]
+- `CreateIpcMemPoolShmemIfNeed` 在 `shm_open`、`ftruncate` 或 `mmap` 中途失败时通过 `break` 离开，当前片段没有统一关闭 fd、unlink 或释放映射；配合 `call_once` 可能固化失败状态。[`src/musa/core/memoryPool.cpp:516-569`]
+- `owners` 位于跨进程共享内存，但当前增减只包在进程内 `std::mutex` 中；跨进程原子性不能由该 mutex 保证，这是待运行验证的并发风险。[`src/musa/core/memoryPool.cpp:486-503,575-603`]
+- imported pool 的 `m_pHalPool` 保持为空；因此它不是一个可直接用于 `CreateMemory` 的完整 HAL pool，driver 还在 SetAttribute 等入口拒绝 imported pool。[`src/musa/core/memoryPool.cpp:38-42,473-510`、`src/driver/mu_mempool.cpp:153-169`]
+
+## 9. 尚未逐行确认的范围
+
+1. `Util::SplayTree` 的空 key、删除和并发语义。
+2. M3D 子模块的 page allocation、queue fence、paging 和错误码映射。
+3. pool destroy 与 live allocation 并存时的完整行为和 API contract。
+4. IPC pointer export/import 与 pool metadata 之间是否存在额外一致性校验。
 5. 真实硬件下 alignment、碎片、延迟和 trim 效果。

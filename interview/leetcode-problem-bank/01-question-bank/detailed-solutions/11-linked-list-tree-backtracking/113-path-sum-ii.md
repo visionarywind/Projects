@@ -7,15 +7,221 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：二、二叉树 / §2.7 回溯
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/path-sum-ii/solutions/3061294/hui-su-fu-chang-jian-wen-ti-ji-qi-jie-da-g8im/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[回溯，附常见问题及其解答（Python/Java/C++/Go/JS/Rust）](https://leetcode.cn/problems/path-sum-ii/solutions/3061294/hui-su-fu-chang-jian-wen-ti-ji-qi-jie-da-g8im/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`hui-su-fu-chang-jian-wen-ti-ji-qi-jie-da-g8im`
+- topic id：`3061294`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:39:45 +0800
+
+在递归的同时，额外维护从根到当前节点的元素和 $s$。此外，在递归函数外部维护一个 $\textit{path}$ 列表，记录从根到当前节点路径上的所有节点。
+
+递归逻辑：
+
+1. 如果当前节点是空节点，直接返回。
+2. 把当前节点加入 $\textit{path}$，同时把 $s$ 增加当前节点值。
+3. 如果当前节点是叶子节点且 $s=\textit{targetSum}$，那么把路径 $\textit{path}$ 加入答案。也可以在一开始递归的时候传入 $\textit{left}=\textit{targetSum}$，在递归过程中不断地把 $\textit{left}$ 减去节点值。递归到叶节点的时候，如果发现 $\textit{left}=0$，那么把路径 $\textit{path}$ 加入答案。
+4. 否则，继续递归左右子树。
+5. 在递归返回之前，把我们在递归开头加入的节点，也就是当前 $\textit{path}$ 的最后一个节点，从 $\textit{path}$ 中去掉（恢复现场）。为什么要写这行代码？当我们递归完左子树，要递归右子树之前，$\textit{path}$ 中还保留着左子树的节点。如果不及时去掉，会导致最终加到答案中的 $\textit{path}$，既包含左子树的节点，又包含右子树的节点，这连「路径」都算不上。
+
+### 答疑
+
+**问**：为什么加入答案之前，要把 $\textit{path}$ 复制一份？
+
+**答**：不复制的话 $\textit{ans}$ 保存的是同一个 $\textit{path}$ 的引用，修改 $\textit{path}$ 也会修改 $\textit{ans}$ 中的列表。
+
+**问**：为什么递归参数 $\textit{left}$ 不需要「恢复现场」？
+
+**答**：对于 `int` 这种基本类型的参数，在函数调用的时候会**复制**一份往下传递，`left -= node.val` 修改的仅仅是当前递归函数中的 $\textit{left}$ 参数，并不会影响到其他递归函数中的 $\textit{left}$。但是，如果把 $\textit{left}$ 放在递归函数外，执行 `left -= node.val` 就会影响全局了，这种情况下是需要恢复现场的。
+
+```py [sol-Python3]
+class Solution:
+    def pathSum(self, root: Optional[TreeNode], targetSum: int) -> List[List[int]]:
+        ans = []
+        path = []
+
+        def dfs(node: Optional[TreeNode], left: int) -> None:
+            if node is None:
+                return
+            path.append(node.val)
+            left -= node.val
+            if node.left is None and node.right is None and left == 0:
+                ans.append(path.copy())  # 也可以写 path[:]
+            else:
+                dfs(node.left, left)
+                dfs(node.right, left)
+            path.pop()  # 恢复现场
+
+        dfs(root, targetSum)
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public List<List<Integer>> pathSum(TreeNode root, int targetSum) {
+        List<List<Integer>> ans = new ArrayList<>();
+        List<Integer> path = new ArrayList<>();
+        dfs(root, targetSum, path, ans);
+        return ans;
+    }
+
+    private void dfs(TreeNode node, int left, List<Integer> path, List<List<Integer>> ans) {
+        if (node == null) {
+            return;
+        }
+        path.add(node.val);
+        left -= node.val;
+        if (node.left == null && node.right == null && left == 0) {
+            ans.add(new ArrayList<>(path));
+        } else {
+            dfs(node.left, left, path, ans);
+            dfs(node.right, left, path, ans);
+        }
+        path.remove(path.size() - 1);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<vector<int>> pathSum(TreeNode* root, int targetSum) {
+        vector<vector<int>> ans;
+        vector<int> path;
+
+        auto dfs = [&](this auto&& dfs, TreeNode* node, int left) -> void {
+            if (node == nullptr) {
+                return;
+            }
+            path.push_back(node->val);
+            left -= node->val;
+            if (node->left == nullptr && node->right == nullptr && left == 0) {
+                ans.push_back(path);
+            } else {
+                dfs(node->left, left);
+                dfs(node->right, left);
+            }
+            path.pop_back(); // 恢复现场
+        };
+
+        dfs(root, targetSum);
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func pathSum(root *TreeNode, targetSum int) (ans [][]int) {
+    path := []int{}
+
+    var dfs func(*TreeNode, int)
+    dfs = func(node *TreeNode, left int) {
+        if node == nil {
+            return
+        }
+        path = append(path, node.Val)
+        left -= node.Val
+        if node.Left == nil && node.Right == nil && left == 0 {
+            ans = append(ans, slices.Clone(path))
+        } else {
+            dfs(node.Left, left)
+            dfs(node.Right, left)
+        }
+        path = path[:len(path)-1] // 恢复现场
+    }
+
+    dfs(root, targetSum)
+    return ans
+}
+```
+
+```js [sol-JavaScript]
+var pathSum = function(root, targetSum) {
+    const ans = [];
+    const path = [];
+
+    function dfs(node, left) {
+        if (node === null) {
+            return;
+        }
+        path.push(node.val);
+        left -= node.val;
+        if (node.left === null && node.right === null && left === 0) {
+            ans.push([...path]);
+        } else {
+            dfs(node.left, left);
+            dfs(node.right, left);
+        }
+        path.pop(); // 恢复现场
+    };
+
+    dfs(root, targetSum);
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+use std::rc::Rc;
+use std::cell::RefCell;
+
+impl Solution {
+    pub fn path_sum(root: Option<Rc<RefCell<TreeNode>>>, target_sum: i32) -> Vec<Vec<i32>> {
+        fn dfs(node: &Option<Rc<RefCell<TreeNode>>>, mut left: i32, path: &mut Vec<i32>, ans: &mut Vec<Vec<i32>>) {
+            if let Some(node) = node {
+                let node = node.borrow();
+                path.push(node.val);
+                left -= node.val;
+                if node.left.is_none() && node.right.is_none() && left == 0 {
+                    ans.push(path.clone());
+                } else {
+                    dfs(&node.left, left, path, ans);
+                    dfs(&node.right, left, path, ans);
+                }
+                path.pop();
+            }
+        }
+
+        let mut ans = vec![];
+        let mut path = vec![];
+        dfs(&root, target_sum, &mut path, &mut ans);
+        return ans;
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n^2)$，其中 $n$ 是二叉树的节点个数。对于「一条链 + 完全二叉树」这样的「扫帚型」二叉树，我们会在 $\mathcal{O}(n)$ 个叶子节点处，都去复制长为 $\mathcal{O}(n)$ 的 $\textit{path}$，所以总的时间复杂度为 $\mathcal{O}(n^2)$。
+- 空间复杂度：$\mathcal{O}(n)$。返回值不计入。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

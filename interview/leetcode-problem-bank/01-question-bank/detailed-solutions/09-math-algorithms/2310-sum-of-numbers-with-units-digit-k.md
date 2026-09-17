@@ -7,15 +7,177 @@
 - 来源专题：数学算法
 - 来源分类路径：七、杂项 / §7.10 其他
 - 难度分：1559
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/sum-of-numbers-with-units-digit-k/solutions/1611273/mei-ju-da-an-by-endlesscheng-zh75/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[枚举答案 + 利用同余性质优化至 O(1) 时间复杂度](https://leetcode.cn/problems/sum-of-numbers-with-units-digit-k/solutions/1611273/mei-ju-da-an-by-endlesscheng-zh75/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`mei-ju-da-an-by-endlesscheng-zh75`
+- topic id：`1611273`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 10:37:43 +0800
+
+本题 [视频讲解](https://www.bilibili.com/video/BV1CW4y1k7B3) 已出炉，欢迎点赞三连~
+
+---
+
+#### 提示 1
+
+首先分析一下答案至少至多是多少（尤其是和数学相关的题目）。
+
+#### 提示 2
+
+答案的范围比较小，我们可以尝试枚举答案 $n$。
+
+#### 提示 3
+
+把个位数单独拆开看，每个数可以表示成 $10$ 的倍数加上 $k$ 的形式。
+
+由于这 $n$ 个数都以 $k$ 结尾，那么 $\textit{num}-nk$ 必须是 $10$ 的倍数。
+
+从小到大枚举 $n$，找到第一个满足 $\textit{num}-nk$ 是 $10$ 的倍数的 $n$。
+
+由于 $n$ 不会超过 $\textit{num}$，我们至多枚举到 $\textit{num}$ 时停止。
+
+注意特判 $\textit{num}=0$ 的情况，此时返回 $0$。
+
+```Python [sol1-Python3]
+class Solution:
+    def minimumNumbers(self, num: int, k: int) -> int:
+        if num == 0: return 0
+        for n in range(1, num + 1):
+            if num - n * k < 0: break
+            if (num - n * k) % 10 == 0: return n
+        return -1
+```
+
+```go [sol1-Go]
+func minimumNumbers(num, k int) int {
+	if num == 0 {
+		return 0
+	}
+	for n := 1; n <= num && num-n*k >= 0; n++ {
+		if (num-n*k)%10 == 0 {
+			return n
+		}
+	}
+	return -1
+}
+```
+
+特判 $k=0$ 的情况，还可以减少一部分循环次数：
+
+```Python [sol2-Python3]
+class Solution:
+    def minimumNumbers(self, num: int, k: int) -> int:
+        if num == 0: return 0
+        if k == 0: return -1 if num % 10 else 1
+        return next((n for n in range(1, num // k + 1) if (num - n * k) % 10 == 0), -1)
+```
+
+```go [sol2-Go]
+func minimumNumbers(num, k int) int {
+	if num == 0 {
+		return 0
+	}
+	if k == 0 {
+		if num%10 == 0 {
+			return 1
+		}
+		return -1
+	}
+	for n := 1; n*k <= num; n++ {
+		if (num-n*k)%10 == 0 {
+			return n
+		}
+	}
+	return -1
+}
+```
+
+进一步地，由于
+
+$$
+n\cdot k\equiv(n\bmod 10)\cdot k \pmod{10}
+$$
+
+枚举到 $n=11$ 时，$(\textit{num}-nk)\bmod 10$ 的结果会和 $n=1$ 时相同，对于更大的 $n$ 也同样会和 $n\bmod 10$ 相同。
+
+因此至多枚举到 $n=10$ 就行了。
+
+#### 复杂度分析
+
+- 时间复杂度：$O(1)$。枚举的次数至多为 $10$。
+- 空间复杂度：$O(1)$，仅用到若干变量。
+
+```Python [sol3-Python3]
+class Solution:
+    def minimumNumbers(self, num, k):
+        if num == 0: return 0
+        if k == 0: return -1 if num % 10 else 1
+        return next((n for n in range(1, min(num // k + 1, 11)) if ((num - n * k) % 10 == 0)), -1)
+```
+
+```java [sol3-Java]
+class Solution {
+    public int minimumNumbers(int num, int k) {
+        if (num == 0) return 0;
+        for (var n = 1; n <= 10 && num - k * n >= 0; ++n)
+            if ((num - k * n) % 10 == 0) return n;
+        return -1;
+    }
+}
+```
+
+```cpp [sol3-C++]
+class Solution {
+public:
+    int minimumNumbers(int num, int k) {
+        if (num == 0) return 0;
+        for (int n = 1; n <= 10 && num - k * n >= 0; ++n)
+            if ((num - k * n) % 10 == 0) return n;
+        return -1;
+    }
+};
+```
+
+```go [sol3-Go]
+func minimumNumbers(num, k int) int {
+	if num == 0 {
+		return 0
+	}
+	for n := 1; n <= 10 && n*k <= num; n++ {
+		if (num-n*k)%10 == 0 {
+			return n
+		}
+	}
+	return -1
+}
+```
+
+附：Python 记忆化写法
+
+```py
+@cache
+def dfs(left, k):
+    if left == 0: return 0
+    res = inf
+    for i in range(k, left + 1, 10):
+        res = min(res, dfs(left - i, k) + 1)
+    return res
+
+class Solution:
+    def minimumNumbers(self, num: int, k: int) -> int:
+        if num == 0: return 0
+        if k == 0: return -1 if num % 10 else 1
+        ans = dfs(num, k)
+        return ans if ans < inf else -1
+```
 
 ## 本地原创解析
 

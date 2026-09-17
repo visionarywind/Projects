@@ -7,15 +7,306 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：二、二叉树 / §2.2 自顶向下 DFS（先序遍历）
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/maximum-depth-of-binary-tree/solutions/2010612/kan-wan-zhe-ge-shi-pin-rang-ni-dui-di-gu-44uz/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[【视频讲解】让你对递归的理解更上一层楼！（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/maximum-depth-of-binary-tree/solutions/2010612/kan-wan-zhe-ge-shi-pin-rang-ni-dui-di-gu-44uz/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`kan-wan-zhe-ge-shi-pin-rang-ni-dui-di-gu-44uz`
+- topic id：`2010612`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:30:25 +0800
+
+## 视频讲解
+
+请看[【基础算法精讲 09】](https://www.bilibili.com/video/BV1UD4y1Y769/)，制作不易，欢迎点赞~
+
+**注**：本文的「自底向上」和「自顶向下」，关注的都是**深度信息**如何在父子之间传递。
+
+## 方法一：自底向上
+
+```py [sol-Python3]
+class Solution:
+    def maxDepth(self, root: Optional[TreeNode]) -> int:
+        if root is None:
+            return 0
+        l_depth = self.maxDepth(root.left)
+        r_depth = self.maxDepth(root.right)
+        return max(l_depth, r_depth) + 1
+```
+
+```java [sol-Java]
+class Solution {
+    public int maxDepth(TreeNode root) {
+        if (root == null) {
+            return 0;
+        }
+        int lDepth = maxDepth(root.left);
+        int rDepth = maxDepth(root.right);
+        return Math.max(lDepth, rDepth) + 1;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxDepth(TreeNode* root) {
+        if (root == nullptr) {
+            return 0;
+        }
+        int l_depth = maxDepth(root->left);
+        int r_depth = maxDepth(root->right);
+        return max(l_depth, r_depth) + 1;
+    }
+};
+```
+
+```c [sol-C]
+#define MAX(a, b) ((b) > (a) ? (b) : (a))
+
+int maxDepth(struct TreeNode* root) {
+    if (root == NULL) {
+        return 0;
+    }
+    int l_depth = maxDepth(root->left);
+    int r_depth = maxDepth(root->right);
+    return MAX(l_depth, r_depth) + 1;
+}
+```
+
+```go [sol-Go]
+func maxDepth(root *TreeNode) int {
+    if root == nil {
+        return 0
+    }
+    lDepth := maxDepth(root.Left)
+    rDepth := maxDepth(root.Right)
+    return max(lDepth, rDepth) + 1
+}
+```
+
+```js [sol-JS]
+var maxDepth = function(root) {
+    if (root === null) {
+        return 0;
+    }
+    const lDepth = maxDepth(root.left);
+    const rDepth = maxDepth(root.right);
+    return Math.max(lDepth, rDepth) + 1;
+};
+```
+
+```rust [sol-Rust]
+use std::rc::Rc;
+use std::cell::RefCell;
+
+impl Solution {
+    pub fn max_depth(root: Option<Rc<RefCell<TreeNode>>>) -> i32 {
+        if let Some(node) = root {
+            let node = node.borrow();
+            let l_depth = Self::max_depth(node.left.clone());
+            let r_depth = Self::max_depth(node.right.clone());
+            return l_depth.max(r_depth) + 1;
+        }
+        0
+    }
+}
+```
+
+```rust [sol-Rust 写法二]
+use std::rc::Rc;
+use std::cell::RefCell;
+
+impl Solution {
+    pub fn max_depth(root: Option<Rc<RefCell<TreeNode>>>) -> i32 {
+        if let Some(node) = root {
+            let mut node = node.borrow_mut();
+            let l_depth = Self::max_depth(node.left.take());
+            let r_depth = Self::max_depth(node.right.take());
+            return l_depth.max(r_depth) + 1;
+        }
+        0
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 为二叉树的节点个数。
+- 空间复杂度：$\mathcal{O}(n)$。最坏情况下，二叉树退化成一条链，递归需要 $\mathcal{O}(n)$ 的栈空间。
+
+## 方法二：自顶向下
+
+```py [sol-Python3]
+class Solution:
+    def maxDepth(self, root: Optional[TreeNode]) -> int:
+        ans = 0
+        def dfs(node: Optional[TreeNode], depth: int) -> None:
+            if node is None:
+                return
+            depth += 1
+            nonlocal ans
+            ans = max(ans, depth)
+            dfs(node.left, depth)
+            dfs(node.right, depth)
+        dfs(root, 0)
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    private int ans;
+
+    public int maxDepth(TreeNode root) {
+        dfs(root, 0);
+        return ans;
+    }
+
+    private void dfs(TreeNode node, int depth) {
+        if (node == null) {
+            return;
+        }
+        depth++;
+        ans = Math.max(ans, depth);
+        dfs(node.left, depth);
+        dfs(node.right, depth);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int maxDepth(TreeNode* root) {
+        int ans = 0;
+        auto dfs = [&](this auto&& dfs, TreeNode* node, int depth) -> void {
+            if (node == nullptr) {
+                return;
+            }
+            depth++;
+            ans = max(ans, depth);
+            dfs(node->left, depth);
+            dfs(node->right, depth);
+        };
+        dfs(root, 0);
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+#define MAX(a, b) ((b) > (a) ? (b) : (a))
+
+void dfs(struct TreeNode* node, int depth, int* ans) {
+    if (node == NULL) {
+        return;
+    }
+    depth++;
+    *ans = MAX(*ans, depth);
+    dfs(node->left, depth, ans);
+    dfs(node->right, depth, ans);
+}
+
+int maxDepth(struct TreeNode* root) {
+    int ans = 0;
+    dfs(root, 0, &ans);
+    return ans;
+}
+```
+
+```go [sol-Go]
+func maxDepth(root *TreeNode) (ans int) {
+    var dfs func(*TreeNode, int)
+    dfs = func(node *TreeNode, depth int) {
+        if node == nil {
+            return
+        }
+        depth++
+        ans = max(ans, depth)
+        dfs(node.Left, depth)
+        dfs(node.Right, depth)
+    }
+    dfs(root, 0)
+    return
+}
+```
+
+```js [sol-JavaScript]
+var maxDepth = function(root) {
+    let ans = 0;
+    function dfs(node, depth) {
+        if (node === null) {
+            return;
+        }
+        depth++;
+        ans = Math.max(ans, depth);
+        dfs(node.left, depth);
+        dfs(node.right, depth);
+    };
+    dfs(root, 0);
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+use std::rc::Rc;
+use std::cell::RefCell;
+
+impl Solution {
+    pub fn max_depth(root: Option<Rc<RefCell<TreeNode>>>) -> i32 {
+        fn dfs(node: &Option<Rc<RefCell<TreeNode>>>, depth: i32, ans: &mut i32) {
+            if let Some(node) = node {
+                *ans = (*ans).max(depth + 1);
+                let node = node.borrow();
+                dfs(&node.left, depth + 1, ans);
+                dfs(&node.right, depth + 1, ans);
+            }
+        }
+
+        let mut ans = 0;
+        dfs(&root, 0, &mut ans);
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 为二叉树的节点个数。
+- 空间复杂度：$\mathcal{O}(n)$。最坏情况下，二叉树退化成一条链，递归需要 $\mathcal{O}(n)$ 的栈空间。
+
+## 注
+
+我在网上看到一种理解递归的说法：「在写递归函数时，可以假设递归返回的结果一定是正确的」。其实这种说法本质上就是**数学归纳法**。
+
+更多相似题目，见题单 [链表、二叉树与一般树](https://leetcode.cn/circle/discuss/K0n2gO/)。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/最短路/最小生成树/二分图/基环树/欧拉路径）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/状态机/划分/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

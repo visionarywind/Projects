@@ -7,15 +7,105 @@
 - 来源专题：贪心与思维
 - 来源分类路径：一、贪心策略 / §1.1 从最小/最大开始贪心
 - 难度分：1538
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/maximum-split-of-positive-even-integers/solutions/1277705/tan-xin-jian-ji-xie-fa-by-endlesscheng-uxbg/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[贪心 + 简洁写法（Python/Java/C++/Go/JS）](https://leetcode.cn/problems/maximum-split-of-positive-even-integers/solutions/1277705/tan-xin-jian-ji-xie-fa-by-endlesscheng-uxbg/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`tan-xin-jian-ji-xie-fa-by-endlesscheng-uxbg`
+- topic id：`1277705`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 10:46:10 +0800
+
+由于 $\textit{finalSum}$ 只能分解成偶数之和，而偶数+偶数=偶数，所以 $\textit{finalSum}$ 也必须是偶数。
+
+既然要尽量多的分解，且分解出的偶数互不相同，那么可以按照 $2,4,6,8,\cdots$ 的顺序分解，一边分解一边减少 $\textit{finalSum}$，直到 $\textit{finalSum}$ 小于要分解出的数为止。
+
+最后把剩余的 $\textit{finalSum}$ 加到最后一个分解出的偶数上，即完成了分解。
+
+```py [sol-Python3]
+class Solution:
+    def maximumEvenSplit(self, finalSum: int) -> List[int]:
+        if finalSum % 2:
+            return []
+        ans = []
+        i = 2
+        while i <= finalSum:
+            ans.append(i)
+            finalSum -= i
+            i += 2
+        ans[-1] += finalSum
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public List<Long> maximumEvenSplit(long finalSum) {
+        if (finalSum % 2 > 0) return List.of();
+        var ans = new ArrayList<Long>();
+        for (long i = 2; i <= finalSum; i += 2) {
+            ans.add(i);
+            finalSum -= i;
+        }
+        int back = ans.size() - 1;
+        ans.set(back, ans.get(back) + finalSum);
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    vector<long long> maximumEvenSplit(long long finalSum) {
+        if (finalSum % 2) return {};
+        vector<long long> ans;
+        for (long long i = 2; i <= finalSum; i += 2) {
+            ans.push_back(i);
+            finalSum -= i;
+        }
+        ans.back() += finalSum;
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func maximumEvenSplit(finalSum int64) (ans []int64) {
+	if finalSum%2 == 0 {
+		for i := int64(2); i <= finalSum; i += 2 {
+			ans = append(ans, i)
+			finalSum -= i
+		}
+		ans[len(ans)-1] += finalSum
+	}
+	return
+}
+```
+
+```js [sol-JavaScript]
+var maximumEvenSplit = function (finalSum) {
+    if (finalSum % 2) 
+        return [];
+    let ans = [];
+    for (let i = 2; i <= finalSum; i += 2) {
+        ans.push(i);
+        finalSum -= i;
+    }
+    ans[ans.length - 1] += finalSum;
+    return ans;
+};
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(\sqrt{\textit{finalSum}})$。设数组长度为 $x$，根据等差数列之和，$2+4+6+8+\cdots+2x = x(x+1) \le \textit{finalSum}$，可知 $x$ 约为 $\sqrt{\textit{finalSum}}$，所以循环次数为 $\mathcal{O}(\sqrt{\textit{finalSum}})$。
+- 空间复杂度：$\mathcal{O}(1)$。返回值不计入。
 
 ## 本地原创解析
 

@@ -7,15 +7,92 @@
 - 来源专题：贪心与思维
 - 来源分类路径：三、字符串贪心 / §3.1 字典序最小/最大
 - 难度分：1304
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/lexicographically-smallest-palindrome/solutions/2278347/tan-xin-pythonjavacgo-by-endlesscheng-r0py/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[贪心（Python/Java/C++/Go）](https://leetcode.cn/problems/lexicographically-smallest-palindrome/solutions/2278347/tan-xin-pythonjavacgo-by-endlesscheng-r0py/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`tan-xin-pythonjavacgo-by-endlesscheng-r0py`
+- topic id：`2278347`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:01:04 +0800
+
+## 本题视频讲解
+
+见[【周赛 346】](https://www.bilibili.com/video/BV1Qm4y1t7cx/)第二题，欢迎点赞投币！
+
+## 思路
+
+对于两个中心对称的字母 $x=s[i]$ 和 $y=s[n-1-i]$，如果 $x\ne y$，那么只需要修改一次，就可以让这两个字母相同：把 $x$ 改成 $y$ 或者把 $y$ 改成 $x$。
+
+- 如果 $x>y$，那么把 $x$ 修改成 $y$ 更好，这样字典序更小。
+- 如果 $x<y$，那么把 $y$ 修改成 $x$ 更好，这样字典序更小。
+
+代码实现时可以把 $x=y$ 的情况合并到 $x<y$ 中，从而少写一个 `else if` 的判断逻辑。
+
+```py [sol-Python3]
+class Solution:
+    def makeSmallestPalindrome(self, s: str) -> str:
+        s = list(s)
+        for i in range(len(s) // 2):
+            x, y = s[i], s[-1 - i]
+            if x > y: s[i] = y
+            else: s[-1 - i] = x
+        return ''.join(s)
+```
+
+```java [sol-Java]
+class Solution {
+    public String makeSmallestPalindrome(String S) {
+        var s = S.toCharArray();
+        for (int i = 0, n = s.length; i < n / 2; i++) {
+            char x = s[i], y = s[n - 1 - i];
+            if (x > y) s[i] = y;
+            else s[n - 1 - i] = x;
+        }
+        return new String(s);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    string makeSmallestPalindrome(string s) {
+        for (int i = 0, n = s.length(); i < n / 2; i++) {
+            char x = s[i], y = s[n - 1 - i];
+            if (x > y) s[i] = y;
+            else s[n - 1 - i] = x;
+        }
+        return s;
+    }
+};
+```
+
+```go [sol-Go]
+func makeSmallestPalindrome(S string) string {
+	s := []byte(S)
+	for i, n := 0, len(s); i < n/2; i++ {
+		x, y := s[i], s[n-1-i]
+		if x > y {
+			s[i] = y
+		} else {
+			s[n-1-i] = x
+		}
+	}
+	return string(s)
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 为 $s$ 的长度。
+- 空间复杂度：$\mathcal{O}(n)$ 或 $\mathcal{O}(1)$。取决于能否直接修改 $s$。
 
 ## 本地原创解析
 

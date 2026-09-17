@@ -240,17 +240,110 @@ Platform::GetDefaultHostMemoryPool / CreateHostMemoryPoolInternal
 
 default、graph、host/NUMA 的创建证据分别位于 [`src/musa/core/device.cpp:439-519`]、[`src/musa/core/platform.cpp:544-645`]；internal 生命周期位于 [`src/musa/core/device.cpp:1091-1152`]。
 
-## 10. 当前证据边界
+
+## 10. IPC memory-pool handle：metadata ownership，不是 HAL pool import
+
+### 10.1 Export
+
+```text
+muMemPoolExportToShareableHandle                         [src/driver/mu_mempool.cpp:264-285]
+  -> pool handle / flags / device 校验
+  -> MemoryPool::Export                                [src/musa/core/memoryPool.cpp:439-469]
+       -> CreateIpcMemPoolShmemIfNeed
+            -> mkstemp(/tmp/mempoolXXXXXX)
+            -> shm_open(MUSA_...)
+            -> ftruncate(sizeof(IpcMemPoolShmem_t))
+            -> mmap shared metadata
+            -> owners = 1
+       -> dup(m_IpcFd)
+       -> 输出 POSIX fd
+```
+
+### 10.2 Import
+
+```text
+muMemPoolImportFromShareableHandle                       [src/driver/mu_mempool.cpp:288-319]
+  -> 当前 Context / Device
+  -> new Musa::MemoryPool(pDevice)
+  -> MemoryPool::Init(ExternalAlloc)
+  -> InitFromHandle                                   [src/musa/core/memoryPool.cpp:473-510]
+       -> 只支持 POSIX fd、flags == 0
+       -> dup(fd)
+       -> mmap(sizeof(IpcMemPoolShmem_t))
+       -> shared owners += 1
+       -> m_IsImported = true
+  -> 返回 Core pool handle
+```
+
+当前源码中 `InitFromHandle` 没有取得或创建 `m_pHalPool`；它建立的是 IPC metadata ownership。相应地，driver 的 `SetAttribute` 会拒绝 imported pool，且异步 pool allocation 路径也明确拒绝 imported pool。[`src/driver/mu_mempool.cpp:153-169`、`src/driver/mu_memory.cpp:349-390`]
+
+### 11.3 Shared-memory cleanup
+
+```text
+MemoryPool::~MemoryPool
+  -> DestroyIpcMemPoolShmemIfNeed                  [src/musa/core/memoryPool.cpp:575-609]
+       -> owners--
+       -> munmap
+       -> close fd
+       -> imported=false && owners==0 -> shm_unlink
+```
+
+实现审计注意：POSIX `mmap` 失败返回 `MAP_FAILED` 而不是 `nullptr`，当前 export/import 两处检查使用 `nullptr`；这是静态风险，不能在没有故障注入的情况下声称已复现。[`src/musa/core/memoryPool.cpp:491-503,551-562`]
+
+## 11. pool API 属性和所有权边界
+
+```text
+muMemPoolCreate
+  -> Hal::MemoryPoolCreateInfo
+  -> new Core MemoryPool
+  -> Init(GeneralAlloc)
+  -> Hal::MemMgr::CreateUserPool
+  -> m_pHalPool = user pool
+
+muMemPoolDestroy
+  -> reject default pool
+  -> Device::ValidatePool
+  -> delete Core MemoryPool
+       -> DestroyUserPool(m_pHalPool)
+       -> IPC metadata cleanup
+```
+
+`muMemPoolDestroy` 当前源码没有在 driver 入口显式检查 `m_MemoryAllocations` 是否为空；而 pool-backed `Memory` 的 destructor 仍需要访问 `m_pPool` 才能归还 segment。因此“有 live allocation 时 destroy pool”的行为需要专门验证，不能假设 API 已经提供安全拒绝。[`src/driver/mu_mempool.cpp:118-150`、`src/musa/core/memoryPool.cpp:86-99`、`src/musa/core/memory.cpp:360-379`]
+
+
+## 12. 自动 pool registry 的 lookup/ownership
+
+```text
+MemMgr::Allocate
+  -> m_PoolRefs.Get(MakeKey(poolInfo))
+  -> Get 会 splay tree，并返回根节点
+  -> MemMgr 再比较 type/heap/property/view capability
+  -> 不兼容时 CreatePoolNoLock + Insert(key, pPool)
+
+MemMgr::~MemMgr
+  -> 删除 m_UserPools 中的 user pool
+  -> m_PoolRefs.Delete(..., true)
+       -> delete SplayTreeNode
+       -> delete node->m_Value (automatic MemoryPool)
+  -> 删除 internal pool list 中的 pool
+```
+
+`SplayTree::Get` 不存在 key 时也返回 splay 后的根节点，因此 `MemMgr::Allocate` 的后续属性比较是必要的防护；不能把 `Get` 的非空返回直接当成精确命中。[`src/util/utilSplayTree.h:87-93`、`src/hal/m3d/memMgr.cpp:116-133`]
+
+## 13. 当前证据边界
 
 已确认到源码适配边界：
 
 - pool key、registry、bucket、split、merge、reuse、trim；
 - Core virtual/physical bind 和 stream callback；
-- graph host-device submission。
+- graph host-device submission；
+- IPC pool handle 的 metadata export/import 和 shared-memory cleanup；
+- automatic pool registry 的 splay lookup 和 value ownership。
 
 仍未确认：
 
 - `IM3d::IDevice::CreateGpuMemory` 之后的 kernel driver/firmware 资源结果；
 - M3D 子模块的实际 page size、fence 和硬件错误码；
-- `Util::SplayTree` value 删除语义及所有并发边界；
+- SplayTree `Find` 当前比较方向在真实 registry 树形下的行为；
+- IPC pool 的跨进程 owners 竞态和故障回滚运行结果；
 - 真实 workload 的碎片、延迟和 reserved-memory 曲线。

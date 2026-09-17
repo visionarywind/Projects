@@ -7,15 +7,94 @@
 - 来源专题：字符串
 - 来源分类路径：二、Z 函数（后缀的前缀）
 - 难度分：2817
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/number-of-ways-to-separate-numbers/solutions/950429/yu-chu-li-dong-tai-gui-hua-by-endlessche-7am2/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[预处理 + 动态规划](https://leetcode.cn/problems/number-of-ways-to-separate-numbers/solutions/950429/yu-chu-li-dong-tai-gui-hua-by-endlessche-7am2/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`yu-chu-li-dong-tai-gui-hua-by-endlessche-7am2`
+- topic id：`950429`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 12:05:27 +0800
+
+定义 $f[i][j]$ 表示 $\textit{num}$ 的前 $j$ 个字符划分出的最后一个整数的起始位置为 $i$ 时的方案数。
+
+我们所求的答案即为 $\sum\limits_{i=0}^{n-1} f[i][n-1]$。
+
+定义 $\textit{lcp}[i][j]$ 表示后缀 $\textit{num}[i:]$ 和后缀 $\textit{num}[j:]$ 的最长公共前缀的长度。
+
+对于倒数第二个划分出的整数，记其起始位置为 $k$，结束位置为 $i-1$。我们可以通过比较倒数第二个划分出的整数和最后一个划分出的整数的大小，来计算状态转移，也就是在满足题目要求时，将 $f[k][i-1]$ 加到 $f[i][j]$ 上。
+
+具体地，我们按倒数第二个划分出的整数的长度分类讨论：
+
+- 若其长度小于最后一个划分出的整数，则可以将其方案数加到 $f[i][j]$ 上，即 $f[i][j] += \sum f[k][i-1]$，这里 $i-k<j-i+1$；在代码实现时，我们可以从 $i$ 出发，向左向右同时扩展 $k$ 和 $j$，并累加 $f[k][i-1]$；
+- 若其长度等于最后一个划分出的整数，则需要比较两个整数的大小，这可以通过比较两个整数（子串）最长公共前缀的下一个字符得出；
+- 若其长度大于最后一个划分出的整数，由于不满足题目要求，无法转移。
+
+对于 $\textit{lcp}$，可以用一个 $O(n^2)$ 的简单转移预处理出来，这样就可以做到 $O(1)$ 的状态转移。总的时间复杂度为 $O(n^2)$。
+
+```go
+const mod int = 1e9 + 7
+
+func numberOfCombinations(s string) (ans int) {
+	if s[0] == '0' {
+		return
+	}
+
+	n := len(s)
+	// 计算 lcp
+	lcp := make([][]int, n+1)
+	for i := range lcp {
+		lcp[i] = make([]int, n+1)
+	}
+	for i := n - 1; i >= 0; i-- {
+		for j := n - 1; j >= 0; j-- {
+			if s[i] == s[j] {
+				lcp[i][j] = lcp[i+1][j+1] + 1
+			}
+		}
+	}
+	// 返回 s[l1:l2] <= s[l2:r2]
+	lessEq := func(l1, l2, r2 int) bool {
+		l := lcp[l1][l2]
+		return l >= r2-l2 || s[l1+l] < s[l2+l]
+	}
+
+	f := make([][]int, n)
+	for i := range f {
+		f[i] = make([]int, n)
+	}
+	for j := 0; j < n; j++ {
+		f[0][j] = 1
+	}
+	for i := 1; i < n; i++ {
+		if s[i] == '0' {
+			continue
+		}
+		// k 和 j 同时向左向右扩展
+		for j, k, sum := i, i-1, 0; j < n; j++ {
+			f[i][j] = sum // 对应上面所说的长度小于最后一个划分出的整数
+			if k < 0 {
+				continue
+			}
+			if s[k] > '0' && lessEq(k, i, j+1) {
+				f[i][j] = (f[i][j] + f[k][i-1]) % mod // 对应上面所说的长度等于最后一个划分出的整数
+			}
+			sum = (sum + f[k][i-1]) % mod
+			k--
+		}
+	}
+	for _, row := range f {
+		ans = (ans + row[n-1]) % mod
+	}
+	return
+}
+```
 
 ## 本地原创解析
 

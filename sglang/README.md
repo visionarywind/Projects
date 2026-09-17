@@ -75,9 +75,9 @@ SGLang 是一个把 HTTP/离线请求编排、连续批处理、KV 缓存、模�
 38. [M15 多进程与 IPC](01-modules/M15-ipc-control-plane/README.md)：scheduler/detokenizer 子进程、ZMQ、startup pipe、序列化和 cleanup。
 39. [M16 Kernel 与设备后端](01-modules/M16-kernel-device-backend/README.md)：platform resolver、AOT/JIT/fallback 和设备能力边界。
 40. [M17 Rust、Router 与 Gateway](01-modules/M17-rust-router-gateway/README.md)：PyO3/gRPC、KV-aware router、service discovery 和可靠性。
-41. [M18 测试、Benchmark 与 CI](01-modules/M18-testing-benchmark-ci/README.md)：suite 发现、过滤、分片、registered/manual、benchmark 和验证证据。
+42. [M19 DeepSeek 系列模型与并行策略](01-modules/M19-deepseek-models/README.md)：DeepSeek V2/V3/V3.2、MLA/DSA、MTP/NextN 以及 TP、DP Attention、EP、CP、PP 的模型内消费点。
 
-> `03-model-loading/` 是模型加载专题目录；实现层的模块文章位于 `01-modules/M06-model-loading/`。两者分别承担启动主链和独立实现细节。
+> `03-model-loading/` 是模型加载专题目录；实现层的模块文章位于 `01-modules/M06-model-loading/`。两者分别承担启动主链和独立实现细节。DeepSeek 专题位于 M19，重点解释模型骨架如何消费并行 group。
 
 所有模块都以普通 HTTP LLM 为主线，并把 Ray、diffusion、speculative、multimodal、disaggregation、Rust gateway 和设备后端写成替换或扩展路径。文章中的真实 GPU、多卡、模型下载、CUDA Graph、NCCL/NIXL/RDMA 和端到端执行均需另有运行证据；当前 checkout 只提供静态源码证据。
 
@@ -201,6 +201,10 @@ ServerArgs
 - [01-modules/M16-kernel-device-backend/README.md](01-modules/M16-kernel-device-backend/README.md)
 - [01-modules/M17-rust-router-gateway/README.md](01-modules/M17-rust-router-gateway/README.md)
 - [01-modules/M18-testing-benchmark-ci/README.md](01-modules/M18-testing-benchmark-ci/README.md)
+- [01-modules/M19-deepseek-models/README.md](01-modules/M19-deepseek-models/README.md)
+- [01-modules/M19-deepseek-models/model-family.md](01-modules/M19-deepseek-models/model-family.md)
+- [01-modules/M19-deepseek-models/parallel-strategies.md](01-modules/M19-deepseek-models/parallel-strategies.md)
+- [01-modules/M19-deepseek-models/source-map.md](01-modules/M19-deepseek-models/source-map.md)
 - [01-modules/module-registry.md](01-modules/module-registry.md)
 
 ### 80-demos

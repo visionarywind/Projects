@@ -7,15 +7,173 @@
 - 来源专题：贪心与思维
 - 来源分类路径：一、贪心策略 / §1.5 划分型贪心
 - 难度分：1416
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/partition-array-such-that-maximum-difference-is-k/solutions/1536271/pai-xu-tan-xin-by-endlesscheng-k5i4/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[排序 + 贪心（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/partition-array-such-that-maximum-difference-is-k/solutions/1536271/pai-xu-tan-xin-by-endlesscheng-k5i4/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`pai-xu-tan-xin-by-endlesscheng-k5i4`
+- topic id：`1536271`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 10:54:06 +0800
+
+我们只关心子序列的最大值和最小值，这与子序列的元素顺序无关。为方便计算，先把 $\textit{nums}$ 从小到大排序。
+
+示例 1 的 $\textit{nums}=[3,6,1,2,5]$，排序后为 $[1,2,3,5,6]$，分成 $[1,2,3]$ 和 $[5,6]$ 两组，分别对应原数组的子序列 $[3,1,2]$ 和 $[6,5]$。
+
+排序后，对于数组最小值 $1$ 来说，所有与 $1$ 相差 $\le k=2$ 的数都可以和 $1$ 在同一组。由于我们已经把数组排序了，所以与 $1$ 在同一组的数是连续的，即连续子数组 $[1,2,3]$。
+
+现在问题变成：
+
+- 把 $\textit{nums}$ 分割成若干段，每一段的首尾元素（最小值与最大值）之差 $\le k$，最少分多少段？
+
+从左到右遍历数组，记录当前这段的最小值 $\textit{mn}$。如果 $\textit{nums}[i] - \textit{mn} > k$，说明 $\textit{nums}[i]$ 是下一段的最小值，那么把答案加一，同时更新 $\textit{mn} = \textit{nums}[i]$。
+
+代码实现时，可以初始化 $\textit{mn}=-\infty$，而不是 $\textit{nums}[0]$。如果把数据范围改成 $\textit{nums}$ 长度可以是 $0$，下面的代码仍然正确。
+
+```py [sol-Python3]
+class Solution:
+    def partitionArray(self, nums: List[int], k: int) -> int:
+        nums.sort()
+        ans = 0
+        mn = -inf
+        for x in nums:
+            if x - mn > k:  # 必须分割
+                ans += 1
+                mn = x  # mn 是下一段的最小值
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int partitionArray(int[] nums, int k) {
+        Arrays.sort(nums);
+        int ans = 0;
+        int mn = Integer.MIN_VALUE / 2; // 防止减法溢出
+        for (int x : nums) {
+            if (x - mn > k) { // 必须分割
+                ans++;
+                mn = x; // mn 是下一段的最小值
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int partitionArray(vector<int>& nums, int k) {
+        ranges::sort(nums);
+        int ans = 0;
+        int mn = INT_MIN / 2; // 防止减法溢出
+        for (int x : nums) {
+            if (x - mn > k) { // 必须分割
+                ans++;
+                mn = x; // mn 是下一段的最小值
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+int cmp(const void* a, const void* b) {
+    return *(int*)a - *(int*)b;
+}
+
+int partitionArray(int* nums, int numsSize, int k) {
+    qsort(nums, numsSize, sizeof(int), cmp);
+    int ans = 0;
+    int mn = INT_MIN / 2; // 防止减法溢出
+    for (int i = 0; i < numsSize; i++) {
+        if (nums[i] - mn > k) { // 必须分割
+            ans++;
+            mn = nums[i]; // mn 是下一段的最小值
+        }
+    }
+    return ans;
+}
+```
+
+```go [sol-Go]
+func partitionArray(nums []int, k int) (ans int) {
+	slices.Sort(nums)
+	mn := math.MinInt / 2 // 防止减法溢出
+	for _, x := range nums {
+		if x-mn > k { // 必须分割
+			ans++
+			mn = x // mn 是下一段的最小值
+		}
+	}
+	return
+}
+```
+
+```js [sol-JavaScript]
+var partitionArray = function(nums, k) {
+    nums.sort((a, b) => a - b);
+    let ans = 0;
+    let mn = -Infinity;
+    for (const x of nums) {
+        if (x - mn > k) { // 必须分割
+            ans++;
+            mn = x; // mn 是下一段的最小值
+        }
+    }
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn partition_array(mut nums: Vec<i32>, k: i32) -> i32 {
+        nums.sort_unstable();
+        let mut ans = 0;
+        let mut mn = i32::MIN / 2; // 防止减法溢出
+        for x in nums {
+            if x - mn > k { // 必须分割
+                ans += 1;
+                mn = x; // mn 是下一段的最小值
+            }
+        }
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n\log n)$，其中 $n$ 是 $\textit{nums}$ 的长度。瓶颈在排序上。
+- 空间复杂度：$\mathcal{O}(1)$。忽略排序的栈开销。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

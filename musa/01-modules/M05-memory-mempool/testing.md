@@ -55,7 +55,26 @@
 4. graph execution 中 alloc/paging/peer mapping 任一步失败，检查 rollback 和 signal。
 5. graph resource destroy 前后查询 graph pool `USED/RESERVED`，确认 deferred physical 与 virtual segment 的统计差异。
 
-## 5. 运行命令（未执行）
+## 5. IPC pool 与销毁测试
+
+1. 对 `dup`、`shm_open`、`ftruncate`、`mmap` 分别做失败注入，确认错误码、fd、shm name 和映射全部回滚。
+2. 强制 `mmap` 返回 `MAP_FAILED`，验证不会继续解引用 `m_IpcShmem->owners`。
+3. 多进程并发 import/destroy 同一 pool handle，检查 `owners` 是否丢失更新、是否发生提前 `shm_unlink`。
+4. 重复 export 同一 pool，验证 `call_once` 后返回的 fd 生命周期和 close 责任。
+5. imported pool 调用 SetAttribute、AllocFromPoolAsync、Trim、Destroy，记录每个 API 的明确错误码。
+6. pool 仍有 live virtual allocation 时调用 `muMemPoolDestroy`，确认是拒绝、强制清理还是触发悬空引用；当前静态源码不能证明安全结果。
+7. export pointer → import pointer → free，确认 pointer IPC handle 与 pool metadata handle 的职责没有被混淆。
+
+## 6. ownership、current pool 与锁域测试
+
+1. set device current pool → allocate async → destroy current pool → 再次 allocate，验证是否拒绝 destroy、自动回退 default 或暴露悬空 raw pointer。
+2. set host/NUMA current pool → destroy/替换 pool → 再次 host allocation，确认 current slot 是否清理且 pool 归属正确。
+3. imported pool 分别调用 `muDeviceSetMemPool`、`muMemSetMemPool`、Get/Set/Trim/Destroy，重点观察 `Hal()->GetInfo()` 前是否被拒绝及错误码。
+4. 保持 pool allocation live 时 destroy pool，再释放 allocation；检查 Core `m_MemoryAllocations`、Platform tracker、HAL segment 和 destructor 是否保持有效。
+5. 多 stream 共享一个 Core pool，交错 `SetAccess`、async alloc/free、`WaitFinish`，配合 TSAN 或日志检查 `m_pStream`、location map、allocation set 与 HAL pool lock 的锁序。
+6. pointer IPC 使用错误设备 pool、普通 pool、imported pool 和空/失效 handle，验证 pool 参数是否仅用于 device 解析，以及 imported physical memory 的实际 owner。
+
+## 7. 运行命令（未执行）
 
 以下命令只是远端项目 README/CMake 记录的参考，不能作为本知识库已通过的测试：
 
@@ -67,7 +86,7 @@ ctest --test-dir build --output-on-failure
 
 目标环境还需要私有子模块、M3D/驱动依赖、工具链和兼容 GPU。当前知识库未执行上述命令，也未运行 `muInfo`、gdb、性能测试或硬件验证。
 
-## 6. 最终文档仓库检查
+## 7. 最终文档仓库检查
 
 在文档写回完成后运行：
 

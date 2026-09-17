@@ -7,15 +7,33 @@
 - 来源专题：贪心与思维
 - 来源分类路径：三、字符串贪心 / §3.1 字典序最小/最大
 - 难度分：1445
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/largest-number-after-mutating-substring/solutions/895181/go-tan-xin-by-endlesscheng-znuz/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[Go 贪心](https://leetcode.cn/problems/largest-number-after-mutating-substring/solutions/895181/go-tan-xin-by-endlesscheng-znuz/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`go-tan-xin-by-endlesscheng-znuz`
+- topic id：`895181`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:01:04 +0800
+
+```go
+func maximumNumber(num string, change []int) string {
+	s := []byte(num)
+	i, n := 0, len(s)
+	for ; i < n && byte(change[s[i]&15]) <= s[i]&15; i++ {
+	}
+	for ; i < n && byte(change[s[i]&15]) >= s[i]&15; i++ {
+		s[i] = '0' + byte(change[s[i]&15])
+	}
+	return string(s)
+}
+```
 
 ## 本地原创解析
 

@@ -7,15 +7,51 @@
 - 来源专题：贪心与思维
 - 来源分类路径：六、构造题
 - 难度分：2159
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/recover-the-original-array/solutions/1177346/mei-ju-higher0-shuang-zhi-zhen-by-endles-ic64/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[枚举 higher[0] + 双指针](https://leetcode.cn/problems/recover-the-original-array/solutions/1177346/mei-ju-higher0-shuang-zhi-zhen-by-endles-ic64/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`mei-ju-higher0-shuang-zhi-zhen-by-endles-ic64`
+- topic id：`1177346`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:22:48 +0800
+
+将 $\textit{nums}$ 排序后，$\textit{lower}[0]$ 必然是 $\textit{nums}[0]$。我们可以在 $\textit{nums}$ 中枚举 $\textit{higher}[0]$ 的值，从而得到 $k=\dfrac{\textit{higher}[0]-\textit{lower}[0]}{2}$。
+
+由于 $\textit{higher}[i]-\textit{lower}[i]=2k$ 是个定值，我们可以用双指针去遍历 $\textit{nums}$，计算其余的 $\textit{lower}$ 和 $\textit{higher}$ 的元素值。
+
+具体来说，用一个布尔数组 $\textit{vis}$ 标记出现在 $\textit{higher}$ 中的数，每次循环先在 $\textit{nums}$ 中找到下一个不在 $\textit{higher}$ 中的数，作为本次循环的 $\textit{lower}$ 值，然后通过 $\textit{higher}[i]-\textit{lower}[i]=2k$ 这个等式来找到本次循环的 $\textit{higher}$ 值。
+
+细节见代码注释。
+
+```go
+func recoverArray(nums []int) []int {
+	sort.Ints(nums)
+	for i, n := 1, len(nums); ; i++ {
+		if nums[i] == nums[i-1] { continue } // 优化：如果与上一个元素相同，那么我们会得到同样的 k，同样找不到原数组，此时应直接跳过
+		d := nums[i] - nums[0] // 此时 d > 0 必然成立
+		if d&1 > 0 { continue } // k 必须是整数
+		k := d / 2
+		vis := make([]bool, n) // 用来标记出现在 higher 中的数（用 nums 的下标）
+		vis[i] = true
+		ans := []int{(nums[0] + nums[i]) / 2}
+		for lo, hi := 0, i+1; hi < n; hi++ { // 双指针：lo 指向 lower，hi 指向 higher
+			for lo++; vis[lo]; lo++ {} // 找 lower：跳过出现在 higher 中的数
+			for ; hi < n && nums[hi]-nums[lo] < 2*k; hi++ {} // 找 higher
+			if hi == n || nums[hi]-nums[lo] > 2*k { break } // 不存在满足等式的 higher 值
+			vis[hi] = true
+			ans = append(ans, (nums[lo]+nums[hi])/2) // 找到一对满足等式的 (lower, higher)
+		}
+		if len(ans) == n/2 { return ans }
+	}
+}
+```
 
 ## 本地原创解析
 

@@ -7,15 +7,57 @@
 - 来源专题：贪心与思维
 - 来源分类路径：三、字符串贪心 / §3.1 字典序最小/最大
 - 难度分：1829
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/largest-merge-of-two-strings/solutions/595542/hou-zhui-shu-zu-xian-xing-zuo-fa-by-endl-pedl/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[后缀数组线性做法](https://leetcode.cn/problems/largest-merge-of-two-strings/solutions/595542/hou-zhui-shu-zu-xian-xing-zuo-fa-by-endl-pedl/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`hou-zhui-shu-zu-xian-xing-zuo-fa-by-endl-pedl`
+- topic id：`595542`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:01:04 +0800
+
+利用 $\textit{rank}$ 数组来代替原来的字符串比较逻辑，从而做到线性复杂度。
+
+```go
+func largestMerge(s, t string) string {
+	n := len(s)
+	sa := *(*[]int32)(unsafe.Pointer(reflect.ValueOf(suffixarray.New([]byte(s + "#" + t))).Elem().FieldByName("sa").Field(0).UnsafeAddr()))
+	rank := make([]int, n+1+len(t))
+	for i := range rank {
+		rank[sa[i]] = i
+	}
+	ans := []byte{}
+	i, j := 0, n+1
+	for {
+		if s == "" {
+			ans = append(ans, t...)
+			break
+		}
+		if t == "" {
+			ans = append(ans, s...)
+			break
+		}
+		if rank[i] > rank[j] { // s > t
+			ans = append(ans, s[0])
+			s = s[1:]
+			i++
+		} else {
+			ans = append(ans, t[0])
+			t = t[1:]
+			j++
+		}
+	}
+	return string(ans)
+}
+```
+
+附：[后缀数组的介绍、求法及应用](https://oi-wiki.org/string/sa/)
 
 ## 本地原创解析
 

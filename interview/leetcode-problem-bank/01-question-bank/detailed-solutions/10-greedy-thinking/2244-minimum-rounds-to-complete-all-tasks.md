@@ -7,15 +7,182 @@
 - 来源专题：贪心与思维
 - 来源分类路径：四、数学贪心 / §4.1 基础
 - 难度分：1372
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/minimum-rounds-to-complete-all-tasks/solutions/1427626/ha-xi-biao-tan-xin-by-endlesscheng-tgtf/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[贪心（Python/Java/C++/Go/JS/Rust）](https://leetcode.cn/problems/minimum-rounds-to-complete-all-tasks/solutions/1427626/ha-xi-biao-tan-xin-by-endlesscheng-tgtf/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`ha-xi-biao-tan-xin-by-endlesscheng-tgtf`
+- topic id：`1427626`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:01:04 +0800
+
+每轮完成的都是**相同难度级别**的任务，假设难度为 $1$ 的任务有 $c$ 个，问题变成：
+
+- 每轮可以把 $c$ 减少 $2$，或者减少 $3$。把 $c$ 减少到 $0$ 最少要多少轮？
+
+例如 $c=10$ 时，$3+3+2+2=10$，最少要 $4$ 轮。
+
+贪心地想，尽量多地使用「减少 $3$」，可以让轮数尽量少。
+
+分类讨论：
+
+- 如果 $c=1$，无法完成，返回 $-1$。
+- 如果 $c=3k\ (k\ge 1)$，只用「减少 $3$」就能完成，轮数为 $\dfrac{c}{3}$。
+- 如果 $c=3k+1\ (k\ge 1)$，即 $c=3k'+4\ (k'\ge 0)$，我们可以先把 $c$ 减少到 $4$，然后使用两次「减少 $2$」，轮数为 $\dfrac{c-4}{3} + 2 =\dfrac{c+2}{3} = \left\lceil\dfrac{c}{3}\right\rceil$。
+- 如果 $c=3k+2\ (k\ge 0)$，我们可以先把 $c$ 减少到 $2$，然后使用一次「减少 $2$」，轮数为 $\dfrac{c-2}{3} + 1 = \dfrac{c+1}{3} = \left\lceil\dfrac{c}{3}\right\rceil$。
+
+综上所述，对于 $c\ (c\ge 2)$ 个相同难度级别的任务，最少需要操作
+
+$$
+\left\lceil\dfrac{c}{3}\right\rceil = \left\lfloor\dfrac{c+2}{3}\right\rfloor
+$$
+
+次。
+
+用哈希表统计不同难度任务的个数，按照上式计算轮数，累加轮数即为答案。
+
+```py [sol-Python3]
+class Solution:
+    def minimumRounds(self, tasks: List[int]) -> int:
+        cnt = Counter(tasks)
+        if 1 in cnt.values():
+            return -1
+        return sum((c + 2) // 3 for c in cnt.values())
+```
+
+```java [sol-Java]
+class Solution {
+    public int minimumRounds(int[] tasks) {
+        Map<Integer, Integer> cnt = new HashMap<>();
+        for (int t : tasks) {
+            cnt.merge(t, 1, Integer::sum);
+        }
+        int ans = 0;
+        for (int c : cnt.values()) {
+            if (c == 1) {
+                return -1;
+            }
+            ans += (c + 2) / 3;
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int minimumRounds(vector<int>& tasks) {
+        unordered_map<int, int> cnt;
+        for (int t : tasks) {
+            cnt[t]++;
+        }
+        int ans = 0;
+        for (auto& [_, c] : cnt) {
+            if (c == 1) {
+                return -1;
+            }
+            ans += (c + 2) / 3;
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func minimumRounds(tasks []int) int {
+    cnt := map[int]int{}
+    for _, t := range tasks {
+        cnt[t]++
+    }
+    ans := 0
+    for _, c := range cnt {
+        if c == 1 {
+            return -1
+        }
+        ans += (c + 2) / 3
+    }
+    return ans
+}
+```
+
+```js [sol-JavaScript]
+var minimumRounds = function(tasks) {
+    const cnt = new Map();
+    for (const t of tasks) {
+        cnt.set(t, (cnt.get(t) ?? 0) + 1);
+    }
+    let ans = 0;
+    for (const c of cnt.values()) {
+        if (c === 1) {
+            return -1;
+        }
+        ans += Math.ceil(c / 3);
+    }
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+use std::collections::HashMap;
+
+impl Solution {
+    pub fn minimum_rounds(tasks: Vec<i32>) -> i32 {
+        let mut cnt = HashMap::new();
+        for t in tasks {
+            *cnt.entry(t).or_insert(0) += 1;
+        }
+        let mut ans = 0;
+        for &c in cnt.values() {
+            if c == 1 {
+                return -1;
+            }
+            ans += (c + 2) / 3;
+        }
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是 $\textit{tasks}$ 的长度。
+- 空间复杂度：$\mathcal{O}(n)$。
+
+## 思考题
+
+额外输入两个正整数 $a$ 和 $b$，表示每一轮可以完成 $a$ 个或者 $b$ 个相同难度级别的任务。哪些情况应该输出 $-1$？完成所有任务需要的最少轮数是多少？
+
+欢迎在评论区分享你的思路/代码。
+
+**相关题目**：[P3951 [NOIP2017 提高组] 小凯的疑惑 / [蓝桥杯 2013 省] 买不到的数目](https://www.luogu.com.cn/problem/P3951)
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

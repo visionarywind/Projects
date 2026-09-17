@@ -7,15 +7,264 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：四、回溯 / §4.1 入门回溯
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/letter-combinations-of-a-phone-number/solutions/2059416/hui-su-bu-hui-xie-tao-lu-zai-ci-pythonja-3orv/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[【视频】回溯不会写？套路在此！（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/letter-combinations-of-a-phone-number/solutions/2059416/hui-su-bu-hui-xie-tao-lu-zai-ci-pythonja-3orv/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`hui-su-bu-hui-xie-tao-lu-zai-ci-pythonja-3orv`
+- topic id：`2059416`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:57:36 +0800
+
+## 视频讲解
+
+请看[【基础算法精讲 14】](https://www.bilibili.com/video/BV1mG4y1A7Gu/)，制作不易，欢迎点赞~
+
+## 答疑
+
+**问**：为什么视频中在介绍 $\textit{dfs}(i)$ 的含义时，说我们在枚举下标 $\ge i$ 的剩余部分？$\textit{dfs}(i)$ 不是在枚举 $i$ 吗？
+
+**答**：$\textit{dfs}(i)$ 处理的是从下标 $i$ 到末尾的所有字母组合。$\textit{dfs}(i)$ 不仅仅在枚举 $i$，还包含了 $\textit{dfs}(i+1), \textit{dfs}(i+2),\ldots, \textit{dfs}(n)$ 这之后的所有递归调用。单纯说「枚举 $i$」是不准确的，因为除了枚举 $i$，还要递归处理剩余部分。正因为如此，我视频中讲的是 $\ge i$ 而不是等于 $i$。
+
+```py [sol-Python3]
+MAPPING = "", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"
+
+class Solution:
+    def letterCombinations(self, digits: str) -> List[str]:
+        n = len(digits)
+        if n == 0:
+            return []
+  
+        ans = []
+        path = [''] * n  # 注意 path 长度一开始就是 n，不是空列表
+
+        def dfs(i: int) -> None:
+            if i == n:
+                ans.append(''.join(path))
+                return
+            for c in MAPPING[int(digits[i])]:
+                path[i] = c  # 直接覆盖
+                dfs(i + 1)
+
+        dfs(0)
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    private static final String[] MAPPING = new String[]{"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"};
+
+    public List<String> letterCombinations(String digits) {
+        int n = digits.length();
+        if (n == 0) {
+            return List.of();
+        }
+
+        List<String> ans = new ArrayList<>();
+        char[] path = new char[n]; // 注意 path 长度一开始就是 n，不是空数组
+        dfs(0, ans, path, digits.toCharArray());
+        return ans;
+    }
+
+    private void dfs(int i, List<String> ans, char[] path, char[] digits) {
+        if (i == digits.length) {
+            ans.add(new String(path));
+            return;
+        }
+        String letters = MAPPING[digits[i] - '0'];
+        for (char c : letters.toCharArray()) {
+            path[i] = c; // 直接覆盖
+            dfs(i + 1, ans, path, digits);
+        }
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+    static constexpr string MAPPING[10] = {"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"};
+
+public:
+    vector<string> letterCombinations(string digits) {
+        int n = digits.length();
+        if (n == 0) {
+            return {};
+        }
+
+        vector<string> ans;
+        string path(n, 0); // 注意 path 长度一开始就是 n，不是空串
+
+        // lambda 递归
+        auto dfs = [&](this auto&& dfs, int i) -> void {
+            if (i == n) {
+                ans.emplace_back(path);
+                return;
+            }
+            for (char c : MAPPING[digits[i] - '0']) {
+                path[i] = c; // 直接覆盖
+                dfs(i + 1);
+            }
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+```
+
+```c [sol-C]
+const char* MAPPING[10] = {"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"};
+
+char** letterCombinations(char* digits, int* returnSize) {
+    int n = strlen(digits);
+    int ansSize = 1;
+    for (int i = 0; i < n; i++) {
+        ansSize *= digits[i] == '7' || digits[i] == '9' ? 4 : 3;
+    }
+
+    char** ans = malloc(ansSize * sizeof(char*));
+    char* path = malloc((n + 1) * sizeof(char)); // 注意 path 长度一开始就是 n+1，不是空串
+    path[n] = '\0';
+    *returnSize = 0;
+
+    void dfs(int i) {
+        if (i == n) {
+            ans[*returnSize] = malloc((n + 1) * sizeof(char));
+            strcpy(ans[*returnSize], path);
+            (*returnSize)++;
+            return;
+        }
+        const char* s = MAPPING[digits[i] - '0'];
+        for (int j = 0; s[j]; j++) {
+            path[i] = s[j]; // 直接覆盖
+            dfs(i + 1);
+        }
+    }
+
+    dfs(0);
+
+    free(path);
+    return ans;
+}
+```
+
+```go [sol-Go]
+var mapping = [...]string{"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"}
+
+func letterCombinations(digits string) (ans []string) {
+    n := len(digits)
+    if n == 0 {
+        return
+    }
+
+    path := make([]byte, n) // 注意 path 长度一开始就是 n，不是空列表
+
+    var dfs func(int)
+    dfs = func(i int) {
+        if i == n {
+            ans = append(ans, string(path))
+            return
+        }
+        for _, c := range mapping[digits[i]-'0'] {
+            path[i] = byte(c) // 直接覆盖
+            dfs(i + 1)
+        }
+    }
+
+    dfs(0)
+    return
+}
+```
+
+```js [sol-JavaScript]
+const MAPPING = ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"];
+
+var letterCombinations = function(digits) {
+    const n = digits.length;
+    if (n === 0) {
+        return [];
+    }
+
+    const path = Array(n); // 注意 path 长度一开始就是 n，不是空数组
+    const ans = [];
+
+    function dfs(i) {
+        if (i === n) {
+            ans.push(path.join(""));
+            return;
+        }
+        const letters = MAPPING[Number(digits[i])];
+        for (const c of letters) {
+            path[i] = c; // 直接覆盖
+            dfs(i + 1);
+        }
+    }
+
+    dfs(0);
+    return ans;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn letter_combinations(digits: String) -> Vec<String> {
+        let n = digits.len();
+        if n == 0 {
+            return vec![];
+        }
+
+        fn dfs(i: usize, ans: &mut Vec<String>, path: &mut [u8], digits: &[u8], mapping: &[&str]) {
+            if i == digits.len() {
+                unsafe { ans.push(String::from_utf8_unchecked(path.to_vec())) };
+                return;
+            }
+            for c in mapping[(digits[i] - b'0') as usize].bytes() {
+                path[i] = c; // 直接覆盖
+                dfs(i + 1, ans, path, digits, mapping);
+            }
+        }
+
+        let mapping = ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"];
+        let digits = digits.as_bytes();
+        let mut ans = vec![];
+        let mut path = vec![0; n]; // 注意 path 长度一开始就是 n
+        dfs(0, &mut ans, &mut path, digits, &mapping);
+        ans
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n4^n)$，其中 $n$ 为 $\textit{digits}$ 的长度。最坏情况下每次需要枚举 $4$ 个字母，递归次数为一个满四叉树的节点个数，那么一共会递归 $\mathcal{O}(4^n)$ 次（等比数列和），再算上加入答案时复制 $\textit{path}$ 需要 $\mathcal{O}(n)$ 的时间，所以时间复杂度为 $\mathcal{O}(n4^n)$。
+- 空间复杂度：$\mathcal{O}(n)$。返回值的空间不计入。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

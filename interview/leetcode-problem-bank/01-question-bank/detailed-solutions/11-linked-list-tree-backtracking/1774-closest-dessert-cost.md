@@ -8,8 +8,8 @@
 - 来源分类路径：四、回溯 / §4.2 子集型回溯
 - 难度分：1702
 - 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解授权状态：missing-endlesscheng-solution
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 

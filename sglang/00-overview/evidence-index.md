@@ -70,6 +70,20 @@
 - `[python/sglang/srt/models/llama.py:742-778]`、`[python/sglang/srt/models/qwen2.py:1-660]`：Llama/Qwen2 v2 权重入口。
 - `[python/sglang/srt/configs/model_config.py:692-809]`：`from_server_args` 字段投影和 draft architecture 改写。
 
+## DeepSeek 模型与并行策略
+
+- `[python/sglang/srt/server_args.py:1764-1853]`：DeepSeek architecture/DSA 识别、NSA backend 默认值及 DSA prefill CP 限制。
+- `[python/sglang/srt/server_args.py:2974-3028]`：CP、MoE DP/EP/PP 组合约束及 DP Attention 的整除、chunked prefill 和调度调整。
+- `[python/sglang/srt/server_args.py:3138-3201]`、`[python/sglang/srt/server_args.py:3259-3264]`：A2A MoE backend 的 `ep_size`/CUDA Graph 约束及 PP overlap 约束。
+- `[python/sglang/srt/layers/dp_attention.py:240-316,388-420,568-602]`：attention DP/CP/TP rank 推导、buffer/token slice 和 gather/reduce-scatter。
+- `[python/sglang/srt/distributed/parallel_state.py:1906-2044]`：attention TP、MoE DP/EP/TP 和 PP group 构造/复用。
+- `[python/sglang/srt/models/deepseek_v2.py:386-428,450-565,622-697,748-858]`：DeepSeek MoE 的 expert layout、shared expert、normal/A2A dispatch、combine 和 TP reduce。
+- `[python/sglang/srt/models/deepseek_v2.py:1273-1433,1512-1728]`：MLA attention-TP、DSA Indexer、backend dispatch 及 CP KV rebuild。
+- `[python/sglang/srt/models/deepseek_v2.py:2027-2366,2529-2555]`：PP layer slicing、proxy tensors、embedding/norm/lm-head ownership和 V3/V3.2 entry class。
+- `[python/sglang/srt/models/deepseek_nextn.py]`、`[python/sglang/srt/models/deepseek_v4.py]`、`[python/sglang/srt/models/deepseek_v4_nextn.py]`：NextN/MTP 及 V4 模型变体的复用边界（文件级证据，具体行号仍需增量精化）。
+- `[docs/basic_usage/deepseek_v3.md:138-152]`、`[docs/basic_usage/deepseek_v32.md:40-63]`：官方 DeepSeek TP、DP Attention、EP、DSA/NSA、MTP 和部署入口；命令未在本工作区运行。
+- `[test/registered/8-gpu-models/test_deepseek_v3_mtp.py]`、`[test/registered/8-gpu-models/test_deepseek_v32.py]`、`[test/registered/cp/test_deepseek_v32_cp_single_node.py]`、`[test/registered/distributed/test_dp_attention.py]`：DeepSeek、CP 和 DP Attention 测试入口；文件存在不等于测试已执行。
+
 - `[python/sglang/srt/mem_cache/allocator.py:41-223]`、`[python/sglang/srt/mem_cache/allocator.py:27-96]`、`[python/sglang/srt/mem_cache/allocator.py:116-337]`：allocator 抽象、普通 token allocator 和 paged allocation/free。
 - `[python/sglang/srt/mem_cache/evict_policy.py:9-65]`、`[python/sglang/srt/mem_cache/radix_cache.py:616-680]`：eviction strategy、heap eviction 和 lock/protected accounting。
 - `[python/sglang/srt/mem_cache/memory_pool.py:129-194]`：`ReqToTokenPool` request row 分配、复用和清空。

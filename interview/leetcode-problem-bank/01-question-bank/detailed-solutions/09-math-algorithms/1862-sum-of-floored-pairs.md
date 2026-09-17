@@ -7,15 +7,47 @@
 - 来源专题：数学算法
 - 来源分类路径：七、杂项 / §7.10 其他
 - 难度分：2170
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/sum-of-floored-pairs/solutions/778535/zhi-yu-qian-zhui-he-mei-ju-fen-mu-he-sha-2143/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[值域前缀和+枚举分母和商](https://leetcode.cn/problems/sum-of-floored-pairs/solutions/778535/zhi-yu-qian-zhui-he-mei-ju-fen-mu-he-sha-2143/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`zhi-yu-qian-zhui-he-mei-ju-fen-mu-he-sha-2143`
+- topic id：`778535`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 10:37:43 +0800
+
+统计每个数的出现次数 $\textit{cnt}$，并计算次数的前缀和 $\textit{sum}$。
+
+然后枚举分母以及商，用前缀和计算对应的分子个数，将分母个数 $c$、商 $d$、分子个数三者相乘即为每部分的结果，累加每部分的结果即为答案。
+
+```go
+func sumOfFlooredPairs(a []int) (ans int) {
+	cnt := make([]int, 2e5)
+	for _, v := range a {
+		cnt[v]++
+	}
+	sum := make([]int, 2e5+1)
+	for i, v := range cnt {
+		sum[i+1] = sum[i] + v
+	}
+	for i, c := range cnt {
+		if c > 0 {
+			for d := 1; d*i <= 1e5; d++ {
+				ans += c * d * (sum[(d+1)*i] - sum[d*i])
+			}
+		}
+	}
+	return ans % (1e9 + 7)
+}
+```
+
+时间复杂度：$O(U\log U)$。$U$ 为数组的最大值，枚举分母和商的总次数是一个调和级数，因此时间复杂度为 $O(U\log U)$。
 
 ## 本地原创解析
 

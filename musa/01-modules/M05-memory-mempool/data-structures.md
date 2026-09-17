@@ -120,7 +120,29 @@ Core Context/Platform MemoryTracker
 - internal allocation 例外：`Device::AllocateInternalMem` 直接 new Core `Memory` 并 `InitPrealloc`；`FreeInternalMem` 先 delete，再调用 HAL pool free。[`src/musa/core/device.cpp:1110-1152`]
 - graph allocation 的 `AllocParameter` 持有 virtual memory shared pointer；graph resource 析构时显式 `DestroyPhysMemories` 和 `pPool->DestroyMemory`。[`src/musa/core/graph.cpp:22-29`]
 
-## 6. 两套统计不可混淆
+## 7. IPC pool metadata 与 SplayTree registry 的边界
+
+### 7.1 IPC pool metadata
+
+Core pool 的 IPC handle 不是可在接收进程直接复用的 HAL pool 指针，而是 POSIX shared-memory metadata 的 ownership wrapper：
+
+- export 侧通过 `mkstemp`、`shm_open`、`ftruncate`、`mmap` 建立共享元数据，设置 `owners = 1`，再 `dup` fd 返回。[`src/musa/core/memoryPool.cpp:512-573`]
+- import 侧只 `dup`/`mmap` 传入 fd，递增共享 `owners` 并设置 `m_IsImported`；没有设置 `m_pHalPool`。[`src/musa/core/memoryPool.cpp:473-510`]
+- 因此 imported wrapper 可作为句柄查询/销毁，但当前 driver 明确拒绝对它设置属性或从它执行异步 pool allocation。[`src/driver/mu_mempool.cpp:153-169,349-390`]
+- 析构时会递减 `owners` 并 `munmap`；源码的 `close(fd)` 位于 `m_IpcName` 非空分支内，而 imported wrapper 没有设置该名称，不能笼统地描述为所有 import 路径都会关闭 dup fd。[`src/musa/core/memoryPool.cpp:575-609`]
+
+`mmap` 失败值是 `MAP_FAILED`，源码却与 `nullptr` 比较；这是静态审计风险，尚未通过故障注入复现。跨进程 `owners` 也只由进程内 mutex 包围，不能据此证明跨进程原子性。
+
+### 7.2 SplayTree registry
+
+自动 pool registry 使用 `Util::SplayTree<Key, MemoryPool*>`：
+
+- `Get` 会 splay 并返回根节点，未命中时可能是最近节点；`MemMgr::Allocate` 因此还要做属性兼容性比较。[`src/util/utilSplayTree.h:61-100`、`src/hal/m3d/memMgr.cpp:116-133`]
+- `Insert` 遇到已有 key 不替换 value；自动 registry 的 key 不能对应两个 pool。[`src/util/utilSplayTree.h:144-179`]
+- `Delete(key, true)` 会同时释放节点 value；`MemMgr` 的自动 pool teardown 依赖这一 ownership 语义。[`src/util/utilSplayTree.h:182-212`、`src/hal/m3d/memMgr.cpp:20-34`]
+- `Search` 的比较分支方向与通常升序 BST 直觉相反；这只是静态实现风险，真实树形下的 `FindPool` 行为仍需单测验证。[`src/util/utilSplayTree.h:215-226`]
+
+## 8. 两套统计不可混淆
 
 | API 观察 | 来源 | 代表什么 |
 |---|---|---|
@@ -129,4 +151,4 @@ Core Context/Platform MemoryTracker
 | HAL free size | `m_FreeSize` | chunk 内可再次切分的空闲字节 |
 | segment size | `ResSegment::size` | 某个连续区间，可能包含对齐 padding 后的实际范围 |
 
-这些量在大对齐、chunk 保留、graph physical deferred allocation 时会明显不同。
+这几类数字在大 alignment、chunk 保留和 graph physical backing 延迟存在时可以明显不同。

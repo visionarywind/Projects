@@ -7,15 +7,112 @@
 - 来源专题：字符串
 - 来源分类路径：四、字符串哈希
 - 难度分：2661
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/longest-common-subpath/solutions/857732/hou-zhui-shu-zu-er-fen-da-an-by-endlessc-ocar/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[后缀数组+二分答案](https://leetcode.cn/problems/longest-common-subpath/solutions/857732/hou-zhui-shu-zu-er-fen-da-an-by-endlessc-ocar/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`hou-zhui-shu-zu-er-fen-da-an-by-endlessc-ocar`
+- topic id：`857732`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 13:14:52 +0800
+
+![1.png](https://pic.leetcode.cn/1625455590-fymofI-1.png)
+
+
+```go
+func longestCommonSubpath(_ int, paths [][]int) (ans int) {
+	a := []int{}
+	minPathLen := int(1e9) // 二分右边界
+	for _, p := range paths {
+		minPathLen = min(minPathLen, len(p))
+		a = append(a, 1e9) // 用一个不存在 paths 中的数拼接所有路径
+		a = append(a, p...)
+	}
+	n, m := len(a), len(paths)
+
+	// 标记每个元素属于哪条路径
+	ids := make([]int, n)
+	id := -1
+	for i, v := range a {
+		if v == 1e9 {
+			id++
+			ids[i] = m
+		} else {
+			ids[i] = id
+		}
+	}
+
+	// 构建 a 的后缀数组和高度数组
+	s := make([]byte, 0, n*4)
+	for _, v := range a {
+		s = append(s, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+	}
+	// Go 自带后缀数组，由 SA-IS 算法实现，复杂度 O(n)
+	_sa := *(*[]int32)(unsafe.Pointer(reflect.ValueOf(suffixarray.New(s)).Elem().FieldByName("sa").Field(0).UnsafeAddr()))
+	sa := make([]int32, 0, n)
+	for _, v := range _sa {
+		if v&3 == 0 {
+			sa = append(sa, v>>2)
+		}
+	}
+	rank := make([]int, n)
+	for i := range rank {
+		rank[sa[i]] = i
+	}
+	height := make([]int, n)
+	h := 0
+	for i, rk := range rank {
+		if h > 0 {
+			h--
+		}
+		if rk > 0 {
+			for j := int(sa[rk-1]); i+h < n && j+h < n && a[i+h] == a[j+h]; h++ {
+			}
+		}
+		height[rk] = h
+	}
+
+	// 二分求答案
+	return sort.Search(minPathLen, func(limit int) bool {
+		limit++
+		vis := make([]int, m)
+		for i := 1; i < n; i++ {
+			if height[i] < limit {
+				continue
+			}
+			cnt := 0
+			for st := i; i < n && height[i] >= limit; i++ {
+				// 检查 sa[i] 和 sa[i-1]
+				if j := ids[sa[i]]; j < m && vis[j] != st {
+					vis[j] = st
+					cnt++
+				}
+				if j := ids[sa[i-1]]; j < m && vis[j] != st {
+					vis[j] = st
+					cnt++
+				}
+			}
+			if cnt == m {
+				return false
+			}
+		}
+		return true
+	})
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+```
 
 ## 本地原创解析
 

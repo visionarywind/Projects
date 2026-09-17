@@ -7,15 +7,339 @@
 - 来源专题：数学算法
 - 来源分类路径：七、杂项 / §7.10 其他
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/next-permutation/solutions/3621022/jiao-ni-cong-ling-kai-shi-si-kao-zhe-ti-9qfrq/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[带你发明下一个排列算法（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/next-permutation/solutions/3621022/jiao-ni-cong-ling-kai-shi-si-kao-zhe-ti-9qfrq/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`jiao-ni-cong-ling-kai-shi-si-kao-zhe-ti-9qfrq`
+- topic id：`3621022`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 10:46:10 +0800
+
+## 引入
+
+整数 $13999$ 的「下一个整数」是多少？
+
+你可以轻松地答出：$14000$。
+
+怎么算的？拆解步骤：
+
+1. 从右到左，找第一个可以增大的数字（小于 $9$ 的数字），即 $3$。
+2. 把 $3$ 加一，变成 $4$。
+3. 把 $4$ 右边的数都变成 $0$。
+
+本题要计算「下一个排列」，这类似于计算「下一个不含重复数字的整数」，计算框架应该和「下一个整数」是类似的，具体要怎么做呢？
+
+## 例子
+
+排列 $[1,3,5,4,2]$ 的下一个排列是什么？
+
+从右到左，找第一个可以增大的数。什么是「可以增大的数」？
+
+- 如果 $1,3,5$ 保持不变，只重新排列 $4,2$，得到 $2,4$。排列变小了，这不行。
+- 如果 $1,3$ 保持不变，只重新排列 $5,4,2$，由于 $5$ 的右边都是小于 $5$ 的数，所以重排后，$5$ 这个位置上的数必然变小，导致排列变小，这也不行。
+- 如果 $1$ 保持不变，只重新排列 $3,5,4,2$，这是可以的，因为 **$3$ 右边有比 $3$ 大的数，重排后可以让 $3$ 这个位置上的数变大，从而得到更大的排列**。
+- 由于要求的是下一个排列，所以 $3$ 这个位置上的数只要「大一点点」就好了。找到 $3$ 右边最小的大于 $3$ 的数，也就是 $4$，放到 $3$ 这个位置上。于是，下一个排列是 $[1,4,\_,\_,\_]$。
+- 剩余的三个数是 $2,3,5$。由于只看前两位 $[1,4,\_,\_,\_]$ 就已经比 $[1,3,5,4,2]$ 大了，所以后三位填最小的排列就行，即按照 $2,3,5$ 的顺序填，得到 $[1,4,2,3,5]$。
+
+回顾我们是怎么算的：
+
+1. 从右到左，找第一个可以增大的数 $x$，也就是 $x$ 右边有大于 $x$ 的数。我们找到的数是 $3$。由于 $3$ 右边的数是递减的（证明见答疑），所以 $3$ 右侧**相邻**数就是 $3$ 右边最大的数。如果 $3$ 右侧相邻数小于 $3$，那么 $3$ 右边必然没有大于 $3$ 的数。因此，这一步可以简化为，从右到左，找第一个小于右侧相邻数的数 $x$。
+2. 找 $3$ 右边最小的大于 $3$ 的数。由于 $3$ 右边的数是递减的，所以再遍历一遍，从右到左找第一个大于 $3$ 的数，就是 $3$ 右边**最小**的大于 $3$ 的数。我们找到的数是 $4$。然后把 $4$ 放到 $3$ 的位置上，把 $3$ 放到右边的三个位置中。这一步可以简化为交换 $3$ 和 $4$。交换后得到 $[1,4,5,3,2]$。注意交换后 $5,4,2$ 变成 $5,3,2$，仍然是递减的（证明见答疑）。
+3. 把 $4$ 右边的数从小到大排序。由于第二步交换后，$4$ 右边的数 $5,3,2$ 是递减的，所以只需把 $5,3,2$ **反转**，就得到了答案 $[1,4,2,3,5]$。
+
+## 算法
+
+把上述过程一般化，同时对比「下一个整数」的算法：
+
+| **下一个排列**  |  **下一个整数** | **相同点** |
+|---|---|---|
+|  从右到左，找第一个小于右侧相邻数的数 $x$ |  从右到左，找第一个小于 $9$ 的数字 $x$ | 都是找第一个小于右侧相邻数的数 |
+|  找 $x$ 右边最小的大于 $x$ 的数 $y$，交换 $x$ 和 $y$ |  把 $x$ 加一，得到 $y=x+1$ | 增大这个数 |
+|  反转 $y$ 右边的数，把右边的数变成最小的排列 |  把 $y$ 右边的数字都变成 $0$ | 把右边的数变到最小 |
+
+特别地，如果第一步没有找到这样的 $x$，说明 $\textit{nums}$ 是递减的，是最后一个排列（字典序最大的排列）。此时跳过第二步，反转整个 $\textit{nums}$，结果一定是递增的，即第一个排列（字典序最小的排列）。
+
+## 答疑
+
+**问**：第一步找到 $x$ 后，为什么 $x$ 右边的数是递减的？
+
+**答**：反证法。假设 $x$ 右边的数不是递减的，也就是说，在 $x$ 的右边，存在 $\textit{nums}[i] < \textit{nums}[i+1]$ 的情况，那么我们应把 $\textit{nums}[i]$ 当作 $x$，这与事实矛盾。
+
+**问**：为什么第二步交换后，右边的序列仍然是递减的？
+
+**答**：设交换前 $\textit{nums}=[\ldots,x,c,b,a,\ldots]$，其中大小关系为 $c>b>x>a$。那么 $x$ 右边最小的大于 $x$ 的数是 $b$。交换 $x$ 和 $b$，得到 $[\ldots,b,c,x,a,\ldots]$，其中 $c>x>a>\cdots$，仍然是递减的。
+
+**问**：如果 $\textit{nums}$ 是第一个排列，我们是怎么算的？
+
+**答**：例如 $\textit{nums}=[1,2,3]$。第一步找到 $2$，第二步交换 $2$ 和 $3$，第三步反转 $2$（只有一个数，反转后还是 $2$），最终得到 $[1,3,2]$。读者可以动手算算 $[1,3,2]$ 的后续排列，以加深印象。
+
+```py [sol-Python3]
+class Solution:
+    def nextPermutation(self, nums: List[int]) -> None:
+        n = len(nums)
+
+        # 第一步：从右到左找到第一个小于 nums[i+1] 的数 nums[i]
+        i = n - 2
+        while i >= 0 and nums[i] >= nums[i + 1]:
+            i -= 1
+
+        # 如果找到了，进入第二步；否则跳过第二步，反转整个数组
+        if i >= 0:
+            # 第二步：从右到左找到 nums[i] 右边最小的大于 nums[i] 的数 nums[j]
+            j = n - 1
+            while nums[j] <= nums[i]:
+                j -= 1
+            # 交换 nums[i] 和 nums[j]
+            nums[i], nums[j] = nums[j], nums[i]
+
+        # 第三步：反转 nums[i+1:]（如果上面跳过第二步，此时 i = -1）
+        # nums[i+1:] = nums[i+1:][::-1] 这样写也可以，但空间复杂度不是 O(1) 的
+        left, right = i + 1, n - 1
+        while left < right:
+            nums[left], nums[right] = nums[right], nums[left]
+            left += 1
+            right -= 1
+```
+
+```java [sol-Java]
+class Solution {
+    public void nextPermutation(int[] nums) {
+        int n = nums.length;
+
+        // 第一步：从右到左找到第一个小于 nums[i+1] 的数 nums[i]
+        int i = n - 2;
+        while (i >= 0 && nums[i] >= nums[i + 1]) {
+            i--;
+        }
+
+        // 如果找到了，进入第二步；否则跳过第二步，反转整个数组
+        if (i >= 0) {
+            // 第二步：从右到左找到 nums[i] 右边最小的大于 nums[i] 的数 nums[j]
+            int j = n - 1;
+            while (nums[j] <= nums[i]) {
+                j--;
+            }
+            // 交换 nums[i] 和 nums[j]
+            swap(nums, i, j);
+        }
+
+        // 第三步：反转 [i+1, n-1]（如果上面跳过第二步，此时 i = -1）
+        reverse(nums, i + 1, n - 1);
+    }
+
+    private void swap(int[] nums, int i, int j) {
+        int tmp = nums[i];
+        nums[i] = nums[j];
+        nums[j] = tmp;
+    }
+
+    private void reverse(int[] nums, int left, int right) {
+        while (left < right) {
+            swap(nums, left++, right--);
+        }
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    void nextPermutation(vector<int>& nums) {
+        int n = nums.size();
+
+        // 第一步：从右到左找到第一个小于 nums[i+1] 的数 nums[i]
+        int i = n - 2;
+        while (i >= 0 && nums[i] >= nums[i + 1]) {
+            i--;
+        }
+
+        // 如果找到了，进入第二步；否则跳过第二步，反转整个数组
+        if (i >= 0) {
+            // 第二步：从右到左找到 nums[i] 右边最小的大于 nums[i] 的数 nums[j]
+            int j = n - 1;
+            while (nums[j] <= nums[i]) {
+                j--;
+            }
+            // 交换 nums[i] 和 nums[j]
+            swap(nums[i], nums[j]);
+        }
+
+        // 第三步：反转 [i+1, n-1]（如果上面跳过第二步，此时 i = -1）
+        reverse(nums.begin() + i + 1, nums.end());
+    }
+};
+```
+
+```cpp [sol-C++ 库函数]
+class Solution {
+public:
+    void nextPermutation(vector<int>& nums) {
+        ranges::next_permutation(nums);
+    }
+};
+```
+
+```c [sol-C]
+#define SWAP(a, b) do { int tmp = (a); (a) = (b); (b) = tmp; } while (0)
+
+void nextPermutation(int* nums, int numsSize) {
+    int i = numsSize - 2;
+
+    // 第一步：从右到左找到第一个小于 nums[i+1] 的数 nums[i]
+    while (i >= 0 && nums[i] >= nums[i + 1]) {
+        i--;
+    }
+
+    // 如果找到了，进入第二步；否则跳过第二步，反转整个数组
+    if (i >= 0) {
+        int j = numsSize - 1;
+        while (nums[j] <= nums[i]) {
+            j--;
+        }
+        // 交换 nums[i] 和 nums[j]
+        SWAP(nums[i], nums[j]);
+    }
+
+    // 第三步：反转 [i+1, n-1]（如果上面跳过第二步，此时 i = -1）
+    int left = i + 1, right = numsSize - 1;
+    while (left < right) {
+        SWAP(nums[left], nums[right]);
+        left++;
+        right--;
+    }
+}
+```
+
+```go [sol-Go]
+func nextPermutation(nums []int) {
+    n := len(nums)
+
+    // 第一步：从右到左找到第一个小于 nums[i+1] 的数 nums[i]
+    i := n - 2
+    for i >= 0 && nums[i] >= nums[i+1] {
+        i--
+    }
+
+    // 如果找到了，进入第二步；否则跳过第二步，反转整个数组
+    if i >= 0 {
+        // 第二步：从右到左找到 nums[i] 右边最小的大于 nums[i] 的数 nums[j]
+        j := n - 1
+        for nums[j] <= nums[i] {
+            j--
+        }
+        // 交换 nums[i] 和 nums[j]
+        nums[i], nums[j] = nums[j], nums[i]
+    }
+
+    // 第三步：反转 nums[i+1:]（如果上面跳过第二步，此时 i = -1）
+    slices.Reverse(nums[i+1:])
+}
+```
+
+```js [sol-JavaScript]
+var nextPermutation = function(nums) {
+    const n = nums.length;
+
+    // 第一步：从右到左找到第一个小于 nums[i+1] 的数 nums[i]
+    let i = n - 2;
+    while (i >= 0 && nums[i] >= nums[i + 1]) {
+        i--;
+    }
+
+    // 如果找到了，进入第二步；否则跳过第二步，反转整个数组
+    if (i >= 0) {
+        // 第二步：从右到左找到 nums[i] 右边最小的大于 nums[i] 的数 nums[j]
+        let j = n - 1;
+        while (nums[j] <= nums[i]) {
+            j--;
+        }
+        // 交换 nums[i] 和 nums[j]
+        [nums[i], nums[j]] = [nums[j], nums[i]];
+    }
+
+    // 第三步：反转 [i+1, n-1]（如果上面跳过第二步，此时 i = -1）
+    let left = i + 1, right = n - 1;
+    while (left < right) {
+        [nums[left], nums[right]] = [nums[right], nums[left]];
+        left++;
+        right--;
+    }
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn next_permutation(nums: &mut Vec<i32>) {
+        let n = nums.len();
+
+        // 第一步：从右到左找到第一个小于 nums[i+1] 的数 nums[i]
+        let mut i = n as isize - 2;
+        while i >= 0 && nums[i as usize] >= nums[(i + 1) as usize] {
+            i -= 1;
+        }
+
+        // 如果找到了，进入第二步；否则跳过第二步，反转整个数组
+        if i >= 0 {
+            // 第二步：从右到左找到 nums[i] 右边最小的大于 nums[i] 的数 nums[j]
+            let i = i as usize;
+            let mut j = n - 1;
+            while nums[j] <= nums[i] {
+                j -= 1;
+            }
+            // 交换 nums[i] 和 nums[j]
+            nums.swap(i, j);
+        }
+
+        // 第三步：反转 nums[i+1..]（如果上面跳过第二步，此时 i = -1）
+        nums[(i + 1) as usize..].reverse();
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是 $\textit{nums}$ 的长度。最坏情况下需要遍历整个 $\textit{nums}$ 数组。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 变形题
+
+改成求「**上一个排列**」，怎么做？
+
+欢迎在评论区分享你的思路/代码。
+
+## 相关问题
+
+1. 给定 $n$ 和 $k$，求 $1$ 到 $n$ 的所有排列中，字典序第 $k$ 小的排列。见 [60. 排列序列](https://leetcode.cn/problems/permutation-sequence/)。
+2. 求 $\textit{nums}$ 是字典序第几小的排列。见 [3109. 查找排列的下标](https://leetcode.cn/problems/find-the-index-of-permutation/)（会员题）。
+3. 给定 $\textit{nums}$，如何生成下下个排列？如何生成下 $k$ 个排列？提示：结合前两个问题。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

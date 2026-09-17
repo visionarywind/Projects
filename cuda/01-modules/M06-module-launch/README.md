@@ -15,7 +15,7 @@
 - **职责**：加载 CUDA module/fatbinary/ELF/JIT 产物，建立 `CUmod`/`CUfunc`，解析 kernel 参数元数据，并把 launch 请求转换成 `CUIlaunchData`、constant-bank 参数和 QMD。
 - **证据状态**：API launch、参数、tracking、HAL setup、module ELF/JIT、shared image、graph instantiate/launch/unload 已静态确认；架构 QMD/ABI、compiler 和最终 push/设备执行未闭合。
 - **核心文件**：`cuimod.c`、`cuifunc.c`、`cuiparam.c`、`cuilaunch.c`、`cuigraph.c`、`cuielf.c`、`cuielf32.c`、`cuielf64.c`、`cuijitlink.c`。
-- **资源专题**：[Graph 资源生命周期](graph-resource-lifecycle.md)。Graph exec 会持有 per-context stream、marker、QMD、constant-bank 和 scheduler backing；这些资源必须跨 launch 和 destroy 成对管理。
+- **控制流专题**：[CUDA Graph 控制流实现](graph-control-flow.md)：单独说明 capture、依赖边、flatten、拓扑排序、scheduling group、QMD chaining、pushbuffer、device scheduler、conditional 和 completion 如何共同实现 Graph 控制流。
 
 ## 两种执行模式
 

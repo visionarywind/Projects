@@ -157,4 +157,77 @@ HAL pool 析构会遍历所有 segment；若仍 busy，打印 `cleanup unfreed m
 - `SetAccess` 修改 location map 后，对已有 allocation 收集 `(virt,physical,size)` 并调用 `ModifyAccess`。
 - `ModifyAccess` 对跨设备 READWRITE 先 `OpenPeerMemory`，再组装 `MemoryPaging`，通过 `m_pStream->CmdPaging` 排队。[`src/musa/core/memoryPool.cpp:101-198,201-376`]
 
-三个 reuse attribute 当前在 Core 中只转换为 disable flags 并由 GetAttribute 返回；本专题已读源码中没有看到它们改变 HAL `SelectPolicy`、dependency 检查或 `Free` 逻辑，故其实际运行效果标为未知。
+三个 reuse attribute 当前在 Core 中只转换为 disable flags 并由 GetAttribute 返回；全局静态查找只发现构造、Set/Get 三类引用，没有发现它们改变 HAL `SelectPolicy`、dependency 检查或 `Free` 逻辑。因此在该源码版本中，应将其运行效果标记为未接线/未知，而不是把 API 名称直接当作已经实现的调度行为。
+
+## 11. IPC pool handle 的实现范围
+
+`MemoryPool::Export` 和 `InitFromHandle` 共享的是一段 `IpcMemPoolShmem_t` metadata，而不是 HAL `IMemoryPool` 本身：
+
+```text
+export side
+  -> call_once(CreateIpcMemPoolShmemIfNeed)
+  -> shm_open + ftruncate + mmap
+  -> owners = 1
+  -> dup(fd) 返回调用方
+
+import side
+  -> dup(fd)
+  -> mmap metadata
+  -> owners += 1
+  -> m_IsImported = true
+```
+
+[`src/musa/core/memoryPool.cpp:439-569`]
+
+`ExternalAlloc` 初始化没有为 wrapper 设置 `m_pHalPool`。所以 imported pool handle 的作用域受到 driver API 限制：不能用于 `muMemAllocFromPoolAsync`，也不能修改 pool attribute；pointer import 走的是独立 IPC memory handle → `memoryTypeIpcImport` 路径，而不是 imported pool 的 `FullAllocate`。[`src/musa/core/memoryPool.cpp:21-64,473-510`、`src/driver/mu_memory.cpp:349-390`、`src/driver/mu_mempool.cpp:153-169,322-390`]
+
+### 11.1 cleanup 的精确边界
+
+析构路径先递减共享 `owners` 并 `munmap`。但源码把 `close(m_IpcFd)` 与 `shm_unlink` 都放在 `m_IpcName` 非空分支内；export owner 设置名称，而 `InitFromHandle` 创建的 imported wrapper 不设置名称。因此不能声称 imported wrapper 析构一定关闭其 dup fd。若 exporter 在 importers 之前销毁，它因 `owners != 0` 不 unlink；后续 imported wrapper 又不满足非空名称分支，最终 unlink 责任也需要运行验证。[`src/musa/core/memoryPool.cpp:575-609`]
+
+### 11.2 静态实现风险
+
+1. POSIX `mmap` 失败返回 `MAP_FAILED`，当前代码以 `nullptr` 判断 import/export 两处结果。[`src/musa/core/memoryPool.cpp:491-503,551-562`]
+2. shared `owners` 由进程内 mutex 包裹，但不同进程不共享该 mutex；跨进程加减的原子性未建立。[`src/musa/core/memoryPool.cpp:486-503,575-603`]
+3. `CreateIpcMemPoolShmemIfNeed` 用 `call_once` 包住可能失败的初始化，且中间失败没有统一 RAII rollback；首次失败后的重试和资源残留需要故障注入验证。[`src/musa/core/memoryPool.cpp:516-569`]
+4. `muMemPoolDestroy` 在 driver 层未检查 live allocation；是否会造成 pool-backed `Memory::m_pPool` 悬空，需要 API contract 和运行测试确认。[`src/driver/mu_mempool.cpp:118-150`]
+
+## 12. current pool 与 destroy 的 raw-pointer 边界
+
+Device 的 default/current/graph pool 都是 raw pointer；`GetMemoryPool()` 优先返回 `m_CurrentMemoryPool`，而 `SetCurrentMemoryPool` 只是赋值。`ValidatePool` 对非 imported pool 仅查询 HAL user-pool registry。[`src/musa/core/device.h:87-95,224-228`]
+
+```text
+muDeviceSetMemPool / muMemSetMemPool
+  -> SetCurrentMemoryPool(pMemPool)
+       -> m_CurrentMemoryPool = pMemPool
+
+muMemPoolDestroy
+  -> ValidatePool
+  -> delete Core MemoryPool
+       -> DestroyUserPool(HAL pool)
+       -> Core object 消失
+```
+
+当前 `muMemPoolDestroy` 没有在删除前把 Device/Platform 的 current pointer 回退到 default。若被删除对象仍是 device current pool，后续 `Device::GetMemoryPool()` 会优先返回该非空 raw pointer，而不会触发 default fallback。这是从赋值和 destroy 顺序直接得到的静态生命周期风险，尚未运行复现。[`src/driver/mu_device.cpp:328-348`、`src/driver/mu_mempool.cpp:118-150,504-563`]
+
+host/NUMA current pool 同样是 Platform 保存的 raw pointer；setter 只覆盖当前项，Platform 析构时只明确删除 default host/NUMA pools，再清空 current 容器。用户 pool 的真实 ownership 仍在 HAL user-pool registry/Core handle，而不是这些 current 指针。[`src/musa/core/platform.cpp:524-535,575-645`]
+
+另一个边界是 imported wrapper：`ValidatePool` 对 imported pool 直接返回 true，但 `muMemSetMemPool` 随后无条件执行 `pMemPool->Hal()->GetInfo()`；imported wrapper 的 HAL pointer 为 null。因此将 imported pool 设为 current 的行为存在空指针风险，不能由 `ValidatePool` 的成功推导为该 API 支持 imported pool。[`src/musa/core/device.h:93-95`、`src/driver/mu_mempool.cpp:504-553`]
+
+## 13. live allocation 与 pool teardown
+
+Core pool allocation 同时存在三种引用：
+
+1. `Platform::MemoryTracker` 以 shared ownership 持有 `Memory`；
+2. Core pool 的 `m_MemoryAllocations` 只保存 raw pointer；
+3. `Memory::m_pPool` 保存指回 Core pool 的 raw pointer。
+
+`MemoryPool::~MemoryPool` 不先遍历或拒绝非空 allocation set，而是直接 `DestroyUserPool(m_pHalPool)`；随后 live `Memory` 最后析构时仍会通过 `m_pPool->GetDevice()` 和 `m_pPool->Hal()->Free(...)`。因此 destroy-with-live-allocation 可能同时破坏 Core pool raw pointer 与 HAL suballocation owner；实际 API 是否由外层 contract 禁止该顺序，当前实现片段没有证明。[`src/musa/core/memoryPool.cpp:86-99,380-427`、`src/musa/core/memory.cpp:360-379`]
+
+进程退出路径有所不同：Platform 先等待 device，再 `ReleaseUnfreedMemories` 清空 Context/MemoryTracker，之后删除 host pools 和 devices；Device 析构则在 contexts/primary context 后删除 default/graph pools。这说明全局 teardown 尝试让 Memory 在 pool 之前消失，但不能替代用户显式 `muMemPoolDestroy` 的 live-allocation 检查。[`src/musa/core/platform.cpp:478-541`、`src/musa/core/device.cpp:672-700`]
+
+## 14. IPC pointer import 的 ownership
+
+`muMemPoolExportPointer` 从当前 Context 的 virtual Memory 找到 physical Memory，导出 physical IPC handle 并设置 `fromMempool=true`。import 侧只从 pool wrapper 取得 device，然后在当前 Context 中创建 `memoryTypeIpcImport`；当前入口没有调用 `ValidatePool`、没有验证 pool 必须是 imported wrapper，也没有调用该 pool 的 `CreateMemory`。[`src/driver/mu_mempool.cpp:322-390`]
+
+所以 imported pointer 的实际 Core ownership 是当前 Context/Platform MemoryTracker，而不是传入 pool 的 `m_MemoryAllocations`。这只是本版本入口实现事实；是否允许任意同设备 pool handle、是否应校验 `fromMempool`，仍需结合公开 API contract 和运行测试确认。

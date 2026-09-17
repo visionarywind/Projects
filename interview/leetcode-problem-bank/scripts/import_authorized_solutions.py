@@ -318,6 +318,7 @@ def import_problem_solution_bodies(
     request_delay: float = 1.0,
     max_retries: int = 2,
     retry_delay: float = 15.0,
+    eligible_statuses: set[str] | None = None,
 ) -> tuple[int, int, int, int]:
     rows = parse_problem_rows()
     if offset:
@@ -344,7 +345,11 @@ def import_problem_solution_bodies(
             skipped += 1
             continue
         text = path.read_text(encoding="utf-8")
-        if solution_status(text) == "authorized-import":
+        current_status = solution_status(text)
+        if current_status == "authorized-import":
+            skipped += 1
+            continue
+        if eligible_statuses is not None and current_status not in eligible_statuses:
             skipped += 1
             continue
         slug = problem_slug(problem.url)
@@ -565,6 +570,12 @@ def main() -> int:
     parser.add_argument("--request-delay", type=float, default=1.0, help="seconds between problem lookups")
     parser.add_argument("--max-retries", type=int, default=2, help="retries for rate limits and transient network errors")
     parser.add_argument("--retry-delay", type=float, default=15.0, help="initial delay before retrying a transient failure")
+    parser.add_argument(
+        "--status",
+        action="append",
+        choices=["pending-fetch", "missing-endlesscheng-solution", "unknown"],
+        help="only process this current status; repeat to select more than one",
+    )
     args = parser.parse_args()
     fetched_at = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S %z")
     pages = [collect_page_content(page) for page in discover_pages()]
@@ -581,9 +592,14 @@ def main() -> int:
             request_delay=args.request_delay,
             max_retries=args.max_retries,
             retry_delay=args.retry_delay,
+            eligible_statuses=set(args.status) if args.status else None,
         )
         print(
             f"imported {imported} problem solution bodies; missing {missing}; "
             f"skipped {skipped}; transient failures {temporary_failures}"
         )
     return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

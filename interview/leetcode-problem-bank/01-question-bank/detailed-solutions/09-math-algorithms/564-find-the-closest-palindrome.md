@@ -7,15 +7,192 @@
 - 来源专题：数学算法
 - 来源分类路径：七、杂项 / §7.1 回文数
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/find-the-closest-palindrome/solutions/3855597/zhi-xu-kao-lu-5-ge-shu-zi-pythonjavacgo-3td25/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[只需考虑 5 个数（Python/Java/C++/Go）](https://leetcode.cn/problems/find-the-closest-palindrome/solutions/3855597/zhi-xu-kao-lu-5-ge-shu-zi-pythonjavacgo-3td25/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`zhi-xu-kao-lu-5-ge-shu-zi-pythonjavacgo-3td25`
+- topic id：`3855597`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 10:37:43 +0800
+
+对于连续的回文数，例如 $232,242,252,262,\ldots$ 这些数的左半边（包含回文中心）是连续的整数 $23,24,25,26,\ldots$
+
+设 $n$ 的左半（奇数长度时包含中心）为 $\textit{left}$。一般地，最近回文数的左半只会在 $\textit{left}-1, \textit{left}, \textit{left}+1$ 中，其余回文数一定比这三个更远。枚举这三个回文数。
+
+注意本题不允许回文数与 $n$ 相同，可能出现 $n=999$，答案为 $1001$，或者 $n=101$，答案为 $99$ 的情况。虽然可以在枚举 $\textit{left}-1, \textit{left}, \textit{left}+1$ 时处理，但特判是最方便的。
+
+设 $m$ 是 $n$ 的十进制长度，额外枚举两种情况：
+
+- 十进制长为 $m-1$ 的最大回文数 $10^{m-1}-1$。
+- 十进制长为 $m+1$ 的最小回文数 $10^m+1$。
+
+> 注：代码实现时，无需考虑 $\textit{left}-1$ 生成的回文数的十进制长度小于 $m$ 的情况，按照我们的规则，这种回文数的十进制长度是 $m-2$，远远小于我们需要考虑的数。同理，无需考虑 $\textit{left}+1$ 生成的回文数的十进制长度大于 $m$ 的情况。
+
+```py [sol-Python3]
+class Solution:
+    def nearestPalindromic(self, n: str) -> str:
+        num = int(n)
+        ans = (inf, 0)
+
+        def update(pal: int) -> None:
+            diff = abs(pal - num)
+            if diff > 0:
+                nonlocal ans
+                ans = min(ans, (diff, pal))
+
+        m = len(n)  # num 的十进制长度
+        update(10 ** (m - 1) - 1)  # 十进制长为 m-1 的最大回文数
+        update(10 ** m + 1)  # 十进制长为 m+1 的最小回文数
+
+        left = int(n[:(m + 1) // 2])
+        # 枚举十进制长为 m 的邻近回文数
+        for l in range(left - 1, left + 2):
+            s = str(l)
+            update(int(s + s[::-1][m % 2:]))
+
+        return str(ans[1])
+```
+
+```java [sol-Java]
+class Solution {
+    private long minD = Long.MAX_VALUE;
+    private long ans;
+
+    public String nearestPalindromic(String n) {
+        long num = Long.parseLong(n);
+        int m = n.length(); // num 的十进制长度
+        update((long) Math.pow(10, m - 1) - 1, num); // 十进制长为 m-1 的最大回文数
+        update((long) Math.pow(10, m) + 1, num);     // 十进制长为 m+1 的最小回文数
+
+        int left = Integer.parseInt(n.substring(0, (m + 1) / 2));
+        // 枚举十进制长为 m 的邻近回文数
+        for (int l = left - 1; l <= left + 1; l++) {
+            long pal = l;
+            for (int x = m % 2 > 0 ? l / 10 : l; x > 0; x /= 10) {
+                pal = pal * 10 + x % 10;
+            }
+            update(pal, num);
+        }
+
+        return Long.toString(ans);
+    }
+
+    private void update(long pal, long num) {
+        long d = Math.abs(pal - num);
+        if (d > 0 && (d < minD || d == minD && pal < ans)) {
+            minD = d;
+            ans = pal;
+        }
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    string nearestPalindromic(string n) {
+        long long num = stoll(n);
+        pair<long long, long long> ans = {LLONG_MAX, 0};
+
+        auto update = [&](long long pal) -> void {
+            long long diff = abs(pal - num);
+            if (diff > 0) {
+                ans = min(ans, pair(diff, pal));
+            }
+        };
+
+        int m = n.size(); // num 的十进制长度
+        // 注意这里要转一下类型，因为浮点数 1e18 + 1 == 1e18
+        update((long long) pow(10, m - 1) - 1); // 十进制长为 m-1 的最大回文数
+        update((long long) pow(10, m) + 1);     // 十进制长为 m+1 的最小回文数
+
+        int left = stoi(n.substr(0, (m + 1) / 2));
+        // 枚举十进制长为 m 的邻近回文数
+        for (int l = left - 1; l <= left + 1; l++) {
+            long long pal = l;
+            for (int x = m % 2 ? l / 10 : l; x > 0; x /= 10) {
+                pal = pal * 10 + x % 10;
+            }
+            update(pal);
+        }
+
+        return to_string(ans.second);
+    }
+};
+```
+
+```go [sol-Go]
+func nearestPalindromic(n string) string {
+	minD, ans := math.MaxInt, 0
+	num, _ := strconv.Atoi(n)
+
+	update := func(pal int) {
+		d := abs(pal - num)
+		if d > 0 && (d < minD || d == minD && pal < ans) {
+			minD, ans = d, pal
+		}
+	}
+
+	m := len(n) // num 的十进制长度
+	update(int(math.Pow10(m-1)) - 1) // 十进制长为 m-1 的最大回文数
+	update(int(math.Pow10(m)) + 1)   // 十进制长为 m+1 的最小回文数
+
+	left, _ := strconv.Atoi(n[:(m+1)/2])
+	// 枚举十进制长为 m 的邻近回文数
+	for l := left - 1; l <= left+1; l++ {
+		pal := l
+		x := l
+		if m%2 > 0 {
+			x /= 10
+		}
+		for ; x > 0; x /= 10 {
+			pal = pal*10 + x%10
+		}
+		update(pal)
+	}
+
+	return strconv.Itoa(ans)
+}
+
+func abs(x int) int { if x < 0 { return -x }; return x }
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(\log n)$。$n$ 的十进制长度为 $\mathcal{O}(\log n)$。
+- 空间复杂度：$\mathcal{O}(\log n)$ 或 $\mathcal{O}(1)$。返回值不计入。
+
+## 专题训练
+
+见下面数学题单的「**§7.1 回文数**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

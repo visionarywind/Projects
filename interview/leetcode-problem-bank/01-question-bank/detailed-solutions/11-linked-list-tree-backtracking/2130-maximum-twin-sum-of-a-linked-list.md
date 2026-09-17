@@ -7,15 +7,296 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：一、链表 / §1.6 快慢指针
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/maximum-twin-sum-of-a-linked-list/solutions/3974815/liang-chong-fang-fa-di-gui-zhao-zhong-di-czvg/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[两种方法：递归 / 找中点+反转右半（Python/Java/C++/Go）](https://leetcode.cn/problems/maximum-twin-sum-of-a-linked-list/solutions/3974815/liang-chong-fang-fa-di-gui-zhao-zhong-di-czvg/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`liang-chong-fang-fa-di-gui-zhao-zhong-di-czvg`
+- topic id：`3974815`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:30:25 +0800
+
+本题思路与 [234. 回文链表](https://leetcode.cn/problems/palindrome-linked-list/) 是一样的，请看 [我的题解](https://leetcode.cn/problems/palindrome-linked-list/solutions/2952645/o1-kong-jian-zuo-fa-xun-zhao-zhong-jian-rv0f3/)。
+
+注意题目保证链表长度是**偶数**。
+
+## 方法一：递归
+
+```py [sol-Python3]
+class Solution:
+    def pairSum(self, head: Optional[ListNode]) -> int:
+        ans = 0
+        left = head
+
+        def dfs(right: Optional[ListNode]) -> None:
+            # 「递」，先把 right 移到链表末尾
+            if right.next:
+                dfs(right.next)
+            # 「归」的过程就是在从右到左遍历链表
+            nonlocal ans, left
+            ans = max(ans, left.val + right.val)
+            left = left.next  # left 往右走
+            # 归，right 会往左走
+
+        dfs(head)
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    private int ans;
+    private ListNode left;
+
+    public int pairSum(ListNode head) {
+        left = head;
+        dfs(head);
+        return ans;
+    }
+
+    private void dfs(ListNode right) {
+        // 「递」，先把 right 移到链表末尾
+        if (right.next != null) {
+            dfs(right.next);
+        }
+        // 「归」的过程就是在从右到左遍历链表
+        ans = Math.max(ans, left.val + right.val);
+        left = left.next; // left 往右走
+        // 归，right 会往左走
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int pairSum(ListNode* head) {
+        int ans = 0;
+        ListNode* left = head;
+
+        auto dfs = [&](this auto&& dfs, ListNode* right) -> void {
+            // 「递」，先把 right 移到链表末尾
+            if (right->next) {
+                dfs(right->next);
+            }
+            // 「归」的过程就是在从右到左遍历链表
+            ans = max(ans, left->val + right->val);
+            left = left->next; // left 往右走
+            // 归，right 会往左走
+        };
+
+        dfs(head);
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func pairSum(head *ListNode) (ans int) {
+	left := head
+
+	var dfs func(*ListNode)
+	dfs = func(right *ListNode) {
+		// 「递」，先把 right 移到链表末尾
+		if right.Next != nil {
+			dfs(right.Next)
+		}
+		// 「归」的过程就是在从右到左遍历链表
+		ans = max(ans, left.Val+right.Val)
+		left = left.Next // left 往右走
+		// 归，right 会往左走
+	}
+
+	dfs(head)
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是链表的长度（节点个数）。
+- 空间复杂度：$\mathcal{O}(n)$。递归需要 $\mathcal{O}(n)$ 的栈空间。
+
+## 方法二：迭代
+
+```py [sol-Python3]
+class Solution:
+    # 876. 链表的中间结点
+    def middleNode(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        slow = fast = head
+        while fast and fast.next:
+            slow = slow.next
+            fast = fast.next.next
+        return slow
+
+    # 206. 反转链表
+    def reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        pre, cur = None, head
+        while cur:
+            nxt = cur.next
+            cur.next = pre
+            pre = cur
+            cur = nxt
+        return pre
+
+    def pairSum(self, head: Optional[ListNode]) -> int:
+        mid = self.middleNode(head)
+        head2 = self.reverseList(mid)
+
+        ans = 0
+        while head2:
+            ans = max(ans, head.val + head2.val)
+            head = head.next
+            head2 = head2.next
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    public int pairSum(ListNode head) {
+        ListNode mid = middleNode(head);
+        ListNode head2 = reverseList(mid);
+        
+        int ans = 0;
+        while (head2 != null) {
+            ans = Math.max(ans, head.val + head2.val);
+            head = head.next;
+            head2 = head2.next;
+        }
+        return ans;
+    }
+
+    // 876. 链表的中间结点
+    private ListNode middleNode(ListNode head) {
+        ListNode slow = head;
+        ListNode fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+        return slow;
+    }
+
+    // 206. 反转链表
+    private ListNode reverseList(ListNode head) {
+        ListNode pre = null;
+        ListNode cur = head;
+        while (cur != null) {
+            ListNode nxt = cur.next;
+            cur.next = pre;
+            pre = cur;
+            cur = nxt;
+        }
+        return pre;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+    // 876. 链表的中间结点
+    ListNode* middleNode(ListNode* head) {
+        ListNode* slow = head, *fast = head;
+        while (fast && fast->next) {
+            slow = slow->next;
+            fast = fast->next->next;
+        }
+        return slow;
+    }
+
+    // 206. 反转链表
+    ListNode* reverseList(ListNode* head) {
+        ListNode* pre = nullptr, *cur = head;
+        while (cur) {
+            ListNode* nxt = cur->next;
+            cur->next = pre;
+            pre = cur;
+            cur = nxt;
+        }
+        return pre;
+    }
+
+public:
+    int pairSum(ListNode* head) {
+        ListNode* mid = middleNode(head);
+        ListNode* head2 = reverseList(mid);
+        
+        int ans = 0;
+        while (head2) {
+            ans = max(ans, head->val + head2->val);
+            head = head->next;
+            head2 = head2->next;
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+// 876. 链表的中间结点
+func middleNode(head *ListNode) *ListNode {
+	slow, fast := head, head
+	for fast != nil && fast.Next != nil {
+		slow = slow.Next
+		fast = fast.Next.Next
+	}
+	return slow
+}
+
+// 206. 反转链表
+func reverseList(head *ListNode) *ListNode {
+	var pre, cur *ListNode = nil, head
+	for cur != nil {
+		nxt := cur.Next
+		cur.Next = pre
+		pre = cur
+		cur = nxt
+	}
+	return pre
+}
+
+func pairSum(head *ListNode) (ans int) {
+	mid := middleNode(head)
+	head2 := reverseList(mid)
+	for head2 != nil {
+		ans = max(ans, head.Val+head2.Val)
+		head = head.Next
+		head2 = head2.Next
+	}
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是链表的长度（节点个数）。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

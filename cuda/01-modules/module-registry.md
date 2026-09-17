@@ -68,7 +68,14 @@ flowchart TD
 
 M01–M02 已完成入口和核心生命周期的静态深读；M03–M07 已建立主路径，M04 suballocator 和 M06 Graph 资源 reverse path 已补充；HAL 实际编译选择、外部 RM/NVRM 末端、Graph 专用测试仍未确认；M08–M10 已补齐 host-side 工具/OpenCL 生命周期和构建/聚合语义。没有任何 GPU 构建或运行结果被标记为已验证。
 
-## 相关文档
+## 端到端阅读入口
+
+- [Kernel Launch 端到端调用链](../90-cross-module/end-to-end-kernel-launch.md)：以普通 `cuLaunchKernel` 为主线，覆盖 Context、Memory、Stream、Module、Syscall、HAL、QMD、GPFIFO、DMAL/RM、completion 和 reclaim。
+- [具体架构设计](../90-cross-module/architecture-design.md)：说明 `CUdev->hal`、DMAL、对象所有权、锁、Graph scheduler 和 teardown 设计。
+- [跨模块调用链审计](../90-cross-module/cross-module-call-chains.md)：按入口、正常、分支、异常、清理和证据状态审计跨模块链路。
+- [跨模块接口契约](../90-cross-module/interface-contracts.md)：记录 API/CUI/Memory/Stream/HAL/DMAL/Syscall 的边界契约。
+- [运行时轨迹](../90-cross-module/runtime-trace.md)：记录 host 状态、提交、完成和回收的阶段状态。
+
 - [项目入口](../README.md)
 - [分析状态](../00-overview/analysis-state.md)
 - [源码证据索引](../00-overview/evidence-index.md)

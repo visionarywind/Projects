@@ -7,15 +7,462 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：五、其他递归/分治
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/find-kth-bit-in-nth-binary-string/solutions/3908610/liang-chong-xie-fa-di-gui-die-dai-python-je8p/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[从递归到 O(1) 数学公式（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/find-kth-bit-in-nth-binary-string/solutions/3908610/liang-chong-xie-fa-di-gui-die-dai-python-je8p/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`liang-chong-xie-fa-di-gui-die-dai-python-je8p`
+- topic id：`3908610`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 12:05:27 +0800
+
+## 方法一：递归 / 迭代
+
+我们需要确定第 $k$ 个字符位于 $S_n$ 的左半、正中间还是右半。为此，首先要知道 $S_n$ 的长度。
+
+用 $|s|$ 表示字符串 $s$ 的长度。根据题意，$|S_1| = 1$，$|S_n| = 2|S_{n-1}| + 1$，所以有
+
+$$
+|S_n| + 1 = 2(|S_{n-1}| + 1)
+$$
+
+所以 $\{|S_n| + 1\}$ 是个首项为 $2$，公比为 $2$ 的等比数列，得
+
+$$
+|S_n| = 2^n - 1
+$$
+
+所以 $|S_{n-1}| = 2^{n-1} - 1$，这说明 $S_n$ 的左半是第 $1$ 个字符到第 $2^{n-1}-1$ 个字符，正中间是第 $2^{n-1}$ 个字符，右半是第 $2^{n-1} + 1$ 个字符到第 $2^n-1$ 个字符。
+
+分类讨论：
+
+- 如果 $k < 2^{n-1}$，那么第 $k$ 个字符位于 $S_n$ 的左半，问题变成 $S_{n-1}$ 的第 $k$ 个字符。这可以**递归**解决。
+- 如果 $k > 2^{n-1}$，那么第 $k$ 个字符位于 $S_n$ 的右半，问题变成 $S_{n-1}$ 反转后的第 $k-2^{n-1}$ 个字符，即反转前的第 $2^{n-1}-(k-2^{n-1}) = 2^n-k$ 个字符（比如 $k=2^n-1$ 对应反转前的第 $1$ 个字符）。这个字符再翻转，即为 $S_n$ 的第 $k$ 个字符。这也可以**递归**解决。
+
+递归边界：
+
+- 如果 $n=1$，那么返回 $S_1$ 唯一的字符 $\texttt{0}$。
+- 如果 $k = 2^{n-1}$，那么返回 $S_n$ 正中间的字符 $\texttt{1}$。
+
+### 递归写法
+
+```py [sol-Python3]
+class Solution:
+    def findKthBit(self, n: int, k: int) -> str:
+        if n == 1:
+            return '0'
+        if k == 1 << (n - 1):
+            return '1'
+        if k < 1 << (n - 1):
+            return self.findKthBit(n - 1, k)
+        res = self.findKthBit(n - 1, (1 << n) - k)
+        return '0' if res == '1' else '1'
+```
+
+```java [sol-Java]
+class Solution {
+    public char findKthBit(int n, int k) {
+        if (n == 1) {
+            return '0';
+        }
+        if (k == 1 << (n - 1)) {
+            return '1';
+        }
+        if (k < 1 << (n - 1)) {
+            return findKthBit(n - 1, k);
+        }
+        char res = findKthBit(n - 1, (1 << n) - k);
+        return (char) (res ^ 1);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    char findKthBit(int n, int k) {
+        if (n == 1) {
+            return '0';
+        }
+        if (k == 1 << (n - 1)) {
+            return '1';
+        }
+        if (k < 1 << (n - 1)) {
+            return findKthBit(n - 1, k);
+        }
+        return findKthBit(n - 1, (1 << n) - k) ^ 1;
+    }
+};
+```
+
+```c [sol-C]
+char findKthBit(int n, int k) {
+    if (n == 1) {
+        return '0';
+    }
+    if (k == 1 << (n - 1)) {
+        return '1';
+    }
+    if (k < 1 << (n - 1)) {
+        return findKthBit(n - 1, k);
+    }
+    return findKthBit(n - 1, (1 << n) - k) ^ 1;
+}
+```
+
+```go [sol-Go]
+func findKthBit(n, k int) byte {
+	if n == 1 {
+		return '0'
+	}
+	if k == 1<<(n-1) {
+		return '1'
+	}
+	if k < 1<<(n-1) {
+		return findKthBit(n-1, k)
+	}
+	return findKthBit(n-1, 1<<n-k) ^ 1
+}
+```
+
+```js [sol-JavaScript]
+var findKthBit = function(n, k) {
+    if (n === 1) {
+        return '0';
+    }
+    if (k === 1 << (n - 1)) {
+        return '1';
+    }
+    if (k < 1 << (n - 1)) {
+        return findKthBit(n - 1, k);
+    }
+    return findKthBit(n - 1, (1 << n) - k) === '1' ? '0' : '1';
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn find_kth_bit(n: i32, k: i32) -> char {
+        if n == 1 {
+            return '0';
+        }
+        if k == 1 << (n - 1) {
+            return '1';
+        }
+        if k < 1 << (n - 1) {
+            return Self::find_kth_bit(n - 1, k);
+        }
+        (Self::find_kth_bit(n - 1, (1 << n) - k) as u8 ^ 1) as _
+    }
+}
+```
+
+### 迭代写法
+
+```py [sol-Python3]
+class Solution:
+    def findKthBit(self, n: int, k: int) -> str:
+        rev = 0  # 翻转次数的奇偶性
+        while True:
+            if n == 1:
+                return '1' if rev else '0'
+            if k == 1 << (n - 1):
+                return '0' if rev else '1'
+            if k > 1 << (n - 1):
+                k = (1 << n) - k
+                rev ^= 1
+            n -= 1
+```
+
+```java [sol-Java]
+class Solution {
+    public char findKthBit(int n, int k) {
+        int rev = 0; // 翻转次数的奇偶性
+        while (true) {
+            if (n == 1) {
+                return (char) ('0' ^ rev);
+            }
+            if (k == 1 << (n - 1)) {
+                return (char) ('1' ^ rev);
+            }
+            if (k > 1 << (n - 1)) {
+                k = (1 << n) - k;
+                rev ^= 1;
+            }
+            n--;
+        }
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    char findKthBit(int n, int k) {
+        int rev = 0; // 翻转次数的奇偶性
+        while (true) {
+            if (n == 1) {
+                return '0' ^ rev;
+            }
+            if (k == 1 << (n - 1)) {
+                return '1' ^ rev;
+            }
+            if (k > 1 << (n - 1)) {
+                k = (1 << n) - k;
+                rev ^= 1;
+            }
+            n--;
+        }
+    }
+};
+```
+
+```c [sol-C]
+char findKthBit(int n, int k) {
+    int rev = 0; // 翻转次数的奇偶性
+    while (true) {
+        if (n == 1) {
+            return '0' ^ rev;
+        }
+        if (k == 1 << (n - 1)) {
+            return '1' ^ rev;
+        }
+        if (k > 1 << (n - 1)) {
+            k = (1 << n) - k;
+            rev ^= 1;
+        }
+        n--;
+    }
+}
+```
+
+```go [sol-Go]
+func findKthBit(n, k int) byte {
+	rev := byte(0) // 翻转次数的奇偶性
+	for {
+		if n == 1 {
+			return '0' ^ rev
+		}
+		if k == 1<<(n-1) {
+			return '1' ^ rev
+		}
+		if k > 1<<(n-1) {
+			k = 1<<n - k
+			rev ^= 1
+		}
+		n--
+	}
+}
+```
+
+```js [sol-JavaScript]
+var findKthBit = function(n, k) {
+    let rev = 0; // 翻转次数的奇偶性
+    while (true) {
+        if (n === 1) {
+            return rev ? '1' : '0';
+        }
+        if (k === 1 << (n - 1)) {
+            return rev ? '0' : '1';
+        }
+        if (k > 1 << (n - 1)) {
+            k = (1 << n) - k;
+            rev ^= 1;
+        }
+        n--;
+    }
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn find_kth_bit(mut n: i32, mut k: i32) -> char {
+        let mut rev = 0; // 翻转次数的奇偶性
+        loop {
+            if n == 1 {
+                return (b'0' ^ rev) as _;
+            }
+            if k == 1 << (n - 1) {
+                return (b'1' ^ rev) as _;
+            }
+            if k > 1 << (n - 1) {
+                k = (1 << n) - k;
+                rev ^= 1;
+            }
+            n -= 1;
+        }
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 方法二：数学公式
+
+### 奇数位
+
+$S_4 = \texttt{011100110110001}$，只看奇数位（下标从 $1$ 开始）的字符，是 $\texttt{01010101}$，这是一个 $\texttt{01}$ 交替序列，为什么？
+
+只看奇数位：
+
+- $S_1 = \texttt{0}$。
+- $S_2$ 把 $\texttt{0}$ 反转再翻转，得到 $\texttt{1}$，拼起来是 $\texttt{01}$。
+- $S_3$ 把 $\texttt{01}$ 反转再翻转，得到 $\texttt{01}$，拼起来是 $\texttt{0101}$。
+- $S_4$ 把 $\texttt{0101}$ 反转再翻转，得到 $\texttt{0101}$，拼起来是 $\texttt{01010101}$。
+
+一般地，由于 $\texttt{01}$ 交替序列反转再翻转，**结果不变**，所以从 $S_{i-1}$ 到 $S_i\ (i\ge 3)$，其中奇数位相当于复制了一份自身，拼在了自身后面，得到的仍然是 $\texttt{01}$ 交替序列。
+
+所以，当 $k$ 是奇数时，可以立刻得出答案：
+
+- 设 $k' = \dfrac{k-1}{2}$。这会把 $k=1,3,5,7,\ldots$ 变成 $k'=0,1,2,3,\ldots$
+- 如果 $k'$ 是偶数，那么答案是 $\texttt{0}$。
+- 如果 $k'$ 是奇数，那么答案是 $\texttt{1}$。
+- 一般地，答案为 $k'\bmod 2$ 对应的字符。
+
+### 偶数位
+
+奇数位的字符，都发源于 $S_1 = \texttt{0}$。
+
+偶数位的字符呢？都发源于 $S_i\ (i\ge 2)$ 正中间的那个 $\texttt{1}$，即位置为 $2,4,8,16,\ldots$ 的字符 $\texttt{1}$。
+
+根据方法一的结论，$S_{n-1}$ 的第 $k$ 个字符，反转后，是 $S_n$ 的第 $2^n-k$ 个字符。
+
+$2^n-k$ 有什么性质？
+
+比如二进制 $10000 - 100 = 1100$，去掉末尾的两个 $0$，相当于 $100 - 1 = 11$，结果最低位一定是 $1$，所以 $100$ 和 $1100$ 的尾零个数相同。一般地，$k$ 和 $2^n-k$ 的尾零个数是相同的，这是个**不变量**！我们可以根据 $k$ 的尾零个数，找到 $k$ 发源于哪个 $S_i$ 正中间的 $\texttt{1}$。
+
+以 $S_2$ 的中间字符（第 $2$ 个字符）为例：
+
+- 我们把 $S_2$ 的第 $2$ 个字符反转到了 $S_3$ 的第 $8-2=6$ 个字符。把 $\texttt{1}$ 反转再翻转，得到 $\texttt{0}$，拼起来是 $\texttt{10}$。
+- 我们把 $S_3$ 的第 $2,6$ 个字符反转到了 $S_4$ 的第 $14,10$ 个字符。把 $\texttt{10}$ 反转再翻转，得到 $\texttt{10}$，拼起来是 $\texttt{1010}$。注意 $2,6,10,14$ 的二进制尾零个数都是 $1$，且这些位置上的字符拼起来是一个 $\texttt{10}$ 交替序列。
+
+一般地，设 $t$ 为 $k$ 去掉尾零后的值，即 $k = t\cdot 2^x$ 且 $t$ 是奇数。比如 $k=2,6,10,14,\ldots$ 对应着 $t=1,3,5,7,\ldots$
+
+- 设 $t' = \dfrac{t-1}{2}$。这会把 $t=1,3,5,7,\ldots$ 变成 $t'=0,1,2,3,\ldots$
+- 如果 $t'$ 是偶数，那么答案是 $\texttt{1}$。
+- 如果 $t'$ 是奇数，那么答案是 $\texttt{0}$。
+- 一般地，答案为 $1 - t'\bmod 2$ 对应的字符。
+
+如何去掉 $k$ 的尾零？把 $k$ 除以其 $\text{lowbit}$ 即可。关于 $\text{lowbit}$ 的原理，请看 [从集合论到位运算，常见位运算技巧分类总结](https://leetcode.cn/circle/discuss/CaOJ45/)。
+
+```py [sol-Python3]
+class Solution:
+    def findKthBit(self, _, k: int) -> str:
+        if k % 2:
+            return str(k // 2 % 2)
+        k //= k & -k  # 去掉 k 的尾零
+        return str(1 - k // 2 % 2)
+```
+
+```java [sol-Java]
+class Solution {
+    public char findKthBit(int n, int k) {
+        if (k % 2 > 0) {
+            return (char) ('0' + k / 2 % 2);
+        }
+        k /= k & -k; // 去掉 k 的尾零
+        return (char) ('1' - k / 2 % 2);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    char findKthBit(int, int k) {
+        if (k % 2) {
+            return '0' + k / 2 % 2;
+        }
+        k /= k & -k; // 去掉 k 的尾零
+        return '1' - k / 2 % 2;
+    }
+};
+```
+
+```c [sol-C]
+char findKthBit(int, int k) {
+    if (k % 2) {
+        return '0' + k / 2 % 2;
+    }
+    k /= k & -k; // 去掉 k 的尾零
+    return '1' - k / 2 % 2;
+}
+```
+
+```go [sol-Go]
+func findKthBit(_, k int) byte {
+	if k%2 > 0 {
+		return '0' + byte(k/2%2)
+	}
+	k /= k & -k // 去掉 k 的尾零
+	return '1' - byte(k/2%2)
+}
+```
+
+```js [sol-JavaScript]
+var findKthBit = function(_, k) {
+    if (k % 2) {
+        return (k - 1) / 2 % 2 ? '1' : '0';
+    }
+    k /= k & -k; // 去掉 k 的尾零
+    return (k - 1) / 2 % 2 ? '0' : '1';
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn find_kth_bit(_: i32, mut k: i32) -> char {
+        if k % 2 > 0 {
+            return (b'0' + k as u8 / 2 % 2) as _;
+        }
+        k /= k & -k; // 去掉 k 的尾零
+        (b'1' - k as u8 / 2 % 2) as _
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(1)$。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 相似题目
+
+- [3307. 找出第 K 个字符 II](https://leetcode.cn/problems/find-the-k-th-character-in-string-game-ii/)
+- [880. 索引处的解码字符串](https://leetcode.cn/problems/decoded-string-at-index/)
+- [3614. 用特殊操作处理字符串 II](https://leetcode.cn/problems/process-string-with-special-operations-ii/)
+
+见下面回溯题单的「**五、其他递归/分治**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

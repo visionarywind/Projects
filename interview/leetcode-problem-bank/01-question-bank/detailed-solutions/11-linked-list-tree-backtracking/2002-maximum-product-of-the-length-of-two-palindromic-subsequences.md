@@ -7,15 +7,65 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：四、回溯 / §4.2 子集型回溯
 - 难度分：1869
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/maximum-product-of-the-length-of-two-palindromic-subsequences/solutions/992922/go-bao-sou-by-endlesscheng-ivn0/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[Go 暴搜](https://leetcode.cn/problems/maximum-product-of-the-length-of-two-palindromic-subsequences/solutions/992922/go-bao-sou-by-endlesscheng-ivn0/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`go-bao-sou-by-endlesscheng-ivn0`
+- topic id：`992922`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:57:36 +0800
+
+根据题意，由于两个子序列不能相交，因此每个字符只有三种选择：不选、放到其中一个子序列中、放到另一个子序列中。
+
+由于字符串很短，我们对每个字符枚举这三种情况，暴力搜索。
+
+时间复杂度：$O(3^n)$。
+
+```go
+func maxProduct(s string) (ans int) {
+	var a, b []byte
+	var f func(int)
+	f = func(i int) {
+		if i == len(s) {
+			if len(a)*len(b) > ans && isPalindromic(a) && isPalindromic(b) {
+				ans = len(a) * len(b)
+			}
+			return
+		}
+
+		// 不选
+		f(i + 1)
+
+		// 放入 a
+		a = append(a, s[i])
+		f(i + 1)
+		a = a[:len(a)-1]
+
+		// 放入 b
+		b = append(b, s[i])
+		f(i + 1)
+		b = b[:len(b)-1]
+	}
+	f(0)
+	return
+}
+
+func isPalindromic(a []byte) bool {
+	for i, n := 0, len(a); i < n/2; i++ {
+		if a[i] != a[n-1-i] {
+			return false
+		}
+	}
+	return true
+}
+```
 
 ## 本地原创解析
 

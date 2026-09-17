@@ -7,15 +7,358 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：一、链表 / §1.8 合并链表
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/merge-two-sorted-lists/solutions/2373691/liang-chong-fang-fa-die-dai-di-gui-pytho-wf75/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[两种方法：迭代（尾插法）/ 递归（头插法）Python/Java/C++/C/Go/JS/Rust](https://leetcode.cn/problems/merge-two-sorted-lists/solutions/2373691/liang-chong-fang-fa-die-dai-di-gui-pytho-wf75/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`liang-chong-fang-fa-die-dai-di-gui-pytho-wf75`
+- topic id：`2373691`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:30:25 +0800
+
+## 方法一：迭代（尾插法）
+
+### 前置知识
+
+- [认识链表 & 哨兵技巧【基础算法精讲 06】](https://www.bilibili.com/video/BV1sd4y1x7KN/)
+- [88. 合并两个有序数组](https://leetcode.cn/problems/merge-sorted-array/)
+
+### 思路
+
+创建一个哨兵节点，作为合并后的新链表头节点的前一个节点。这样可以避免单独处理头节点，也无需特判链表为空的情况，从而简化代码。
+
+比较 $\textit{list}_1$ 和 $\textit{list}_2$ 的节点值，如果 $\textit{list}_1$ 的节点值小，则把 $\textit{list}_1$ 加到新链表的末尾，然后把 $\textit{list}_1$ 替换成它的下一个节点。如果 $\textit{list}_2$ 的节点值小则同理。如果两个节点值一样，那么把谁加到新链表的末尾都是一样的，不妨规定把 $\textit{list}_2$ 加到新链表末尾。
+
+重复上述过程，直到其中一个链表为空。
+
+循环结束后，其中一个链表可能还有剩余的节点，将剩余部分加到新链表的末尾。
+
+最后，返回新链表的头节点，即哨兵节点的下一个节点。
+
+```py [sol-Python3]
+class Solution:
+    def mergeTwoLists(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]:
+        cur = dummy = ListNode()  # 用哨兵节点简化代码逻辑
+        while list1 and list2:
+            if list1.val < list2.val:
+                cur.next = list1  # 把 list1 加到新链表中
+                list1 = list1.next
+            else:  # 注：相等的情况加哪个节点都是可以的
+                cur.next = list2  # 把 list2 加到新链表中
+                list2 = list2.next
+            cur = cur.next
+        cur.next = list1 or list2  # 拼接剩余链表
+        return dummy.next
+```
+
+```java [sol-Java]
+class Solution {
+    public ListNode mergeTwoLists(ListNode list1, ListNode list2) {
+        ListNode dummy = new ListNode(); // 用哨兵节点简化代码逻辑
+        ListNode cur = dummy; // cur 指向新链表的末尾
+        while (list1 != null && list2 != null) {
+            if (list1.val < list2.val) {
+                cur.next = list1; // 把 list1 加到新链表中
+                list1 = list1.next;
+            } else { // 注：相等的情况加哪个节点都是可以的
+                cur.next = list2; // 把 list2 加到新链表中
+                list2 = list2.next;
+            }
+            cur = cur.next;
+        }
+        cur.next = list1 != null ? list1 : list2; // 拼接剩余链表
+        return dummy.next;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    ListNode* mergeTwoLists(ListNode* list1, ListNode* list2) {
+        ListNode dummy; // 用哨兵节点简化代码逻辑
+        ListNode* cur = &dummy; // cur 指向新链表的末尾
+        while (list1 && list2) {
+            if (list1->val < list2->val) {
+                cur->next = list1; // 把 list1 加到新链表中
+                list1 = list1->next;
+            } else { // 注：相等的情况加哪个节点都是可以的
+                cur->next = list2; // 把 list2 加到新链表中
+                list2 = list2->next;
+            }
+            cur = cur->next;
+        }
+        cur->next = list1 ? list1 : list2; // 拼接剩余链表
+        return dummy.next;
+    }
+};
+```
+
+```c [sol-C]
+struct ListNode* mergeTwoLists(struct ListNode* list1, struct ListNode* list2) {
+    struct ListNode dummy; // 用哨兵节点简化代码逻辑
+    struct ListNode* cur = &dummy; // cur 指向新链表的末尾
+    while (list1 && list2) {
+        if (list1->val < list2->val) {
+            cur->next = list1; // 把 list1 加到新链表中
+            list1 = list1->next;
+        } else { // 注：相等的情况加哪个节点都是可以的
+            cur->next = list2; // 把 list2 加到新链表中
+            list2 = list2->next;
+        }
+        cur = cur->next;
+    }
+    cur->next = list1 ? list1 : list2; // 拼接剩余链表
+    return dummy.next;
+}
+```
+
+```go [sol-Go]
+func mergeTwoLists(list1, list2 *ListNode) *ListNode {
+    dummy := ListNode{} // 用哨兵节点简化代码逻辑
+    cur := &dummy // cur 指向新链表的末尾
+    for list1 != nil && list2 != nil {
+        if list1.Val < list2.Val {
+            cur.Next = list1 // 把 list1 加到新链表中
+            list1 = list1.Next
+        } else { // 注：相等的情况加哪个节点都是可以的
+            cur.Next = list2 // 把 list2 加到新链表中
+            list2 = list2.Next
+        }
+        cur = cur.Next
+    }
+    // 拼接剩余链表
+    if list1 != nil {
+        cur.Next = list1
+    } else {
+        cur.Next = list2
+    }
+    return dummy.Next
+}
+```
+
+```js [sol-JavaScript]
+var mergeTwoLists = function(list1, list2) {
+    const dummy = new ListNode(); // 用哨兵节点简化代码逻辑
+    let cur = dummy; // cur 指向新链表的末尾
+    while (list1 && list2) {
+        if (list1.val < list2.val) {
+            cur.next = list1; // 把 list1 加到新链表中
+            list1 = list1.next;
+        } else { // 注：相等的情况加哪个节点都是可以的
+            cur.next = list2; // 把 list2 加到新链表中
+            list2 = list2.next;
+        }
+        cur = cur.next;
+    }
+    cur.next = list1 ?? list2; // 拼接剩余链表
+    return dummy.next;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn merge_two_lists(mut list1: Option<Box<ListNode>>, mut list2: Option<Box<ListNode>>) -> Option<Box<ListNode>> {
+        let mut dummy = ListNode::new(0); // 用哨兵节点简化代码逻辑
+        let mut cur = &mut dummy; // cur 指向新链表的末尾
+        while let (Some(node1), Some(node2)) = (&list1, &list2) {
+            if node1.val < node2.val {
+                cur.next = list1.take(); // 把 list1 加到新链表中
+                cur = cur.next.as_mut()?;
+                list1 = cur.next.take();
+            } else { // 注：相等的情况加哪个节点都是可以的
+                cur.next = list2.take(); // 把 list2 加到新链表中
+                cur = cur.next.as_mut()?;
+                list2 = cur.next.take();
+            };
+        }
+        cur.next = list1.or(list2); // 拼接剩余链表
+        dummy.next
+    }
+}
+```
+
+```rust [sol-Rust 写法二]
+impl Solution {
+    pub fn merge_two_lists(mut list1: Option<Box<ListNode>>, mut list2: Option<Box<ListNode>>) -> Option<Box<ListNode>> {
+        let mut dummy = ListNode::new(0); // 用哨兵节点简化代码逻辑
+        let mut cur = &mut dummy; // cur 指向新链表的末尾
+        while let (Some(node1), Some(node2)) = (&list1, &list2) {
+            let mut lst = if node1.val < node2.val { &mut list1 } else { &mut list2 };
+            cur.next = lst.take(); // 把 lst 加到新链表中
+            cur = cur.next.as_mut()?;
+            *lst = cur.next.take();
+        }
+        cur.next = list1.or(list2); // 拼接剩余链表
+        dummy.next
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n+m)$，其中 $n$ 为 $\textit{list}_1$ 的长度，$m$ 为 $\textit{list}_2$ 的长度。
+- 空间复杂度：$\mathcal{O}(1)$。仅用到若干额外变量。
+
+## 方法二：递归（头插法）
+
+### 前置知识
+
+[如何理解递归？计算机是怎么执行递归的？【基础算法精讲 09】](https://www.bilibili.com/video/BV1UD4y1Y769/)
+
+### 思路
+
+直接把 `mergeTwoLists` 当作递归函数：
+
+- 递归边界：如果其中一个链表为空，直接返回另一个链表作为合并后的结果。
+- 如果两个链表都不为空，则比较两个链表当前节点的值，选择较小的节点插在前面。
+  - 如果 $\textit{list}_1$ 的节点值更小，那么取出 $\textit{list}_1$，递归调用 `mergeTwoLists(list1.next, list2)`，拿到递归返回的链表，把 $\textit{list}_1$ 插在前面。
+  - 如果 $\textit{list}_2$ 的节点值更小，那么取出 $\textit{list}_2$，递归调用 `mergeTwoLists(list1, list2.next)`，拿到递归返回的链表，把 $\textit{list}_2$ 插在前面。
+
+```py [sol-Python3]
+class Solution:
+    def mergeTwoLists(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]:
+        if list1 is None: return list2  # 注：如果都为空则返回空
+        if list2 is None: return list1
+        if list1.val < list2.val:
+            list1.next = self.mergeTwoLists(list1.next, list2)
+            return list1
+        list2.next = self.mergeTwoLists(list1, list2.next)
+        return list2
+```
+
+```java [sol-Java]
+class Solution {
+    public ListNode mergeTwoLists(ListNode list1, ListNode list2) {
+        if (list1 == null) return list2; // 注：如果都为空则返回空
+        if (list2 == null) return list1;
+        if (list1.val < list2.val) {
+            list1.next = mergeTwoLists(list1.next, list2);
+            return list1;
+        }
+        list2.next = mergeTwoLists(list1, list2.next);
+        return list2;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    ListNode* mergeTwoLists(ListNode* list1, ListNode* list2) {
+        if (list1 == nullptr) return list2; // 注：如果都为空则返回空
+        if (list2 == nullptr) return list1;
+        if (list1->val < list2->val) {
+            list1->next = mergeTwoLists(list1->next, list2);
+            return list1;
+        }
+        list2->next = mergeTwoLists(list1, list2->next);
+        return list2;
+    }
+};
+```
+
+```c [sol-C]
+struct ListNode* mergeTwoLists(struct ListNode* list1, struct ListNode* list2) {
+    if (list1 == NULL) return list2; // 注：如果都为空则返回空
+    if (list2 == NULL) return list1;
+    if (list1->val < list2->val) {
+        list1->next = mergeTwoLists(list1->next, list2);
+        return list1;
+    }
+    list2->next = mergeTwoLists(list1, list2->next);
+    return list2;
+}
+```
+
+```go [sol-Go]
+func mergeTwoLists(list1, list2 *ListNode) *ListNode {
+    if list1 == nil {
+        return list2 // 注：如果都为空则返回空
+    }
+    if list2 == nil {
+        return list1
+    }
+    if list1.Val < list2.Val {
+        list1.Next = mergeTwoLists(list1.Next, list2)
+        return list1
+    }
+    list2.Next = mergeTwoLists(list1, list2.Next)
+    return list2
+}
+```
+
+```js [sol-JavaScript]
+var mergeTwoLists = function(list1, list2) {
+    if (list1 === null) return list2; // 注：如果都为空则返回空
+    if (list2 === null) return list1;
+    if (list1.val < list2.val) {
+        list1.next = mergeTwoLists(list1.next, list2);
+        return list1;
+    }
+    list2.next = mergeTwoLists(list1, list2.next);
+    return list2;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn merge_two_lists(list1: Option<Box<ListNode>>, list2: Option<Box<ListNode>>) -> Option<Box<ListNode>> {
+        match (list1, list2) {
+            (None, None) => None, // 如果两个链表都为空，返回空
+            (Some(node1), None) => Some(node1), // 如果第二个链表为空，返回第一个链表
+            (None, Some(node2)) => Some(node2), // 如果第一个链表为空，返回第二个链表
+            (Some(mut node1), Some(mut node2)) => {
+                if node1.val < node2.val {
+                    node1.next = Self::merge_two_lists(node1.next, Some(node2));
+                    Some(node1)
+                } else {
+                    node2.next = Self::merge_two_lists(Some(node1), node2.next);
+                    Some(node2)
+                }
+            }
+        }
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n+m)$，其中 $n$ 为 $\textit{list}_1$ 的长度，$m$ 为 $\textit{list}_2$ 的长度。
+- 空间复杂度：$\mathcal{O}(n+m)$。递归需要 $\mathcal{O}(n+m)$ 的栈空间。
+
+## 思考题
+
+如果只保留两个有序链表中的**相同元素**（求交集），要怎么做？注意，如果第一个链表有 $3$ 个 $1$，第二个链表有 $2$ 个 $1$，那么答案链表中有 $2$ 个 $1$。
+
+欢迎在评论区发表你的思路/代码。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

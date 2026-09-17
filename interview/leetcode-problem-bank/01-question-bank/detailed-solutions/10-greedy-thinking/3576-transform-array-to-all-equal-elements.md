@@ -7,15 +7,152 @@
 - 来源专题：贪心与思维
 - 来源分类路径：一、贪心策略 / §1.4 从最左/最右开始贪心
 - 难度分：1489
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/transform-array-to-all-equal-elements/solutions/3695707/liang-chong-qing-kuang-du-bian-cheng-1-h-pcpj/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[两种情况：都变成 1 或者都变成 -1（Python/Java/C++/Go）](https://leetcode.cn/problems/transform-array-to-all-equal-elements/solutions/3695707/liang-chong-qing-kuang-du-bian-cheng-1-h-pcpj/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`liang-chong-qing-kuang-du-bian-cheng-1-h-pcpj`
+- topic id：`3695707`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 10:54:06 +0800
+
+判断能否都变成 $1$，或者都变成 $-1$。
+
+假设都变成 $\textit{target}$。
+
+从左到右遍历 $\textit{nums}$，如果 $\textit{nums}[i]\ne \textit{target}$，那么需要操作：把 $\textit{nums}[i+1]$ 乘上 $-1$，把剩余操作次数减一。注意 $\textit{nums}[i]$ 不需要乘上 $-1$，因为后面不会再遍历 $\textit{nums}[i]$。
+
+如果要操作的时候，剩余操作次数等于 $0$，或者 $i=n-1$，那么无法操作，返回 $\texttt{false}$。
+
+如果正常遍历结束，返回 $\texttt{true}$。
+
+代码实现时，可以用一个变量 $\textit{mul}$ 表示 $\textit{nums}[i]$ 要乘以的数，从而避免修改 $\textit{nums}$（注意我们要判断两次，第一次的修改不能影响第二次）。
+
+具体请看 [视频讲解](https://www.bilibili.com/video/BV113T9zFEjQ/)，欢迎点赞关注~
+
+```py [sol-Python3]
+class Solution:
+    def canMakeEqual(self, nums: List[int], k: int) -> bool:
+        def check(target: int) -> bool:
+            n = len(nums)
+            left = k
+            mul = 1
+            for i, x in enumerate(nums):
+                if x * mul == target:
+                    mul = 1  # 不操作，下一个数不用乘 -1
+                    continue
+                if left == 0 or i == n - 1:
+                    return False
+                left -= 1
+                mul = -1  # 操作，下一个数要乘 -1
+            return True
+        return check(-1) or check(1)
+```
+
+```java [sol-Java]
+class Solution {
+    public boolean canMakeEqual(int[] nums, int k) {
+        return check(nums, k, -1) || check(nums, k, 1);
+    }
+
+    private boolean check(int[] nums, int k, int target) {
+        int n = nums.length;
+        int left = k;
+        int mul = 1;
+        for (int i = 0; i < n; i++) {
+            if (nums[i] * mul == target) {
+                mul = 1; // 不操作，下一个数不用乘 -1
+                continue;
+            }
+            if (left == 0 || i == n - 1) {
+                return false;
+            }
+            left--;
+            mul = -1; // 操作，下一个数要乘 -1
+        }
+        return true;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    bool canMakeEqual(vector<int>& nums, int k) {
+        auto check = [&](int target) -> bool {
+            int left = k;
+            int mul = 1;
+            for (int i = 0; i < nums.size(); i++) {
+                if (nums[i] * mul == target) {
+                    mul = 1; // 不操作，下一个数不用乘 -1
+                    continue;
+                }
+                if (left == 0 || i + 1 == nums.size()) {
+                    return false;
+                }
+                left--;
+                mul = -1; // 操作，下一个数要乘 -1
+            }
+            return true;
+        };
+        return check(-1) || check(1);
+    }
+};
+```
+
+```go [sol-Go]
+func canMakeEqual(nums []int, k int) bool {
+	check := func(target int) bool {
+		left := k
+		mul := 1
+		for i, x := range nums {
+			if x*mul == target {
+				mul = 1 // 不操作，下一个数不用乘 -1
+				continue
+			}
+			if left == 0 || i == len(nums)-1 {
+				return false
+			}
+			left--
+			mul = -1 // 操作，下一个数要乘 -1
+		}
+		return true
+	}
+	return check(-1) || check(1)
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是 $\textit{nums}$ 的长度。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+更多相似题目，见下面贪心题单的「**§1.4 从最左/最右开始贪心**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
 
 ## 本地原创解析
 

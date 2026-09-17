@@ -7,15 +7,237 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：四、回溯 / §4.2 子集型回溯
 - 难度分：1372
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/sum-of-all-subset-xor-totals/solutions/3614974/on-shu-xue-zuo-fa-pythonjavaccgojsrust-b-9txy/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[O(n) 数学做法（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/sum-of-all-subset-xor-totals/solutions/3614974/on-shu-xue-zuo-fa-pythonjavaccgojsrust-b-9txy/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`on-shu-xue-zuo-fa-pythonjavaccgojsrust-b-9txy`
+- topic id：`3614974`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:57:36 +0800
+
+## 提示 1
+
+对于异或运算，每个比特位是互相独立的，我们可以先思考只有一个比特位的情况，也就是 $\textit{nums}$ 中只有 $0$ 和 $1$ 的情况。（从特殊到一般）
+
+在这种情况下，如果子集中有偶数个 $1$，那么异或和为 $0$；如果子集中有奇数个 $1$，那么异或和为 $1$。所以关键是求出异或和为 $1$ 的子集个数。
+
+设 $\textit{nums}$ 的长度为 $n$，且包含 $1$。我们可以先把其中一个 $1$ 拿出来，剩下 $n-1$ 个数随便选或不选，有 $2^{n-1}$ 种选法。
+
+- 如果这 $n-1$ 个数中选了偶数个 $1$，那么放入我们拿出来的 $1$（选这个 $1$），得到奇数个 $1$，异或和为 $1$。
+- 如果这 $n-1$ 个数中选了奇数个 $1$，那么不放入我们拿出来的 $1$（不选这个 $1$），得到奇数个 $1$，异或和为 $1$。
+
+所以，恰好有 $2^{n-1}$ 个子集的异或和为 $1$。
+
+注意这个结论与 $\textit{nums}$ 中有多少个 $1$ 是**无关**的，只要有 $1$，异或和为 $1$ 的子集个数就是 $2^{n-1}$。如果 $\textit{nums}$ 中没有 $1$，那么有 $0$ 个子集的异或和为 $1$。
+
+所以，在有至少一个 $1$ 的情况下，$\textit{nums}$ 的所有子集的异或和的总和为
+
+$$
+2^{n-1}
+$$
+
+> 其他证明方法见文末。
+
+## 提示 2
+
+推广到多个比特位的情况。
+
+例如 $\textit{nums}=[3,2,8]$，第 $0,1,3$ 个比特位上有 $1$，每个比特位对应的「所有子集的异或和的总和」分别为
+
+$$
+2^0 \cdot 2^{n-1},\ 2^1 \cdot 2^{n-1},\ 2^3\cdot 2^{n-1}
+$$
+
+相加得
+
+$$
+(2^0 + 2^1 + 2^3) \cdot 2^{n-1}
+$$
+
+怎么知道哪些比特位上有 $1$？计算 $\textit{nums}$ 的所有元素的 OR，即 $1011_{(2)}$。
+
+注意到，所有元素的 OR，就是上例中的 $2^0 + 2^1 + 2^3$。
+
+一般地，设 $\textit{nums}$ 所有元素的 OR 为 $\textit{or}$，$\textit{nums}$ 的所有子集的异或和的总和为
+
+$$
+\textit{or} \cdot 2^{n-1}
+$$
+
+```py [sol-Python3]
+class Solution:
+    def subsetXORSum(self, nums: List[int]) -> int:
+        return reduce(or_, nums) << (len(nums) - 1)
+```
+
+```java [sol-Java]
+class Solution {
+    public int subsetXORSum(int[] nums) {
+        int or = 0;
+        for (int x : nums) {
+            or |= x;
+        }
+        return or << (nums.length - 1);
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int subsetXORSum(vector<int>& nums) {
+        int or_ = 0;
+        for (int x : nums) {
+            or_ |= x;
+        }
+        return or_ << (nums.size() - 1);
+    }
+};
+```
+
+```cpp [sol-C++ 写法二]
+class Solution {
+public:
+    int subsetXORSum(vector<int>& nums) {
+        return reduce(nums.begin(), nums.end(), 0, bit_or()) << (nums.size() - 1);
+    }
+};
+```
+
+```c [sol-C]
+int subsetXORSum(int* nums, int numsSize) {
+    int or = 0;
+    for (int i = 0; i < numsSize; i++) {
+        or |= nums[i];
+    }
+    return or << (numsSize - 1);
+}
+```
+
+```go [sol-Go]
+func subsetXORSum(nums []int) int {
+    or := 0
+    for _, x := range nums {
+        or |= x
+    }
+    return or << (len(nums) - 1)
+}
+```
+
+```js [sol-JavaScript]
+var subsetXORSum = function(nums) {
+    return nums.reduce((or, x) => or | x, 0) << (nums.length - 1);
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn subset_xor_sum(nums: Vec<i32>) -> i32 {
+        let n = nums.len();
+        nums.into_iter().reduce(|or, x| or | x).unwrap() << (n - 1)
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是 $\textit{nums}$ 的长度。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 附：其他证明方法
+
+**定理 1**：大小为 $m$ 的集合中，有 $2^{m-1}$ 个大小为奇数的子集。其中 $m$ 是正整数。
+
+**第一种证法**
+
+分类讨论：
+
+- 如果 $m$ 是奇数，那么对于一个大小为奇数的子集，其补集的大小为偶数，因为奇数减奇数等于偶数。比如 $m=5$，选 $3$ 个数，剩余数字个数 $5-3=2$ 是偶数。同样地，偶数大小的子集，其补集为奇数。不同的奇数大小子集，所对应的偶数大小子集也是不同的（反过来也是）。所以可以把 $2^m$ 个子集均分成两部分：恰好有 $2^{m-1}$ 个大小为奇数的子集，恰好有 $2^{m-1}$ 个大小为偶数的子集。这两部分是一一对应的（双射）。
+- 如果 $m$ 是偶数，我们可以先拿一个数出来，剩下 $m-1$ 个数，且 $m-1$ 是奇数。根据上面的结论，恰好有 $2^{m-2}$ 个大小为奇数的子集，恰好有 $2^{m-2}$ 个大小为偶数的子集。然后我们把拿出来的 $1$，加到每个大小为偶数的子集中，得到 $2^{m-2}$ 个大小为奇数的子集。所以一共有 $2^{m-2} + 2^{m-2} = 2^{m-1}$ 个大小为奇数的子集。
+
+综上所述，无论 $m$ 是奇是偶，都有 $2^{m-1}$ 个大小为奇数的子集。
+
+**第二种证法**
+
+根据二项式定理，我们有
+
+$$
+2^m = (1+1)^m = \binom m 0 + \binom m 1 + \binom m 2 + \cdots + \binom m m
+$$
+
+以及
+
+$$
+0^m = (1-1)^m = \binom m 0 - \binom m 1 + \binom m 2 - \cdots + (-1)^m \binom m m
+$$
+
+两个式子相减，得
+
+$$
+2^m = 2\cdot\left[\binom m 1 + \binom m 3 + \binom m 5 + \cdots\right]
+$$
+
+即
+
+$$
+\binom m 1 + \binom m 3 + \binom m 5 + \cdots = 2^{m-1}
+$$
+
+**定理 2**：如果 $\textit{nums}$ 包含 $1$，那么恰有 $2^{n-1}$ 个子集有奇数个 $1$。
+
+**证明**：
+
+设 $\textit{nums}$ 的长度为 $n$，其中有 $m$ 个 $1$ 和 $n-m$ 个 $0$。
+
+先从 $m$ 个 $1$ 中选奇数个 $1$，根据定理 1，这有 $2^{m-1}$ 种选法。
+
+再选 $0$，这 $n-m$ 个 $0$，每个 $0$ 选或不选都可以，有 $2^{n-m}$ 种选法。
+
+根据乘法原理，一共有
+
+$$
+2^{m-1}\cdot 2^{n-m} = 2^{n-1}
+$$
+
+个子集有奇数个 $1$。
+
+## 变形题
+
+本题有很多变形题，例如：
+
+- 把子集（子序列）改成连续子数组，要怎么做？
+- 所有子序列的异或和的异或和是多少？
+- 所有子序列的元素和的异或和是多少？
+
+按照「子数组/子序列」的「元素和/异或和」的「总和/异或和」组合题目，一共可以得到八道题。解答见 [灵茶八题](https://zhuanlan.zhihu.com/p/31292765508)。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/最短路/最小生成树/二分图/基环树/欧拉路径）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/状态机/划分/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

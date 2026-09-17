@@ -167,7 +167,7 @@ musa/
 
 ## 10. 文档状态、覆盖范围和未解决问题
 
-M05 显存池专题已完成一轮函数级静态深挖；全库仍有 Graph、wrapper/export、M3D 子模块和硬件验证缺口。详见 [`00-overview/analysis-state.md`](00-overview/analysis-state.md)。
+M05 显存池专题已完成一轮函数级静态深挖；全库仍有 Graph、wrapper/export、M3D 子模块和硬件验证缺口。专题还覆盖 IPC pool metadata、SplayTree registry 与 pool ownership 的静态审计；其中 `mmap`、跨进程 owners、live allocation destroy 和 lookup 比较方向均未通过运行验证。详见 [`00-overview/analysis-state.md`](00-overview/analysis-state.md) 和 [`01-modules/M05-memory-mempool/risks-and-debt.md`](01-modules/M05-memory-mempool/risks-and-debt.md)。
 
 ## 相关文档
 

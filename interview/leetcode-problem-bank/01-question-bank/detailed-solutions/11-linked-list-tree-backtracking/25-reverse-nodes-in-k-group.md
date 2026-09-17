@@ -7,15 +7,532 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：一、链表 / §1.4 反转链表
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/reverse-nodes-in-k-group/solutions/1992228/you-xie-cuo-liao-yi-ge-shi-pin-jiang-tou-plfs/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[【视频讲解】从反转链表到 K 个一组反转（Python/Java/C++/C/Go/JS）](https://leetcode.cn/problems/reverse-nodes-in-k-group/solutions/1992228/you-xie-cuo-liao-yi-ge-shi-pin-jiang-tou-plfs/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`you-xie-cuo-liao-yi-ge-shi-pin-jiang-tou-plfs`
+- topic id：`1992228`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:30:25 +0800
+
+## 前置题目
+
+1. [206. 反转链表](https://leetcode.cn/problems/reverse-linked-list/)
+2. [92. 反转链表 II](https://leetcode.cn/problems/reverse-linked-list-ii/)
+
+## 视频讲解
+
+请看[【基础算法精讲 06】](https://www.bilibili.com/video/BV1sd4y1x7KN/)。制作不易，欢迎点赞~
+
+![006.jpg](https://pic.leetcode.cn/1669456133-wgksZa-006.jpg)
+
+## 写法一
+
+```py [sol-Python3]
+class Solution:
+    def reverseKGroup(self, head: Optional[ListNode], k: int) -> Optional[ListNode]:
+        # 统计节点个数
+        n = 0
+        cur = head
+        while cur:
+            n += 1
+            cur = cur.next
+
+        # last_tail 是上一组翻转后的尾节点
+        last_tail = dummy = ListNode(next=head)
+
+        # k 个一组处理
+        while n >= k:
+            n -= k
+
+            pre = None
+            cur = last_tail.next
+            for _ in range(k):  # 同 92 题
+                nxt = cur.next
+                cur.next = pre  # 每次循环只修改一个 next，方便大家理解
+                pre = cur
+                cur = nxt
+
+            # 请结合视频中的图理解
+            # 翻转后：
+            # pre 是当前组的头节点
+            # cur 是下一组的起始节点
+            # last_tail 是上一组的尾节点
+            # last_tail.next 是当前组的尾节点
+            tail = last_tail.next
+            tail.next = cur  # 当前组的尾节点指向下一组的起始节点
+            last_tail.next = pre  # 上一组的尾节点指向当前组的头节点
+            last_tail = tail
+
+        return dummy.next
+```
+
+```java [sol-Java]
+class Solution {
+    public ListNode reverseKGroup(ListNode head, int k) {
+        // 统计节点个数
+        int n = 0;
+        for (ListNode cur = head; cur != null; cur = cur.next) {
+            n++;
+        }
+
+        ListNode dummy = new ListNode(0, head);
+        ListNode lastTail = dummy; // 上一组翻转后的尾节点
+
+        // k 个一组处理
+        for (; n >= k; n -= k) {
+            ListNode pre = null;
+            ListNode cur = lastTail.next;
+            for (int i = 0; i < k; i++) { // 同 92 题
+                ListNode nxt = cur.next;
+                cur.next = pre; // 每次循环只修改一个 next，方便大家理解
+                pre = cur;
+                cur = nxt;
+            }
+
+            // 请结合视频中的图理解
+            // 翻转后：
+            // pre 是当前组的头节点
+            // cur 是下一组的起始节点
+            // lastTail 是上一组的尾节点
+            // lastTail.next 是当前组的尾节点
+            ListNode tail = lastTail.next;
+            tail.next = cur; // 当前组的尾节点指向下一组的起始节点
+            lastTail.next = pre; // 上一组的尾节点指向当前组的头节点
+            lastTail = tail;
+        }
+
+        return dummy.next;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    ListNode* reverseKGroup(ListNode* head, int k) {
+        // 统计节点个数
+        int n = 0;
+        for (ListNode* cur = head; cur; cur = cur->next) {
+            n++;
+        }
+
+        ListNode dummy(0, head);
+        ListNode* last_tail = &dummy; // 上一组翻转后的尾节点
+
+        // k 个一组处理
+        for (; n >= k; n -= k) {
+            ListNode* pre = nullptr;
+            ListNode* cur = last_tail->next;
+            for (int i = 0; i < k; i++) { // 同 92 题
+                ListNode* nxt = cur->next;
+                cur->next = pre; // 每次循环只修改一个 next，方便大家理解
+                pre = cur;
+                cur = nxt;
+            }
+
+            // 请结合视频中的图理解
+            // 翻转后：
+            // pre 是当前组的头节点
+            // cur 是下一组的起始节点
+            // last_tail 是上一组的尾节点
+            // last_tail->next 是当前组的尾节点
+            ListNode* tail = last_tail->next;
+            tail->next = cur; // 当前组的尾节点指向下一组的起始节点
+            last_tail->next = pre; // 上一组的尾节点指向当前组的头节点
+            last_tail = tail;
+        }
+
+        return dummy.next;
+    }
+};
+```
+
+```c [sol-C]
+struct ListNode* reverseKGroup(struct ListNode* head, int k) {
+    // 统计节点个数
+    int n = 0;
+    for (struct ListNode* cur = head; cur; cur = cur->next) {
+        n++;
+    }
+
+    struct ListNode dummy = {0, head};
+    struct ListNode* last_tail = &dummy; // 上一组翻转后的尾节点
+
+    // k 个一组处理
+    for (; n >= k; n -= k) {
+        struct ListNode* pre = NULL;
+        struct ListNode* cur = last_tail->next;
+        for (int i = 0; i < k; i++) { // 同 92 题
+            struct ListNode* nxt = cur->next;
+            cur->next = pre; // 每次循环只修改一个 next，方便大家理解
+            pre = cur;
+            cur = nxt;
+        }
+
+        // 请结合视频中的图理解
+        // 翻转后：
+        // pre 是当前组的头节点
+        // cur 是下一组的起始节点
+        // last_tail 是上一组的尾节点
+        // last_tail->next 是当前组的尾节点
+        struct ListNode* tail = last_tail->next;
+        tail->next = cur; // 当前组的尾节点指向下一组的起始节点
+        last_tail->next = pre; // 上一组的尾节点指向当前组的头节点
+        last_tail = tail;
+    }
+
+    return dummy.next;
+}
+```
+
+```go [sol-Go]
+func reverseKGroup(head *ListNode, k int) *ListNode {
+    // 统计节点个数
+    n := 0
+    for cur := head; cur != nil; cur = cur.Next {
+        n++
+    }
+
+    dummy := ListNode{Next: head}
+    lastTail := &dummy // 上一组翻转后的尾节点
+
+    // k 个一组处理
+    for ; n >= k; n -= k {
+        var pre *ListNode
+        cur := lastTail.Next
+        for range k {
+            nxt := cur.Next
+            cur.Next = pre // 每次循环只修改一个 Next，方便大家理解
+            pre = cur
+            cur = nxt
+        }
+
+        // 请结合视频中的图理解
+        // 翻转后：
+        // pre 是当前组的头节点
+        // cur 是下一组的起始节点
+        // lastTail 是上一组的尾节点
+        // lastTail.Next 是当前组的尾节点
+        tail := lastTail.Next
+        tail.Next = cur     // 当前组的尾节点指向下一组的起始节点
+        lastTail.Next = pre // 上一组的尾节点指向当前组的头节点
+        lastTail = tail
+    }
+
+    return dummy.Next
+}
+```
+
+```js [sol-JavaScript]
+var reverseKGroup = function(head, k) {
+    // 统计节点个数
+    let n = 0;
+    for (let cur = head; cur; cur = cur.next) {
+        n++;
+    }
+
+    const dummy = new ListNode(0, head);
+    let lastTail = dummy; // 上一组翻转后的尾节点
+
+    // k 个一组处理
+    for (; n >= k; n -= k) {
+        let pre = null;
+        let cur = lastTail.next;
+        for (let i = 0; i < k; i++) { // 同 92 题
+            const nxt = cur.next;
+            cur.next = pre; // 每次循环只修改一个 next，方便大家理解
+            pre = cur;
+            cur = nxt;
+        }
+
+        // 请结合视频中的图理解
+        // 翻转后：
+        // pre 是当前组的头节点
+        // cur 是下一组的起始节点
+        // lastTail 是上一组的尾节点
+        // lastTail.next 是当前组的尾节点
+        const tail = lastTail.next;
+        tail.next = cur; // 当前组的尾节点指向下一组的起始节点
+        lastTail.next = pre; // 上一组的尾节点指向当前组的头节点
+        lastTail = tail;
+    }
+
+    return dummy.next;
+};
+```
+
+## 写法二
+
+不需要先统计节点个数。对于每一组，我们可以先试探性地往前走 $k$ 步，如果发现剩余节点不足 $k$ 个，则直接返回答案。
+
+```py [sol-Python3]
+class Solution:
+    def reverseKGroup(self, head: Optional[ListNode], k: int) -> Optional[ListNode]:
+        # last_tail 是上一组翻转后的尾节点
+        last_tail = dummy = ListNode(next=head)
+
+        # k 个一组处理
+        while True:
+            # 看看这一组是否有 k 个节点
+            cur = last_tail
+            for _ in range(k):
+                cur = cur.next
+                if cur is None:  # 不足 k 个节点
+                    return dummy.next
+
+            pre = None
+            cur = last_tail.next
+            for _ in range(k):  # 同 92 题
+                nxt = cur.next
+                cur.next = pre  # 每次循环只修改一个 next，方便大家理解
+                pre = cur
+                cur = nxt
+
+            # 请结合视频中的图理解
+            # 翻转后：
+            # pre 是当前组的头节点
+            # cur 是下一组的起始节点
+            # last_tail 是上一组的尾节点
+            # last_tail.next 是当前组的尾节点
+            tail = last_tail.next
+            tail.next = cur  # 当前组的尾节点指向下一组的起始节点
+            last_tail.next = pre  # 上一组的尾节点指向当前组的头节点
+            last_tail = tail
+```
+
+```java [sol-Java]
+class Solution {
+    public ListNode reverseKGroup(ListNode head, int k) {
+        ListNode dummy = new ListNode(0, head);
+        ListNode lastTail = dummy; // 上一组翻转后的尾节点
+
+        // k 个一组处理
+        while (true) {
+            // 看看这一组是否有 k 个节点
+            ListNode cur = lastTail;
+            for (int i = 0; i < k; i++) {
+                cur = cur.next;
+                if (cur == null) { // 不足 k 个节点
+                    return dummy.next;
+                }
+            }
+
+            ListNode pre = null;
+            cur = lastTail.next;
+            for (int i = 0; i < k; i++) { // 同 92 题
+                ListNode nxt = cur.next;
+                cur.next = pre; // 每次循环只修改一个 next，方便大家理解
+                pre = cur;
+                cur = nxt;
+            }
+
+            // 请结合视频中的图理解
+            // 翻转后：
+            // pre 是当前组的头节点
+            // cur 是下一组的起始节点
+            // lastTail 是上一组的尾节点
+            // lastTail.next 是当前组的尾节点
+            ListNode tail = lastTail.next;
+            tail.next = cur; // 当前组的尾节点指向下一组的起始节点
+            lastTail.next = pre; // 上一组的尾节点指向当前组的头节点
+            lastTail = tail;
+        }
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    ListNode* reverseKGroup(ListNode* head, int k) {
+        ListNode dummy(0, head);
+        ListNode* last_tail = &dummy; // 上一组翻转后的尾节点
+
+        // k 个一组处理
+        while (true) {
+            // 看看这一组是否有 k 个节点
+            ListNode* cur = last_tail;
+            for (int i = 0; i < k; i++) {
+                cur = cur->next;
+                if (cur == nullptr) { // 不足 k 个节点
+                    return dummy.next;
+                }
+            }
+
+            ListNode* pre = nullptr;
+            cur = last_tail->next;
+            for (int i = 0; i < k; i++) { // 同 92 题
+                ListNode* nxt = cur->next;
+                cur->next = pre; // 每次循环只修改一个 next，方便大家理解
+                pre = cur;
+                cur = nxt;
+            }
+
+            // 请结合视频中的图理解
+            // 翻转后：
+            // pre 是当前组的头节点
+            // cur 是下一组的起始节点
+            // last_tail 是上一组的尾节点
+            // last_tail->next 是当前组的尾节点
+            ListNode* tail = last_tail->next;
+            tail->next = cur; // 当前组的尾节点指向下一组的起始节点
+            last_tail->next = pre; // 上一组的尾节点指向当前组的头节点
+            last_tail = tail;
+        }
+    }
+};
+```
+
+```c [sol-C]
+struct ListNode* reverseKGroup(struct ListNode* head, int k) {
+    struct ListNode dummy = {0, head};
+    struct ListNode* last_tail = &dummy; // 上一组翻转后的尾节点
+
+    // k 个一组处理
+    while (true) {
+        // 看看这一组是否有 k 个节点
+        struct ListNode* cur = last_tail;
+        for (int i = 0; i < k; i++) {
+            cur = cur->next;
+            if (cur == NULL) { // 不足 k 个节点
+                return dummy.next;
+            }
+        }
+
+        struct ListNode* pre = NULL;
+        cur = last_tail->next;
+        for (int i = 0; i < k; i++) { // 同 92 题
+            struct ListNode* nxt = cur->next;
+            cur->next = pre; // 每次循环只修改一个 next，方便大家理解
+            pre = cur;
+            cur = nxt;
+        }
+
+        // 请结合视频中的图理解
+        // 翻转后：
+        // pre 是当前组的头节点
+        // cur 是下一组的起始节点
+        // last_tail 是上一组的尾节点
+        // last_tail->next 是当前组的尾节点
+        struct ListNode* tail = last_tail->next;
+        tail->next = cur; // 当前组的尾节点指向下一组的起始节点
+        last_tail->next = pre; // 上一组的尾节点指向当前组的头节点
+        last_tail = tail;
+    }
+}
+```
+
+```go [sol-Go]
+func reverseKGroup(head *ListNode, k int) *ListNode {
+    dummy := ListNode{Next: head}
+    lastTail := &dummy // 上一组翻转后的尾节点
+
+    // k 个一组处理
+    for {
+        // 看看这一组是否有 k 个节点
+        cur := lastTail
+        for range k {
+            cur = cur.Next
+            if cur == nil { // 不足 k 个节点
+                return dummy.Next
+            }
+        }
+
+        var pre *ListNode
+        cur = lastTail.Next
+        for range k {
+            nxt := cur.Next
+            cur.Next = pre // 每次循环只修改一个 Next，方便大家理解
+            pre = cur
+            cur = nxt
+        }
+
+        // 请结合视频中的图理解
+        // 翻转后：
+        // pre 是当前组的头节点
+        // cur 是下一组的起始节点
+        // lastTail 是上一组的尾节点
+        // lastTail.Next 是当前组的尾节点
+        tail := lastTail.Next
+        tail.Next = cur     // 当前组的尾节点指向下一组的起始节点
+        lastTail.Next = pre // 上一组的尾节点指向当前组的头节点
+        lastTail = tail
+    }
+}
+```
+
+```js [sol-JavaScript]
+var reverseKGroup = function(head, k) {
+    const dummy = new ListNode(0, head);
+    let lastTail = dummy; // 上一组翻转后的尾节点
+
+    // k 个一组处理
+    while (true) {
+        // 看看这一组是否有 k 个节点
+        let cur = lastTail;
+        for (let i = 0; i < k; i++) {
+            cur = cur.next;
+            if (cur === null) { // 不足 k 个节点
+                return dummy.next;
+            }
+        }
+
+        let pre = null;
+        cur = lastTail.next;
+        for (let i = 0; i < k; i++) { // 同 92 题
+            const nxt = cur.next;
+            cur.next = pre; // 每次循环只修改一个 next，方便大家理解
+            pre = cur;
+            cur = nxt;
+        }
+
+        // 请结合视频中的图理解
+        // 翻转后：
+        // pre 是当前组的头节点
+        // cur 是下一组的起始节点
+        // lastTail 是上一组的尾节点
+        // lastTail.next 是当前组的尾节点
+        const tail = lastTail.next;
+        tail.next = cur; // 当前组的尾节点指向下一组的起始节点
+        lastTail.next = pre; // 上一组的尾节点指向当前组的头节点
+        lastTail = tail;
+    }
+};
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是链表节点个数。
+- 空间复杂度：$\mathcal{O}(1)$。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/discuss/post/3141566/ru-he-ke-xue-shua-ti-by-endlesscheng-q3yd/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/discuss/post/3578981/ti-dan-hua-dong-chuang-kou-ding-chang-bu-rzz7/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/discuss/post/3579164/ti-dan-er-fen-suan-fa-er-fen-da-an-zui-x-3rqn/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/discuss/post/3579480/ti-dan-dan-diao-zhan-ju-xing-xi-lie-zi-d-u4hk/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/discuss/post/3580195/fen-xiang-gun-ti-dan-wang-ge-tu-dfsbfszo-l3pa/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/discuss/post/3580371/fen-xiang-gun-ti-dan-wei-yun-suan-ji-chu-nth4/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/discuss/post/3581143/fen-xiang-gun-ti-dan-tu-lun-suan-fa-dfsb-qyux/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/discuss/post/3581838/fen-xiang-gun-ti-dan-dong-tai-gui-hua-ru-007o/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/discuss/post/3583665/fen-xiang-gun-ti-dan-chang-yong-shu-ju-j-bvmv/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/discuss/post/3584388/fen-xiang-gun-ti-dan-shu-xue-suan-fa-shu-gcai/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/discuss/post/3091107/fen-xiang-gun-ti-dan-tan-xin-ji-ben-tan-k58yb/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/discuss/post/3142882/fen-xiang-gun-ti-dan-lian-biao-er-cha-sh-6srp/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/discuss/post/3144832/fen-xiang-gun-ti-dan-zi-fu-chuan-kmpzhan-ugt4/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

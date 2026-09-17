@@ -7,15 +7,220 @@
 - 来源专题：贪心与思维
 - 来源分类路径：五、思维题 / §5.2 脑筋急转弯
 - 难度分：1581
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/count-collisions-on-a-road/solutions/1352598/jie-lun-ti-san-xing-gao-ding-by-endlessc-bvnw/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[脑筋急转弯（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/count-collisions-on-a-road/solutions/1352598/jie-lun-ti-san-xing-gao-ding-by-endlessc-bvnw/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`jie-lun-ti-san-xing-gao-ding-by-endlessc-bvnw`
+- topic id：`1352598`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:07:12 +0800
+
+去掉前缀向左开、后缀向右开的车后，剩下的车必然会碰撞。
+
+根据题意，两辆移动的车相撞，算碰撞两次；移动的车撞上静止的车，只算一次，不妨**算在移动的车上**。
+
+所以碰撞次数等于移动的车辆数，即剩余车辆数减去静止的车辆数。
+
+```py [sol-Python3]
+class Solution:
+    def countCollisions(self, s: str) -> int:
+        s = s.lstrip('L')  # 前缀向左的车不会发生碰撞
+        s = s.rstrip('R')  # 后缀向右的车不会发生碰撞
+        return len(s) - s.count('S')  # 剩下非静止的车计入碰撞次数
+```
+
+```java [sol-Java]
+class Solution {
+    public int countCollisions(String s) {
+        int n = s.length();
+
+        // 前缀向左的车不会发生碰撞
+        int l = 0;
+        while (l < n && s.charAt(l) == 'L') {
+            l++;
+        }
+
+        // 后缀向右的车不会发生碰撞
+        int r = n; 
+        while (r > l && s.charAt(r - 1) == 'R') {
+            r--;
+        }
+
+        // 剩下非静止的车计入碰撞次数
+        int cnt = 0; 
+        for (int i = l; i < r; i++) {
+            if (s.charAt(i) != 'S') {
+                cnt++;
+            }
+        }
+        return cnt;
+    }
+}
+```
+
+```java [sol-Java 写法二]
+class Solution {
+    public int countCollisions(String s) {
+        s = s.replaceAll("^L+", ""); // 前缀向左的车不会发生碰撞
+        s = new StringBuilder(s).reverse().toString().replaceAll("^R+", ""); // 后缀向右的车不会发生碰撞
+        return (int) s.chars().filter(c -> c != 'S').count(); // 剩下非静止的车计入碰撞次数
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int countCollisions(string s) { 
+        int n = s.size();
+
+        // 前缀向左的车不会发生碰撞
+        int l = 0;
+        while (l < n && s[l] == 'L') {
+            l++;
+        }
+
+        // 后缀向右的车不会发生碰撞
+        int r = n; 
+        while (r > l && s[r - 1] == 'R') {
+            r--;
+        }
+
+        // 剩下非静止的车计入碰撞次数
+        int cnt = 0; 
+        for (int i = l; i < r; i++) {
+            cnt += s[i] != 'S';
+        }
+        return cnt;
+    }
+};
+```
+
+```cpp [sol-C++ 写法二]
+class Solution {
+public:
+    int countCollisions(string s) {
+        s.erase(s.begin(), ranges::find_if(s, [](auto c) { return c != 'L'; })); // 前缀向左的车不会发生碰撞
+        s.erase(find_if(s.rbegin(), s.rend(), [](auto c) { return c != 'R'; }).base(), s.end()); // 后缀向右的车不会发生碰撞
+        return s.length() - ranges::count(s, 'S'); // 剩下非静止的车计入碰撞次数
+    }
+};
+```
+
+```c [sol-C]
+int countCollisions(char* s) { 
+    // 前缀向左的车不会发生碰撞
+    int l = 0;
+    while (s[l] == 'L') {
+        l++;
+    }
+
+    // 后缀向右的车不会发生碰撞
+    int r = strlen(s); 
+    while (r > l && s[r - 1] == 'R') {
+        r--;
+    }
+
+    // 剩下非静止的车计入碰撞次数
+    int cnt = 0; 
+    for (int i = l; i < r; i++) {
+        cnt += s[i] != 'S';
+    }
+    return cnt;
+}
+```
+
+```go [sol-Go]
+func countCollisions(s string) int {
+	s = strings.TrimLeft(s, "L")          // 前缀向左的车不会发生碰撞
+	s = strings.TrimRight(s, "R")         // 后缀向右的车不会发生碰撞
+	return len(s) - strings.Count(s, "S") // 剩下非静止的车计入碰撞次数
+}
+```
+
+```js [sol-JS]
+var countCollisions = function(s) { 
+    const n = s.length;
+
+    // 前缀向左的车不会发生碰撞
+    let l = 0;
+    while (l < n && s[l] === 'L') {
+        l++;
+    }
+
+    // 后缀向右的车不会发生碰撞
+    let r = n;
+    while (r > l && s[r - 1] === 'R') {
+        r--;
+    }
+
+    // 剩下非静止的车计入碰撞次数
+    let cnt = 0; 
+    for (let i = l; i < r; i++) {
+        if (s[i] !== 'S') {
+            cnt++;
+        }
+    }
+    return cnt;
+};
+```
+
+```rust [sol-Rust]
+impl Solution {
+    pub fn count_collisions(s: String) -> i32 {
+        let s = s.as_bytes();
+        let n = s.len();
+
+        // 前缀向左的车不会发生碰撞
+        let mut l = 0;
+        while l < n && s[l] == b'L' {
+            l += 1;
+        }
+
+        // 后缀向右的车不会发生碰撞
+        let mut r = n;
+        while r > l && s[r - 1] == b'R' {
+            r -= 1;
+        }
+
+        // 剩下非静止的车计入碰撞次数
+        s[l..r].iter().filter(|&&c| c != b'S').count() as _
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是 $s$ 的长度。
+- 空间复杂度：$\mathcal{O}(n)$ 或 $\mathcal{O}(1)$。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

@@ -7,15 +7,123 @@
 - 来源专题：贪心与思维
 - 来源分类路径：三、字符串贪心 / §3.1 字典序最小/最大
 - 难度分：1642
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/construct-smallest-number-from-di-string/solutions/1746837/by-endlesscheng-8ee3/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[贪心 O(n) 做法（Python/Java/C++/Go）](https://leetcode.cn/problems/construct-smallest-number-from-di-string/solutions/1746837/by-endlesscheng-8ee3/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`by-endlesscheng-8ee3`
+- topic id：`1746837`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:01:04 +0800
+
+本题 [视频讲解](https://www.bilibili.com/video/BV1rS4y1s721) 已出炉，欢迎点赞三连，在评论区分享你对这场周赛的看法~
+
+---
+
+贪心策略：
+
+把 $\textit{pattern}$ 按照 $\texttt{III}\cdots \texttt{IDDD}\cdots \texttt{D}$ 分组，每组前一段是 $\texttt{I}$，后一段是 $\texttt{D}$。
+
+遍历每一段，设当前段的长度为 $x$，我们应该把剩余最小的 $x$ 个数字填到该段上（如果是第一段则填最小的 $x+1$ 个数字），从而保证字典序最小。
+
+举例说明，假如第一段为 $\texttt{IIIDDD}$，构造方案如下：
+
+- 前 $2$ 个 $\texttt{I}$ 视作长度为 $3$ 的上升段；
+- 剩余的 $\texttt{I}$ 和 $\texttt{D}$ 视作长度为 $4$ 的下降段；
+- 最小的 $3$ 个数给上升段，然后剩余最小的 $4$ 个数给下降段；
+- 构造结果为 $\texttt{1237654}$。
+
+按照该方案分组模拟即可。
+
+[视频讲解](https://www.bilibili.com/video/BV1rS4y1s721) 中介绍了另外一种更优雅的做法。
+
+```py [sol1-Python3]
+class Solution:
+    def smallestNumber(self, pattern: str) -> str:
+        i, cur, n = 0, 1, len(pattern)
+        ans = [''] * (n + 1)
+        while i < n:
+            if i and pattern[i] == 'I':
+                i += 1
+            while i < n and pattern[i] == 'I':
+                ans[i] = digits[cur]
+                cur += 1
+                i += 1
+            i0 = i
+            while i < n and pattern[i] == 'D':
+                i += 1
+            for j in range(i, i0 - 1, -1):
+                ans[j] = digits[cur]
+                cur += 1
+        return ''.join(ans)
+```
+
+```java [sol1-Java]
+class Solution {
+    public String smallestNumber(String pattern) {
+        int i = 0, n = pattern.length();
+        var cur = '1';
+        var ans = new char[n + 1];
+        while (i < n) {
+            if (i > 0 && pattern.charAt(i) == 'I') ++i;
+            for (; i < n && pattern.charAt(i) == 'I'; ++i) ans[i] = cur++;
+            var i0 = i;
+            while (i < n && pattern.charAt(i) == 'D') ++i;
+            for (var j = i; j >= i0; --j) ans[j] = cur++;
+        }
+        return new String(ans);
+    }
+}
+```
+
+```cpp [sol1-C++]
+class Solution {
+public:
+    string smallestNumber(string pattern) {
+        int i = 0, n = pattern.length();
+        char cur = '1';
+        string ans(n + 1, 0);
+        while (i < n) {
+            if (i && pattern[i] == 'I') ++i;
+            for (; i < n && pattern[i] == 'I'; ++i) ans[i] = cur++;
+            int i0 = i;
+            while (i < n && pattern[i] == 'D') ++i;
+            for (int j = i; j >= i0; --j) ans[j] = cur++;
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol1-Go]
+func smallestNumber(pattern string) string {
+	n := len(pattern)
+	ans := make([]byte, n+1)
+	for i, cur := 0, byte('1'); i < n; {
+		if i > 0 && pattern[i] == 'I' {
+			i++
+		}
+		for ; i < n && pattern[i] == 'I'; i++ {
+			ans[i] = cur
+			cur++
+		}
+		i0 := i
+		for ; i < n && pattern[i] == 'D'; i++ {
+		}
+		for j := i; j >= i0; j-- {
+			ans[j] = cur
+			cur++
+		}
+	}
+	return string(ans)
+}
+```
 
 ## 本地原创解析
 

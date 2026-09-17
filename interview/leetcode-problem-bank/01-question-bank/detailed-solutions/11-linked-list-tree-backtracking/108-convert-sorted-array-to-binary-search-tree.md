@@ -7,15 +7,192 @@
 - 来源专题：链表、树与回溯
 - 来源分类路径：二、二叉树 / §2.10 创建二叉树
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/convert-sorted-array-to-binary-search-tree/solutions/2927064/ru-men-di-gui-cong-er-cha-shu-kai-shi-py-inu6/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[入门递归，从二叉树开始（Python/Java/C++/C/Go/JS/Rust）](https://leetcode.cn/problems/convert-sorted-array-to-binary-search-tree/solutions/2927064/ru-men-di-gui-cong-er-cha-shu-kai-shi-py-inu6/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`ru-men-di-gui-cong-er-cha-shu-kai-shi-py-inu6`
+- topic id：`2927064`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:39:45 +0800
+
+示例 1 $\textit{nums}=[-10,-3,0,5,9]$，我们从数组正中间的数 $\textit{nums}[2]=0$ 开始，把数组一分为二，得到两个小数组：
+
+- 左：$[-10,-3]$。
+- 右：$[5,9]$。
+
+答案由三部分组成：
+
+- 根节点：节点值为 $\textit{nums}[2]=0$。
+- 把 $\textit{nums}[2]$ 左边的 $[-10,-3]$ 转换成一棵平衡二叉搜索树，作为答案的左儿子。这是一个和原问题相似的子问题，可以递归解决。
+- 把 $\textit{nums}[2]$ 右边的 $[5,9]$ 转换成一棵平衡二叉搜索树，作为答案的右儿子。这是一个和原问题相似的子问题，可以递归解决。
+
+递归边界：如果数组长度等于 $0$，返回空节点。
+
+晕递归的同学，可以看视频讲解[【基础算法精讲 09】](https://www.bilibili.com/video/BV1UD4y1Y769/)，带你理解递归的本质。
+
+⚠**注意**：答案可能不是唯一的。如果 $n$ 是偶数，我们可以取数组正中间左边那个数作为根节点的值，也可以取数组正中间右边那个数作为根节点的值。下面代码取的是正中间右边那个数，即下标为 $\dfrac{n}{2}$ 的数（当 $n$ 是偶数时）。
+
+```py [sol-Python3]
+class Solution:
+    def sortedArrayToBST(self, nums: List[int]) -> Optional[TreeNode]:
+        if not nums:
+            return None
+        m = len(nums) // 2
+        left = self.sortedArrayToBST(nums[:m])
+        right = self.sortedArrayToBST(nums[m + 1:])
+        return TreeNode(nums[m], left, right)
+```
+
+```py [sol-Python3 写法二]
+class Solution:
+    def sortedArrayToBST(self, nums: List[int]) -> Optional[TreeNode]:
+        # 把 nums[left:right] 转成平衡二叉搜索树
+        def dfs(left: int, right: int) -> Optional[TreeNode]:
+            if left == right:
+                return None
+            m = (left + right) // 2
+            return TreeNode(nums[m], dfs(left, m), dfs(m + 1, right))
+        return dfs(0, len(nums))
+```
+
+```java [sol-Java]
+class Solution {
+    public TreeNode sortedArrayToBST(int[] nums) {
+        return dfs(nums, 0, nums.length);
+    }
+
+    // 把 nums[left] 到 nums[right-1] 转成平衡二叉搜索树
+    private TreeNode dfs(int[] nums, int left, int right) {
+        if (left == right) {
+            return null;
+        }
+        int m = (left + right) >>> 1;
+        return new TreeNode(nums[m], dfs(nums, left, m), dfs(nums, m + 1, right));
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+    // 把 nums[left] 到 nums[right-1] 转成平衡二叉搜索树
+    TreeNode* dfs(vector<int>& nums, int left, int right) {
+        if (left == right) {
+            return nullptr;
+        }
+        int m = left + (right - left) / 2;
+        return new TreeNode(nums[m], dfs(nums, left, m), dfs(nums, m + 1, right));
+    }
+
+public:
+    TreeNode* sortedArrayToBST(vector<int>& nums) {
+        return dfs(nums, 0, nums.size());
+    }
+};
+```
+
+```c [sol-C]
+// 把 nums[left] 到 nums[right-1] 转成平衡二叉搜索树
+struct TreeNode* dfs(int* nums, int left, int right) {
+    if (left == right) {
+        return NULL;
+    }
+    int m = left + (right - left) / 2;
+    struct TreeNode* node = malloc(sizeof(struct TreeNode));
+    node->val = nums[m];
+    node->left = dfs(nums, left, m);
+    node->right = dfs(nums, m + 1, right);
+    return node;
+}
+
+struct TreeNode* sortedArrayToBST(int* nums, int numsSize) {
+    return dfs(nums, 0, numsSize);
+}
+```
+
+```go [sol-Go]
+func sortedArrayToBST(nums []int) *TreeNode {
+    if len(nums) == 0 {
+        return nil
+    }
+    m := len(nums) / 2
+    return &TreeNode{
+        Val:   nums[m],
+        Left:  sortedArrayToBST(nums[:m]),
+        Right: sortedArrayToBST(nums[m+1:]),
+    }
+}
+```
+
+```js [sol-JavaScript]
+var sortedArrayToBST = function(nums) {
+    // 把 nums[left] 到 nums[right-1] 转成平衡二叉搜索树
+    function dfs(left, right) {
+        if (left === right) {
+            return null;
+        }
+        const m = Math.floor((left + right) / 2);
+        return new TreeNode(nums[m], dfs(left, m), dfs(m + 1, right));
+    }
+    return dfs(0, nums.length);
+};
+```
+
+```rust [sol-Rust]
+use std::rc::Rc;
+use std::cell::RefCell;
+
+impl Solution {
+    pub fn sorted_array_to_bst(nums: Vec<i32>) -> Option<Rc<RefCell<TreeNode>>> {
+        fn dfs(nums: &[i32]) -> Option<Rc<RefCell<TreeNode>>> {
+            if nums.is_empty() {
+                return None;
+            }
+            let m = nums.len() / 2;
+            Some(Rc::new(RefCell::new(TreeNode {
+                val: nums[m],
+                left: dfs(&nums[..m]),
+                right: dfs(&nums[m + 1..]),
+            })))
+        }
+        dfs(&nums)
+    }
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$，其中 $n$ 是 $\textit{nums}$ 的长度。每次递归要么返回空节点，要么把 $\textit{nums}$ 的一个数转成一个节点，所以递归次数是 $\mathcal{O}(n)$ 的，所以时间复杂度是 $\mathcal{O}(n)$。需要注意，Python 的第一种写法有切片的复制开销，二叉树的每一层都需要花费 $\mathcal{O}(n)$ 的时间，一共有 $\mathcal{O}(\log n)$ 层，所以时间复杂度是 $\mathcal{O}(n\log n)$；第二种写法避免了切片的复制开销，时间复杂度是 $\mathcal{O}(n)$。
+- 空间复杂度：$\mathcal{O}(n)$。如果不计入返回值和切片的空间，那么空间复杂度为 $\mathcal{O}(\log n)$，即递归栈的开销。
+
+更多相似题目，见下面的**二叉树题单**。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/最短路/最小生成树/二分图/基环树/欧拉路径）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/状态机/划分/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. 【本题相关】[链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 

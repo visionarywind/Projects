@@ -16,9 +16,9 @@
 
 - 已导入 12 个来源专题的分类解析文件。
 - 已按来源分类出现记录生成 3459 个单题详解文件。
-- 当前已成功导入 1369 个灵茶山艾府题解正文，状态为 `authorized-import`。
-- 另有 1126 个仍为 `pending-fetch`，964 个在当前题目检索中标记为 `missing-endlesscheng-solution`；批量请求期间遇到站点频率限制和超时。
-- 正文接口使用 LeetCode GraphQL `questionSolutionArticles` 搜索文章，再用 `solutionArticle` 取得正文；未取得正文的记录保留缺失状态。
+- 当前已成功导入 2094 个灵茶山艾府题解正文，状态为 `authorized-import`。
+- 另有 35 个仍为 `pending-fetch`，1330 个经当前完整检索标记为 `missing-endlesscheng-solution`；重试批次使用低速请求和持久缓存，临时失败不会写入缺失状态。
+- 正文接口使用 LeetCode GraphQL `questionSolutionArticles` 搜索文章，再用 `solutionArticle` 取得正文；未取得正文的记录保留可重试或缺失状态。
 - 本地原创解析为生成草稿，后续需要按题面和授权题解逐题补强。
 
 ## 后续要求

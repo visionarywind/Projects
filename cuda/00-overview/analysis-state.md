@@ -15,7 +15,7 @@
 - **更新时间**：2026-09-14
 - **源码根**：`source/cuda`
 - **文档根**：`/home/mtuser/workspace/Projects/cuda`
-- **总体状态**：M01–M10 模块文档骨架已建立；核心 API→CUI→资源→HAL/提交主线已静态追踪；M04–M07 的 UVM/GPFIFO/marker/module/syscall 深层生命周期以及 M08–M10 的工具、OpenCL 对象/interop、测试聚合语义已补证，外部后端与生成工具边界仍有明确缺口。
+- **总体状态**：M01–M10 模块文档骨架已建立；核心 API→CUI→资源→HAL/提交主线已静态追踪；M04–M07 的 UVM/GPFIFO/marker/module/syscall 深层生命周期以及 M08–M10 的工具、OpenCL 对象/interop、测试聚合语义已补证；跨模块 Kernel Launch 端到端调用链和具体架构设计文档已补充，外部后端与生成工具边界仍有明确缺口。
 
 ## 版本与仓库证据
 
@@ -99,7 +99,9 @@ cuLaunchKernel
 - **已确认**：launch 使用 UVM DAG running、completion marker、拓扑依赖和 memory tracking；destroy 反向 detach stream、释放 QMD/constant-bank/marker/scheduler memobj（`src/cui/cuigraph.c:3495-3575,4056-4162,1035-1205`）。
 - **静态疑点**：instantiate QMD pool 注册失败和 launch 中途失败的 stream 恢复路径分别存在潜在悬挂锁数组/临时 stream 未恢复问题，尚未运行验证（`src/cui/cuigraph.c:3457-3492,4116-4157`）。
 
-## 未执行项目
+- **端到端调用链**：已完成普通 `cuLaunchKernel` 的静态主线文档，覆盖初始化、Context、Memory、Stream/Channel、Module、Syscall、HAL/QMD、Pushbuffer/GPFIFO、DMAL/RM、completion 和 reclaim；GPU/RM/firmware 末端仍未验证。
+- **具体架构设计**：已完成 API/CUI/HAL/DMAL 分层、`CUdev->hal` 函数表、对象所有权、锁、异步 tracking、Graph scheduler 和 teardown 的静态设计说明。
+
 
 本轮未执行 nvmake、nvcc、DVS、GPU test、`nvidia-smi`、`sudo nvidia-persistenced`、OpenCL runtime、debugger/profiler、外部依赖安装或服务启动。根仓库允许的文档校验为 `git diff --check`，需在文档修改稳定后执行。
 ## 本轮一致性验收

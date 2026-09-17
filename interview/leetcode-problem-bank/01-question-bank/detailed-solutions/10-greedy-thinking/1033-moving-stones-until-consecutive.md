@@ -7,15 +7,100 @@
 - 来源专题：贪心与思维
 - 来源分类路径：五、思维题 / §5.8 分类讨论
 - 难度分：1421
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：pending-fetch
-- 本地解析状态：draft-generated
+- 外部题解来源：https://leetcode.cn/problems/moving-stones-until-consecutive/solutions/2250643/fen-lei-tao-lun-pythonjavacgo-by-endless-2qyo/
+- 外部题解授权状态：authorized-import
+- 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[分类讨论（Python/Java/C++/Go）](https://leetcode.cn/problems/moving-stones-until-consecutive/solutions/2250643/fen-lei-tao-lun-pythonjavacgo-by-endless-2qyo/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`fen-lei-tao-lun-pythonjavacgo-by-endless-2qyo`
+- topic id：`2250643`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 11:13:14 +0800
+
+假设 $a,b,c$ 是有序的（从小到大）。
+
+- 最大移动次数：$a$ 和 $c$ 向 $b$ 靠拢，每次只移动一个单位长度，答案就是 $c-a-2$。
+- 最小移动次数：
+  - 如果 $c-a=2$，已经连续，无需移动。
+  - 如果 $b-a=1$ 或者 $c-b=1$，说明有两颗石子已经连续，那么只需移动 $1$ 次另一颗石子。
+  - 如果 $b-a=2$ 或者 $c-b=2$，那么把一颗石子移到另外两颗石子之间，只需移动 $1$ 次移动。
+  - 否则，$a$ 移动到 $b-1$，$c$ 移动到 $b+1$，一共 $2$ 次移动。 
+
+```py [sol1-Python3]
+class Solution:
+    def numMovesStones(self, a: int, b: int, c: int) -> List[int]:
+        a, b, c = sorted((a, b, c))
+        return [0 if c - a == 2 else
+                1 if b - a <= 2 or c - b <= 2 else
+                2,
+                c - a - 2]
+```
+
+```java [sol1-Java]
+class Solution {
+    public int[] numMovesStones(int a, int b, int c) {
+        var p = new int[]{a, b, c};
+        Arrays.sort(p);
+        a = p[0]; b = p[1]; c = p[2];
+        return new int[]{c - a == 2 ? 0 :
+                         b - a <= 2 || c - b <= 2 ? 1 : 2,
+                         c - a - 2};
+    }
+}
+```
+
+```cpp [sol1-C++]
+class Solution {
+public:
+    vector<int> numMovesStones(int a, int b, int c) {
+        int p[] = {a, b, c};
+        sort(p, p + 3);
+        a = p[0]; b = p[1]; c = p[2];
+        return {c - a == 2 ? 0 :
+                b - a <= 2 || c - b <= 2 ? 1 : 2,
+                c - a - 2};
+    }
+};
+```
+
+```go [sol1-Go]
+func numMovesStones(a, b, c int) []int {
+    p := []int{a, b, c}
+    sort.Ints(p)
+    a, b, c = p[0], p[1], p[2]
+    minMove := 0
+    if c-a > 2 {
+        if b-a <= 2 || c-b <= 2 {
+            minMove = 1
+        } else {
+            minMove = 2
+        }
+    }
+    return []int{minMove, c - a - 2}
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(1)$。
+- 空间复杂度：$\mathcal{O}(1)$。仅用到若干额外变量。
+
+## 相似题目
+
+一万颗石子要怎么做？（题目要求略有改动）
+
+- [1040. 移动石子直到连续 II](https://leetcode.cn/problems/moving-stones-until-consecutive-ii/)，[题解](https://leetcode.cn/problems/moving-stones-until-consecutive-ii/solution/tu-jie-xia-tiao-qi-pythonjavacgo-by-endl-r1eb/)
+
+[往期每日一题题解](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+---
+
+欢迎关注[ biIibiIi@灵茶山艾府](https://space.bilibili.com/206214)，高质量算法教学，持续输出中~
 
 ## 本地原创解析
 
