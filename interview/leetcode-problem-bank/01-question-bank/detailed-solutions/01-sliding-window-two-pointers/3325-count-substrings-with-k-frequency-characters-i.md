@@ -7,15 +7,128 @@
 - 来源专题：滑动窗口与双指针
 - 来源分类路径：二、不定长滑动窗口 / §2.3 求子数组个数 / §2.3.2 越长越合法
 - 难度分：Unknown
-- 外部题解来源：待从题目页题解列表解析灵茶山艾府题解；若找到则由 `import_authorized_solutions.py --import-problem-bodies` 回填。
-- 外部题解授权状态：missing-endlesscheng-solution
+- 外部题解来源：https://leetcode.cn/problems/count-substrings-with-k-frequency-characters-i/solutions/2957691/on-hua-dong-chuang-kou-pythonjavacgo-by-1xgqm/
+- 外部题解授权状态：authorized-import
 - 本地解析状态：draft-preview
 - C++ 验证状态：not-run
 - 生成时间：2026-09-16 11:11:08 +0800
 
 ## 授权导入：灵茶山艾府题解过程
 
-> 本节用于保存用户确认授权导入的灵茶山艾府题解原文。当前状态为 `pending-fetch`；执行正文导入脚本后，本节会替换为题解标题、来源 URL、作者、导入时间和完整题解正文。
+- 题解标题：[O(n) 滑动窗口（Python/Java/C++/Go）](https://leetcode.cn/problems/count-substrings-with-k-frequency-characters-i/solutions/2957691/on-hua-dong-chuang-kou-pythonjavacgo-by-1xgqm/)
+- 作者：灵茶山艾府 (`endlesscheng`)
+- 题解 slug：`on-hua-dong-chuang-kou-pythonjavacgo-by-1xgqm`
+- topic id：`2957691`
+- 授权状态：authorized-by-user-confirmation
+- 导入时间：2026-09-17 16:46:02 +0800
+
+**前置知识**：[滑动窗口【基础算法精讲 03】](https://www.bilibili.com/video/BV1hd4y1r7Gq/)。
+
+从小到大枚举子串右端点 $\textit{right}$，如果子串符合要求，则右移左端点 $\textit{left}$。
+
+滑动窗口的内层循环结束时，虽然子串 $[\textit{left},\textit{right}]$ 是不合法的，但循环结束前的子串 $[\textit{left}-1,\textit{right}]$ 是合法的。由于子串越长越合法，右端点**固定**在 $\textit{right}$，左端点在 $0,1,2,\ldots,\textit{left}-1$ 的所有子串都是合法的，这一共有 $\textit{left}$ 个，加入答案。
+
+### 答疑
+
+**问**：为什么只需判断 `cnt[c - 'a'] >= k`？
+
+**答**：因为只有 `cnt[c - 'a']++` 导致了 `cnt[c - 'a']` 达到 $k$，所以其余字母的出现次数必然小于 $k$，无需判断。当然，这里的 `>=` 写成 `==` 也是可以的。
+
+```py [sol-Python3]
+class Solution:
+    def numberOfSubstrings(self, s: str, k: int) -> int:
+        ans = left = 0
+        cnt = defaultdict(int)
+        for c in s:
+            cnt[c] += 1
+            while cnt[c] >= k:
+                cnt[s[left]] -= 1
+                left += 1
+            ans += left
+        return ans
+```
+
+```java [sol-Java]
+class Solution {
+    int numberOfSubstrings(String S, int k) {
+        char[] s = S.toCharArray();
+        int ans = 0;
+        int left = 0;
+        int[] cnt = new int[26];
+        for (char c : s) {
+            cnt[c - 'a']++;
+            while (cnt[c - 'a'] >= k) {
+                cnt[s[left] - 'a']--;
+                left++;
+            }
+            ans += left;
+        }
+        return ans;
+    }
+}
+```
+
+```cpp [sol-C++]
+class Solution {
+public:
+    int numberOfSubstrings(string s, int k) {
+        int ans = 0, left = 0, cnt[26]{};
+        for (char c : s) {
+            cnt[c - 'a']++;
+            while (cnt[c - 'a'] >= k) {
+                cnt[s[left] - 'a']--;
+                left++;
+            }
+            ans += left;
+        }
+        return ans;
+    }
+};
+```
+
+```go [sol-Go]
+func numberOfSubstrings(s string, k int) (ans int) {
+	cnt := [26]int{}
+	left := 0
+	for _, c := range s {
+		cnt[c-'a']++
+		for cnt[c-'a'] >= k {
+			cnt[s[left]-'a']--
+			left++
+		}
+		ans += left
+	}
+	return
+}
+```
+
+#### 复杂度分析
+
+- 时间复杂度：$\mathcal{O}(n)$ 或 $\mathcal{O}(n+|\Sigma|)$，其中 $n$ 是 $s$ 的长度，$|\Sigma|=26$ 是字符集合的大小。虽然写了个二重循环，但是内层循环中对 $\textit{left}$ 加一的**总**执行次数不会超过 $n$ 次，所以滑动窗口的时间复杂度为 $\mathcal{O}(n)$。
+- 空间复杂度：$\mathcal{O}(|\Sigma|)$。
+
+更多相似题目，见下面滑动窗口题单中的「**§2.3.1 越长越合法**」。
+
+## 分类题单
+
+[如何科学刷题？](https://leetcode.cn/circle/discuss/RvFUtj/)
+
+1. [滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）](https://leetcode.cn/circle/discuss/0viNMK/)
+2. [二分算法（二分答案/最小化最大值/最大化最小值/第K小）](https://leetcode.cn/circle/discuss/SqopEo/)
+3. [单调栈（基础/矩形面积/贡献法/最小字典序）](https://leetcode.cn/circle/discuss/9oZFK9/)
+4. [网格图（DFS/BFS/综合应用）](https://leetcode.cn/circle/discuss/YiXPXW/)
+5. [位运算（基础/性质/拆位/试填/恒等式/思维）](https://leetcode.cn/circle/discuss/dHn9Vk/)
+6. [图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）](https://leetcode.cn/circle/discuss/01LUak/)
+7. [动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）](https://leetcode.cn/circle/discuss/tXLS3i/)
+8. [常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）](https://leetcode.cn/circle/discuss/mOr1u6/)
+9. [数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）](https://leetcode.cn/circle/discuss/IYT3ss/)
+10. [贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）](https://leetcode.cn/circle/discuss/g6KTKL/)
+11. [链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）](https://leetcode.cn/circle/discuss/K0n2gO/)
+12. [字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）](https://leetcode.cn/circle/discuss/SJFwQI/)
+
+[我的题解精选（已分类）](https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md)
+
+欢迎关注 [B站@灵茶山艾府](https://space.bilibili.com/206214)
 
 ## 本地原创解析
 
