@@ -25,7 +25,7 @@ ray.get(ref) → worker.get_objects → local/pull → deserialize → value
 
 | 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Object Store | Python API 已落地 | 部分完成 | 未完成 | store full/lost 已见 | 未完成 | 部分完成 | Driver/worker 边界已见 | Python 行号已有 | D01 get 已映射 | 部分完成 |
+| Object Store | Python API 已落地 | 静态深化完成，动态未验证 | 未完成 | store full/lost 已见 | 未完成 | 静态深化完成，动态未验证 | Driver/worker 边界已见 | Python 行号已有 | D01 get 已映射 | 静态深化完成，动态未验证 |
 
 ## 相关文档
 [全局数据流](../../00-overview/global-data-flow.md) · [共享数据](../../90-cross-module/shared-data-and-types.md)

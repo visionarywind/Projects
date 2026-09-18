@@ -17,7 +17,7 @@ Ray Tune位于 `python/ray/tune`，主要职责是试验、搜索、调度、Tra
 
 | 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| M10 | 目录已定位 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 部分 | 待选 | 部分完成：Trial 状态机、scheduler/searcher、checkpoint、恢复与资源复用待补 |
+| M10 | 目录已定位 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 部分 | 待选 | 静态深化完成，动态未验证：Trial 状态机、scheduler/searcher、checkpoint、恢复与资源复用待补 |
 
 ## 相关文档
 [项目架构](../../00-overview/architecture.md) · [修改影响](../../90-cross-module/change-impact-map.md)

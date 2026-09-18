@@ -1,6 +1,6 @@
 # M06 集群启动、Autoscaler、Runtime Env 与 Job
 
-- 版本：HEAD `cfe4725d23`；首轮边界分析，动态未验证。
+- 版本：HEAD `cfe4725d23`；静态代表链已补充；动态执行与测试仍未验证。
 
 ## 结论摘要
 
@@ -17,7 +17,7 @@
 
 | 对象 | 入口 | 正常 | 分支 | 异常 | 清理 | 数据 | 上下文 | 行证据 | Demo | 状态 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| M06 | init 已定位 | 部分 | 未完成 | 未完成 | 未完成 | 部分 | Driver/cluster | 部分 | D01 auto-init | 部分完成 |
+| M06 | init 已定位 | 部分 | 未完成 | 未完成 | 未完成 | 部分 | Driver/cluster | 部分 | D01 auto-init | 静态深化完成，动态未验证 |
 
 ## 相关文档
 [运行时模型](../../00-overview/runtime-model.md) · [配置影响](../../90-cross-module/configuration-impact-map.md)

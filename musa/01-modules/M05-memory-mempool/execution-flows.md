@@ -64,7 +64,7 @@ step 3: virt->Bind(physical)
 
 源码 [`src/musa/core/stream.cpp:554-600`] 明确展示了 virtual reserve、physical allocation、bind、mapping 四步。mapping 失败会先 `Unbind`，再 `pPool->DestroyMemory(virt)`；physical shared pointer 离开作用域后释放。
 
-`pPool->SetStream(this)` 是 pool 级写入，而非单次 allocation 字段；因此多个 stream 共享同一 Core pool 时，访问更新所用 stream 的并发语义需要目标运行验证。[`src/musa/core/stream.cpp:561-570`]
+`pPool->SetStream(this)` 是 pool 级写入，而非单次 allocation 字段；普通 `AsyncMemAlloc` 的 `ModifyAccess` 显式传入当前 stream，但 `SetAccess` 更新已有 allocations 时使用 `m_pStream`。因此多个 stream 共享同一 Core pool 时，应重点验证 `SetStream` 与 `SetAccess` 交错下的访问更新顺序，而不是把所有 async paging 都归因于该字段。[`src/musa/core/stream.cpp:561-570`、`src/musa/core/memoryPool.cpp:257-272`]
 
 ## 4. `muMemFreeAsync`
 

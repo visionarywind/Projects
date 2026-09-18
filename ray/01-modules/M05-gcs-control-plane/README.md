@@ -17,7 +17,7 @@ Dashboard/State/Event → GCS/pubsub/observability
 
 | 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| GCS/RPC | 目录与 proto 已定位 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 控制面推断 | 部分 | D01 间接 | 部分完成 |
+| GCS/RPC | 目录与 proto 已定位 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 控制面推断 | 部分 | D01 间接 | 静态深化完成，动态未验证 |
 
 ## 相关文档
 [依赖地图](../../00-overview/dependency-map.md) · [接口契约](../../90-cross-module/interface-contracts.md)

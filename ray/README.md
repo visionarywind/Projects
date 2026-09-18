@@ -3,7 +3,7 @@
 - 文档目的：从 `source/ray` 当前源码建立可导航、可追溯的 Ray 架构、实现、调用链和开发知识库。
 - 适用范围：Ray 单仓库中的 Python API/AI libraries、C++ Core、Java/C++ bindings、构建测试与部署脚本；第三方库、生成物和缓存不展开。
 - 对应源码版本：`source/ray` HEAD `cfe4725d23`（2026-09-17，提交 `[Data] Make distribution metric export directly testable (#65750)`）。
-- 证据状态：第一轮静态分析；关键入口与代表性链路已确认，构建、运行、GPU、多节点和网络行为未验证。
+- 证据状态：静态代表链已深化；M01-M14 全部具备模块分析卡，构建、运行、GPU、多节点和网络行为未验证。
 - 最后更新：2026-09-17
 - 前置阅读：无。
 - 后续阅读：[分析状态](00-overview/analysis-state.md)、[项目总览](00-overview/project-overview.md)。
@@ -77,9 +77,9 @@ M03 Object Store  M05 GCS/RPC/发布订阅          Worker 执行用户代码
 ## 未解决问题
 
 - 当前环境未验证 Ray wheel/build、最小集群、真实 Demo 输出和关闭路径。
-- 需要在后续批次补充每个核心模块的精确符号链、异常路径、测试映射和动态证据。
-- 进程拓扑、调度策略和对象跨节点传输的具体运行时选择不能仅由公共 API 页面确定。
+- Actor/Java/C++ 公共 API 全链、跨节点故障恢复与压力/性能仍需专题和动态证据。
+- 进程拓扑、调度策略和对象跨节点传输的具体运行时选择不能仅由静态源码确定。
 
 ## 下一步阅读建议
 
-先读 [分析状态](00-overview/analysis-state.md)，然后沿 [模块注册表](01-modules/module-registry.md) 进入 Core 五模块和 D01；需要开发时再读 [构建部署](00-overview/build-and-deploy.md)。
+先读 [分析状态](00-overview/analysis-state.md)，然后沿 [模块注册表](01-modules/module-registry.md) 进入 Core 五模块和 D01；需要开发时再读各模块 `development-guide.md` 与 [构建部署](00-overview/build-and-deploy.md)。
