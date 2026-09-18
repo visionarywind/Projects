@@ -13,7 +13,9 @@ import argparse
 import html
 import json
 import re
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -109,7 +111,30 @@ def is_retryable_error(exc: Exception) -> bool:
     return "请求过于频繁" in message or "timed out" in message or "timeout" in message.lower()
 
 
+REQUEST_INTERVAL = 0.0
+_REQUEST_LOCK = threading.Lock()
+_NEXT_REQUEST_AT = 0.0
+
+
+def configure_request_limiter(interval: float) -> None:
+    global REQUEST_INTERVAL, _NEXT_REQUEST_AT
+    REQUEST_INTERVAL = max(0.0, interval)
+    _NEXT_REQUEST_AT = 0.0
+
+
+def wait_for_request_slot() -> None:
+    global _NEXT_REQUEST_AT
+    if REQUEST_INTERVAL <= 0:
+        return
+    with _REQUEST_LOCK:
+        now = time.monotonic()
+        start = max(now, _NEXT_REQUEST_AT)
+        _NEXT_REQUEST_AT = start + REQUEST_INTERVAL
+    delay = start - now
+    if delay > 0:
+        time.sleep(delay)
 def graphql_request(query: str, variables: dict) -> dict:
+    wait_for_request_slot()
     body = json.dumps({"query": query, "variables": variables}).encode("utf-8")
     req = Request(
         "https://leetcode.cn/graphql/",
@@ -319,6 +344,7 @@ def import_problem_solution_bodies(
     max_retries: int = 2,
     retry_delay: float = 15.0,
     eligible_statuses: set[str] | None = None,
+    workers: int = 1,
 ) -> tuple[int, int, int, int]:
     rows = parse_problem_rows()
     if offset:
@@ -339,6 +365,7 @@ def import_problem_solution_bodies(
         except (TypeError, KeyError):
             print(f"warning: ignoring invalid cached article for {slug}")
 
+    candidates: dict[str, list[tuple[ProblemRow, Path]]] = {}
     for problem in rows:
         path = detail_path_for_problem(problem)
         if not path.exists():
@@ -352,37 +379,57 @@ def import_problem_solution_bodies(
         if eligible_statuses is not None and current_status not in eligible_statuses:
             skipped += 1
             continue
-        slug = problem_slug(problem.url)
-        article = article_cache.get(slug)
-        if article is None:
-            try:
-                article = fetch_article_with_retries(slug, max_retries, retry_delay)
-            except (RateLimitError, TemporaryFetchError) as exc:
-                temporary_failures += 1
-                print(f"warning: leaving {slug} retryable after transient failure: {exc}")
-                # Do not overwrite pending/missing metadata: a failed request is
-                # not evidence that the author has no solution.
-                time.sleep(request_delay)
-                continue
-            if article is not None:
-                article_cache[slug] = article
-                article_cache_data[slug] = {"status": "authorized-import", "article": asdict(article)}
-                save_article_cache(article_cache_data)
-        if article:
-            text = update_metadata(text, article)
-            text = replace_section(
-                text,
-                "## 授权导入：灵茶山艾府题解过程",
-                render_authorized_article(article, fetched_at),
-            )
-            imported += 1
-        else:
-            # A completed, non-error search with no matching author is the only
-            # case that may be recorded as permanently missing for now.
-            text = update_metadata(text, None)
-            missing += 1
-        path.write_text(text.rstrip() + "\n", encoding="utf-8")
-        time.sleep(request_delay)
+        candidates.setdefault(problem_slug(problem.url), []).append((problem, path))
+
+    configure_request_limiter(request_delay)
+    pending = {slug: jobs for slug, jobs in candidates.items() if slug not in article_cache}
+
+    def fetch_one(slug: str) -> tuple[str, SolutionArticle | None, str]:
+        try:
+            article = fetch_article_with_retries(slug, max_retries, retry_delay)
+            return slug, article, "ok"
+        except (RateLimitError, TemporaryFetchError) as exc:
+            print(f"warning: leaving {slug} retryable after transient failure: {exc}")
+            return slug, None, "temporary-failure"
+        except Exception as exc:
+            print(f"warning: failed to fetch {slug}: {exc}")
+            return slug, None, "error"
+
+    def apply_result(slug: str, article: SolutionArticle | None, outcome: str) -> None:
+        nonlocal imported, missing, temporary_failures
+        jobs = candidates[slug]
+        if outcome in {"temporary-failure", "error"}:
+            temporary_failures += len(jobs)
+            return
+        if article is not None:
+            article_cache_data[slug] = {"status": "authorized-import", "article": asdict(article)}
+            save_article_cache(article_cache_data)
+        for _problem, path in jobs:
+            text = path.read_text(encoding="utf-8")
+            if article:
+                text = update_metadata(text, article)
+                text = replace_section(
+                    text,
+                    "## 授权导入：灵茶山艾府题解过程",
+                    render_authorized_article(article, fetched_at),
+                )
+                imported += 1
+            else:
+                text = update_metadata(text, None)
+                missing += 1
+            path.write_text(text.rstrip() + "\n", encoding="utf-8")
+
+    for slug in candidates:
+        if slug in article_cache:
+            apply_result(slug, article_cache[slug], "cached")
+    worker_count = max(1, workers)
+    if pending:
+        with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="solution-fetch") as executor:
+            futures = {executor.submit(fetch_one, slug): slug for slug in pending}
+            for index, future in enumerate(as_completed(futures), 1):
+                slug, article, outcome = future.result()
+                apply_result(slug, article, outcome)
+                print(f"progress: {index}/{len(futures)} fetched ({slug}); imported {imported}; missing {missing}; failed {temporary_failures}", flush=True)
     return imported, missing, skipped, temporary_failures
 
 
@@ -570,6 +617,7 @@ def main() -> int:
     parser.add_argument("--request-delay", type=float, default=1.0, help="seconds between problem lookups")
     parser.add_argument("--max-retries", type=int, default=2, help="retries for rate limits and transient network errors")
     parser.add_argument("--retry-delay", type=float, default=15.0, help="initial delay before retrying a transient failure")
+    parser.add_argument("--workers", type=int, default=1, help="maximum concurrent solution lookups")
     parser.add_argument(
         "--status",
         action="append",
@@ -593,6 +641,7 @@ def main() -> int:
             max_retries=args.max_retries,
             retry_delay=args.retry_delay,
             eligible_statuses=set(args.status) if args.status else None,
+            workers=args.workers,
         )
         print(
             f"imported {imported} problem solution bodies; missing {missing}; "

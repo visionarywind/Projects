@@ -45,7 +45,7 @@ stateDiagram-v2
 
 | 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| CoreWorker | 初始化、binding、SubmitTask 已定位 | normal task 静态链已确认 | 依赖/lease/取消已记录 | 失败和重试边界已记录 | 初始化/关闭已记录 | TaskSpec/ObjectRef/pending task 已记录 | 已确认 worker 进程、IO/RPC 并发 | 已有代表区间 | D01 已映射 | Actor execution body 与动态故障待补 |
+| CoreWorker | 初始化、binding、SubmitTask 已定位 | normal task 静态链已确认 | 依赖/lease/取消已记录 | 失败和重试边界已记录 | 初始化/关闭已记录 | TaskSpec/ObjectRef/pending task 已记录 | 已确认 worker 进程、IO/RPC 并发 | 已有代表区间 | D01 已映射 | Actor execution body 与动态故障未验证 |
 
 ## 相关文档
 [M01 调用链](../M01-public-api/call-chains.md) · [全局运行时](../../00-overview/runtime-model.md)
@@ -54,7 +54,7 @@ stateDiagram-v2
 `python/ray/_raylet.pyx:3938-4032`；`src/ray/core_worker/core_worker.cc:2056-2135`；`src/ray/core_worker/task_submission/normal_task_submitter.cc:33-504`；`src/ray/core_worker/core_worker_process.cc:231-285`。
 
 ## 未解决问题
-Actor 提交、worker execution body、跨语言描述符和动态故障恢复尚需逐符号/实验补齐；normal task 提交边界已确认。
+Actor 提交、worker execution body、跨语言描述符和动态故障恢复属于未验证的后续专题；normal task 提交边界已静态确认。
 
 ## 下一步阅读建议
 先读 `CoreWorker::SubmitTask` 和 `NormalTaskSubmitter::SubmitTask`，再看 M04 的 lease 和 NodeManager。

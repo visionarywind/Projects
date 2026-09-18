@@ -1,32 +1,48 @@
 # M13 DAG、Workflow 与 Experimental Channels
 
-- 文档目的：登记DAG、Workflow 与 Experimental Channels的源码边界和后续深审入口。
+- 文档目的：说明 DAGNode、CompiledDAG、channel reader/writer 与 workflow 边界。
 - 对应源码版本：HEAD `cfe4725d23`（2026-09-17）。
-- 证据状态：目录/构建边界已确认；实现、运行和测试未验证。
-- 前置阅读：[模块注册表](../module-registry.md)。后续阅读：本模块后续实现文档。
+- 证据状态：DAGNode、CompiledDAG、Monitor、channel interfaces 代表链已静态确认；运行和测试未验证。
+- 前置阅读：[模块注册表](../module-registry.md)。后续阅读：[实现](implementation.md)。
 
 ## 结论摘要
 
-DAG、Workflow 与 Experimental Channels位于 `python/ray/dag`、`workflow`、`experimental`，主要职责是静态 DAG、持久 workflow 和 channel/collective 等实验能力。它依赖或关联 M01-M03；当前仅完成模块识别，不能把目录存在误写成实现深审完成。[已确认目录，行为待验证]
+`DAGNode` 保存输入节点和 method call；未编译执行沿 Ray handles 运行，`CompiledDAG` 将图编译为 executable tasks/channel graph，Monitor 管理运行时状态；experimental channels 负责 reader/writer、同步/异步和 buffer 生命周期。[`dag_node.py:33-724`; `compiled_dag_node.py:813-3285`; `experimental/channel/common.py:61-688`]
 
-## 测试边界
+## 代表链
 
-代表验证范围：对应 tests。本轮未执行任何测试。
+```text
+DAGNode bind/input
+→ execute 或 experimental_compile
+→ CompiledTask/ExecutableTask
+→ ChannelContext + Writer/Reader
+→ downstream task
+→ execute/execute_async output
+→ monitor/channel teardown
+```
+
+## 分支、错误与清理
+
+同步/异步 reader、batch、backpressure、channel closed、任务取消、编译约束和 teardown 改变路径。节点执行异常应沿 compiled graph/channel 传播；Monitor 终止运行并关闭 reader/writer。Workflow 在当前 checkout 作为相关边界记录，具体 API 需以存在的源文件和测试为准。
 
 ## 深度审计
 
-| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|对象|入口落地|正常|分支|异常|清理|数据|上下文|证据|Demo|状态|
 |---|---|---|---|---|---|---|---|---|---|---|
-| M13 | 目录已定位 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 部分 | 待选 | 静态深化完成，动态未验证：compiled DAG、channel ownership、workflow recovery 和实验 API 稳定性待补 |
+|M13|DAGNode/CompiledDAG/channels|bind→compile→channel→output|sync/async/batch/backpressure|node/channel/cancel|DAG/monitor/channel teardown|ExecutableTask/Context/reader/writer|driver+compiled workers|代表源码已列|无专门 Demo|动态未验证|
 
 ## 相关文档
-[项目架构](../../00-overview/architecture.md) · [修改影响](../../90-cross-module/change-impact-map.md)
+
+[项目架构](../../00-overview/architecture.md) · [实现](implementation.md) · [风险](risks-and-debt.md)
 
 ## 源码证据摘要
-`python/ray/dag`、`workflow`、`experimental` 及其 BUILD/tests。
+
+`python/ray/dag/dag_node.py:33-724`；`compiled_dag_node.py:813-3285`；`python/ray/experimental/channel/common.py:61-688`。
 
 ## 未解决问题
-compiled DAG、channel ownership、workflow recovery 和实验 API 稳定性。
+
+channel ownership/backpressure、compiled DAG failure recovery、workflow 持久化和实验 API 兼容性仍需专项测试；静态代表路径已建立。
 
 ## 下一步阅读建议
-先从包公共入口和 BUILD/test target 确认稳定边界，再追到真实状态变化和资源副作用。
+
+先读 DAGNode.execute，再追 CompiledDAG.execute/execute_async、Monitor.run 和 channel reader/writer 生命周期。

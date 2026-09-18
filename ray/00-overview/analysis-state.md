@@ -65,7 +65,7 @@ Ray 仓库规模大，本知识库按 project-prompt 的批次协议完成总览
 | 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 总览层 | 已完成代表入口 | 已完成静态主链 | 已完成代表分支 | 已有错误模型 | 已有抽象清理 | 已有跨模块数据图 | 已区分 driver/worker/control plane | 有代表性行号 | D01-D03 已映射 | 动态未验证 |
-| M01-M05 | 已定位入口与实现 | normal task/object/control 主链已确认 | 代表分支已记录 | 失败/重试边界已记录 | cleanup 已记录 | 句柄、task、object、control records 已记录 | 已区分进程/线程/RPC | 已有代表区间 | D01 已细化 | Actor 全链与动态故障待补 |
+| M01-M05 | 已定位入口与实现 | normal task/object/control 主链已确认 | 代表分支已记录 | 失败/重试边界已记录 | cleanup 已记录 | 句柄、task、object、control records 已记录 | 已区分进程/线程/RPC | 已有代表区间 | D01 已细化 | Actor 全链与动态故障未验证 |
 | M06-M14 | 代表入口已定位 | 各模块主链已记录 | 各模块分支已记录 | 各模块风险页已记录 | 各模块 cleanup 已记录 | 各模块核心数据已记录 | 上下文已记录 | 代表文件/区间已列出 | D02/D03 已映射 | 动态未验证 |
 | D01-D03 | 已定位脚本入口 | 静态链已映射 | 异常/资源练习已登记 | 未运行 | shutdown 约束已登记 | ObjectRef/blocks/trial/replica 已说明 | driver/worker/controller 已说明 | 各脚本有行号 | 已登记 | 仅静态 |
 

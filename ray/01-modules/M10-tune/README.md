@@ -1,32 +1,49 @@
 # M10 Ray Tune
 
-- 文档目的：登记Ray Tune的源码边界和后续深审入口。
+- 文档目的：说明 Tune 如何管理搜索、Trial、调度、结果和恢复。
 - 对应源码版本：HEAD `cfe4725d23`（2026-09-17）。
-- 证据状态：目录/构建边界已确认；实现、运行和测试未验证。
-- 前置阅读：[模块注册表](../module-registry.md)。后续阅读：本模块后续实现文档。
+- 证据状态：Tuner、TunerInternal、TuneController、Trial 的代表链已静态确认；运行和测试未验证。
+- 前置阅读：[模块注册表](../module-registry.md)。后续阅读：[实现](implementation.md) 与 [调用链](call-chains.md)。
 
 ## 结论摘要
 
-Ray Tune位于 `python/ray/tune`，主要职责是试验、搜索、调度、Trainable/Tuner 和持久化边界。它依赖或关联 M01、M07、M09；当前仅完成模块识别，不能把目录存在误写成实现深审完成。[已确认目录，行为待验证]
+`Tuner.fit` 接受 trainable、param space 和 RunConfig，交给 `TunerInternal`；TuneController 管理 Trial 状态和调度循环，searcher/scheduler 产生配置与停止决策，TrialExecutor 负责实际试验资源、结果和 checkpoint。[`tuner.py:43-425`; `tuner_internal.py:63-698`; `tune_controller.py:72-2034`; `trial.py:216-1081`]
 
-## 测试边界
+## 代表链
 
-代表验证范围：Tune tests。本轮未执行任何测试。
+```text
+Tuner.fit
+→ TunerInternal.fit
+→ TuneController setup/add trials
+→ searcher 产生配置 + scheduler 决策
+→ TrialExecutor 启动/恢复 trainable
+→ result/checkpoint
+→ step 继续、暂停、停止或完成
+→ cleanup
+```
+
+## 状态与分支
+
+Trial 的 pending/running/paused/terminated 状态由 controller 推进；ASHA/PBT 等 scheduler、resume、资源不足、同步/异步结果和 error limit 改变路径。checkpoint 必须在保存、恢复和清理之间保持 ownership 契约。
 
 ## 深度审计
 
-| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|对象|入口落地|正常|分支|异常|清理|数据|上下文|证据|Demo|状态|
 |---|---|---|---|---|---|---|---|---|---|---|
-| M10 | 目录已定位 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 部分 | 待选 | 静态深化完成，动态未验证：Trial 状态机、scheduler/searcher、checkpoint、恢复与资源复用待补 |
+|M10|Tuner/Controller/Trial|fit→trial result|search/scheduler/resume/resource|trainable/save-restore failure|cleanup/trial stop|Trial/Result/Checkpoint|driver/controller/trial|代表源码已列|D02|动态未验证|
 
 ## 相关文档
-[项目架构](../../00-overview/architecture.md) · [修改影响](../../90-cross-module/change-impact-map.md)
+
+[项目架构](../../00-overview/architecture.md) · [实现](implementation.md) · [D02](../../80-demos/D02-data-tune-resource/README.md)
 
 ## 源码证据摘要
-`python/ray/tune` 及其 BUILD/tests。
+
+`python/ray/tune/tuner.py:43-425`；`python/ray/tune/impl/tuner_internal.py:63-698`；`python/ray/tune/execution/tune_controller.py:72-2034`；`python/ray/tune/experiment/trial.py:216-1081`。
 
 ## 未解决问题
-Trial 状态机、scheduler/searcher、checkpoint、恢复与资源复用。
+
+真实 scheduler/searcher 策略、checkpoint 恢复、资源复用和 failure recovery 仍需运行专项测试；静态代表链已覆盖这些状态边界。
 
 ## 下一步阅读建议
-先从包公共入口和 BUILD/test target 确认稳定边界，再追到真实状态变化和资源副作用。
+
+先读 `Tuner.fit`，再沿 `TuneController.step` 和 `Trial` 状态转移阅读。

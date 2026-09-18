@@ -1,37 +1,64 @@
 # M04 Raylet 调度与资源
 
-- 目的：说明节点级调度、资源和 worker 管理边界。
-- 版本：HEAD `cfe4725d23`；证据状态：目录/构建边界确认，算法待补。
-- 前置：[M02](../M02-core-worker/README.md)。后续：[M05](../M05-gcs-control-plane/README.md)。
+- 版本：HEAD `cfe4725d23`；已完成代表实现链静态分析；动态执行与测试未验证。
 
 ## 结论摘要
 
-Raylet 是节点级任务、worker 和资源管理组件，源码位于 `src/ray/raylet`，调度相关公共数据和策略位于 `src/ray/common`/scheduling；它承接 CoreWorker 的提交并决定任务何时、在哪个节点资源上运行。[已确认目录与 BUILD；具体算法待符号级验证]
+Raylet 不是抽象的“调度器名称”，而是由 NodeManager、WorkerPool、资源管理器和 local/cluster lease manager 协作完成节点内匹配、集群 spillback、worker 生命周期和任务派发。任务从 CoreWorker 的 `NormalTaskSubmitter` 进入 lease 请求，Raylet grant 后才进入 worker push。[已确认代表源码]
 
-```mermaid
-flowchart LR
- C[CoreWorker submit] --> Q[Raylet task queues]
- Q --> S[资源/调度策略]
- S --> W[Worker lease/dispatch]
- S --> G[GCS/control metadata]
+## 代表链
+
+```text
+NormalTaskSubmitter::RequestNewWorkerIfNeeded
+→ lease policy 选择目标节点
+→ NodeManager/ClusterLeaseManager RequestWorkerLease
+→ local resource/worker availability match
+→ WorkerPool grant/register
+→ PushNormalTask
+→ task execution
 ```
 
-箭头表示提交、选择、派发或控制元数据关系；队列和策略节点是源码职责抽象，具体类待补。
+- NodeManager 构造和启动：`src/ray/raylet/node_manager.cc:199-373`
+- worker/node/job 失败处理：`node_manager.cc:575-609` 及相邻 handler
+- worker availability：`node_manager.cc:1415+`
+- 集群/本地租约：`src/ray/raylet/scheduling/local_lease_manager.cc`、`cluster_lease_manager.cc`
+
+## 状态与所有权
+
+| 状态 | 维护者 | 作用 |
+|---|---|---|
+| ResourceSet/ResourceRequest | local resource manager | 可用与已占用资源 |
+| Worker/WorkerLease | NodeManager/WorkerPool | worker 分配和回收 |
+| NodeID/heartbeat state | NodeManager/GCS | 节点存活和集群视图 |
+| scheduling class | CoreWorker/Raylet | 任务队列和 worker 复用键 |
+
+Raylet 只负责调度/节点侧控制；任务返回对象的内容由 Object Manager/Object Store 管理，GCS 保存控制面记录。
+
+## 分支与错误
+
+- 本地资源可满足时优先本地 lease；否则按 locality 和集群策略 spillback/redirect。
+- placement group、label selector、资源不足和 worker lease 重用改变选择路径。
+- worker 启动失败、Raylet 断连、节点删除和 placement group 删除会使 lease/task 进入失败、重试或清理路径。
+- 具体重试次数和最终错误由 CoreWorker task manager 与上层 options 共同决定，未做动态验证。
 
 ## 深度审计
 
-| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|对象|入口落地|正常|分支|异常|清理|数据|上下文|证据|Demo|状态|
 |---|---|---|---|---|---|---|---|---|---|---|
-| Raylet | 目录与 BUILD 已定位 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 节点进程推断 | 部分 | D01 间接 | 静态深化完成，动态未验证 |
+|Raylet scheduling|NodeManager/lease managers|lease→worker→push|local/cluster/spillback/placement|worker/node/unschedulable|DestroyWorker/node removal|resources/lease/node state|Raylet RPC+调度循环|代表文件与符号已列|D01/D02 间接|动态未验证|
 
 ## 相关文档
-[架构](../../00-overview/architecture.md) · [性能路径](../../90-cross-module/performance-critical-paths.md)
 
-## 源码证据摘要
-`src/ray/raylet/`、`src/ray/common/scheduling/`、`src/ray/raylet/BUILD.bazel`。
+[实现](implementation.md) · [调用链](call-chains.md) · [M02](../M02-core-worker/README.md) · [M05](../M05-gcs-control-plane/README.md)
 
 ## 未解决问题
-需补 cluster_task_manager、local task manager、resource view、worker pool、placement group 和调度失败/重试。
+
+跨节点真实 spillback、资源竞争、公平性、Raylet 故障和压力性能需运行测试；当前静态证据已覆盖代表控制路径。
 
 ## 下一步阅读建议
-从 `src/ray/raylet/BUILD.bazel` 的 target 进入对应 `.cc/.h`。
+
+先读 M02 `NormalTaskSubmitter`，再对照 NodeManager 和两个 lease manager，最后看对象传输的 M03。
+
+## 源码证据摘要
+
+`src/ray/raylet/node_manager.cc:199-373,575-609,1415+`；`src/ray/raylet/scheduling/local_lease_manager.cc`；`cluster_lease_manager.cc`。

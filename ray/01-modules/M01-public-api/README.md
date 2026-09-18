@@ -59,7 +59,7 @@
 
 | 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Python remote task API | 已到 `submit_task` | 已追踪 | client/generator/placement 已覆盖 | get 错误已覆盖 | worker/core 清理待 M02 | ObjectRef 代表路径已覆盖 | Driver/worker 已区分 | 已有 | D01 1-13 | 静态深化完成，动态未验证：C++/Java 与 Actor 全链待补 |
+| Python remote task API | 已到 `submit_task` | 已追踪 | client/generator/placement 已覆盖 | get 错误已覆盖 | worker/core cleanup 边界已记录 | ObjectRef 代表路径已覆盖 | Driver/worker 已区分 | 已有 | D01 1-13 | 静态 normal task 完成，C++/Java 与 Actor 全链、动态未验证 |
 
 ## 相关文档
 [接口](interfaces.md) · [调用链](call-chains.md) · [D01](../../80-demos/D01-hello-world/README.md)

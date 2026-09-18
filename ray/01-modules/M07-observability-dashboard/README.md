@@ -1,29 +1,46 @@
 # M07 Dashboard、观测、调试与认证
 
-- 版本：HEAD `cfe4725d23`；静态代表链已补充；动态执行与测试仍未验证。
+- 版本：HEAD `cfe4725d23`；Dashboard head/agent、State API、Reporter 和安全边界已静态确认；动态执行与测试未验证。
 
 ## 结论摘要
 
-Ray 将 Dashboard、State/metrics/events、分布式调试和 token authentication 分布在 Python dashboard、`_common/observability`、C++ observability/stats 及 security 文档/实现中；它们消费控制面和任务事件，而不是任务执行算法本身。[已确认目录/文档]
+Dashboard head 启动模块和 HTTP/gRPC 服务，StateAPIManager 聚合控制面状态，ReporterAgent 采集节点/process metrics；事件、stats、debugger 和 token auth 是观测/运维边界，不是任务执行算法。[`dashboard.py:33-107`; `head.py:49-551`; `state_aggregator.py:61-697`; `reporter_agent.py:475-2212`]
 
-## 安全边界
+## 代表链
 
-token 必须由新 RPC 端到端传播；Dashboard 回显 runtime_env 时需防止把 `env_vars` 中凭据泄露给浏览器。该约束来自仓库安全规则，新增 endpoint/RPC 时必须复核。[已确认：`.claude/rules/security.md`]
+```text
+Dashboard.run / DashboardHead.run
+→ module registration
+→ GCS/state subscriptions or polling
+→ StateAPIManager aggregation
+→ ReporterAgent metrics/events
+→ HTTP/gRPC handler response
+```
+
+## 分支、安全与清理
+
+模块加载、节点离线、分页/filter、metrics exporter、debugger、认证和 runtime_env 回显改变 handler 路径。新 gRPC endpoint 必须传播 token；Dashboard 浏览器回显 runtime_env 时必须脱敏 `env_vars` 凭据。[`.claude/rules/security.md`]
+
+Dashboard stop 应取消采集任务、关闭 HTTP server、RPC clients 和 agent subscriptions；真实关闭顺序未运行验证。
 
 ## 深度审计
 
-| 对象 | 入口 | 正常 | 分支 | 异常 | 清理 | 数据 | 上下文 | 行证据 | Demo | 状态 |
+|对象|入口落地|正常|分支|异常|清理|数据|上下文|证据|Demo|状态|
 |---|---|---|---|---|---|---|---|---|---|---|
-| M07 | 目录已定位 | 未完成 | 未完成 | 未完成 | 未完成 | 部分 | 服务/agent | 部分 | D01 task events 间接 | 静态深化完成，动态未验证 |
+|M07|head/state/reporter 已定位|启动→采集→聚合→响应|module/node/auth/filter/exporter|GCS/auth/采集 timeout|server/tasks/subscriptions stop|state/events/metrics/token|head+node agents|代表源码已列|D01 间接|动态未验证|
 
 ## 相关文档
-[错误模型](../../00-overview/global-error-model.md) · [调试指南](../../99-roadmap/debugging-guide.md)
+
+[错误模型](../../00-overview/global-error-model.md) · [调试指南](../../99-roadmap/debugging-guide.md) · [实现](implementation.md)
 
 ## 源码证据摘要
-`python/ray/dashboard/`；`python/ray/_common/observability/`；`src/ray/observability/`；`src/ray/stats/`；`doc/source/ray-security/token-auth.md`。
+
+`python/ray/dashboard/dashboard.py:33-107`; `head.py:49-551`; `state_aggregator.py:61-697`; `modules/reporter/reporter_agent.py:475-2212`; `src/ray/observability/`; `doc/source/ray-security/token-auth.md`。
 
 ## 未解决问题
-Dashboard head/agent 进程、State API、metrics exporter、event pipeline、debugger 和 auth RPC 需拆解。
+
+具体 HTTP/gRPC handlers、event pipeline、metrics exporter、debugger 和 auth RPC 的动态权限/失败行为仍需专项测试；静态服务边界已建立。
 
 ## 下一步阅读建议
-从 Dashboard 启动与 HTTP/gRPC handlers 开始，再追踪事件生产者。
+
+从 DashboardHead.run 读启动，再沿 StateAPIManager/ReporterAgent 追踪数据生产者和 token 传播。

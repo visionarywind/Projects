@@ -1,32 +1,46 @@
 # M11 RLlib
 
-- 文档目的：登记RLlib的源码边界和后续深审入口。
+- 文档目的：说明 RLlib Algorithm 如何组装环境采样、Learner、RLModule、评估和 checkpoint。
 - 对应源码版本：HEAD `cfe4725d23`（2026-09-17）。
-- 证据状态：目录/构建边界已确认；实现、运行和测试未验证。
-- 前置阅读：[模块注册表](../module-registry.md)。后续阅读：本模块后续实现文档。
+- 证据状态：Algorithm、AlgorithmConfig、EnvRunnerGroup、Learner 代表链已静态确认；运行和测试未验证。
+- 前置阅读：[模块注册表](../module-registry.md)。后续阅读：[实现](implementation.md) 与 [调用链](call-chains.md)。
 
 ## 结论摘要
 
-RLlib位于 `rllib` 与 `python/ray/rllib`，主要职责是强化学习 Algorithm、EnvRunner、Learner、RLModule 与采样/训练数据流。它依赖或关联 M01、M08-M10；当前仅完成模块识别，不能把目录存在误写成实现深审完成。[已确认目录，行为待验证]
+`Algorithm` 根据 `AlgorithmConfig` 建立 EnvRunnerGroup、Learner、RL module 和 evaluation components；`step` 驱动采样、学习、评估和结果汇总，`cleanup` 关闭 runners/learners 并完成资源释放。[`algorithm.py:211-4863`; `algorithm_config.py:109-6238`; `env_runner_group.py:70-1419`; `learner.py:112-1772`]
 
-## 测试边界
+## 代表链
 
-代表验证范围：RLlib tests。本轮未执行任何测试。
+```text
+AlgorithmConfig.build/validate
+→ Algorithm.setup
+→ EnvRunnerGroup sample
+→ Learner.update
+→ metrics/evaluation
+→ checkpoint/state
+→ Algorithm.cleanup
+```
+
+新旧 API stack、multi-agent、evaluation、offline data、distributed learner 和 device/framework 会改变组件图；不能从 Algorithm 公共入口推断唯一运行拓扑。
 
 ## 深度审计
 
-| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|对象|入口落地|正常|分支|异常|清理|数据|上下文|证据|Demo|状态|
 |---|---|---|---|---|---|---|---|---|---|---|
-| M11 | 目录已定位 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 部分 | 待选 | 静态深化完成，动态未验证：新旧 API stack、采样/学习并发、checkpoint 和多智能体数据待补 |
+|M11|Algorithm/Config/Runner/Learner|setup→sample→update|API stack/multi-agent/eval/device|env/model/learner/config failure|Algorithm/runner/learner cleanup|batch/RLModule/metrics|driver+actors/threads|代表源码已列|无专门 Demo|动态未验证|
 
 ## 相关文档
-[项目架构](../../00-overview/architecture.md) · [修改影响](../../90-cross-module/change-impact-map.md)
+
+[项目架构](../../00-overview/architecture.md) · [实现](implementation.md) · [风险](risks-and-debt.md)
 
 ## 源码证据摘要
-`rllib` 与 `python/ray/rllib` 及其 BUILD/tests。
+
+`rllib/algorithms/algorithm.py:211-4863`；`rllib/algorithms/algorithm_config.py:109-6238`；`rllib/env/env_runner_group.py:70-1419`；`rllib/core/learner/learner.py:112-1772`。
 
 ## 未解决问题
-新旧 API stack、采样/学习并发、checkpoint 和多智能体数据。
+
+新旧 API stack 的差异、采样/学习并发、checkpoint ownership、多智能体 batch 和 worker failure recovery 仍需针对性测试；静态代表路径已记录。
 
 ## 下一步阅读建议
-先从包公共入口和 BUILD/test target 确认稳定边界，再追到真实状态变化和资源副作用。
+
+先读 `Algorithm.setup` 和 `step`，再按配置选择 EnvRunner、Learner 与 RLModule 实现。

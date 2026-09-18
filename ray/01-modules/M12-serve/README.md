@@ -1,32 +1,49 @@
 # M12 Ray Serve
 
-- 文档目的：登记Ray Serve的源码边界和后续深审入口。
+- 文档目的：说明 Serve application、controller、deployment state、router、replica 和 handle 的静态实现链。
 - 对应源码版本：HEAD `cfe4725d23`（2026-09-17）。
-- 证据状态：目录/构建边界已确认；实现、运行和测试未验证。
-- 前置阅读：[模块注册表](../module-registry.md)。后续阅读：本模块后续实现文档。
+- 证据状态：API、controller、router、replica、deployment state 代表链已静态确认；运行和测试未验证。
+- 前置阅读：[模块注册表](../module-registry.md)。后续阅读：[实现](implementation.md) 与 [D03](../../80-demos/D03-serve-handle/README.md)。
 
 ## 结论摘要
 
-Ray Serve位于 `python/ray/serve`，主要职责是deployment、controller、proxy、router、replica 与请求生命周期。它依赖或关联 M01、M06、M07；当前仅完成模块识别，不能把目录存在误写成实现深审完成。[已确认目录，行为待验证]
+`serve.run` 将 application 提交到 Serve controller；controller 更新 `DeploymentState`，创建或调整 replica actors；router 根据可用 replica 处理 `DeploymentHandle` 请求，replica 执行用户 callable。[`api.py:82-166,902-1010`; `controller.py:134-1988`; `router.py:538-1660`; `replica.py:1080-3637`; `deployment_state.py:2952-5924`]
 
-## 测试边界
+## 代表链
 
-代表验证范围：Serve tests。本轮未执行任何测试。
+```text
+Deployment.bind
+→ serve.run
+→ ServeController.deploy_applications
+→ DeploymentState target/reconcile
+→ replica actor start/health
+→ router choose replica
+→ DeploymentHandle.remote
+→ user method / response
+```
+
+## 分支与清理
+
+滚动更新、autoscaling、reconfigure、HTTP/gRPC ingress、batching、placement、health check 和 backpressure 改变状态机。部署或 replica 失败时 controller 可重试、替换或标记 unhealthy；用户异常沿 response 返回。`serve.shutdown/delete` 终止 controller/router/replica 和 metrics，但真实时序未验证。
 
 ## 深度审计
 
-| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
+|对象|入口落地|正常|分支|异常|清理|数据|上下文|证据|Demo|状态|
 |---|---|---|---|---|---|---|---|---|---|---|
-| M12 | 目录已定位 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 未完成 | 部分 | 待选 | 静态深化完成，动态未验证：HTTP/gRPC 入口、控制面更新、路由/backpressure、replica graceful shutdown待补 |
+|M12|API/controller/state/router/replica|run→reconcile→route→response|update/autoscale/health/ingress|deploy/replica/user failure|shutdown/delete|Application/ReplicaID/route metadata|driver/controller/proxy/replica|代表源码已列|D03|动态未验证|
 
 ## 相关文档
-[项目架构](../../00-overview/architecture.md) · [修改影响](../../90-cross-module/change-impact-map.md)
+
+[项目架构](../../00-overview/architecture.md) · [实现](implementation.md) · [D03](../../80-demos/D03-serve-handle/README.md)
 
 ## 源码证据摘要
-`python/ray/serve` 及其 BUILD/tests。
+
+`python/ray/serve/api.py:82-166,902-1010`；`python/ray/serve/_private/controller.py:134-1988`；`router.py:538-1660`；`replica.py:1080-3637`；`deployment_state.py:2952-5924`。
 
 ## 未解决问题
-HTTP/gRPC 入口、控制面更新、路由/backpressure、replica graceful shutdown。
+
+HTTP/gRPC 入口、路由 backpressure、graceful shutdown、replica failure recovery 和动态部署性能仍需运行专项测试；静态代表链已闭合。
 
 ## 下一步阅读建议
-先从包公共入口和 BUILD/test target 确认稳定边界，再追到真实状态变化和资源副作用。
+
+用 D03 先读 `serve.run`/`DeploymentHandle`，再追 controller reconciliation 和 replica state。
