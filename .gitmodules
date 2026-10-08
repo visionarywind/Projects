@@ -1,3 +1,15 @@
 [submodule "source/concurrency-queue"]
 	path = source/concurrency-queue
 	url = git@github.com:cameron314/concurrentqueue.git
+[submodule "source/megatron-lm"]
+	path = source/megatron-lm
+	url = git@github.com:NVIDIA/Megatron-LM.git
+[submodule "source/llamacpp"]
+	path = source/llamacpp
+	url = git@github.com:ggml-org/llama.cpp.git
+[submodule "source/ray"]
+	path = source/ray
+	url = https://github.com/ray-project/ray.git
+[submodule "source/sglang"]
+	path = source/sglang
+	url = https://github.com/sgl-project/sglang.git

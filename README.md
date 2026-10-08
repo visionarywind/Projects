@@ -8,8 +8,8 @@
 
 | 类别 | 当前目录 | 说明 |
 | --- | --- | --- |
-| 根仓库 submodule | `source/concurrency-queue` | `.gitmodules` 唯一登记的 submodule，对应 `concurrentqueue` |
-| 独立源码 checkout | `source/LeetCUDA`、`source/leveldb`、`source/llamacpp`、`source/megatron-lm`、`source/Megatron-LM`、`source/sglang`、`source/ray` | 各目录有自己的 Git 元数据；`source/megatron-lm` 与 `source/Megatron-LM` 是不同 checkout，项目文档以小写目录为准 |
+| 根仓库 submodule | `source/concurrency-queue`、`source/llamacpp`、`source/megatron-lm`、`source/ray`、`source/sglang` | `.gitmodules` 登记的上游源码；四个新增项目当前目录仍保留原有独立 checkout，未在本次操作中覆盖或重建 |
+| 独立源码 checkout | `source/LeetCUDA`、`source/leveldb`、`source/Megatron-LM` | 各目录有自己的 Git 元数据；大写 `source/Megatron-LM` 与小写 `source/megatron-lm` 是不同 checkout，项目文档以小写目录为准；四个新增 submodule 的旧 checkout 暂未迁移或删除 |
 | CANN 独立 checkout | `source/cann/ge`、`source/cann/runtime`、`source/cann/driver`、`source/cann/shmem` | 四个独立仓库，分别维护版本和工作树 |
 | 根仓库源码快照 | `source/cuda` | 没有独立 Git 根，版本和提交不能按 submodule 处理 |
 | 远端源码分析 | `musa/` | 文档对应远端 `/home/shanfeng/workspace/linux-ddk/musa`，当前目录没有 `source/musa` |
