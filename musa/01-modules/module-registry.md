@@ -1,12 +1,12 @@
 # 模块注册表
 
-- 文档目的：为 MUSA Driver 首批模块划分提供稳定 ID、职责、边界、依赖和证据。
-- 适用范围：`/home/shanfeng/workspace/linux-ddk/musa`，首批覆盖核心构建、API、对象、资源、HAL 和工具模块。
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`。
+- 文档目的：为 MUSA Driver 全部 13 个模块提供稳定 ID、职责、边界、依赖和证据。
+- 适用范围：`source/musa`，覆盖构建、API、对象、资源、HAL、工具、loader、util 与公共头文件层。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）。
 - 证据状态：部分推断
-- 最后更新：2026-09-16
+- 最后更新：2026-10-05
 - 前置阅读：[`../00-overview/project-overview.md`](../00-overview/project-overview.md)
-- 后续阅读：后续逐模块 `Mxx-*` 目录
+- 后续阅读：各 `Mxx-*` 目录（M01–M10 使用 13 文件统一模板；M11/M12 为 8 文件辅助型文档集，额外含 call-chains、implementation、execution-flows；M13 为 5 文件声明型文档集）
 
 ## 结论摘要
 
@@ -39,6 +39,13 @@ flowchart TD
     M06 --> M09
     M07 --> M06
     M08 --> M06
+    M11[M11 Loader 薄加载层] -.运行期 dlopen.-> M02
+    M12[M12 Util 基础库] --> M03
+    M12 --> M09
+    M12 --> M11
+    M13[M13 公共 API 头文件] --> M01
+    M13 --> M02
+    M13 --> M10
 ```
 
 箭头含义：编译/链接依赖和主要运行时调用关系的合并摘要。精确区分会在后续 `90-cross-module` 文档展开。
@@ -49,16 +56,16 @@ flowchart TD
 |---|---|
 | 模块名称 | 构建/发布/安装系统 |
 | 一句话职责 | 定义项目版本、构建选项、产物、安装路径、CI 包装和测试入口。 |
-| 源码目录 | `CMakeLists.txt`、`src/*/CMakeLists.txt`、`install.sh`、`.ciConfig.yaml`、`.mthreads-ci.yml`、`unittest/CMakeLists.txt` |
+| 源码目录 | `CMakeLists.txt`、`src/*/CMakeLists.txt`、`install.sh`、`.ciConfig.yaml`、`.mthreads-ci.yml`（`unittest/` 在本快照不存在） |
 | 入口 | `cmake ..`、`cmake --build`、`./install.sh`、CI `./ddk_build.sh -a 0 -m 1` |
 | 对外接口 | CMake 选项：`MUSA_BUILD_DEBUG`、`MUSA_BUILD_UT`、`ENABLE_ASAN_CHECK`、`ENABLE_TSAN_CHECK`、`MTUB_BUILD` 等 |
 | 依赖模块 | 所有源码模块 |
 | 被依赖模块 | 所有模块依赖它完成编译、测试、安装 |
 | 数据边界 | 输入是源码、CMake 选项、子模块路径和 CI 参数；输出是 `libmusa.so`、tools、包和安装文件 |
 | 生命周期 | 配置 → 编译 → 链接 → 安装/打包 → 测试 |
-| 测试边界 | CTest 和 gtest 目标由 `unittest/CMakeLists.txt` 生成 |
+| 测试边界 | CTest/gtest 目标由缺失的 `unittest/` 生成；本快照无测试目录 |
 | 风险等级 | 中：构建依赖外部私有仓库、GPU/驱动环境和 CI 镜像 |
-| 证据 | [CMakeLists.txt:21-35], [CMakeLists.txt:214-237], [src/driver/CMakeLists.txt:9-50], [install.sh:27-105] |
+| 证据 | [CMakeLists.txt:21-31], [CMakeLists.txt:146-154], [src/driver/CMakeLists.txt:9-64], [install.sh:27-105] |
 
 | 字段 | M02 |
 |---|---|
@@ -71,7 +78,7 @@ flowchart TD
 | 被依赖模块 | M10 工具、外部应用、测试 |
 | 数据边界 | `MUdevice`、`MUcontext`、`MUdeviceptr`、`MUstream`、`MUmodule`、`MUfunction` 等句柄进入 C++ 对象层 |
 | 生命周期 | API 被调用 → 校验参数/句柄 → 调用核心对象 → 返回 `MUresult` |
-| 测试边界 | `tests/*.cu`、`unittest`、外部兼容性测试 |
+| 测试边界 | `tests/*.cu`、`unittest`（均不在本快照）、外部兼容性测试 |
 | 风险等级 | 高：ABI、兼容性、错误码和跨版本 API 行为敏感 |
 | 证据 | [src/driver/mu_context.cpp:121-220], [src/driver/mu_memory.cpp:271-320], [src/driver/mu_module.cpp:232-285], [src/driver/mu_entry.cpp:1241-1245] |
 
@@ -195,6 +202,51 @@ flowchart TD
 | 风险等级 | 中：通常不影响主执行路径，但 ABI/调试信息变化影响排障能力 |
 | 证据 | [src/tools/CMakeLists.txt:10-18], [src/driver/CMakeLists.txt:4-11], 源码清单 |
 
+| 字段 | M11 |
+|---|---|
+| 模块名称 | Loader 薄加载层 |
+| 一句话职责 | 首次 API 调用时按 DriverStore 包 ID 定位并加载真实驱动，解析全部导出符号后转发全部 `mu*` 调用。 |
+| 源码目录 | `src/loader/`（submodule）、`cmake/export_symbols.cmake` |
+| 入口 | 570 个 `MUSA_LOADER_API` 生成的 `extern "C"` 包装、`ResolveDriverLocation` |
+| 对外接口 | `mu*` C ABI 转发；`muDebugFlag`、`muGdbPid`、`muGdbSessionId` 数据导出 |
+| 依赖模块 | M12（仅头文件）、平台 gdi32/libdxcore |
+| 被依赖模块 | 外部应用；运行期加载 M02 |
+| 数据边界 | 驱动包 ID 与路径 → `dlopen`/`LoadLibraryExW` 句柄 → 函数指针表 |
+| 生命周期 | 首个 `mu*` 调用 → once 初始化 → 定位/加载/解析 → 全局转发 |
+| 测试边界 | `probe.cpp`（**当前不构建**）；本快照缺依赖，无法编译验证 |
+| 风险等级 | 高：运行期加载、ABI 转发、路径安全、构建依赖外部头文件 |
+| 证据 | [src/loader/CMakeLists.txt:1-93], [src/loader/loader.cpp:44-215], [src/loader/driver_resolver.cpp:301-377], [src/loader/loader_api_list.inc:1-568] |
+
+| 字段 | M12 |
+|---|---|
+| 模块名称 | Util 基础库 |
+| 一句话职责 | 提供动态库包装、日志、对象池、单线程执行器、Splay 树、OS 抽象与位运算数学。 |
+| 源码目录 | `src/util/` |
+| 入口 | `Util::Library`、`Util::Log`、`Musa::ObjectPool<T>`、`Util::Executor`、`Util::SplayTree<K,V>` |
+| 对外接口 | 全部 header-only 头文件；仅 `utils.cpp`、`perfStatistics.cpp` 需链接 |
+| 依赖模块 | 无（仅标准库 + `dl`） |
+| 被依赖模块 | M03、M09、M11 |
+| 数据边界 | 环境变量 → 配置值；调用方指针 → 池化对象 |
+| 生命周期 | 库级；`Executor` 线程与 `ObjectPool` 块跟随宿主对象 |
+| 测试边界 | 无测试目录；HAL 与 core 通过集成路径间接覆盖 |
+| 风险等级 | 高：**含已定位的实际缺陷**（SplayTree 递归方向反转、Find 空指针解引用） |
+| 证据 | [src/util/CMakeLists.txt:1-4], [src/util/utilSplayTree.h:216-226], [src/util/utilObjectPool.h:44-167], [src/util/utilLog.h:59-101] |
+
+| 字段 | M13 |
+|---|---|
+| 模块名称 | 公共 API 头文件层 |
+| 一句话职责 | 定义 MUSA 公共 C ABI 契约：句柄与错误码类型、API 原型、版本化宏别名、PTDS 变体、废弃标记与导出表结构。 |
+| 源码目录 | `src/musa_shared_include/`（submodule） |
+| 入口 | `musa.h`（29280 行单体头）、`muGetProcAddress` |
+| 对外接口 | 全部公共 API 原型；`export_table.h` 的 8 个 `ExportTable` |
+| 依赖模块 | M01（发布随 `libmusa.so`）、M02（实现）、M10（accessor 消费） |
+| 被依赖模块 | 所有外部应用 |
+| 数据边界 | 应用参数 → ABI 类型 → Driver API 层 |
+| 生命周期 | 编译期契约；运行期由 M02/M11 实现 |
+| 测试边界 | 外部兼容性测试；本快照无 |
+| 风险等级 | 高：ABI 锁定、宏别名配对、生成文件一致性 |
+| 证据 | [src/musa_shared_include/musa.h:1-29280], [src/musa_shared_include/musa.h:212], [src/musa_shared_include/export_table.h:859-860] |
+
 ## 依赖与设计问题初查
 
 | 检查项 | 初步结论 | 状态 | 证据/说明 |
@@ -204,21 +256,13 @@ flowchart TD
 | 隐式全局状态 | `Musa::Platform::Get()` 是全局单例，context/device 注册表存在全局集合 | 已确认 | [src/musa/core/platform.cpp:13-18], [src/musa/core/platform.cpp:416-428] |
 | 职责重叠 | memory 逻辑横跨 driver/core/HAL，需严格区分 API 校验、对象生命周期、底层分配 | 部分完成 | M05 需单独深挖 |
 | 名义模块与实现不一致 | README 称 `MUSA-Runtime`，CMake 项目名和 CI 产物更接近 `musa-driver/libmusa.so` | 已确认 | [README.md:1], [CMakeLists.txt:101-103], [.ciConfig.yaml:19-24] |
+| loader 无法编译 | `hwdefs/mtgpu_asics.h` 在声明的 include 路径下不存在；`shared_include` 回退路径亦缺失 | 已确认 | [src/loader/CMakeLists.txt:16-17], [src/loader/CMakeLists.txt:45], [src/loader/driver_resolver.cpp:23] |
+| util 死代码 | `perfStatistics.{h,cpp}` 与 `SteadyClock` 在 `src/util/` 外零引用 | 已确认 | [src/util/CMakeLists.txt:1-2], [src/util/utils.h:33-52] |
+| 隐藏的功能缺陷 | `SplayTree::Search` 递归方向反转，影响 M09 内存池查找 | 已确认 | [src/util/utilSplayTree.h:218-221], [src/hal/m3d/memMgr.cpp:41-43] |
 
-## 深度审计表（首批）
+## 深度审计表
 
-| 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| M01 构建 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 不适用 | 不适用 | 已有 | 无 | 部分完成：未实际构建 |
-| M02 API | 部分完成 | 部分完成 | 未开始 | 部分完成 | 部分完成 | 部分完成 | 未开始 | 已有 | `muInfo` 候选 | 部分完成：未分析 generated wrappers |
-| M03 平台设备 | 部分完成 | 部分完成 | 部分完成 | 未开始 | 部分完成 | 部分完成 | 未开始 | 已有 | `muInfo` 候选 | 部分完成：HAL 细节缺失 |
-| M04 Context | 部分完成 | 部分完成 | 未开始 | 未开始 | 部分完成 | 部分完成 | 未开始 | 已有 | 内存/Kernel 候选 | 部分完成：锁和 CriticalBase 需深挖 |
-| M05 Memory | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 未开始 | 已有 | memcpy 候选 | 部分完成：HAL allocation 缺失 |
-| M06 Stream | 部分完成 | 部分完成 | 未开始 | 未开始 | 未开始 | 部分完成 | 部分完成 | 已有 | async memcpy 候选 | 部分完成：queue submit 缺失 |
-| M07 Module/Kernel | 部分完成 | 部分完成 | 未开始 | 未开始 | 未开始 | 部分完成 | 部分完成 | 已有 | kernel demo 候选 | 部分完成：dispatch command 缺失 |
-| M08 Graph | 部分完成 | 未开始 | 未开始 | 未开始 | 未开始 | 未开始 | 未开始 | 部分 | graph tests 候选 | 待深入 |
-| M09 HAL/M3D | 部分完成 | 未开始 | 未开始 | 未开始 | 未开始 | 未开始 | 未开始 | 部分 | 间接 | 待深入 |
-| M10 工具调试 | 部分完成 | 未开始 | 未开始 | 未开始 | 未开始 | 未开始 | 未开始 | 部分 | `muInfo` | 待深入 |
+深度审计表（逐模块 11 列覆盖矩阵）唯一维护在 [`../00-overview/analysis-state.md`](../00-overview/analysis-state.md) 的“深度审计结果”一节；本文件不再复制，避免两处状态漂移（引用一致性规则第 4 条）。
 
 ## 相关文档
 
@@ -232,10 +276,11 @@ flowchart TD
 
 ## 未解决问题
 
-1. 每个模块的独立目录尚未生成。
-2. 需要为 M05、M06、M07、M09 补完整“声明到落地”链路。
-3. 需要确认 `mu_wrappers_generated.cpp` 是否为生成文件、生成脚本在哪里、release 导出符号策略如何工作。
+1. M05–M10 仍需补完整“声明到落地”链路。
+2. 需要确认 `mu_wrappers_generated.cpp` 的生成脚本位置（`generated_*_meta.h` 的生成器同样不在本快照）。
+3. M11 loader 在本快照下无法配置编译（缺 `shared_include` 与 `hwdefs/mtgpu_asics.h` 正确路径）。
+4. 8 个 `ExportTable` 的实际填充方未定位，需跨 M10 追查。
 
 ## 下一步阅读建议
 
-先从 M02/M03/M04/M05 进入内存分配主路径，因为该路径覆盖初始化、context、memory、HAL 和清理。
+先从 M02/M03/M04/M05 进入内存分配主路径，因为该路径覆盖初始化、context、memory、HAL 和清理；M12 的缺陷清单可作为并行审计输入。

@@ -1,8 +1,45 @@
 # D01：`muInfo` 设备信息查询——完整源码轨迹
 
 - 入口源码：`src/tools/muInfo.cpp`
-- 对应版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`
+- 对应版本：`5.3.0 develop`
+- 文档目的：《D01：`muInfo` 设备信息查询——完整源码轨迹》的分析、证据与结论。
+- 适用范围：80-demos《D01：`muInfo` 设备信息查询——完整源码轨迹》；源码根 `source/musa`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）
 - 证据状态：下面的控制流和调用目标均来自静态源码；目标机设备数量、实际 stdout、错误码发生位置仍未验证。
+- 最后更新：2026-10-07
+- 前置阅读：[`../demo-registry.md`](../demo-registry.md)、[`../../00-overview/project-overview.md`](../../00-overview/project-overview.md)
+- 后续阅读：[`../../01-modules/module-registry.md`](../../01-modules/module-registry.md)、[`../../99-roadmap/risk-register.md`](../../99-roadmap/risk-register.md)
+
+## 0. 首跳：进程起来时还没加载驱动
+
+`muInfo` 与所有 MUSA 应用一样，**不直接链接 `libmusa.so`**，而是链接 M11 的 `libmusa_loader.so`。因此 `main()` 之后的第一件事不是 `muInit` 的业务逻辑，而是 loader 完成驱动定位与符号绑定。完整机制见 [`../../01-modules/M11-loader/call-chains.md`](../../01-modules/M11-loader/call-chains.md)。
+
+```text
+main()                                        [src/tools/muInfo.cpp:372]
+└─ printCompilerInfo()                        [src/tools/muInfo.cpp:373]
+└─ muInit(0)                                  [src/tools/muInfo.cpp:375]
+   └─ [loader] extern "C" muInit              src/loader/loader.cpp:212（宏生成）
+      └─ MiniLoader::Forward                  src/loader/loader.cpp:180
+         └─ MiniLoader::EnsureInitialized     src/loader/loader.cpp:97
+            └─ InitOnceExecuteOnce / call_once src/loader/loader.cpp:101 / :107
+               └─ InitializeDriverCore         src/loader/loader.cpp:58
+                  ├─ ResolveDriverLocation    src/loader/driver_resolver.cpp:301
+                  │  ├─ PlatformThunks::Load -> 加载 gdi32.dll / libdxcore.so
+                  │  ├─ EnumerateAdapters     src/loader/driver_resolver.cpp:125
+                  │  ├─ QueryPackageId 比对   src/loader/driver_resolver.cpp:205
+                  │  └─ BuildDriverPath       src/loader/driver_resolver.cpp:289
+                  ├─ LoadDriverModule         src/loader/loader.cpp:47
+                  │  └─ dlopen(libmusa.so.1.1) / LoadLibraryExW(mtmusa64.dll)
+                  └─ ResolveDriverExports     src/loader/loader.cpp:146
+         -> driverFunctions.muInit(...)        src/loader/loader.cpp:195
+   └─ [driver] muapiInit(0)                   ↓ 以下才是真正的驱动实现
+```
+
+对本 demo 的实际影响：
+
+- `muInfo` 的 stdout/stderr **不包含** loader 阶段的任何输出；驱动定位失败只会体现为 `muInit` 返回非零错误码，再经 `checkMuErrors` 打印 [src/tools/muInfo.cpp:9-20]。
+- loader 定位失败的具体原因（包 ID 不一致、文件缺失、`dlopen` 失败）在 `muInfo` 侧**不可见**，需用 `probe.cpp` 单独诊断——但该文件在本快照下不参与构建（见 [`../../01-modules/M11-loader/risks-and-debt.md`](../../01-modules/M11-loader/risks-and-debt.md) 风险 4）。
+- loader 每次 API 调用仍会经过一次 once 机制检查与状态读取 [src/loader/loader.cpp:97]-[src/loader/loader.cpp:112]，`muInfo` 的密集属性查询会把这部分固定开销放大。
 
 ## 1. 从进程入口到设备循环
 
@@ -118,3 +155,23 @@ printDeviceProp(i)
 ## 5. 运行时未验证项
 
 本地没有目标机的 `libmusa.so`、GPU 和该远端构建产物，因此不能填写真实设备名、设备数、内存值、peer 矩阵或 stdout。构建/运行命令只能作为待验证步骤，不能视为本次执行结果。
+
+## 相关文档
+
+- [`../../00-overview/analysis-state.md`](../../00-overview/analysis-state.md)
+- [`../../01-modules/module-registry.md`](../../01-modules/module-registry.md)
+
+## 源码证据摘要
+
+- `src/tools/muInfo.cpp`（14 处，例：[src/tools/muInfo.cpp:372]）
+- `src/driver/mu_device.cpp`（6 处，例：[src/driver/mu_device.cpp:40-51]）
+- `src/driver/mu_context.cpp`（3 处，例：[src/driver/mu_context.cpp:121-133]）
+
+## 未解决问题
+
+1. 本文所有结论均为静态分析，未在授权硬件上执行构建、测试或运行验证。
+2. 风险与未决项见知识库风险登记。
+
+## 下一步阅读建议
+
+阅读 [`../../00-overview/analysis-state.md`](../../00-overview/analysis-state.md)；阅读 [`../../01-modules/module-registry.md`](../../01-modules/module-registry.md)。

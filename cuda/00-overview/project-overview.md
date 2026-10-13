@@ -23,7 +23,7 @@ flowchart LR
   Lib --> OCL[OpenCL/GL/EGL/D3D 互操作]
 ```
 
-**已确认**：公开 Driver API 从 `inc/cuda.h` 暴露，导出列表在 `src/cuda_master.def`；构建文件将 API 与 CUI 实现链接为 `libcuda`（`cuda.nvmk:1695-1704,1800-1817`）。**推断**：RM/NVRM 是设备资源最终管理者，因为本目录通过 `rm_*`、`nvrm` 接口和 dmal/HAL 适配接触它；其实现不在当前目录。
+**历史已确认（快照外，当前不可复验）**：公开 Driver API 从 `inc/cuda.h` 暴露，导出列表在 `src/cuda_master.def`；构建文件将 API 与 CUI 实现链接为 `libcuda`（`cuda.nvmk:1695-1704,1800-1817`）。**推断**：RM/NVRM 是设备资源最终管理者，因为本目录通过 `rm_*`、`nvrm` 接口和 dmal/HAL 适配接触它；其实现不在当前目录。
 
 ## 能力范围
 

@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M02-runtime-context/testing.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -14,8 +14,8 @@
 
 ## 静态覆盖
 
-- `basic_sanity.cu` 通过初始化、设备枚举和 context 操作覆盖 M02 的 globals/TLS/context 主线（静态确认：[tests/cuda_test/basic_sanity.cu:49-100,181-195]）。
-- `dispatch_main.cpp` 在测试入口初始化 testutils，并在 `--listGpus` 模式下只展示设备、不执行测试（静态确认：[tests/cuda_test/dispatch_main.cpp:22-50]）。
+- `basic_sanity.cu` 通过初始化、设备枚举和 context 操作覆盖 M02 的 globals/TLS/context 主线（历史静态确认，快照外文件，当前不可复验：[tests/cuda_test/basic_sanity.cu:49-100,181-195]）。
+- `dispatch_main.cpp` 在测试入口初始化 testutils，并在 `--listGpus` 模式下只展示设备、不执行测试（历史静态确认，快照外文件，当前不可复验：[tests/cuda_test/dispatch_main.cpp:22-50]）。
 - context 创建 wrapper 覆盖非法 device、NULL 输出、CUI 创建失败和 TLS push 失败后的 context 销毁（静态确认：[src/api/apictx.c:38-95]）。
 
 ## 应覆盖的错误场景

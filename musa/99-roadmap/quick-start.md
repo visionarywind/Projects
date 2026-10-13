@@ -1,8 +1,8 @@
 # 快速开始
 
 - 文档目的：给新开发者提供理解、构建、运行和首次修改 MUSA Driver 的最短路径，并明确当前未验证项。
-- 适用范围：`/home/shanfeng/workspace/linux-ddk/musa` 远端仓库。
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`。
+- 适用范围：`source/musa` 远端仓库。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）。
 - 证据状态：部分推断/命令未验证
 - 最后更新：2026-09-16
 - 前置阅读：[`../README.md`](../README.md)
@@ -20,12 +20,12 @@
 
 ```bash
 ssh shanfeng@10.20.34.9
-cd /home/shanfeng/workspace/linux-ddk/musa
+cd source/musa
 git rev-parse HEAD
 git log --oneline -5
 ```
 
-当前确认版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`。
+当前确认版本：`5.3.0 develop`。
 
 ### 1.2 确认子模块
 
@@ -39,7 +39,7 @@ git submodule status
 - `src/hal/m3d/m3d`
 - `src/musa_shared_include`
 
-证据：[.gitmodules:1-13]。  
+证据：[.gitmodules:1-10]。  
 状态：命令未执行；子模块条目已确认。
 
 ### 1.3 安装依赖（未验证）
@@ -65,7 +65,7 @@ make
 ```
 
 来源：[README.md:9-16]。  
-预期产物：`build/lib/libmusa.so*`、`build/bin/muInfo` 等。产物推断来自 CMake 和 install 脚本 [src/driver/CMakeLists.txt:9-50]、[src/tools/CMakeLists.txt:10-18]、[install.sh:100-105]。
+预期产物：`build/lib/libmusa.so*`、`build/bin/muInfo` 等。产物推断来自 CMake 和 install 脚本 [src/driver/CMakeLists.txt:9-64]、[src/tools/CMakeLists.txt:10-18]、[install.sh:100-105]。
 
 ### 2.2 Debug 构建（未验证）
 
@@ -86,7 +86,7 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-说明：这是从 CMake/CTest 结构推导的命令；当前未执行。启用后会通过 FetchContent 拉取 googletest [CMakeLists.txt:214-221]，每个 `unittest/**/*.cpp` 会成为一个 gtest 可执行和 CTest 项 [unittest/CMakeLists.txt:1-46]。
+说明：这是从 CMake/CTest 结构推导的命令；当前未执行。启用后会通过 FetchContent 拉取 googletest [CMakeLists.txt:146-154]。注意：本快照缺少 `unittest/` 目录 [CMakeLists.txt:167-169]，该命令无法成功配置。
 
 ## 3. 运行最小示例
 
@@ -149,7 +149,7 @@ muInfo
 阅读入口：
 
 - [README.md:34-35]
-- [CMakeLists.txt:202-204]
+- [CMakeLists.txt:134-136]
 
 可能修改：
 
@@ -228,8 +228,8 @@ cmake --build build-asan
 ## 源码证据摘要
 
 - README 构建：[README.md:9-16], [README.md:39-45]
-- CMake 测试：[CMakeLists.txt:214-237], [unittest/CMakeLists.txt:1-46]
-- tools/`muInfo`：[src/tools/CMakeLists.txt:10-18]
+- CMake 测试：[CMakeLists.txt:146-154], [CMakeLists.txt:167-169]（`unittest/` 在本快照缺失）
+- tools/`muInfo`：[src/tools/muInfo.cpp:372-388]（构建目标由 GLOB 决定 [src/tools/CMakeLists.txt:10-18]）
 - 安装：[install.sh:27-105]
 
 ## 未解决问题

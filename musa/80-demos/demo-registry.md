@@ -2,7 +2,7 @@
 
 - 文档目的：登记 MUSA Driver 仓库中的真实 Demo/示例/工具候选，并选择后续端到端源码解剖主线。
 - 适用范围：`src/tools`、`tests`、README/CI 中可运行入口。
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）。
 - 证据状态：D01 已完成静态源码轨迹；D02/D03/D04 等仍为候选级
 - 最后更新：2026-09-16
 - 前置阅读：[`../00-overview/project-overview.md`](../00-overview/project-overview.md)
@@ -19,12 +19,12 @@
 | Demo ID | 入口 | 类型 | 覆盖模块 | 核心能力 | 可运行条件 | 当前可验证性 | 选择结论 |
 |---|---|---|---|---|---|---|---|
 | D01 | `src/tools/muInfo.cpp` | CLI 工具 | M10、M02、M03、M04 边界、M05 边界 | 初始化 driver、枚举设备、retain primary context、查询属性/peer/mem info 并输出 | 已构建 `libmusa.so`/`muInfo`，安装/LD_LIBRARY_PATH，目标机有驱动/设备 | 静态源码确认，未运行 | 主 Demo；已解剖 |
-| D02 | `tests/memcpyBatchAsync.cu` | 功能示例/测试 | M02、M04、M05、M06、M09 | 异步批量 memcpy，覆盖 memory + stream + command | 需要 MUSA 编译器/运行时、GPU 设备 | 仅发现文件，未读源码 | 第二优先级 Demo |
-| D03 | `tests/memcpy3DBatchAsync.cu` | 功能示例/测试 | M02、M04、M05、M06、M09 | 3D batch copy | 同上 | 仅发现文件 | 候选 |
-| D04 | `tests/childGraph.cu` | Graph 示例/测试 | M02、M04、M08、M06、M09 | child graph 节点与 graph exec | 同上 | 仅发现文件 | Graph 深挖 Demo 候选 |
-| D05 | `tests/conditionalNode.cu` | Graph 示例/测试 | M02、M04、M08、M06、M09 | conditional node | 同上 | 仅发现文件 | Graph 深挖 Demo 候选 |
-| D06 | `tests/allocnode.cu` | Graph/memory 示例 | M02、M04、M05、M08 | graph memory alloc node | 同上 | 仅发现文件 | 候选 |
-| D07 | `tests/addnode_v2.cu` | Graph 示例 | M02、M08 | graph add node | 同上 | 仅发现文件 | 候选 |
+| D02 | `tests/memcpyBatchAsync.cu` | 功能示例/测试 | M02、M04、M05、M06、M09 | 异步批量 memcpy，覆盖 memory + stream + command | 需要 MUSA 编译器/运行时、GPU 设备 | 本快照无 `tests/` 目录，入口未核实 | 第二优先级 Demo |
+| D03 | `tests/memcpy3DBatchAsync.cu` | 功能示例/测试 | M02、M04、M05、M06、M09 | 3D batch copy | 同上 | 本快照无 `tests/` 目录，入口未核实 | 候选 |
+| D04 | `tests/childGraph.cu` | Graph 示例/测试 | M02、M04、M08、M06、M09 | child graph 节点与 graph exec | 同上 | 本快照无 `tests/` 目录，入口未核实 | Graph 深挖 Demo 候选 |
+| D05 | `tests/conditionalNode.cu` | Graph 示例/测试 | M02、M04、M08、M06、M09 | conditional node | 同上 | 本快照无 `tests/` 目录，入口未核实 | Graph 深挖 Demo 候选 |
+| D06 | `tests/allocnode.cu` | Graph/memory 示例 | M02、M04、M05、M08 | graph memory alloc node | 同上 | 本快照无 `tests/` 目录，入口未核实 | 候选 |
+| D07 | `tests/addnode_v2.cu` | Graph 示例 | M02、M08 | graph add node | 同上 | 本快照无 `tests/` 目录，入口未核实 | 候选 |
 
 ## 主 Demo 选择依据
 
@@ -41,12 +41,17 @@
 
 ## Demo—模块覆盖矩阵
 
-| Demo | M01 构建 | M02 API | M03 平台设备 | M04 Context | M05 Memory | M06 Stream | M07 Kernel | M08 Graph | M09 HAL/M3D | M10 工具 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| D01 `muInfo` | 是 | 是 | 是 | 边界 | 边界 | 否 | 否 | 否 | 初始化边界 | 是 |
-| D02 memcpy batch | 是 | 是 | 是 | 是 | 是 | 是 | 否 | 否 | 是 | 否 |
-| D04 childGraph | 是 | 是 | 是 | 是 | 可能 | 是 | 可能 | 是 | 是 | 否 |
-| D05 conditionalNode | 是 | 是 | 是 | 是 | 可能 | 是 | 可能 | 是 | 是 | 否 |
+| Demo | M01 构建 | M02 API | M03 平台设备 | M04 Context | M05 Memory | M06 Stream | M07 Kernel | M08 Graph | M09 HAL/M3D | M10 工具 | M11 Loader | M12 Util | M13 头文件 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D01 `muInfo` | 是 | 是 | 是 | 边界 | 边界 | 否 | 否 | 否 | 初始化边界 | 是 | 是 | 边界 | 是 |
+| D02 memcpy batch | 是 | 是 | 是 | 是 | 是 | 是 | 否 | 否 | 是 | 否 | 候选 | 候选 | 候选 |
+| D03 memcpy3D batch | 是 | 是 | 是 | 是 | 是 | 是 | 否 | 否 | 是 | 否 | 候选 | 候选 | 候选 |
+| D04 childGraph | 是 | 是 | 是 | 是 | 可能 | 是 | 可能 | 是 | 是 | 否 | 候选 | 候选 | 候选 |
+| D05 conditionalNode | 是 | 是 | 是 | 是 | 可能 | 是 | 可能 | 是 | 是 | 否 | 候选 | 候选 | 候选 |
+| D06 allocnode | 是 | 是 | 是 | 是 | 是 | 可能 | 否 | 是 | 可能 | 否 | 候选 | 候选 | 候选 |
+| D07 addnode | 是 | 是 | 是 | 可能 | 否 | 可能 | 可能 | 是 | 可能 | 否 | 候选 | 候选 | 候选 |
+
+M11/M12/M13 三列的 D01 取值依据 [`D01-muinfo/execution-trace.md`](D01-muinfo/execution-trace.md) §0–§2：D01 必经 loader 首跳，M12 只经 header-only 的 `Util::Library` 与日志宏（故填“边界”），M13 是类型与宏的编译期依赖。D02–D07 各行的 M11/M12/M13 取值均为候选推断——本快照无 `tests/` 目录，入口未核实；D03/D06/D07 三行同样按 [`Demo 候选表`](#demo-候选表) 的覆盖模块补齐，未做源码验证。
 
 ## D01 已确认执行阶段
 

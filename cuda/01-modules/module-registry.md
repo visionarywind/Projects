@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/module-registry.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../README.md)。
@@ -18,16 +18,16 @@
 
 | ID | 模块 | 核心目录/文件 | 深度 | 主职责 |
 |---|---|---|---|---|
-| M01 | API/ABI 与导出 | `inc/`、`src/api/`、`src/cuda_master.def`、`generated_cuapi*` | 深 | 参数校验、ABI 兼容、公开入口、导出 |
+| M01 | API/ABI 与导出 | `src/api/`、`src/cuda_master.def`；`inc/`、`generated_cuapi*` 不在当前快照内 | 深（快照外证据已降级） | 参数校验、ABI 兼容、公开入口、导出 |
 | M02 | Runtime/Context | `cuiinit.c`、`cuitls.c`、`cuictx.c`、`cuierror.c` | 深 | globals、TLS、context 生命周期、sticky error |
 | M03 | Device/HAL | `devmgr.c`、`device.c`、`cuidevice.c`、`dmal/`、`hal/` | 中 | 设备枚举、排序、平台和架构分派 |
 | M04 | Memory/UVA/UVM | `memmgr.c`、`memblock.c`、`memobj.c`、`suballocator.c`、`heap.c`、`cuiuvm.c`、`cuivamanager.c` | 深（静态） | memblock backing、descriptor-compatible suballocation、映射、统一地址、托管内存 |
 | M05 | Stream/Submit | `cuistream.c`、`channel*.c`、`marker.c`、`qmd.c`、`pushbuffer.c` | 深 | 流池、通道、命令队列、同步和异步回收 |
-| M06 | Module/Launch | `cuimod.c`、`cuifunc.c`、`cuiparam.c`、`cuilaunch.c`、`cuigraph.c`、`cuigraph.h`、`apigraph.c`、`apistream.c` | 深（静态） | 镜像加载、函数元数据、参数打包、Graph capture/instantiate/launch/update 及资源回收 |
-| M07 | Kernel/Syscall | `src/kernels`、`src/syscalls`、`src/asm`、`cudaSyscalls.nvmk` | 中 | 内建 kernel、设备 syscall、架构生成物 |
+| M06 | Module/Launch | `src/cui/cuimod.c`、`src/cui/cuifunc.c`、`src/cui/cuiparam.c`、`src/cui/cuilaunch.c`、`src/cui/cuigraph.c`、`src/cui/cuigraph.h`、`src/api/apigraph.c`、`src/api/apistream.c` | 深（静态） | 镜像加载、函数元数据、参数打包、Graph capture/instantiate/launch/update 及资源回收；`apigraph.c`/`apistream.c` 是 M01 公开入口中与 Graph/stream 相关的部分 |
+| M07 | Kernel/Syscall | `src/kernels`、`src/syscalls`、`src/asm`；`cudaSyscalls.nvmk`（不在当前快照内） | 中 | 内建 kernel、设备 syscall、架构生成物 |
 | M08 | Tools/Debug | `src/devtools`、`src/profiler`、`src/drs`、`src/etbl/tools` | 中→深（host-side） | 工具回调、调试器、性能和配置旁路；memcheck device table |
 | M09 | OpenCL/Interop | `src/cl`、`src/clh`、`src/icd_*`、互操作 CUI | 中→深（host-side） | OpenCL ICD、对象引用树、event marker、图形/外部资源互操作 |
-| M10 | Tests/Experiments | `tests`、`mods`、`experiments` | 中→深（构建/聚合） | 构建适配、单元/集成测试、DVS/dispatcher 验证入口 |
+| M10 | Tests/Experiments | `tests`、`mods`、`experiments`（三者均不在当前快照内）；快照内可见的验证代码为 `src/etbl/`、`src/drs/` | 中→受阻（构建/聚合结论来自快照外，当前不可复验） | 构建适配、单元/集成测试、DVS/dispatcher 验证入口 |
 
 ## 依赖方向
 

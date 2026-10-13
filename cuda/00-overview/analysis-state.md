@@ -2,9 +2,9 @@
 
 - 文档目的：解释 00-overview/analysis-state.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
-- 最后更新：2026-09-15
+- 最后更新：2026-10-05
 - 前置阅读：[项目入口](../README.md)。
 - 后续阅读：[分析状态](analysis-state.md)。
 ## 结论摘要
@@ -12,25 +12,46 @@
 本页聚焦 00-overview/analysis-state.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 
-- **更新时间**：2026-09-14
-- **源码根**：`source/cuda`
-- **文档根**：`/home/mtuser/workspace/Projects/cuda`
-- **总体状态**：M01–M10 模块文档骨架已建立；核心 API→CUI→资源→HAL/提交主线已静态追踪；M04–M07 的 UVM/GPFIFO/marker/module/syscall 深层生命周期以及 M08–M10 的工具、OpenCL 对象/interop、测试聚合语义已补证；跨模块 Kernel Launch 端到端调用链和具体架构设计文档已补充，外部后端与生成工具边界仍有明确缺口。
+- **更新时间**：2026-10-05
+- **源码根**：`source/cuda`（当前检出仅含 `src/`）
+- **文档根**：本 `README.md` 所在仓库的 `cuda/`
+- **总体状态**：M01–M10 模块文档骨架已建立；核心 API→CUI→资源→HAL/提交主线已静态追踪；M04–M07 的 UVM/GPFIFO/marker/module/syscall 深层生命周期以及 M08–M09 的工具、OpenCL 对象/interop 语义已补证；跨模块 Kernel Launch 端到端调用链和具体架构设计文档已补充。**M10 与 D01 的入口源码在当前快照外，已改记为受阻**；外部后端与生成工具边界仍有明确缺口。**D02（cuGetExportTable 导出表机制）为补选快照内唯一可复核的公开入口链，已建立，可覆盖 M01/M08/M09/M10 的导出-消费者-测试体链路。**
+
+## 快照边界（本轮只读确认）
+
+当前 `source/cuda` 只包含 `src/` 一个子树。以下被正文引用的路径在本检出中**不存在**，相关结论一律不可复验：
+
+| 缺失路径 | 被引用为 | 影响文档数 |
+|---|---|---|
+| `inc/cuda.h` | 公开 API/ABI 声明、版本宏 | 14 |
+| `common/version.h` | 内部版本字段 | 5 |
+| `cuda.nvmk`、`cudaSyscalls.nvmk`、`tests/**/*.nvmk` | 构建与源文件清单 | 45 |
+| `tests/**`（`basic_sanity.cu`、`dispatch_main.cpp`、`unittest_*.cpp` 等） | D01 Demo 与 M10 测试入口 | 32 |
+
+快照内可复核的替换入口：`cuiGetExportTable` → `g_etblMap` → `g_etbl*` 导出表链路（`src/cui/cuietbl.c`、`src/api/apietbl.c`），已在 D02（[cuGetExportTable（D02）](../80-demos/D02-cugetexporttable/README.md)）完成静态解剖；`src/etbl/` 的 123 个 `eti*` 测试体经该链注册。
+| `mods/Makefile`、`import/r*` | MODS 构建、历史依赖快照 | 3 |
+
+处置原则见 [决策与冲突记录](decision-log.md) 的“快照边界冲突”。快照内 `src/` 的行号引用已抽样复核为准确（例如 `src/api/apiinit.c:18-47`、`src/api/apimem.c:89-117,128-136`）。
 
 ## 版本与仓库证据
 
 | 项目 | 状态 | 说明 |
 |---|---|---|
-| CUDA API 版本 | 静态确认 | `inc/cuda.h` 的 `CUDA_VERSION=10020` |
-| 内部版本字段 | 静态确认 | `common/version.h` 的 NVCUDA 10.2.0 字段 |
-| Git commit/branch | 未知 | 源码目录没有 `.git` |
+| 快照内容 | 已确认 | 仅 `src/`；`source/src.tar.gz` 清单一致（2906 项） |
+| 快照时间 | 已确认 | `src/` 下 2387 个文件时间戳一致为 2022-02-22 |
+| Git commit/branch | 未知 | 源码目录没有 `.git`，且 `/source/` 被 `.gitignore` 整体忽略 |
+| CUDA API 版本 | 推断（数值当前不可复验） | 快照外 `inc/cuda.h` 记为 `CUDA_VERSION=10020`；`src/` 内 `10020` 零命中（已排除 `.cubins.c` 十六进制数据） |
+| 版本宏存在的间接证据 | 推断 | 快照内 [src/cui/cuiinit.c:3064-3067] `cuiInitInternal` 对 `CUDA_VERSION`、`NVCUDA_VER_MAJOR/MINOR` 做 `ct_assert`，说明这些宏由缺失的 `cuda.h` 提供，但不提供其数值 |
+| 内部版本字段 | 推断（当前不可复验） | 依据 `common/version.h`；该文件不在快照内 |
 | 外部依赖版本 | 未知 | common、RM/NVRM、compiler/gpgpucomp、firmware 不完整 |
+
+> 2026-10-05 修正：本页此前把版本字段记为“静态确认”，并把页头写成“source/cuda HEAD 39d4a83”。前者依赖快照外文件，后者误引了本 Projects 仓库的提交号，均已按上表更正。
 
 ## 模块状态
 
 | 模块 | 深度 | 已覆盖 | 主要缺口 |
 |---|---|---|---|
-| M01 API/ABI | 深 | wrapper、版本宏、导出/构建关系、错误回滚 | generator 实际执行与符号最终排序 |
+| M01 API/ABI | 深（快照外证据已降级） | wrapper、参数校验、错误回滚（`src/api/` 内）；`inc/cuda.h` 版本宏与 `cuda.nvmk` 导出关系已降级为历史结论 | generator 实际执行与符号最终排序；`inc/cuda.h`、`cuda.nvmk` 不在快照内，ABI/版本宏与导出关系不可复验 |
 | M02 Runtime/Context | 深 | globals、TLS 检查、context 创建、初始化回滚、sticky error 观察点 | TLS 深层、完整 destroy/thread-exit/fork 生命周期 |
 | M03 Device/HAL | 中 | remap/过滤/排序、HAL 编译与运行时选择、DMAL 边界 | 具体目标配置、架构实现、RM 末端 |
 | M04 Memory/UVA/UVM | 深（静态） | memdesc、memobj、memblock、descriptor-compatible suballocator、best-fit/split/coalesce、device/host alloc/free；UVM manager/managed attributes/DAG、stream state、P2P bookkeeping；AL selection、memobj registration rollback、submemblock mapping | UVM fault/migration backend、IPC/external sharing 的完整运行链、DMAL 物理实现和运行时碎片验证 |
@@ -39,7 +60,7 @@
 | M07 Kernel/Syscall | 中→深 | syscall init/load/destroy、imports/refcount、resource aggregation、launch callback、trap/timeout/reason buffer；trampoline PC binding、per-arch generated cubin chain | 各 syscall 子实现、CNP queue、compiler/asm/cubin 生成链的设备侧细节 |
 | M08 Tools/Debug | 中→深（host-side） | callbacks、skip/blocking、debugger checks/shared state、memcheck device table、profiler mode/perfmon | 外部 attach protocol、helper/backend、DRS/runtime client |
 | M09 OpenCL/Interop | 中→深（host-side） | ICD/vendor、固定 dispatch、public/internal object tree、context destroy、event marker aggregation、GL registration、external memobj | enqueue worker 全链、GL/D3D fence/RM、handle close、运行验证 |
-| M10 Tests/Experiments | 中→深（构建/聚合） | binary/case registration、device-link、dispatcher、runner pipe/timeout/no-result/failure/waived、DVS package | 全量 case、MODS/CI、硬件执行 |
+| M10 Tests/Experiments | 受阻（整个模块源码在快照外） | 仅保留历史静态阅读结论：binary/case registration、device-link、dispatcher、runner pipe/timeout/no-result/failure/waived、DVS package | `tests/`、`mods/`、`experiments/` 均不在快照内，不可复读也不可重跑；全量 case、MODS/CI、硬件执行；快照内可见验证代码仅 `src/etbl/`、`src/drs/` |
 
 ## 证据质量规则
 
@@ -104,12 +125,25 @@ cuLaunchKernel
 
 
 本轮未执行 nvmake、nvcc、DVS、GPU test、`nvidia-smi`、`sudo nvidia-persistenced`、OpenCL runtime、debugger/profiler、外部依赖安装或服务启动。根仓库允许的文档校验为 `git diff --check`，需在文档修改稳定后执行。
-## 本轮一致性验收
+## 本轮一致性验收（2026-10-05）
 
-+- 已扫描本项目 185 个知识库 Markdown：统一元信息、结论摘要和四段页尾均存在且顺序一致。
-- 根 README 已链接总览、模块、Demo、关联和实践层全部文档；相对 Markdown 链接未发现断链。
-- 可解析的源码引用已检查文件存在性与行号数值边界；该检查不替代符号语义复核或动态执行。
-- 本轮未执行构建、GPU/NPU、模型、网络、NCCL/HCCL、benchmark 或多节点测试，相关行为继续标记为未验证。
+本轮以 `source/cuda` 当前检出为基准，复核知识库一致性，结果如下：
+
+| 检查项 | 方法 | 结果 |
+|---|---|---|
+| 内部链接 | 遍历 188 个 Markdown，校验 1550 条相对链接 | 0 断链 |
+| 源码引用可解析性 | 提取 85 个带行号的 `path:lines` 引用（142 处） | 引用的行号**均在文件范围内**，无越界 |
+| 引用文件存在性 | 同上 | 13 个路径缺失，全部属于快照外的 `inc/`、`common/`、`*.nvmk`、`tests/` |
+| 行号语义抽样 | 逐行读取 `src/api/apiinit.c:18-47`、`src/api/apimem.c:89-117,128-136` | 与文档描述一致（`cuapiInit`→`cuiInit`、`cuapiMemAlloc_v2`→`cuapiMemAlloc_common`→`memobjAlloc`） |
+| 模块注册表目录 | 核对 M01–M10 列出的目录/文件 | 修正 M06 的 `apigraph.c`/`apistream.c` 归属（实为 `src/api/`） |
+| 版本标识 | 比对 `source/cuda/.git` 与 Projects 提交历史 | 发现并撤销 170 处错误 HEAD 声明 |
+| 陈旧绝对路径 | 检索 `/home/...`、`/Users/...` | 修正 1 处（`/home/mtuser/workspace/Projects/cuda`） |
+
+未执行构建、GPU/NPU、模型、网络、NCCL/HCCL、benchmark 或多节点测试，相关行为继续标记为未验证。
+
+本轮修改均为文档层修正，未触碰 `source/cuda` 任何源码。
+
+**D02 复核（2026-10-05 续）**：新增 `80-demos/D02-cugetexporttable/`（README、执行轨迹、数据与状态轨迹、失败路径、调试走查、修改练习），为快照内唯一可复核的公开入口链补充行级证据。额外的静态核查结论：`src/cui/cuietbl.c` 的 `g_etblMap`（`:521-603`，75 项）与 72 个 `cuda_etbl/*.h` 引用、`g_etblCudaGraphs` 表体（`src/etbl/cuda_graphs/cuda_graphs.c:389-430`，含 26 个 NULL 槽与 12 个函数槽）均已定位；其中 3 个函数槽（`:425/:426/:428`）与 `cuapiGraphAddConditionalNode` 等符号在快照全树 0 命中，判定为快照不完整的静态证据；`cuGetExportTable` 文档承诺 `CUDA_ERROR_NOT_FOUND` 而 `cuiGetExportTable` 返回 `CUDA_ERROR_INVALID_VALUE`（`apietbl.c:36,45` vs `cuietbl.c:647`），为源码自身的文档/实现偏差，已记入 failure-paths。
 
 
 ## 深度审计

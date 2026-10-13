@@ -1,5 +1,14 @@
 # D01：`muInfo` 调试 walkthrough
 
+- 文档目的：调试走查：断点、调用栈与日志观察点。
+- 适用范围：80-demos《D01：`muInfo` 调试 walkthrough》；源码根 `source/musa`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）
+- 证据状态：已确认（引用与符号已脚本核对；运行期未验证）
+- 最后更新：2026-10-07
+- 前置阅读：[`../demo-registry.md`](../demo-registry.md)、[`../../00-overview/project-overview.md`](../../00-overview/project-overview.md)
+- 后续阅读：[`../../01-modules/module-registry.md`](../../01-modules/module-registry.md)、[`../../99-roadmap/risk-register.md`](../../99-roadmap/risk-register.md)
+
+
 ## 推荐断点（按真实调用顺序）
 
 1. `main` 的 `muInit(0)`：确认 API 返回值。[src/tools/muInfo.cpp:372-378]
@@ -28,3 +37,23 @@
 - 不能因为 `src/tools/CMakeLists.txt` 构建了 `muInfo`，就声称本地已经运行成功。
 - 不能把 `Platform::Init` 中的 HAL 接口调用写成底层内核驱动已执行；`IM3d::CreatePlatform` 之后的私有实现需要目标源码/运行日志支持。
 - 不能把 `GetDeviceProps` 的静态缓存当成实时监控数据。
+
+## 相关文档
+
+- [`../../00-overview/analysis-state.md`](../../00-overview/analysis-state.md)
+- [`../../01-modules/module-registry.md`](../../01-modules/module-registry.md)
+
+## 源码证据摘要
+
+- `src/driver/mu_context.cpp`（2 处，例：[src/driver/mu_context.cpp:121-133]）
+- `src/tools/muInfo.cpp`（1 处，例：[src/tools/muInfo.cpp:372-378]）
+- `src/musa/core/platform.cpp`（1 处，例：[src/musa/core/platform.cpp:84-138]）
+
+## 未解决问题
+
+1. 本文所有结论均为静态分析，未在授权硬件上执行构建、测试或运行验证。
+2. 风险与未决项见知识库风险登记。
+
+## 下一步阅读建议
+
+阅读 [`../../00-overview/analysis-state.md`](../../00-overview/analysis-state.md)；阅读 [`../../01-modules/module-registry.md`](../../01-modules/module-registry.md)。

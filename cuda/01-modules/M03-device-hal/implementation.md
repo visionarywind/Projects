@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M03-device-hal/implementation.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -18,7 +18,7 @@
 
 ## HAL 初始化
 
-`InitDeviceArch` 的返回值是具体 `deviceInitArch*` 是否成功；未知架构直接返回 false。架构实现分别位于 `src/cui/hal/{kepler,maxwell,pascal,volta,turing,ampere}`，并由 `cuda.nvmk` 中 `NVCFG_GLOBAL_ARCH_*` 条件纳入构建（静态确认：[src/cui/hal/hal.c:35-79]、[cuda.nvmk:513-597]）。
+`InitDeviceArch` 的返回值是具体 `deviceInitArch*` 是否成功；未知架构直接返回 false。架构实现分别位于 `src/cui/hal/{kepler,maxwell,pascal,volta,turing,ampere}`，并由 `cuda.nvmk` 中 `NVCFG_GLOBAL_ARCH_*` 条件纳入构建（历史静态确认，快照外文件，当前不可复验：[src/cui/hal/hal.c:35-79]、[cuda.nvmk:513-597]）。
 
 ## DMAL 选择
 

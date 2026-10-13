@@ -2,7 +2,7 @@
 
 - 文档目的：集中维护首批分析使用的源码、构建、CI 和脚本证据，便于后续增量校正行号与结论。
 - 适用范围：MUSA Driver 知识库全部文档。
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）。
 - 证据状态：静态源码分析已确认到 Core/HAL/M3D 适配边界；M3D 子模块、硬件和构建运行仍未验证
 - 最后更新：2026-09-16
 - 前置阅读：[`project-overview.md`](project-overview.md)
@@ -16,10 +16,10 @@
 
 | 结论 | 状态 | 证据 | 解释 |
 |---|---|---|---|
-| 远端仓库路径是 `/home/shanfeng/workspace/linux-ddk/musa` | 已确认 | 远端 `pwd` 输出 | 通过 ssh 进入目标目录确认 |
-| 当前 HEAD 是 `b8dce2b2f23849e8e99350c20d7eaac3c129caba` | 已确认 | 远端 `git rev-parse HEAD` | 文档版本锚点 |
+| 远端仓库路径是 `source/musa` | 已确认 | 远端 `pwd` 输出 | 通过 ssh 进入目标目录确认 |
+| 当前 HEAD 是 `5.3.0 develop` | 已确认 | 远端 `git rev-parse HEAD` | 文档版本锚点 |
 | 最近提交是 `Merge [SW-71661] Add PHOTON_BVH_PRE_COMPACT_TRI3 and update m3d` | 已确认 | 远端 `git log --oneline -5` | 与 M3D/Photon 相关 |
-| CMake 项目名和版本为 `musa_driver 5.2.0 develop` | 已确认 | [CMakeLists.txt:101-103] | 顶层版本定义 |
+| CMake 项目名和版本为 `musa_driver 5.3.0 develop` | 已确认 | [CMakeLists.txt:33-35] | 顶层版本定义 |
 
 ## 2. 顶层 README 与目录职责
 
@@ -28,7 +28,7 @@
 | [README.md:1] | README 标题为 `MUSA-Runtime` |
 | [README.md:3-6] | 构建前依赖包含 `libelf-dev`、`gcc-multilib` |
 | [README.md:9-16] | 最小构建命令 `mkdir build && cmake .. && make` |
-| [README.md:17-23] | 默认依赖参数：`PVR_ARCH`、`PLATFORM`、`ARCH`、`WINDOW`、`BUILD_VERSION` |
+| [README.md:17-23] | 默认依赖参数：`PVR_ARCH`、`PLATFORM`、`ARCH`、`WINDOW`、`BUILD_VERSION`（属 gr-umd 工具链参数，本仓库 CMake 未定义） |
 | [README.md:26-37] | README 记录项目相关选项：ASAN、TSAN、Debug、CSV、UT |
 | [README.md:39-45] | Debug 构建示例 |
 | [README.md:46-50] | 安装命令 `./install.sh` |
@@ -39,16 +39,16 @@
 | 证据 | 证明内容 |
 |---|---|
 | [CMakeLists.txt:1] | CMake 最低版本 3.15 |
-| [CMakeLists.txt:21-35] | 顶层选项：DDK_2_0、ASAN、TSAN、Debug、CSV、M3D trace、UT、MTUB、WSL2 |
-| [CMakeLists.txt:38-61] | `MTUB_BUILD` 集成 mt-toolchain 和 package 配置 |
-| [CMakeLists.txt:101-103] | `version_string 5.2.0`、`version_status develop`、`project(musa_driver)` |
+| [CMakeLists.txt:21-31] | 顶层选项：DDK_2_0、ASAN、TSAN、Debug、CSV、M3D trace、UT、MTUB、WSL2 |
+| [CMakeLists.txt:40-61] | `MTUB_BUILD` 集成 mt-toolchain 和 package 配置 |
+| [CMakeLists.txt:33-35] | `version_string 5.3.0`、`version_status develop`、`project(musa_driver VERSION ...)` |
 | [CMakeLists.txt:127-130] | `MUSA_BUILD_DEBUG` 控制 Debug/Release |
-| [CMakeLists.txt:165-169] | UNIX C++17 与安全链接选项 |
-| [CMakeLists.txt:178-186] | ASAN/TSAN 编译选项 |
-| [CMakeLists.txt:202-204] | `CSV_UNSPPORTED` 拼写分支 |
-| [CMakeLists.txt:214-237] | `MUSA_BUILD_UT` 拉取 googletest 并加入 unittest |
+| [CMakeLists.txt:97-101] | UNIX C++17 与安全链接选项 |
+| [CMakeLists.txt:110-118] | ASAN/TSAN 编译选项 |
+| [CMakeLists.txt:134-136] | `CSV_UNSPPORTED` 拼写分支 |
+| [CMakeLists.txt:146-154] | `MUSA_BUILD_UT` 拉取 googletest 并加入 unittest |
 | [src/CMakeLists.txt:1-5] | Linux driver 库名 `musa`，Windows `mtmusa64` |
-| [src/CMakeLists.txt:7-12] | 子目录：util/hal/musa/driver/gdb/tools |
+| [src/CMakeLists.txt:7-15] | 子目录：util/hal/musa/driver/gdb/tools |
 | [src/driver/CMakeLists.txt:4-11] | driver 源文件、MUPTI/MUGDB/MUASAN 源文件加入动态库 |
 | [src/driver/CMakeLists.txt:17] | driver 动态库链接 `musaCore` |
 | [src/driver/CMakeLists.txt:38-50] | 输出名、SONAME、安装规则 |
@@ -56,19 +56,19 @@
 | [src/hal/m3d/CMakeLists.txt:1-23] | M3D 编译宏、Linux/WSL2 设置和 `add_subdirectory(m3d)` |
 | [src/hal/m3d/CMakeLists.txt:36-59] | `halM3d` 静态库链接 `m3d/scpc/util/dl/pthread/rt` |
 | [src/tools/CMakeLists.txt:10-18] | tools 中每个 `.cpp` 生成可执行并链接 driver 动态库 |
-| [unittest/CMakeLists.txt:1-46] | 每个 unittest `.cpp` 生成 gtest 可执行并注册 CTest |
+| [CMakeLists.txt:167-169] | `MUSA_BUILD_UT` 时 `add_subdirectory(unittest)`；本快照缺少该目录 |
 
 ## 4. 子模块与 CI 证据
 
 | 证据 | 证明内容 |
 |---|---|
-| [.gitmodules:1-13] | 子模块：`module_version`、`src/hal/m3d/m3d`、`src/musa_shared_include` |
+| [.gitmodules:1-10] | 子模块：`module_version`、`src/hal/m3d/m3d`、`src/musa_shared_include` |
 | [.ciConfig.yaml:13-16] | CI 参数中 `submoduleConfig` 包含 `libdrm-mt`、`m3d`、`shared_include` |
 | [.ciConfig.yaml:19-24] | CI artifact 包含 `libmusadebugger.so` 与 `libmusa.so` |
 | [.ciConfig.yaml:25-34] | CI 构建 `linux-ddk musa build` 使用 `./ddk_build.sh -a 0 -m 1` |
 | [.mthreads-ci.yml:37-52] | MTUB release 构建安装 mt-toolchain/LLVM，CMake 使用 `LIBDRM_PATH`、`SHARED_INCLUDE_PATH` |
 | [.mthreads-ci.yml:114-123] | Photon 测试安装 MUSA toolkit 和 mtcc |
-| [.mthreads-ci.yml:125-148] | CI 安装 DDK 包、移除/加载 `mtgpu` 内核模块 |
+| [.mthreads-ci.yml:226-230] | CI 安装 DDK 包、移除/加载 `mtgpu` 内核模块 |
 | [.mthreads-ci.yml:181-207] | CI 构建 Photon 与 photon_samples 并运行测试 |
 
 ## 5. API 与核心对象证据
@@ -83,12 +83,12 @@
 | [src/driver/mu_device.cpp:71-135] | device attribute/name/total memory 查询 |
 | [src/driver/mu_memory.cpp:271-320] | `muapiMemAlloc_v2` 和 legacy 包装 |
 | [src/driver/mu_memory.cpp:716-758] | `muapiMemFree_v2` 和 legacy 包装 |
-| [src/driver/mu_memory.cpp:1004-1020] | `muapiMemcpy`/`muapiMemcpyAsync` |
+| [src/driver/mu_memory.cpp:1035-1060] | `muapiMemcpy`/`muapiMemcpyAsync` |
 | [src/driver/mu_stream.cpp:16-60] | stream create with priority |
 | [src/driver/mu_stream.cpp:131-150] | stream get context |
 | [src/driver/mu_module.cpp:88-130] | module load/load data |
 | [src/driver/mu_module.cpp:232-285] | kernel launch 入口 |
-| [src/driver/mu_entry.cpp:1241-1245] | 导出表包含 `muapiInit`、`muapiDeviceGetCount`、`muapiCtxCreate`、`muapiCtxDestroy` |
+| [src/driver/mu_entry.cpp:1424-1430] | 导出表包含 `muapiInit`、`muapiDeviceGetCount`、`muapiCtxCreate`、`muapiCtxDestroy` |
 
 ## 6. Platform/Device/Context 证据
 
@@ -97,11 +97,13 @@
 | [src/musa/core/platform.cpp:13-18] | `Platform::Get()` 单例和构造函数入口 |
 | [src/musa/core/platform.cpp:84-140] | `Platform::Init` 初始化和设备访问入口 |
 | [src/musa/core/platform.cpp:366-410] | platform memory 创建/查找/销毁和 context 注册 |
-| [src/musa/core/platform.cpp:416-428] | context 注册和 `ValidateContext` |
+| [src/musa/core/platform.cpp:448-470] | `Platform::ValidateContext` |
 | [src/musa/core/platform.cpp:478-506] | platform 析构释放未释放 memory/resource desc |
-| [src/musa/core/device.cpp:593-635] | `Device::CreateContext`/`DestroyContext` |
-| [src/musa/core/device.cpp:648-672] | `Device` 构造/析构 |
-| [src/musa/core/device.cpp:856-1012] | `Device::LaterInit`、同步、显存查询 |
+| [src/musa/core/device.cpp:635-676] | `Device::CreateContext` |
+| [src/musa/core/device.cpp:677-689] | `Device::DestroyContext` |
+| [src/musa/core/device.cpp:690-716] | `Device` 构造 |
+| [src/musa/core/device.cpp:718-740] | `Device` 析构 |
+| [src/musa/core/device.cpp:911-1012] | `Device::LaterInit`、同步、显存查询 |
 | [src/musa/core/device.cpp:1005-1145] | copy manager 初始化、内部内存分配/释放 |
 | [src/musa/core/context.cpp:293-475] | `Context::CriticalBase` 管理资源集合 |
 | [src/musa/core/context.cpp:1037-1099] | context 创建/销毁 memory |
@@ -135,7 +137,7 @@
 
 | 证据 | 证明内容 |
 |---|---|
-| [src/driver/mu_mempool.cpp:1-563] | pool create/destroy、attribute、access、trim、IPC handle、default/current pool API |
+| [src/driver/mu_mempool.cpp:1-515] | pool create/destroy、attribute、access、trim、IPC handle、default/current pool API |
 | [src/musa/core/memoryPool.h:85-152] | Core pool wrapper 字段：HAL pool、stream、access map、allocation set、logical-byte statistics、pool type |
 | [src/musa/core/memoryPool.cpp:101-198,201-437] | Core pool access mapping、memory tracking、attribute、trim、IPC 和 HAL delegation |
 | [src/musa/core/memory.cpp:345-379,431-460] | Core Memory 对 chunk+offset 的保存、pool allocation granularity、destructor free boundary |

@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M07-kernel-syscall/implementation.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -48,7 +48,7 @@ timeout ISR 调用 software trap handler 和 cooperative-group timeout service�
 
 ## 生成物边界
 
-D01 的 `gpuIncrement` 在 device 上递归发起 child launch；主测试依据 `supportsCnp` 决定是否将 child depth 纳入 expected（静态确认：[tests/cuda_test/basic_sanity.cu:136-145,214-225]）。这把 M07 的 CNP syscall/launch queue 与 M06/M05 的 stream 提交连接起来，但测试只证明静态代码意图，未证明运行成功。
+D01 的 `gpuIncrement` 在 device 上递归发起 child launch；主测试依据 `supportsCnp` 决定是否将 child depth 纳入 expected（历史静态确认，快照外文件，当前不可复验：[tests/cuda_test/basic_sanity.cu:136-145,214-225]）。这把 M07 的 CNP syscall/launch queue 与 M06/M05 的 stream 提交连接起来，但测试只证明静态代码意图，未证明运行成功。
 
 ## 生成物边界
 

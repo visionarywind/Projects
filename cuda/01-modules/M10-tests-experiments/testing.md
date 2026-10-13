@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M10-tests-experiments/testing.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -18,9 +18,9 @@
 | sanity | `basic_sanity.cu` | init/context/memory/kernel/CNP | 静态确认，未运行 |
 | stream/sync | `stream/`、`sync/` | push、marker、semaphore | 静态盘点，未运行 |
 | memory | `memcpy/`、`memmgr/`、`memobj/` | pageable/device/P2P/manager | 静态盘点，未运行 |
-| build/aggregate | `cuda_test.nvmk`、`run_tests.py` | device-link、DVS、双 pipe、timeout | 静态确认 |
+| build/aggregate | `cuda_test.nvmk`、`run_tests.py`（快照外，当前不可复验） | device-link、DVS、双 pipe、timeout | 历史静态确认 |
 
-`run_tests.py` 将 failures>0 或 passes==0 视为失败；waived 与 summary 去重规则不能替代具体 case 日志（静态确认：[tests/run_tests.py:8-73,171-189,208-245]）。
+`run_tests.py` 将 failures>0 或 passes==0 视为失败；waived 与 summary 去重规则不能替代具体 case 日志（历史静态确认，快照外文件，当前不可复验：[tests/run_tests.py:8-73,171-189,208-245]）。
 
 ## 相关文档
 - [项目入口](../../README.md)

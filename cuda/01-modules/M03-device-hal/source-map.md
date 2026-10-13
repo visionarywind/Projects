@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M03-device-hal/source-map.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -23,7 +23,7 @@
 
 ## 测试
 
-`basic_sanity` 对每个 `getCudaGpus()` 结果运行 context/memory/kernel 逻辑，而不是假设单个 GPU；测试还检查 context device 与枚举 GPU 对象相同（静态确认：[tests/cuda_test/basic_sanity.cu:67-100,181-195]）。测试未运行。
+`basic_sanity` 对每个 `getCudaGpus()` 结果运行 context/memory/kernel 逻辑，而不是假设单个 GPU；测试还检查 context device 与枚举 GPU 对象相同（历史静态确认，快照外文件，当前不可复验：[tests/cuda_test/basic_sanity.cu:67-100,181-195]）。测试未运行。
 
 ## 开发规则
 

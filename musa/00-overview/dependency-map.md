@@ -1,5 +1,14 @@
 # 依赖地图
 
+- 文档目的：依赖关系地图：目录/构建/链接层依赖及证据。
+- 适用范围：00-overview《依赖地图》；源码根 `source/musa`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）
+- 证据状态：部分推断（引用较少，证据密度不足）
+- 最后更新：2026-10-07
+- 前置阅读：[`project-overview.md`](project-overview.md)、[`../README.md`](../README.md)
+- 后续阅读：[`architecture.md`](architecture.md)、[`../99-roadmap/reading-guide.md`](../99-roadmap/reading-guide.md)
+
+
 ## 编译依赖
 
 ```text
@@ -26,3 +35,26 @@ unittest/*.cpp -> gtest + driver/core targets
 ## 风险边界
 
 依赖图不能等价于调用图：CMake 的静态链接关系证明“可用”，不证明每个运行时路径都会访问所有下游对象。尤其 `muInfo` 只需设备查询，不会触发 kernel/graph 路径。
+
+## 相关文档
+
+- [`project-overview.md`](project-overview.md)
+- [`architecture.md`](architecture.md)
+- [`../README.md`](../README.md)
+- [`../01-modules/module-registry.md`](../01-modules/module-registry.md)
+- [`../99-roadmap/reading-guide.md`](../99-roadmap/reading-guide.md)
+
+## 源码证据摘要
+
+- `src/driver/CMakeLists.txt`（1 处，例：[src/driver/CMakeLists.txt:9-18]）
+- `src/musa/core/CMakeLists.txt`（1 处，例：[src/musa/core/CMakeLists.txt:1-11]）
+- `src/hal/m3d/CMakeLists.txt`（1 处，例：[src/hal/m3d/CMakeLists.txt:36-59]）
+
+## 未解决问题
+
+1. 本文所有结论均为静态分析，未在授权硬件上执行构建、测试或运行验证。
+2. 本文未单列的风险条目见 [`../99-roadmap/risk-register.md`](../99-roadmap/risk-register.md)。
+
+## 下一步阅读建议
+
+阅读 [`architecture.md`](architecture.md)；阅读 [`../99-roadmap/reading-guide.md`](../99-roadmap/reading-guide.md)。

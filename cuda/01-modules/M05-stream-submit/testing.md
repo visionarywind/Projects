@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M05-stream-submit/testing.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -14,9 +14,9 @@
 
 ## 测试
 
-- `unittest_stream_push.cpp` 直接验证 `beginPushCount`、`currentPush.stream/channel`、`channelOfLastWork` 和 `streamEndPush`（静态确认：[tests/cuda_test/stream/unittest_stream_push.cpp:30-196,198-259]）。
+- `unittest_stream_push.cpp` 直接验证 `beginPushCount`、`currentPush.stream/channel`、`channelOfLastWork` 和 `streamEndPush`（历史静态确认，快照外文件，当前不可复验：[tests/cuda_test/stream/unittest_stream_push.cpp:30-196,198-259]）。
 - `unittest_stream_sync.cpp`、`sync/` 下 marker/semaphore 测试覆盖等待和生命周期；测试文件存在但未执行。
-- `basic_sanity:kernel` 检查 launch 后 `beginPushCount` 增长、context synchronize 后结果可见，并读取 per-thread stream 的 compute channel（静态确认：[tests/cuda_test/basic_sanity.cu:214-234]）。
+- `basic_sanity:kernel` 检查 launch 后 `beginPushCount` 增长、context synchronize 后结果可见，并读取 per-thread stream 的 compute channel（历史静态确认，快照外文件，当前不可复验：[tests/cuda_test/basic_sanity.cu:214-234]）。
 
 ## 修改配方
 

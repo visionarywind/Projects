@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M07-kernel-syscall/README.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -26,7 +26,7 @@ CUI launch setup 在 HAL launch validation 前后调用 kernel syscall 处理，
 
 ## 构建证据
 
-`cuda.nvmk` 将 kernel/syscall/asm 相关对象作为 `libcuda` 的共享构建输入，同时按架构宏纳入对应 HAL 源（静态确认：[cuda.nvmk:380-492,513-597]）。
+`cuda.nvmk` 将 kernel/syscall/asm 相关对象作为 `libcuda` 的共享构建输入，同时按架构宏纳入对应 HAL 源（历史静态确认，快照外文件，当前不可复验：[cuda.nvmk:380-492,513-597]）。
 
 ## 文档元数据（规范补充）
 

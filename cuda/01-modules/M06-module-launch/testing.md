@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M06-module-launch/testing.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -12,7 +12,7 @@
 本页聚焦 01-modules/M06-module-launch/testing.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 
-- `basic_sanity:kernel` 通过内部 module/function 查找 `gpuIncrement`，检查 CNP 能力、launchCount、push count 和结果（静态确认：[tests/cuda_test/basic_sanity.cu:133-163,169-234]）。
+- `basic_sanity:kernel` 通过内部 module/function 查找 `gpuIncrement`，检查 CNP 能力、launchCount、push count 和结果（历史静态确认，快照外文件，当前不可复验：[tests/cuda_test/basic_sanity.cu:133-163,169-234]）。
 - capture 分支的 graph node 创建和失败失效逻辑由 API common 实现，但当前没有运行时 capture 结果（静态确认：[src/api/apilaunch.c:252-286]）。
 - 参数 metadata 缺失、非法 grid、function/stream 跨 context 属于应覆盖的错误路径；源码检查存在，测试执行未验证。
 

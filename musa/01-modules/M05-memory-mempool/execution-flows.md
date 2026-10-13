@@ -1,5 +1,14 @@
 # M05：显存池执行流与生命周期
 
+- 文档目的：memory mempool：关键执行轨迹的分步记录与失败点索引。
+- 适用范围：M05 模块的《M05：显存池执行流与生命周期》；源码根 `source/musa`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）
+- 证据状态：已确认（引用与符号已脚本核对；运行期未验证）
+- 最后更新：2026-10-07
+- 前置阅读：[`README.md`](README.md)、[`../module-registry.md`](../module-registry.md)
+- 后续阅读：[`design.md`](design.md)、[`risks-and-debt.md`](risks-and-debt.md)
+
+
 ## 1. 同步普通 `muMemAlloc`
 
 ```text
@@ -44,9 +53,9 @@ muMemFree_v2
 - `dptr == nullptr` 返回 invalid value；
 - `bytesize == 0` 将 dptr 置零但保持 success（与同步路径不同）；
 - 取得 TLS context，并用 `Context::InfoStream` 验证 stream；
-- 调用 `pStream->CmdMemAlloc`。[`src/driver/mu_memory.cpp:310-346`]
+- 调用 `pStream->CmdMemAlloc`。[src/driver/mu_memory.cpp:310-346]
 
-`muMemAllocFromPoolAsync` 走相同命令，但显式传入 Core pool；imported IPC pool 被拒绝。[`src/driver/mu_memory.cpp:349-390`]
+`muapiMemAllocFromPoolAsync` 走相同命令，但显式传入 Core pool；imported IPC pool 被拒绝。[src/driver/mu_memory.cpp:349-390]
 
 ### 3.2 `AsyncMemAlloc`
 
@@ -62,7 +71,7 @@ step 3: virt->Bind(physical)
           -> ResolveDependencyAndQueueCommand
 ```
 
-源码 [`src/musa/core/stream.cpp:554-600`] 明确展示了 virtual reserve、physical allocation、bind、mapping 四步。mapping 失败会先 `Unbind`，再 `pPool->DestroyMemory(virt)`；physical shared pointer 离开作用域后释放。
+源码 [src/musa/core/stream.cpp:554-600] 明确展示了 virtual reserve、physical allocation、bind、mapping 四步。mapping 失败会先 `Unbind`，再 `pPool->DestroyMemory(virt)`；physical shared pointer 离开作用域后释放。
 
 `pPool->SetStream(this)` 是 pool 级写入，而非单次 allocation 字段；普通 `AsyncMemAlloc` 的 `ModifyAccess` 显式传入当前 stream，但 `SetAccess` 更新已有 allocations 时使用 `m_pStream`。因此多个 stream 共享同一 Core pool 时，应重点验证 `SetStream` 与 `SetAccess` 交错下的访问更新顺序，而不是把所有 async paging 都归因于该字段。[`src/musa/core/stream.cpp:561-570`、`src/musa/core/memoryPool.cpp:257-272`]
 
@@ -73,7 +82,7 @@ API 先查 pointer 对应 Memory：
 - IPC/external：直接 `Context::DestroyMemory`；
 - general/pitched/managed：`Memory::Synchronize` 后销毁；
 - virtual 且有 pool：转到 `Stream::CmdMemFree`；
-- virtual 无 pool 或未知类型：错误。[`src/driver/mu_memory.cpp:393-449`]
+- virtual 无 pool 或未知类型：错误。[src/driver/mu_memory.cpp:393-449]
 
 非 capture 的 `AsyncMemFree`：
 
@@ -88,7 +97,7 @@ lookup virt + physical + pPool
          if (!virt->IsGraphAlloc(): pPool->DestroyMemory(virt)
 ```
 
-源码 [`src/musa/core/stream.cpp:634-671`]。因此普通 async virtual free 的 pool segment 在 callback 完成后才回收；graph allocation 则故意不在该 callback 中归还，graph 生命周期负责归还。
+源码 [src/musa/core/stream.cpp:634-671]。因此普通 async virtual free 的 pool segment 在 callback 完成后才回收；graph allocation 则故意不在该 callback 中归还，graph 生命周期负责归还。
 
 ## 5. command 完成和 pool 更新
 
@@ -101,7 +110,7 @@ releaseThreshold = pool->GetReleaseThreshold()
 pool->TrimPool(releaseThreshold)
 ```
 
-[`src/hal/m3d/memMgr.cpp:229-235`]
+[src/hal/m3d/memMgr.cpp:217-223]
 
 当前实现中没有在 `UpdateUserPools` 内扫描 event、semaphore 或 command completion list；它的直接作用是按 threshold trim 已经成为完整 free chunk 的 user pool。异步安全性由 stream command ordering 和 callback 本身提供，不能把 UpdateUserPools 解释为完整的 deferred-free engine。
 
@@ -120,12 +129,12 @@ capture active
 
 [`src/musa/core/stream.cpp:538-551`、`src/musa/core/context.cpp:2368-2382`、`src/musa/core/node/graphMemoryAllocNode.cpp:15-48`]
 
-`GraphMemoryFreeNode::Init` 当前是 no-op；free node 只保存虚拟地址。[`src/musa/core/node/graphMemoryFreeNode.cpp:6-13`]
+`GraphMemoryFreeNode::Init` 当前是 no-op；free node 只保存虚拟地址。[src/musa/core/node/graphMemoryFreeNode.cpp:6-13]
 
 graph execution 将 alloc/free node 转成 `MUSA_SUBMISSION_HOST_DEVICE`：
 
-- alloc：`UniversalManager::ExecuteMemAlloc` 等待依赖，创建 physical，打开 peer，paging，并 signal；[`src/musa/core/graph/graph1/universalManager.cpp:220-301`]
-- free：`ExecuteMemFree` 等待依赖，解除各设备 mapping，销毁 peer mapping，`DestroyPhysMemories`，并 signal；[`src/musa/core/graph/graph1/universalManager.cpp:304-367`]
+- alloc：`UniversalManager::ExecuteMemAlloc` 等待依赖，创建 physical，打开 peer，paging，并 signal；[src/musa/core/graph/graph1/universalManager.cpp:210-301]
+- free：`ExecuteMemFree` 等待依赖，解除各设备 mapping，销毁 peer mapping，`DestroyPhysMemories`，并 signal；[src/musa/core/graph/graph1/universalManager.cpp:304-367]
 
 graph resource 析构时：
 
@@ -137,7 +146,7 @@ DestroyPhysMemories
   -> HAL pool Free virtual segment
 ```
 
-[`src/musa/core/graph.cpp:22-29`]
+[src/musa/core/graph.cpp:22-29]
 
 ## 7. default/current/host/NUMA/graph pool
 
@@ -151,15 +160,15 @@ DestroyPhysMemories
 | internal | `Device::GetInternalPool` → HAL internal list | HAL 2 MiB 初始 chunk | HAL MemMgr list；Core wrapper release |
 | synchronous auto | `MemMgr::Allocate` 按 key创建 | HAL 2 MiB quantum | HAL MemMgr splay tree |
 
-device default/graph 的创建证据为 [`src/musa/core/device.cpp:439-519`]；host/NUMA 为 [`src/musa/core/platform.cpp:544-645`]；internal 为 [`src/musa/core/device.cpp:1091-1152`]。
+device default/graph 的创建证据为 [src/musa/core/device.cpp:439-519]；host/NUMA 为 [src/musa/core/platform.cpp:544-645]；internal 为 [src/musa/core/device.cpp:1091-1152]。
 
 ## 8. trim 和进程退出
 
 显式 `muMemPoolTrimTo` 直接调用 Core `TrimPoolToValue` → HAL `TrimPool(value)`。[`src/driver/mu_mempool.cpp:242-262`、`src/musa/core/memoryPool.cpp:430-437`]
 
-进程/Platform 析构前会等待 device，再清理未跟踪 memory；之后删除 host/NUMA pool、清空 devices，最后销毁 HAL platform。[`src/musa/core/platform.cpp:478-541`]
+进程/Platform 析构前会等待 device，再清理未跟踪 memory；之后删除 host/NUMA pool、清空 devices，最后销毁 HAL platform。[src/musa/core/platform.cpp:478-541]
 
-Device 析构先等待 contexts，释放 primary context，再 delete default/graph Core pools。[`src/musa/core/device.cpp:680-700`]
+Device 析构先等待 contexts，释放 primary context，再 delete default/graph Core pools。[src/musa/core/device.cpp:680-700]
 
 具体 HAL splay tree value 的最终 delete 语义仍依赖 `Util::SplayTree` 实现，本文不越过已读证据。
 
@@ -172,3 +181,26 @@ pool handle export/import 只共享 POSIX metadata ownership，不创建接收�
 ## 11. 当前证据边界
 
 已追到 Core/HAL/M3D 适配边界的内容包括：普通、async、graph allocation/free，chunk/segment split/merge/reuse/trim，pool registry/key，IPC metadata ownership 和 SplayTree value ownership。M3D 子模块、kernel driver、firmware、硬件完成结果及真实性能仍未验证。
+
+## 相关文档
+
+- [`README.md`](README.md)
+- [`design.md`](design.md)
+- [`call-chains.md`](call-chains.md)
+- [`implementation.md`](implementation.md)
+- [`risks-and-debt.md`](risks-and-debt.md)
+
+## 源码证据摘要
+
+- `src/driver/mu_memory.cpp`（3 处，例：[src/driver/mu_memory.cpp:310-346]）
+- `src/musa/core/device.cpp`（3 处，例：[src/musa/core/device.cpp:439-519]）
+- `src/musa/core/stream.cpp`（2 处，例：[src/musa/core/stream.cpp:554-600]）
+
+## 未解决问题
+
+1. 本文所有结论均为静态分析，未在授权硬件上执行构建、测试或运行验证。
+2. 本文未单列的风险条目见 [`risks-and-debt.md`](risks-and-debt.md)。
+
+## 下一步阅读建议
+
+阅读 [`design.md`](design.md)；阅读 [`risks-and-debt.md`](risks-and-debt.md)。

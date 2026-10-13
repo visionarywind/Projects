@@ -1,37 +1,43 @@
 # Memory 与 MemoryPool：行级分析
 
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`
+- 文档目的：memory mempool：关键代码位置的行级证据与解读。
+- 适用范围：M05 模块的《Memory 与 MemoryPool：行级分析》；源码根 `source/musa`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）
+- 证据状态：已确认（引用与符号已脚本核对；运行期未验证）
+- 最后更新：2026-10-07
+- 前置阅读：[`README.md`](README.md)、[`../module-registry.md`](../module-registry.md)
+- 后续阅读：[`design.md`](design.md)、[`risks-and-debt.md`](risks-and-debt.md)
 - 分析原则：只把实际读取到的函数和行号写成“已确认”；M3D 子模块和硬件行为继续标记为未知/未验证。
 
 ## 1. 入口和参数检查
 
 | 证据 | 观察 | 结论状态 |
 |---|---|---|
-| [`src/driver/mu_memory.cpp:271-304`] | `muapiMemAlloc_v2` 初始化平台、检查指针/size、取 TLS context、构造 general/suballocatable create info | 已确认 |
-| [`src/driver/mu_memory.cpp:310-390`] | async alloc 解析 context/stream，支持显式 pool，imported IPC pool 被拒绝 | 已确认 |
-| [`src/driver/mu_memory.cpp:393-449`] | async free 按 memory 类型分流；virtual memory 进入 stream command | 已确认 |
-| [`src/driver/mu_memory.cpp:716-755`] | synchronous free 通过 pointer tracker 查找、要求 allocation base、同步后销毁 | 已确认 |
-| [`src/driver/mu_mempool.cpp:1-563`] | pool create/destroy、attribute、trim、default/current pool API | 已确认 |
+| [src/driver/mu_memory.cpp:271-304] | `muapiMemAlloc_v2` 初始化平台、检查指针/size、取 TLS context、构造 general/suballocatable create info | 已确认 |
+| [src/driver/mu_memory.cpp:310-390] | async alloc 解析 context/stream，支持显式 pool，imported IPC pool 被拒绝 | 已确认 |
+| [src/driver/mu_memory.cpp:393-449] | async free 按 memory 类型分流；virtual memory 进入 stream command | 已确认 |
+| [src/driver/mu_memory.cpp:716-755] | synchronous free 通过 pointer tracker 查找、要求 allocation base、同步后销毁 | 已确认 |
+| [src/driver/mu_mempool.cpp:1-515] | pool create/destroy、attribute、trim、default/current pool API | 已确认 |
 
 ## 2. Core object 和 tracker 边界
 
 | 证据 | 观察 | 结论状态 |
 |---|---|---|
-| [`src/musa/core/context.cpp:1037-1086`] | `Context::CreateMemory` 先构造 shared `Memory`，初始化成功后才登记 Context 与 Platform tracker | 已确认 |
-| [`src/musa/core/context.cpp:1089-1097`] | destroy 从 Context 集合和 Platform tracker 中移除 | 已确认 |
-| [`src/musa/core/memory.cpp:345-379`] | `Memory` destructor 根据 suballocatable、`m_pPool` 分流到 MemMgr/pool 或直接 destroy | 已确认 |
-| [`src/musa/core/memory.cpp:382-429`] | `Memory::Init` 按 memory type 选择初始化路径 | 已确认 |
-| [`src/musa/core/memory.cpp:431-460`] | pool allocation 先按 device minimum granularity 对齐，保留用户原始 shape | 已确认 |
-| [`src/musa/core/memoryPool.cpp:380-427`] | Core pool 建立 `Memory`、维护 allocation set 和 requested-byte 统计 | 已确认 |
+| [src/musa/core/context.cpp:1037-1086] | `Context::CreateMemory` 先构造 shared `Memory`，初始化成功后才登记 Context 与 Platform tracker | 已确认 |
+| [src/musa/core/context.cpp:1089-1097] | destroy 从 Context 集合和 Platform tracker 中移除 | 已确认 |
+| [src/musa/core/memory.cpp:345-379] | `Memory` destructor 根据 suballocatable、`m_pPool` 分流到 MemMgr/pool 或直接 destroy | 已确认 |
+| [src/musa/core/memory.cpp:382-429] | `Memory::Init` 按 memory type 选择初始化路径 | 已确认 |
+| [src/musa/core/memory.cpp:431-460] | pool allocation 先按 device minimum granularity 对齐，保留用户原始 shape | 已确认 |
+| [src/musa/core/memoryPool.cpp:380-427] | Core pool 建立 `Memory`、维护 allocation set 和 requested-byte 统计 | 已确认 |
 
 ## 3. 自动 pool lookup 与 key
 
 | 证据 | 观察 | 结论状态 |
 |---|---|---|
-| [`src/hal/m3d/memMgr.h:41-115`] | `MakeKey` 将 property/view/type/heap/NUMA 压入整数 key | 已确认 |
-| [`src/hal/m3d/memMgr.cpp:81-147`] | `Allocate` 检查 size、alignment 溢出、设备总显存，然后按 key 查找/创建 pool | 已确认 |
-| [`src/hal/m3d/memMgr.cpp:163-197`] | user-managed、internal、自动 pool 分别注册到 user list、internal list、splay tree | 已确认 |
-| [`src/hal/m3d/memMgr.cpp:229-235`] | `UpdateUserPools` 只遍历 user pool 并执行 threshold trim | 已确认 |
+| [src/hal/m3d/memMgr.h:41-115] | `MakeKey` 将 property/view/type/heap/NUMA 压入整数 key | 已确认 |
+| [src/hal/m3d/memMgr.cpp:81-147] | `Allocate` 检查 size、alignment 溢出、设备总显存，然后按 key 查找/创建 pool | 已确认 |
+| [src/hal/m3d/memMgr.cpp:163-197] | user-managed、internal、自动 pool 分别注册到 user list、internal list、splay tree | 已确认 |
+| [src/hal/m3d/memMgr.cpp:217-223] | `UpdateUserPools` 只遍历 user pool 并执行 threshold trim | 已确认 |
 
 注意：`m_PoolRefs` 的自动 pool value ownership 已由 `SplayTree::Delete(..., true)` 和 `MemMgr` teardown 路径确认；`Find` 的比较方向仍是静态风险，真实树形行为未运行验证。[`src/util/utilSplayTree.h:87-100,182-212,215-226`、`src/hal/m3d/memMgr.cpp:20-34`]
 
@@ -39,12 +45,12 @@
 
 | 证据 | 观察 | 结论状态 |
 |---|---|---|
-| [`src/hal/m3d/memoryPool.cpp:14-40`] | `FindBucket` 对 free segment 做 AlignUp 和容量检查，并受 tryLimit 限制 | 已确认 |
-| [`src/hal/m3d/memoryPool.cpp:42-61`] | 默认 policy 为 fast insertion、assuredFit、允许 split | 已确认 |
-| [`src/hal/m3d/memoryPool.cpp:82-95`] | `FullAllocate` 先 SubAllocate，失败后只创建一个 chunk 并重试一次 | 已确认 |
-| [`src/hal/m3d/memoryPool.cpp:97-151`] | `SubAllocate` 通过 Log2 bucket、位图和 selection policy 选候选 | 已确认 |
-| [`src/hal/m3d/memoryPool.cpp:153-211`] | `ChunkAllocate` 进行 alignment/quantum 对齐，创建 virtual 或 physical chunk | 已确认到 HAL/M3D 适配边界 |
-| [`src/hal/m3d/memoryPool.cpp:358-413`] | `ResourceSplit` 完成 prefix/suffix split，并为 virtual busy range 建 tracker | 已确认 |
+| [src/hal/m3d/memoryPool.cpp:14-40] | `FindBucket` 对 free segment 做 AlignUp 和容量检查，并受 tryLimit 限制 | 已确认 |
+| [src/hal/m3d/memoryPool.cpp:42-61] | 默认 policy 为 fast insertion、assuredFit、允许 split | 已确认 |
+| [src/hal/m3d/memoryPool.cpp:82-95] | `FullAllocate` 先 SubAllocate，失败后只创建一个 chunk 并重试一次 | 已确认 |
+| [src/hal/m3d/memoryPool.cpp:97-151] | `SubAllocate` 通过 Log2 bucket、位图和 selection policy 选候选 | 已确认 |
+| [src/hal/m3d/memoryPool.cpp:153-211] | `ChunkAllocate` 进行 alignment/quantum 对齐，创建 virtual 或 physical chunk | 已确认到 HAL/M3D 适配边界 |
+| [src/hal/m3d/memoryPool.cpp:358-413] | `ResourceSplit` 完成 prefix/suffix split，并为 virtual busy range 建 tracker | 已确认 |
 
 `ChunkAllocate` 后的 `CreateGpuMemory` 是否已经在目标 GPU 上取得物理页，属于 M3D 子模块/内核驱动边界，未运行验证。
 
@@ -52,11 +58,11 @@
 
 | 证据 | 观察 | 结论状态 |
 |---|---|---|
-| [`src/hal/m3d/memoryPool.cpp:214-259`] | `Free` 精确删除 busy range，左右合并，再决定 free-list 或完整 chunk remove | 已确认 |
-| [`src/hal/m3d/memoryPool.cpp:318-331`] | `ResourceRemove` 只对 leftmost/rightmost 完整 chunk 递增 lazyFreeCount，并按 count/size limit destroy | 已确认 |
-| [`src/hal/m3d/memoryPool.cpp:415-478`] | free list 按 Log2 size 管理，bitmap 表示非空 bucket，remove 修复链表与 busy 状态 | 已确认 |
-| [`src/hal/m3d/memoryPool.cpp:480-510`] | `TrimPool` 只挑选完整空闲 chunk，直到 total 不超过 threshold 或没有可释放 chunk | 已确认 |
-| [`src/hal/m3d/memoryPool.cpp:63-80`] | pool 析构遇到 busy segment 会告警，随后按 rightmost chunk 清理 | 已确认；异常/并发场景未运行验证 |
+| [src/hal/m3d/memoryPool.cpp:214-259] | `Free` 精确删除 busy range，左右合并，再决定 free-list 或完整 chunk remove | 已确认 |
+| [src/hal/m3d/memoryPool.cpp:340-344] | `ResourceRemove` 只对 leftmost/rightmost 完整 chunk 递增 lazyFreeCount，并按 count/size limit destroy | 已确认 |
+| [src/hal/m3d/memoryPool.cpp:415-478] | free list 按 Log2 size 管理，bitmap 表示非空 bucket，remove 修复链表与 busy 状态 | 已确认 |
+| [src/hal/m3d/memoryPool.cpp:480-510] | `TrimPool` 只挑选完整空闲 chunk，直到 total 不超过 threshold 或没有可释放 chunk | 已确认 |
+| [src/hal/m3d/memoryPool.cpp:63-80] | pool 析构遇到 busy segment 会告警，随后按 rightmost chunk 清理 | 已确认；异常/并发场景未运行验证 |
 
 `lazyFreeCount` 的实现位置是完整 chunk 重新 free 的计数，不应命名为异步 command completion count。
 
@@ -64,39 +70,39 @@
 
 | 证据 | 观察 | 结论状态 |
 |---|---|---|
-| [`src/musa/core/stream.cpp:538-600`] | capture alloc 建 graph node；普通 async alloc 先 reserve virtual，再创建 physical、bind、paging | 已确认 |
-| [`src/musa/core/stream.cpp:634-671`] | async free 先 DisableAccess，再以 callback 销毁 physical；非 graph allocation 才销毁 virtual | 已确认 |
-| [`src/musa/core/command/command.cpp:238-247`] | Wait 未完成时会调用 `UpdateUserPools` | 已确认 |
-| [`src/musa/core/stream.cpp:1113-1121`] | WaitFinish 后再次调用 `UpdateUserPools` | 已确认 |
-| [`src/musa/core/node/graphMemoryAllocNode.cpp:15-48`] | graph capture 阶段从 graph pool reserve virtual address | 已确认 |
-| [`src/musa/core/node/graphMemoryFreeNode.cpp:6-13`] | graph free node Init 当前为 no-op | 已确认 |
-| [`src/musa/core/graph/graph1/universalManager.cpp:220-367`] | graph 执行阶段完成 physical allocation、peer/paging、unmap/cleanup | 已确认到 Core/M3D 适配边界 |
-| [`src/musa/core/graph.cpp:22-29`] | graph resource 析构清理 physical 并归还 virtual pool memory | 已确认 |
+| [src/musa/core/stream.cpp:538-600] | capture alloc 建 graph node；普通 async alloc 先 reserve virtual，再创建 physical、bind、paging | 已确认 |
+| [src/musa/core/stream.cpp:634-671] | async free 先 DisableAccess，再以 callback 销毁 physical；非 graph allocation 才销毁 virtual | 已确认 |
+| [src/musa/core/command/command.cpp:238-247] | Wait 未完成时会调用 `UpdateUserPools` | 已确认 |
+| [src/musa/core/stream.cpp:1113-1125] | WaitFinish 后再次调用 `UpdateUserPools` | 已确认 |
+| [src/musa/core/node/graphMemoryAllocNode.cpp:15-48] | graph capture 阶段从 graph pool reserve virtual address | 已确认 |
+| [src/musa/core/node/graphMemoryFreeNode.cpp:6-13] | graph free node Init 当前为 no-op | 已确认 |
+| [src/musa/core/graph/graph1/universalManager.cpp:220-367] | graph 执行阶段完成 physical allocation、peer/paging、unmap/cleanup | 已确认到 Core/M3D 适配边界 |
+| [src/musa/core/graph.cpp:22-29] | graph resource 析构清理 physical 并归还 virtual pool memory | 已确认 |
 
 ## 7. 统计、锁和生命周期审计关注点
 
-- HAL pool 的 `m_Lock` 是 `recursive_mutex`，保护 segment、bucket、tracker、total/free size 的组合更新；[`src/hal/m3d/memoryPool.cpp:82-95,214-259`]
-- Core pool 的 location access map、allocation set、requested bytes 是独立字段/锁域，不能直接假设与 HAL pool 使用同一把锁；[`src/musa/core/memoryPool.h:85-152`]
+- HAL pool 的 `m_Lock` 是 `recursive_mutex`，保护 segment、bucket、tracker、total/free size 的组合更新；[src/hal/m3d/memoryPool.cpp:82-95,214-259]
+- Core pool 的 location access map、allocation set、requested bytes 是独立字段/锁域，不能直接假设与 HAL pool 使用同一把锁；[src/musa/core/memoryPool.h:85-152]
 - `m_RequestedBytes` 表示 Core logical request，`m_TotalSize` 表示 HAL reserved chunks；二者跨大对齐、chunk 保留和 graph deferred physical allocation 时可能显著不同；[`src/musa/core/memoryPool.cpp:380-427`、`src/hal/m3d/memoryPool.h:28-35`]
-- `pPool->SetStream(this)` 为 pool 级写入；多个 stream 共享 pool 时的顺序和数据竞争需要目标环境验证；[`src/musa/core/stream.cpp:561-570`]
+- `pPool->SetStream(this)` 为 pool 级写入；多个 stream 共享 pool 时的顺序和数据竞争需要目标环境验证；[src/musa/core/stream.cpp:561-570]
 
 ## 8. IPC pool handle 路径与静态风险
 
 | 证据 | 观察 | 结论状态 |
 |---|---|---|
-| [`src/musa/core/memoryPool.cpp:16-64`] | `GeneralAlloc` 创建 HAL user pool；`ExternalAlloc` 只调用 `InitFromHandle`；`InternalAlloc` 取得 HAL internal pool | 已确认 |
-| [`src/musa/core/memoryPool.cpp:439-469`] | export 通过共享内存初始化后 dup IPC fd 返回调用方 | 已确认 |
-| [`src/musa/core/memoryPool.cpp:473-510`] | import 只校验 POSIX fd/flags，dup fd、mmap metadata、递增 owners 并标记 imported；没有创建 HAL pool | 已确认 |
-| [`src/musa/core/memoryPool.cpp:512-569`] | export 侧使用 `mkstemp`、`shm_open`、`ftruncate`、`mmap`，以 `call_once` 初始化 shared state | 已确认 |
-| [`src/musa/core/memoryPool.cpp:575-609`] | 析构递减 owners、munmap、关闭 fd；非 imported 且 owners 为 0 时 unlink | 已确认 |
-| [`src/driver/mu_mempool.cpp:153-169`] | SetAttribute 拒绝 imported pool | 已确认 |
-| [`src/driver/mu_mempool.cpp:264-319`] | export/import handle 经过 Core pool wrapper；import 失败时 delete wrapper | 已确认 |
+| [src/musa/core/memoryPool.cpp:16-64] | `GeneralAlloc` 创建 HAL user pool；`ExternalAlloc` 只调用 `InitFromHandle`；`InternalAlloc` 取得 HAL internal pool | 已确认 |
+| [src/musa/core/memoryPool.cpp:439-469] | export 通过共享内存初始化后 dup IPC fd 返回调用方 | 已确认 |
+| [src/musa/core/memoryPool.cpp:473-510] | import 只校验 POSIX fd/flags，dup fd、mmap metadata、递增 owners 并标记 imported；没有创建 HAL pool | 已确认 |
+| [src/musa/core/memoryPool.cpp:575-649] | export 侧使用 `mkstemp`、`shm_open`、`ftruncate`、`mmap`，以 `call_once` 初始化 shared state | 已确认 |
+| [src/musa/core/memoryPool.cpp:575-609] | 析构递减 owners、munmap、关闭 fd；非 imported 且 owners 为 0 时 unlink | 已确认 |
+| [src/driver/mu_mempool.cpp:153-169] | SetAttribute 拒绝 imported pool | 已确认 |
+| [src/driver/mu_mempool.cpp:264-319] | export/import handle 经过 Core pool wrapper；import 失败时 delete wrapper | 已确认 |
 
 ### 8.1 需要特别审计的实现问题
 
-- 两处 `mmap` 结果都与 `nullptr` 比较，而 POSIX 失败值是 `MAP_FAILED`；这是真实的静态代码风险，但尚未通过故障注入复现。[`src/musa/core/memoryPool.cpp:491-503,551-562`]
-- `CreateIpcMemPoolShmemIfNeed` 在 `shm_open`、`ftruncate` 或 `mmap` 中途失败时通过 `break` 离开，当前片段没有统一关闭 fd、unlink 或释放映射；配合 `call_once` 可能固化失败状态。[`src/musa/core/memoryPool.cpp:516-569`]
-- `owners` 位于跨进程共享内存，但当前增减只包在进程内 `std::mutex` 中；跨进程原子性不能由该 mutex 保证，这是待运行验证的并发风险。[`src/musa/core/memoryPool.cpp:486-503,575-603`]
+- 两处 `mmap` 结果都与 `nullptr` 比较，而 POSIX 失败值是 `MAP_FAILED`；这是真实的静态代码风险，但尚未通过故障注入复现。[src/musa/core/memoryPool.cpp:491-503,551-562]
+- `CreateIpcMemPoolShmemIfNeed` 在 `shm_open`、`ftruncate` 或 `mmap` 中途失败时通过 `break` 离开，当前片段没有统一关闭 fd、unlink 或释放映射；配合 `call_once` 可能固化失败状态。[src/musa/core/memoryPool.cpp:516-569]
+- `owners` 位于跨进程共享内存，但当前增减只包在进程内 `std::mutex` 中；跨进程原子性不能由该 mutex 保证，这是待运行验证的并发风险。[src/musa/core/memoryPool.cpp:575-603]
 - imported pool 的 `m_pHalPool` 保持为空；因此它不是一个可直接用于 `CreateMemory` 的完整 HAL pool，driver 还在 SetAttribute 等入口拒绝 imported pool。[`src/musa/core/memoryPool.cpp:38-42,473-510`、`src/driver/mu_mempool.cpp:153-169`]
 
 ## 9. 尚未逐行确认的范围
@@ -106,3 +112,46 @@
 3. pool destroy 与 live allocation 并存时的完整行为和 API contract。
 4. IPC pointer export/import 与 pool metadata 之间是否存在额外一致性校验。
 5. 真实硬件下 alignment、碎片、延迟和 trim 效果。
+6. 「IPCNamedMemory」术语未在本快照源码出现；本地可核对的 IPC 能力是 `muapiIpcGetMemHandle`/`muapiIpcOpenMemHandle_v2`（指针级 IPC handle，[src/driver/mu_memory.cpp:2139-2211]）与 `mu_external.cpp` 外部内存导入。若目标 API 面含 named-memory 语义，需在更新的源码版本另行核对（推断，未验证）。
+
+## 10. memcpy/memset 入口与 SplayTree registry（补充行级证据）
+
+| 证据 | 观察 | 结论状态 |
+|---|---|---|
+| [src/driver/mu_memory.cpp:845-855] | `muapiMemcpyHtoD_v2` 组装 `MUSA_MEMCPY3D_PEER` 后调用 `Context::GeneralMemcpy`，`wait=true` | 已确认 |
+| [src/driver/mu_memory.cpp:1014-1024] | `muapiMemcpyDtoDAsync_v2` 同链但 `wait=memBlocking` | 已确认 |
+| [src/driver/mu_memory.cpp:1620-1629] | `muapiMemsetD8_v2` 组装 `MUSA_MEMSET_NODE_PARAMS` 后调用 `Context::GeneralMemset` | 已确认 |
+| [src/driver/mu_memory.cpp:1678-1687] | `muapiMemsetD32_v2` 同 memset 链 | 已确认 |
+| [src/musa/core/context.cpp:702-734] | `Context::GeneralMemcpy`：InfoStream → `CreateMemcpyNode` → `CmdCopyMemory`/`CaptureNode` | 已确认 |
+| [src/musa/core/context.cpp:862-895] | `Context::GeneralMemset`：`CreateMemsetNode` → `CmdMemset`/`CaptureNode`；`width*height*elementSize==0` 跳过 | 已确认 |
+| [src/musa/core/stream.cpp:696-753] | `CmdCopyMemory` 分派 `AsyncMemcpyCommand`/`SyncMemcpyCommand`，peer serial 时加 `RecordCommand` 事件链 | 已确认 |
+| [src/musa/core/stream.cpp:754-763] | `CmdMemset` 创建 `MemsetCommand` | 已确认 |
+| [src/util/utilSplayTree.h:215-226] | `Search` 分支方向与 BST 直觉相反；`Find` 对已存在键也 miss 并返回 `nullptr` | 已确认（缺陷，见 RCA） |
+| [src/hal/m3d/memMgr.cpp:41-44] | `FindPool` 无条件解引用 `Find(...)->m_Value`，调用即崩 | 已确认（缺陷，见 RCA） |
+| [src/hal/m3d/memMgr.cpp:149-161] | `Free` 用 `Get(...)->m_Value` 找自动 pool；release 下 `MUSA_ASSERT` 裁剪后可能错池/空指针 | 已确认（缺陷，见 RCA） |
+| [src/musa/core/memory.cpp:491-505] | `Memory::~Memory` 对 suballocatable 且无 `m_pPool` 的分配走 `MemMgr::Free`，是 SplayTree 缺陷的热路径 | 已确认 |
+
+SplayTree 缺陷链的完整分析见 [`../../99-roadmap/rca-splaytree-memmgr.md`](../../99-roadmap/rca-splaytree-memmgr.md) 与 [`risks-and-debt.md`](risks-and-debt.md)。
+
+## 相关文档
+
+- [`README.md`](README.md)
+- [`design.md`](design.md)
+- [`call-chains.md`](call-chains.md)
+- [`implementation.md`](implementation.md)
+- [`risks-and-debt.md`](risks-and-debt.md)
+
+## 源码证据摘要
+
+- `src/hal/m3d/memoryPool.cpp`（11 处，例：[src/hal/m3d/memoryPool.cpp:14-40]）
+- `src/driver/mu_memory.cpp`（9 处，例：[src/driver/mu_memory.cpp:271-304]）
+- `src/musa/core/memoryPool.cpp`（8 处，例：[src/musa/core/memoryPool.cpp:380-427]）
+
+## 未解决问题
+
+1. 本文所有结论均为静态分析，未在授权硬件上执行构建、测试或运行验证。
+2. 本文未单列的风险条目见 [`risks-and-debt.md`](risks-and-debt.md)。
+
+## 下一步阅读建议
+
+阅读 [`design.md`](design.md)；阅读 [`risks-and-debt.md`](risks-and-debt.md)。

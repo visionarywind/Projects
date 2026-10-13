@@ -1,9 +1,13 @@
 # M05：Memory 与 MemoryPool
 
 - 源码范围：`src/driver/mu_memory.cpp`、`src/driver/mu_mempool.cpp`、`src/driver/mu_device.cpp`、`src/musa/core/memory.cpp`、`src/musa/core/memoryPool.cpp`、`src/musa/core/device.{h,cpp}`、`src/musa/core/platform.cpp`、`src/musa/core/stream.cpp`、`src/musa/core/node/graphMemory{Alloc,Free}Node.cpp`、`src/musa/core/graph.cpp`、`src/musa/core/graph/graph1/universalManager.cpp`、`src/hal/m3d/memMgr.cpp`、`src/hal/m3d/memoryPool.cpp`、`src/util/utilSplayTree.h`
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`
-- 最后专题更新：2026-09-17
+- 文档目的：memory mempool：总览：职责、结构、关键结论与文档导航。
+- 适用范围：M05 模块的《M05：Memory 与 MemoryPool》；源码根 `source/musa`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）
 - 证据状态：**静态源码已确认**；M3D 子模块内部、目标机分配性能和真实硬件结果**未验证**。
+- 最后更新：2026-10-07
+- 前置阅读：[`README.md`](README.md)、[`../module-registry.md`](../module-registry.md)
+- 后续阅读：[`design.md`](design.md)、[`risks-and-debt.md`](risks-and-debt.md)
 
 ## 结论先行
 
@@ -69,12 +73,13 @@ muapiMemAllocAsync
 
 ## 重要语义
 
-- Core `Memory` 是用户可见对象；HAL `IMemory` 是 chunk 或 physical resource。suballocation 时一个 HAL chunk 可对应多个 Core `Memory` 对象。[`src/musa/core/memory.cpp:345-379,431-460`]
-- `Memory::GetDevicePointer()` 是 `HAL virtual address + m_Offset`；因此 tracker 必须同时知道底层 chunk 和 suballocation offset。[`src/musa/core/memory.h:53-55,125-139`]
-- 同步普通分配的 pool key 包含 type、heap、property、view capability、NUMA ID；不同属性不会无条件共享 chunk。[`src/hal/m3d/memMgr.h:41-115`]
+- Core `Memory` 是用户可见对象；HAL `IMemory` 是 chunk 或 physical resource。suballocation 时一个 HAL chunk 可对应多个 Core `Memory` 对象。[src/musa/core/memory.cpp:345-379,431-460]
+- `Memory::GetDevicePointer()` 是 `HAL virtual address + m_Offset`；因此 tracker 必须同时知道底层 chunk 和 suballocation offset。[src/musa/core/memory.h:53-55,125-139]
+- 同步普通分配的 pool key 包含 type、heap、property、view capability、NUMA ID；不同属性不会无条件共享 chunk。[src/hal/m3d/memMgr.h:41-115]
 - `MemoryPool::CreateMemory` 统计的是 Core 请求的逻辑字节；HAL pool 的 reserved/current 字节是 chunk 总量，两者不是同一指标。[`src/musa/core/memoryPool.cpp:380-427`、`src/hal/m3d/memoryPool.h:28-35`]
 - `MU_MEMPOOL_ATTR_RELEASE_THRESHOLD` 只设置 HAL pool 的 trim threshold；它不改变 `ResourceRemove` 中的 reuse count/size 条件。[`src/musa/core/memoryPool.cpp:118-123,430-437`、`src/hal/m3d/memoryPool.cpp:318-331`]
 - 复用依赖 stream/command 完成边界：普通 async free 通过 paging 后的 callback 才将 virtual object 交还 pool；`Wait`/`WaitFinish` 会调用 `UpdateUserPools`。[`src/musa/core/stream.cpp:634-671,1113-1121`、`src/musa/core/command/command.cpp:238-247`]
+- 所有 `muMemcpy*`/`muMemset*` 入口在 driver 层组装 `MUSA_MEMCPY3D_PEER`/`MUSA_MEMSET_NODE_PARAMS` 后分别收敛到 `Context::GeneralMemcpy`/`Context::GeneralMemset`，再创建 graph node 由 stream 命令队列执行。[src/musa/core/context.cpp:702-734]、[src/musa/core/context.cpp:862-895]
 
 ## 当前边界
 
@@ -85,7 +90,8 @@ muapiMemAllocAsync
 - default、graph、host/NUMA、internal pool 的创建入口；
 - async alloc/free 和 graph memory alloc/free 的 Core 级路径；
 - pool-handle IPC 只导入 metadata，pointer IPC 单独创建 `memoryTypeIpcImport`；
-- SplayTree automatic pool value 的 teardown ownership。
+- SplayTree automatic pool value 的 teardown ownership；
+- 自动 pool registry 的 SplayTree 缺陷链：`FindPool` 调用即崩、`Free` 在 release 下可能错池/空指针（[`../../99-roadmap/rca-splaytree-memmgr.md`](../../99-roadmap/rca-splaytree-memmgr.md)）。
 
 仍未知或未验证：
 
@@ -94,9 +100,35 @@ muapiMemAllocAsync
 - 所有异常分支在真实硬件上的错误码映射；
 - destroy current pool/live-allocation、imported fd、跨进程 IPC owners 和 SplayTree `Find` 风险的运行结果。
 
+## Demo 覆盖
+
+- **真实经过本模块的 Demo 步骤**：仅触及查询边界——D01-S007 的 `muapiMemGetInfo_v2` 读 free/total [src/driver/mu_memory.cpp:548-567]，再落到 `Device::QueryGlobalMemFreeSize` [src/musa/core/device.cpp:1065-1068]；D01 不做任何分配或释放（见 [`../../80-demos/D01-muinfo/execution-trace.md`](../../80-demos/D01-muinfo/execution-trace.md) §2.2）。
+- **候选但未覆盖**：D02–D07（`tests/*.cu`）——本快照无 `tests/` 目录，入口未核实；候选表中 D02/D03（异步批量 memcpy）与 D06（graph memory alloc node）计划覆盖 M05，D04/D05/D07 只是“可能”。
+- **尚无 Demo 覆盖的重要实现**：
+  1. 同步分配链 `muapiMemAlloc_v2` [src/driver/mu_memory.cpp:271-305] → `Memory::GeneralAlloc` [src/musa/core/memory.cpp:595-642] → `MemoryPool::CreateMemory` [src/musa/core/memoryPool.cpp:423-470] → HAL `MemMgr::Allocate` [src/hal/m3d/memMgr.cpp:81-147]；
+  2. stream-ordered 分配 `Stream::AsyncMemAlloc` [src/musa/core/stream.cpp:529-576]；
+  3. graph memory alloc node `GraphMemoryAllocNode::Init` [src/musa/core/node/graphMemoryAllocNode.cpp:15-57]；
+  4. pool IPC 导出 `muapiMemPoolExportToShareableHandle` [src/driver/mu_mempool.cpp:233-255]；池语义见 [`design.md`](design.md)、[`call-chains.md`](call-chains.md)。
+
 ## 相关文档
 
 - [`../M04-context-lifecycle/`](../M04-context-lifecycle/)
 - [`../M06-stream-command/`](../M06-stream-command/)
 - [`../M08-graph/`](../M08-graph/)
+- [`../M09-hal-m3d/risks-and-debt.md`](../M09-hal-m3d/risks-and-debt.md)
+- [`../../99-roadmap/rca-splaytree-memmgr.md`](../../99-roadmap/rca-splaytree-memmgr.md)
 - [`../../90-cross-module/cross-module-call-chains.md`](../../90-cross-module/cross-module-call-chains.md)
+
+## 源码证据摘要
+
+- `src/musa/core/context.cpp`（2 处，例：[src/musa/core/context.cpp:702-734]）
+- `src/hal/m3d/memMgr.h`（1 处，例：[src/hal/m3d/memMgr.h:41-115]）
+
+## 未解决问题
+
+1. 本文所有结论均为静态分析，未在授权硬件上执行构建、测试或运行验证。
+2. 本文未单列的风险条目见 [`risks-and-debt.md`](risks-and-debt.md)。
+
+## 下一步阅读建议
+
+阅读 [`design.md`](design.md)；阅读 [`risks-and-debt.md`](risks-and-debt.md)。

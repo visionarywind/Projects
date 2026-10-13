@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M10-tests-experiments/README.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -14,7 +14,9 @@
 
 - **职责**：把 `libcuda_test`、各测试 binary、dispatcher 和 DVS 结果聚合起来，并保存用于回归/性能/bug 研究的 experiments。
 - **性质**：M10 是验证层，不是 runtime 实现层；测试源码可证明调用意图和断言，不能证明本工作区已经在 GPU 上执行。
-- **当前状态**：构建依赖和聚合逻辑已静态确认；nvmake、nvcc、DVS、GPU 和 sudo persistence mode 均未运行。
+- **范围阻塞（2026-10-05）**：M10 的全部源码目录 `tests/`、`mods/`、`experiments/` 以及 `cuda_test.nvmk`、`cudaSyscalls.nvmk` 等构建文件**都不在当前 `source/cuda` 快照内**（快照仅含 `src/`）。本模块全部结论来自历史静态阅读，在本检出中既不能复读源码，也不能重跑构建；因此不得记为已确认，深度只能记为「受阻」。快照内唯一可见的验证类代码是 `src/etbl/` 与 `src/drs/`，它们承担注册、命令表与工具入口，但不是本模块所描述的测试 runner。
+- **快照内测试体（2026-10-05 复核）**：`src/etbl/` 下共 84 个 `.c`（33,239 行），含 **123 个 `eti*` 测试用例定义**（`src/etbl/unittest` 49、`src/etbl/tools` 22、`src/etbl/mobile` 11、`src/etbl/cudart` 10、`src/etbl/cuda_graphs` 5 等）。这些测试体通过 [src/cui/cuietbl.c:521-603] 的 `g_etblMap` 注册，注册链可用 D02（[cuGetExportTable（D02）](../../80-demos/D02-cugetexporttable/README.md)）在快照内追踪：入口 → 线性查表 → 返回 `g_etbl*` → 测试体实现。可复核范围是**“用例被注册、表槽指向用例实现”**，不可复核范围是**“runner 如何调用用例、用例如何汇总结果”**（runner 在快照外）。
+- **当前状态**：构建依赖和聚合逻辑的历史阅读结论不可复验；nvmake、nvcc、DVS、GPU 和 sudo persistence mode 均未运行。
 
 ```text
 cuda_test.nvmk
@@ -28,8 +30,8 @@ cuda_test.nvmk
 
 ## 结果语义与边界
 
-- **静态确认**：make rule 先检查 `TEST_BINARY`、case name 和 disposition，再生成 `cuda_test_list.cpp`；生成的 dispatcher 负责列 GPU 或运行测试，不能把生成列表当成测试已执行（[tests/cuda_test/cuda_test.nvmk:60-120,140-153]；[tests/cuda_test/dispatch_main.cpp:22-50]）。
-- **静态确认**：runner 并行消费 stdout/stderr，按每测试 timeout 处理子进程；没有可解析结果的测试会被视为 failure，`Waived` 与 Pass/Failure 分开聚合，零 Pass 或存在 failure 时返回非零（[tests/run_tests.py:8-73,85-132,171-189,191-245]）。
+- **历史静态确认（快照外，当前不可复验）**：make rule 先检查 `TEST_BINARY`、case name 和 disposition，再生成 `cuda_test_list.cpp`；生成的 dispatcher 负责列 GPU 或运行测试，不能把生成列表当成测试已执行（[tests/cuda_test/cuda_test.nvmk:60-120,140-153]；[tests/cuda_test/dispatch_main.cpp:22-50]）。
+- **历史静态确认（快照外，当前不可复验）**：runner 并行消费 stdout/stderr，按每测试 timeout 处理子进程；没有可解析结果的测试会被视为 failure，`Waived` 与 Pass/Failure 分开聚合，零 Pass 或存在 failure 时返回非零（[tests/run_tests.py:8-73,85-132,171-189,191-245]）。
 - **未验证**：Linux 入口还可能调用 persistence mode、`nvidia-smi` 和 `cuda_test --listGpus --forceRun`，这些是运行环境动作，不是本知识库的验证结果。
 
 experiments 中的 cubin、SASS、日志和报告只能作为历史/边界线索；源码级证据与实际硬件结果必须分开记录。
@@ -40,7 +42,7 @@ experiments 中的 cubin、SASS、日志和报告只能作为历史/边界线索
 - 适用范围：当前项目对应模块/入口的静态源码与测试分析。
 - 对应源码版本：以本项目 `00-overview/analysis-state.md` 或同页版本字段为准。
 - 证据状态：静态源码证据；未执行的构建、测试、GPU、网络或多进程行为保持“未验证”。
-- 最后更新：2026-09-15
+- 最后更新：2026-10-05
 - 前置阅读：本项目根 README 与 `00-overview/analysis-state.md`。
 - 后续阅读：本模块/示例的实现、测试和风险页面。
 

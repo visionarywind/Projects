@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M01-api-abi/implementation.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -14,7 +14,7 @@
 
 ## ABI 兼容
 
-`inc/cuda.h` 将 `cuDeviceTotalMem`、`cuCtxCreate`、`cuMemAlloc`、`cuMemFree` 等旧名映射到 `_v2` 版本，同时根据 `__CUDA_API_VERSION_INTERNAL` 或 per-thread default stream 宏生成 PTDS/PTSZ 名称（静态确认：[inc/cuda.h:76-170]）。内部头文件进一步把公开 CUDA 类型和内部对象前向声明集中起来（静态确认：[src/cuda_types.h:29-34,36-163]）。
+`inc/cuda.h` 将 `cuDeviceTotalMem`、`cuCtxCreate`、`cuMemAlloc`、`cuMemFree` 等旧名映射到 `_v2` 版本，同时根据 `__CUDA_API_VERSION_INTERNAL` 或 per-thread default stream 宏生成 PTDS/PTSZ 名称（历史静态确认，快照外文件，当前不可复验：[inc/cuda.h:76-170]）。内部头文件进一步把公开 CUDA 类型和内部对象前向声明集中起来（历史静态确认，快照外文件，当前不可复验：[src/cuda_types.h:29-34,36-163]）。
 
 ## Wrapper 模式
 
@@ -26,7 +26,7 @@
 
 ## 导出与构建
 
-`cuda.nvmk` 从 `inc/cuda.h` 生成 API 输入，列出 `src/api` 和 `src/cui` 源文件，并把 `src/cuda_master.def` 纳入导出文件源；Linux 目标名为 `libcuda.so.1.1`（静态确认：[cuda.nvmk:348-376,380-492,1695-1704,1713-1817]）。生成器的实际执行程序和最终符号排序在当前源码边界内未确认。
+`cuda.nvmk` 从 `inc/cuda.h` 生成 API 输入，列出 `src/api` 和 `src/cui` 源文件，并把 `src/cuda_master.def` 纳入导出文件源；Linux 目标名为 `libcuda.so.1.1`（历史静态确认，快照外文件，当前不可复验：[cuda.nvmk:348-376,380-492,1695-1704,1713-1817]）。生成器的实际执行程序和最终符号排序在当前源码边界内未确认。
 
 ## 错误语义
 

@@ -1,8 +1,13 @@
 # Memory 与 MemoryPool：调用链
 
 - 模块：M05 Memory / MemoryPool
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`
+- 文档目的：memory mempool：关键调用链：从公共入口到真实副作用的追踪。
+- 适用范围：M05 模块的《Memory 与 MemoryPool：调用链》；源码根 `source/musa`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）
 - 证据状态：普通、异步和 graph memory 路径已静态追到 Core/HAL/M3D 适配边界；M3D 子模块内部、内核驱动和真实硬件行为未验证。
+- 最后更新：2026-10-07
+- 前置阅读：[`README.md`](README.md)、[`../module-registry.md`](../module-registry.md)
+- 后续阅读：[`design.md`](design.md)、[`risks-and-debt.md`](risks-and-debt.md)
 
 ## 1. 普通 device allocation：API 到 chunk + offset
 
@@ -38,7 +43,7 @@ muMemAlloc / muMemAlloc_v2
      └─ *dptr = pMemory->GetDevicePointer()
 ```
 
-返回值不是独立 HAL allocation 的裸地址，而是 `pChunkMem` 的 device virtual address 加上 `m_Offset`。一个 HAL chunk 可对应多个 Core `Memory` 对象。[`src/musa/core/memory.cpp:345-379,431-460`]
+返回值不是独立 HAL allocation 的裸地址，而是 `pChunkMem` 的 device virtual address 加上 `m_Offset`。一个 HAL chunk 可对应多个 Core `Memory` 对象。[src/musa/core/memory.cpp:345-379,431-460]
 
 ## 2. 自动 pool lookup 与 chunk 扩容
 
@@ -72,7 +77,7 @@ FullAllocate [src/hal/m3d/memoryPool.cpp:82-95]
        -> SubAllocate 再试一次
 ```
 
-`SubAllocate` 的候选查找按 `Log2(size)` 和 `Log2(size + alignment - 1)` 确定范围；`FindBucket` 仍必须检查地址对齐和实际容量，因此 bucket 命中不等于一定可分配。[`src/hal/m3d/memoryPool.cpp:14-40,97-151`]
+`SubAllocate` 的候选查找按 `Log2(size)` 和 `Log2(size + alignment - 1)` 确定范围；`FindBucket` 仍必须检查地址对齐和实际容量，因此 bucket 命中不等于一定可分配。[src/hal/m3d/memoryPool.cpp:14-40,97-151]
 
 ## 3. chunk、segment 和返回 offset
 
@@ -121,7 +126,7 @@ muMemFree / muMemFree_v2(dptr)                              [src/driver/mu_memor
                └─ 否则 FreeListInsert
 ```
 
-`Memory::Synchronize` 对 virtual memory 还要处理其 physical tracker 和关联 context，因此 free 的第一步不是直接删除指针。Core pool free 的 size 重新按 minimum allocation granularity 对齐，以满足 HAL interval lookup 契约。[`src/musa/core/memory.cpp:117-145,360-379,431-460`]
+`Memory::Synchronize` 对 virtual memory 还要处理其 physical tracker 和关联 context，因此 free 的第一步不是直接删除指针。Core pool free 的 size 重新按 minimum allocation granularity 对齐，以满足 HAL interval lookup 契约。[src/musa/core/memory.cpp:117-145,360-379,431-460]
 
 ## 5. `muMemAllocAsync`：虚拟地址、物理 backing、stream mapping
 
@@ -180,7 +185,7 @@ Stream::WaitFinish                                  [src/musa/core/stream.cpp:11
   -> 等待 last command
   -> 再次 UpdateUserPools()
 
-MemMgr::UpdateUserPools                            [src/hal/m3d/memMgr.cpp:229-235]
+MemMgr::UpdateUserPools                            [src/hal/m3d/memMgr.cpp:217-223]
   -> 遍历 m_UserPools
   -> releaseThreshold = pPool->GetReleaseThreshold()
   -> pPool->TrimPool(releaseThreshold)
@@ -238,7 +243,7 @@ Platform::GetDefaultHostMemoryPool / CreateHostMemoryPoolInternal
   -> Platform 持有 default/current pool
 ```
 
-default、graph、host/NUMA 的创建证据分别位于 [`src/musa/core/device.cpp:439-519`]、[`src/musa/core/platform.cpp:544-645`]；internal 生命周期位于 [`src/musa/core/device.cpp:1091-1152`]。
+default、graph、host/NUMA 的创建证据分别位于 [src/musa/core/device.cpp:439-519]、[src/musa/core/platform.cpp:544-645]；internal 生命周期位于 [src/musa/core/device.cpp:1091-1152]。
 
 
 ## 10. IPC memory-pool handle：metadata ownership，不是 HAL pool import
@@ -288,7 +293,7 @@ MemoryPool::~MemoryPool
        -> imported=false && owners==0 -> shm_unlink
 ```
 
-实现审计注意：POSIX `mmap` 失败返回 `MAP_FAILED` 而不是 `nullptr`，当前 export/import 两处检查使用 `nullptr`；这是静态风险，不能在没有故障注入的情况下声称已复现。[`src/musa/core/memoryPool.cpp:491-503,551-562`]
+实现审计注意：POSIX `mmap` 失败返回 `MAP_FAILED` 而不是 `nullptr`，当前 export/import 两处检查使用 `nullptr`；这是静态风险，不能在没有故障注入的情况下声称已复现。[src/musa/core/memoryPool.cpp:491-503,551-562]
 
 ## 11. pool API 属性和所有权边界
 
@@ -348,9 +353,9 @@ muMemPoolDestroy
        -> DestroyUserPool(m_pHalPool)
 ```
 
-当前 destroy 入口没有显示清理 `m_CurrentMemoryPool`、Platform host current 或 NUMA current slot。若被删除 pool 仍被 current 指针引用，后续 allocation 可能继续使用悬空 raw pointer；这是静态风险，未运行验证。[`src/musa/core/device.h:87-95,224-228`]、[`src/driver/mu_device.cpp:328-348`]、[`src/musa/core/platform.cpp:575-645`]、[`src/driver/mu_mempool.cpp:118-150`]
+当前 destroy 入口没有显示清理 `m_CurrentMemoryPool`、Platform host current 或 NUMA current slot。若被删除 pool 仍被 current 指针引用，后续 allocation 可能继续使用悬空 raw pointer；这是静态风险，未运行验证。[src/musa/core/device.h:87-95,224-228]、[src/driver/mu_device.cpp:328-348]、[src/musa/core/platform.cpp:575-645]、[src/driver/mu_mempool.cpp:118-150]
 
-imported pool 还存在一条特殊链：`ValidatePool` 对 imported pool 返回 true，但 `muMemSetMemPool` 随后读取 `pMemPool->Hal()->GetInfo()`；而 imported wrapper 没有 HAL pool。不能把 ValidatePool 成功理解为 imported pool 可作为 current pool。[`src/musa/core/memoryPool.cpp:473-510`]、[`src/musa/core/device.h:93-95`]、[`src/driver/mu_mempool.cpp:504-553`]
+imported pool 还存在一条特殊链：`ValidateMemoryPool` 对 imported pool 返回 true，但 `muMemSetMemPool` 随后读取 `pMemPool->Hal()->GetInfo()`；而 imported wrapper 没有 HAL pool。不能把 ValidatePool 成功理解为 imported pool 可作为 current pool。[src/musa/core/memoryPool.cpp:473-510]、[src/musa/core/device.h:93-95]、[src/driver/mu_mempool.cpp:453-515]
 
 ## 14. pool allocation ownership 与 teardown
 
@@ -369,7 +374,7 @@ muMemPoolDestroy
        -> m_pPool->Hal()->Free(...)
 ```
 
-Core pool 析构没有显示遍历或拒绝非空 `m_MemoryAllocations`；因此 live allocation + explicit pool destroy 的行为仍是必须验证的 ownership 边界。[`src/musa/core/memoryPool.cpp:86-99,380-427`]、[`src/musa/core/memory.cpp:360-379`]
+Core pool 析构没有显示遍历或拒绝非空 `m_MemoryAllocations`；因此 live allocation + explicit pool destroy 的行为仍是必须验证的 ownership 边界。[src/musa/core/memoryPool.cpp:86-99,380-427]、[src/musa/core/memory.cpp:360-379]
 
 ## 15. pointer IPC 的实际 owner
 
@@ -386,8 +391,67 @@ muMemPoolImportPointer(pool, data)
        -> Platform MemoryTracker
 ```
 
-当前入口没有 `ValidatePool`、没有调用 pool `CreateMemory`，也没有将 imported Memory 插入该 pool 的 allocation set。其实际 Core owner 是 current Context/MemoryTracker；是否允许任意同设备 pool 句柄属于 API contract 待确认。[`src/driver/mu_mempool.cpp:322-390`]
+当前入口没有 `ValidateMemoryPool`、没有调用 pool `CreateMemory`，也没有将 imported Memory 插入该 pool 的 allocation set。其实际 Core owner 是 current Context/MemoryTracker；是否允许任意同设备 pool 句柄属于 API contract 待确认。[src/driver/mu_mempool.cpp:322-390]
 
-## 16. 当前证据边界
+## 16. memcpy 执行链：Driver 到命令队列
 
-上述 ownership、current pointer、IPC metadata/pointer 和 SplayTree registry 均已追到本地可见 Core/HAL 适配代码；M3D 子模块、kernel driver、firmware、跨进程竞态和真实硬件结果仍未验证。
+所有 memcpy 方向（H2D/D2H/D2D/peer/array）在 `mu_memory.cpp` 中先组装 `MUSA_MEMCPY3D_PEER`，再收敛到 `Context::GeneralMemcpy`：
+
+```text
+muapiMemcpyHtoD_v2 / muapiMemcpyDtoH_v2 / muapiMemcpyDtoD_v2
+  -> GetMemcpy3DFrom1D(copy3D, ..., memcpy_host_to_device / _device_to_host / _device_to_device)
+  -> Context::GeneralMemcpy(TlsCtxTop(), nullptr, copy3D, true)      [src/musa/core/context.cpp:702-735]
+       -> pStream->GetParentCtx()->CreateMemcpyNode(&pGraphNode, wait)
+            -> new GraphMemcpyNode -> Init(wait)                     [src/musa/core/context.cpp:2154-2172]
+       -> capture active   -> Stream::CaptureNode
+       -> 非 capture       -> Stream::CmdCopyMemory(pGraphNode, wait) [src/musa/core/stream.cpp:696-753]
+            -> 创建 AsyncMemcpyCommand 或 SyncMemcpyCommand
+            -> peer(serial) 场景还创建 RecordCommand 事件链
+            -> ResolveDependencyAndQueueCommand
+```
+
+异步版本（`muapiMemcpy*Async_v2`）传入 `hStream`，并把 `wait` 换成 `Platform::Get().GetSettings().memBlocking`。[src/driver/mu_memory.cpp:861-871]、[src/musa/core/context.cpp:720-731]
+
+## 17. memset 执行链
+
+`muapiMemsetD8/D16/D32`（含 Async 与 D2D 变体）都组装 `MUSA_MEMSET_NODE_PARAMS` 后收敛到 `Context::GeneralMemset`：
+
+```text
+muapiMemsetD32_v2(dstDevice, ui, N)
+  -> GeneralMemset(TlsCtxTop(), nullptr, memsetParams, true)          [src/musa/core/context.cpp:862-893]
+       -> ValidateContext + InfoStream
+       -> ctx->CreateMemsetNode(&pGraphNode, wait)                    [src/musa/core/context.cpp:2210-2228]
+       -> capture active -> Stream::CaptureNode
+       -> 非 capture     -> Stream::CmdMemset(pGraphNode, wait)       [src/musa/core/stream.cpp:754-763]
+            -> 创建 MemsetCommand
+            -> ResolveDependencyAndQueueCommand
+```
+
+`MUSA_MEMSET_NODE_PARAMS` 的 `width*height*elementSize == 0` 时 `GeneralMemset` 直接跳过，返回成功。[src/musa/core/context.cpp:862-895]
+
+## 18. 当前证据边界
+
+上述 ownership、current pointer、IPC metadata/pointer、SplayTree registry 以及 memcpy/memset 命令链均已追到本地可见 Core/HAL 适配代码；M3D 子模块、kernel driver、firmware、跨进程竞态和真实硬件结果仍未验证。SplayTree registry 的已确认缺陷见 [`../../99-roadmap/rca-splaytree-memmgr.md`](../../99-roadmap/rca-splaytree-memmgr.md)。
+
+## 相关文档
+
+- [`README.md`](README.md)
+- [`design.md`](design.md)
+- [`call-chains.md`](call-chains.md)
+- [`implementation.md`](implementation.md)
+- [`risks-and-debt.md`](risks-and-debt.md)
+
+## 源码证据摘要
+
+- `src/musa/core/context.cpp`（9 处，例：[src/musa/core/context.cpp:1037-1086]）
+- `src/musa/core/stream.cpp`（6 处，例：[src/musa/core/stream.cpp:554-600]）
+- `src/driver/mu_memory.cpp`（5 处，例：[src/driver/mu_memory.cpp:271-304]）
+
+## 未解决问题
+
+1. 本文所有结论均为静态分析，未在授权硬件上执行构建、测试或运行验证。
+2. 本文未单列的风险条目见 [`risks-and-debt.md`](risks-and-debt.md)。
+
+## 下一步阅读建议
+
+阅读 [`design.md`](design.md)；阅读 [`risks-and-debt.md`](risks-and-debt.md)。

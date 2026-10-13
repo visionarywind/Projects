@@ -1,9 +1,12 @@
 # M05 专题：异步分配回滚、访问更新与锁域
 
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`
-- 最后更新：2026-09-17
+- 文档目的：《M05 专题：异步分配回滚、访问更新与锁域》的分析、证据与结论。
+- 适用范围：M05 模块的《M05 专题：异步分配回滚、访问更新与锁域》；源码根 `source/musa`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）
 - 证据状态：本节重新只读核对远端 HEAD、`Stream::AsyncMemAlloc/AsyncMemFree` 和 Core pool 字段；访问更新依据此前读取的同版本实现。运行、故障注入及硬件结果未验证。
+- 最后更新：2026-09-17
 - 前置阅读：[实现分析](implementation.md)、[执行流](execution-flows.md)
+- 后续阅读：[`design.md`](design.md)、[`risks-and-debt.md`](risks-and-debt.md)
 
 ## 1. 成功路径不是单个原子事务
 
@@ -60,7 +63,7 @@ Core `SetAccess` 的顺序是：
 3. 对非 imported pool，持 allocation-set mutex 收集 raw `(virt, physical, size)`；
 4. 释放 set mutex 后逐项 `ModifyAccess`；遇错误中止。
 
-因此阶段 4 失败时，前面的 map 更新已经生效；当前函数没有显示恢复旧 map 或撤销前面已提交 paging 的逻辑。`GetAccess` 读取的是 Core map，不是硬件映射完成状态。[src/musa/core/memoryPool.cpp:201-299]
+因此阶段 4 失败时，前面的 map 更新已经生效；当前函数没有显示恢复旧 map 或撤销前面已提交 paging 的逻辑。`GetAccess` 读取的是 Core map，不是硬件映射完成状态。[src/musa/core/memoryPool.cpp:326-360]
 
 收集 raw pointers 后释放 allocation-set lock，不等于保留 shared ownership；与 async free callback 交错时是否有外层同步保障，需要核对调用上下文，不能直接宣布并发 use-after-free 已复现。
 
@@ -78,7 +81,24 @@ Core 字段证据：[src/musa/core/memoryPool.h:105,121-149]；访问流程证�
 
 `SetStream` 是无锁 raw-pointer 赋值。普通 AsyncMemAlloc 调用 ModifyAccess 时显式传入 `this`，并非该调用直接读取 `m_pStream`；而 SetAccess 对已有 allocations 调用 ModifyAccess 时使用 pool 的 `m_pStream`。因此并发分析应聚焦 SetStream 与 SetAccess 的交错，而不是把全部 async paging 都归因于 pool-global stream。[src/musa/core/stream.cpp:569,591]、[src/musa/core/memoryPool.cpp:268-272]、[src/musa/core/memoryPool.h:105]
 
-## 6. 建议验证矩阵（未执行）
+## 6. 自动 pool registry（SplayTree）对分配/释放回滚的影响
+
+同步普通分配的 `MemMgr::Free` 路径受 `SplayTree` 缺陷影响：`Search` 分支方向反转（[src/util/utilSplayTree.h:216-225]）使 `Find` 对已存在键也 miss（[src/util/utilSplayTree.h:97-100]），`FindPool` 解引用 `Find(...)->m_Value` 即崩（[src/hal/m3d/memMgr.cpp:41-44]）；`Get` 对缺失键返回最近节点、空树返回空值（[src/util/utilSplayTree.h:90-93]），`Free`（[src/hal/m3d/memMgr.cpp:149-161]）在 release 下可能错池或空指针。RCA 见 [`../../99-roadmap/rca-splaytree-memmgr.md`](../../99-roadmap/rca-splaytree-memmgr.md)。
+
+对本节回滚矩阵的影响：
+
+- 异步 alloc/free 与 graph 路径使用 Core user pool（`m_UserPools` 列表），不经过 splay tree；因此第 2、3 节的回滚矩阵（`CreateMemory`→`Init`→`Bind`→`ModifyAccess` 与 `DisableAccess`→callback）不受该缺陷直接威胁。
+- 同步普通 `muMemAlloc`/`muMemFree` 经 `MemMgr::Allocate`（[src/hal/m3d/memMgr.cpp:81-147]）与 `MemMgr::Free`（[src/hal/m3d/memMgr.cpp:149-161]）成对经过 splay tree。`Free` 的错池风险与回滚语义叠加：向错误 pool 归还区间不会报错（[src/hal/m3d/memMgr.cpp:158-160]），错误 pool 的 `m_SegmentTracker` 被污染，其后续 `FullAllocate`/`Free` 的精确区间查找（[src/hal/m3d/memoryPool.cpp:225-270]）可能命中重叠或不存在区间。
+- 即使 pool 选对，`Free` 的 `m_SegmentTracker` 精确查找（[src/hal/m3d/memoryPool.cpp:225-270]）若因 size 未按 granularity 对齐而 miss，只打印 warning 后返回（[src/hal/m3d/memoryPool.cpp:265-269]），busy segment 不会被回收，形成静默泄漏；这与 SplayTree 缺陷相互独立，需要分别验证。
+
+验证矩阵补充（未执行）：
+
+- 构造 `SplayTree` 定向单测：插入 N 个键后逐个 `Find` 已存在键（当前全部 miss）、`Find` 缺失键（应返回空）、`Get` 缺失键（确认"最近"行为）。
+- 在 release 构建下对同步 `muMemAlloc` → `muMemFree` 循环压测，配合分配/释放区间日志确认没有错池归还与区间重叠。
+- 对 `Free` 传入错误 size（未对齐）做故障注入，确认 `m_SegmentTracker.find` miss 后 busy segment 的回收缺口。
+- 修复优先级按 RCA：`Search` 分支反转 → `MemMgr` 四处查找补判空 → `IMemMgr` 接口语义文档化 → 单测；修复后本节回滚矩阵的同步路径前提才成立。
+
+## 7. 建议验证矩阵（未执行）
 
 - VA 成功后强制 physical Init 失败：检查 tracker/set、logical bytes、virtual segment 回收。
 - peer open 或 CmdPaging 失败：检查 Unbind、peer resource、副作用与原始错误码。
@@ -89,3 +109,26 @@ Core 字段证据：[src/musa/core/memoryPool.h:105,121-149]；访问流程证�
 - 核对 CallbackCommand 清空 callback 的时机，确认自引用是否被打破。
 
 本节不修改远端源码，也不声称以上测试通过。
+
+## 相关文档
+
+- [`README.md`](README.md)
+- [`design.md`](design.md)
+- [`call-chains.md`](call-chains.md)
+- [`implementation.md`](implementation.md)
+- [`risks-and-debt.md`](risks-and-debt.md)
+
+## 源码证据摘要
+
+- `src/musa/core/stream.cpp`（5 处，例：[src/musa/core/stream.cpp:555-600]）
+- `src/hal/m3d/memMgr.cpp`（5 处，例：[src/hal/m3d/memMgr.cpp:41-44]）
+- `src/musa/core/memoryPool.cpp`（4 处，例：[src/musa/core/memoryPool.cpp:380-427]）
+
+## 未解决问题
+
+1. 本文所有结论均为静态分析，未在授权硬件上执行构建、测试或运行验证。
+2. 本文未单列的风险条目见 [`risks-and-debt.md`](risks-and-debt.md)。
+
+## 下一步阅读建议
+
+阅读 [`design.md`](design.md)；阅读 [`risks-and-debt.md`](risks-and-debt.md)。

@@ -2,7 +2,7 @@
 
 - 文档目的：解释 80-demos/D01-cuda-test-memory-stream/build-and-run.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -12,9 +12,9 @@
 本页聚焦 80-demos/D01-cuda-test-memory-stream/build-and-run.md；具体事实以正文引用的目标源码版本为准，未执行的构建、运行和硬件行为保持未验证。
 
 
-源码构建关系来自 `tests/cuda_test/cuda_test.nvmk` 和 `tests/makefile.nvmk`：先生成 `libcuda_test`，再生成各测试 binary 与 `cuda_test` dispatcher；`.cu` separate compilation 需要 nvcc device-link（静态确认：[tests/makefile.nvmk:3-18]；[tests/cuda_test/cuda_test.nvmk:60-153]）。
+源码构建关系来自 `tests/cuda_test/cuda_test.nvmk` 和 `tests/makefile.nvmk`：先生成 `libcuda_test`，再生成各测试 binary 与 `cuda_test` dispatcher；`.cu` separate compilation 需要 nvcc device-link（历史静态确认，快照外文件，当前不可复验：[tests/makefile.nvmk:3-18]；[tests/cuda_test/cuda_test.nvmk:60-153]）。
 
-典型运行入口由 `tests/run_tests.py` 调度，先列 GPU，再用 `--listGpus --forceRun` 运行 suite；Linux 可能调用 persistence service 和 `nvidia-smi`（静态确认：[tests/run_tests.py:208-245]）。
+典型运行入口由 `tests/run_tests.py` 调度，先列 GPU，再用 `--listGpus --forceRun` 运行 suite；Linux 可能调用 persistence service 和 `nvidia-smi`（历史静态确认，快照外文件，当前不可复验：[tests/run_tests.py:208-245]）。
 
 本工作区未执行构建、运行或 GPU 命令，所有结果未验证。
 

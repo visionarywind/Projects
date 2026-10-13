@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M04-memory-uvm/testing.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -14,9 +14,9 @@
 
 ## 测试证据
 
-- `basic_sanity:init` 直接创建 v3020 context，使用 driver 内部 `memobjAlloc` 分配 2 MiB device memobj，随后逐个 `memobjFree` 并销毁 context（静态确认：[tests/cuda_test/basic_sanity.cu:49-100]）。
-- `basic_sanity:kernel` 使用 portable + mapped host allocation，取得 device pointer，查找 memobj 并验证 host/device/UVA片段关系（静态确认：[tests/cuda_test/basic_sanity.cu:169-209]）。
-- `unittest_memcpy.cpp` 覆盖 pageable host、device、同步 memcpy、跨 context 和三维 descriptor；P2P 测试在 GPU 少于 2 个时 waive（静态确认：[tests/cuda_test/memcpy/unittest_memcpy.cpp:43-85,87-170]）。测试均未执行。
+- `basic_sanity:init` 直接创建 v3020 context，使用 driver 内部 `memobjAlloc` 分配 2 MiB device memobj，随后逐个 `memobjFree` 并销毁 context（历史静态确认，快照外文件，当前不可复验：[tests/cuda_test/basic_sanity.cu:49-100]）。
+- `basic_sanity:kernel` 使用 portable + mapped host allocation，取得 device pointer，查找 memobj 并验证 host/device/UVA片段关系（历史静态确认，快照外文件，当前不可复验：[tests/cuda_test/basic_sanity.cu:169-209]）。
+- `unittest_memcpy.cpp` 覆盖 pageable host、device、同步 memcpy、跨 context 和三维 descriptor；P2P 测试在 GPU 少于 2 个时 waive（历史静态确认，快照外文件，当前不可复验：[tests/cuda_test/memcpy/unittest_memcpy.cpp:43-85,87-170]）。测试均未执行。
 
 ## 池化测试映射
 

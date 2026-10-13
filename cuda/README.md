@@ -2,9 +2,9 @@
 
 - 文档目的：帮助未参与过该项目的开发者理解 `source/cuda` 中 NVIDIA CUDA Driver 组件的架构、实现、构建、测试与修改影响。
 - 适用范围：源码快照、构建规则、测试和实验；不把标准 CUDA Toolkit 文档或外部 driver 树当成本仓库源码。
-- 对应源码版本：源码推断为 CUDA Driver API 10.2（`CUDA_VERSION=10020`）；具体提交未知。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。CUDA 10.2 判断来自快照外的 `inc/cuda.h`，在本检出中不可复验。
 - 证据状态：核心初始化、上下文、内存、流、Kernel launch、UVM/GPFIFO/marker、module/ELF/JIT/graph、syscall host 侧生命周期、工具旁路、OpenCL 对象/interop host-side 生命周期和测试聚合入口已静态追踪；外部后端与设备执行未验证。
-- 最后更新：2026-09-14
+- 最后更新：2026-10-05
 - 前置阅读：无
 - 后续阅读：[项目定位](00-overview/project-overview.md) → [总体架构](00-overview/architecture.md) → [模块注册表](01-modules/module-registry.md) → [主 Demo](80-demos/D01-cuda-test-memory-stream/README.md)
 ## 结论摘要
@@ -30,11 +30,13 @@
 
 ## 当前版本与范围说明
 
-- **已确认**：`inc/cuda.h:209-211` 定义 `CUDA_VERSION 10020`；`common/version.h:16-28` 定义旧内部版本字段与 `NVCUDA_VER_MAJOR=10/NVCUDA_VER_MINOR=2/NVCUDA_VER_BUILD=0`。
-- **已确认**：`cuda.nvmk` 将 `src/api`、`src/cui`、架构 HAL、工具和 kernel/syscall 对象组合成 `libcuda`；Linux 目标约在 `cuda.nvmk:1715-1817` 定义。
-- **已确认**：M08 launch callback 可 skip/blocking，memcheck/profiler 会插入额外控制或 device-visible 资源；M09 的 ICD、`CLIobjectData` 引用树、event marker wait、GL registration 和 external memobj 创建均已有 host-side 源码证据。
-- **未知**：目录无 `.git`，无法确认提交、分支和完整外部依赖版本。
-- **不纳入核心实现**：`import/r384`、`r396`、`r400`、`r418` 是导入快照；`.cubins.c`、`.exe`、`.bin`、`tags` 和缓存/生成物只作为边界证据。
+- **推断（当前检出不可复验）**：`inc/cuda.h:209-211` 定义 `CUDA_VERSION 10020`；`common/version.h:16-28` 定义旧内部版本字段与 `NVCUDA_VER_MAJOR=10/NVCUDA_VER_MINOR=2/NVCUDA_VER_BUILD=0`。这两个文件不在当前快照内，`src/` 内也未检出版本定义，故不能记为已确认。
+- **推断（当前检出不可复验）**：`cuda.nvmk` 将 `src/api`、`src/cui`、架构 HAL、工具和 kernel/syscall 对象组合成 `libcuda`；Linux 目标约在 `cuda.nvmk:1715-1817` 定义。`cuda.nvmk` 不在当前快照内。
+- **已确认**：M08 launch callback 可 skip/blocking，memcheck/profiler 会插入额外控制或 device-visible 资源；M09 的 ICD、`CLIobjectData` 引用树、event marker wait、GL registration 和 external memobj 创建均已有 host-side 源码证据（均在 `src/` 内）。
+- **已确认**：当前 `source/cuda` 快照只含 `src/` 一个子树，`/source/` 被仓库 `.gitignore` 忽略，目录无 `.git`，因此无法确认提交、分支和完整外部依赖版本。此前本页书写的“source/cuda HEAD 39d4a83”有误，该提交号属于 Projects 仓库，已撤销。
+- **不适用（不在快照内）**：`inc/`、`common/`、`tests/`、`mods/`、`import/r384`、`r396`、`r400`、`r418`；`.cubins.c`、`.exe`、`.bin`、`tags` 和缓存/生成物只作为边界证据。
+
+完整清单与处置见 [快照边界](00-overview/analysis-state.md#快照边界本轮只读确认) 与 [决策与冲突记录](00-overview/decision-log.md)。
 
 ## 知识库导航
 
@@ -72,7 +74,8 @@
 ### Demo、关联和实践层
 
 - [Demo 注册表](80-demos/demo-registry.md)
-- [D01 CUDA 测试主线](80-demos/D01-cuda-test-memory-stream/README.md)
+- [D01 CUDA 测试主线](80-demos/D01-cuda-test-memory-stream/README.md)（受阻：入口在快照外）
+- [D02 cuGetExportTable 导出表机制](80-demos/D02-cugetexporttable/README.md)（快照内唯一可复核的公开入口 Demo）
 - [D01 执行轨迹](80-demos/D01-cuda-test-memory-stream/execution-trace.md)
 - [D01 数据与状态](80-demos/D01-cuda-test-memory-stream/data-and-state-trace.md)
 - [M06 Graph 控制流实现](01-modules/M06-module-launch/graph-control-flow.md)
@@ -294,6 +297,12 @@ flowchart LR
 - [80-demos/D01-cuda-test-memory-stream/execution-trace.md](80-demos/D01-cuda-test-memory-stream/execution-trace.md)
 - [80-demos/D01-cuda-test-memory-stream/failure-paths.md](80-demos/D01-cuda-test-memory-stream/failure-paths.md)
 - [80-demos/D01-cuda-test-memory-stream/modification-exercises.md](80-demos/D01-cuda-test-memory-stream/modification-exercises.md)
+- [80-demos/D02-cugetexporttable/README.md](80-demos/D02-cugetexporttable/README.md)
+- [80-demos/D02-cugetexporttable/data-and-state-trace.md](80-demos/D02-cugetexporttable/data-and-state-trace.md)
+- [80-demos/D02-cugetexporttable/debug-walkthrough.md](80-demos/D02-cugetexporttable/debug-walkthrough.md)
+- [80-demos/D02-cugetexporttable/execution-trace.md](80-demos/D02-cugetexporttable/execution-trace.md)
+- [80-demos/D02-cugetexporttable/failure-paths.md](80-demos/D02-cugetexporttable/failure-paths.md)
+- [80-demos/D02-cugetexporttable/modification-exercises.md](80-demos/D02-cugetexporttable/modification-exercises.md)
 - [80-demos/demo-registry.md](80-demos/demo-registry.md)
 
 ### 90-cross-module
@@ -321,8 +330,22 @@ flowchart LR
 
 ## 深度审计
 
+> 证据口径：本表只按 **2026-10-05 对 `source/cuda` 当前检出（仅含 `src/`）的复核结果**给分。凡入口或行级证据落在快照外者，一律记「受阻」，不继承此前的「已完成」。
+
 | 分析对象 | 入口落地 | 正常路径 | 分支 | 异常 | 清理 | 数据生命周期 | 执行上下文 | 行级证据 | Demo 映射 | 状态/缺口 |
 |---|---|---|---|---|---|---|---|---|---|---|
+| M01 API/ABI | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 不适用 | 不适用 | 部分完成 | D02（导出侧） | 部分完成：`src/api/` 内 wrapper 与导出表主链已复核；`inc/cuda.h`、`cuda.nvmk` 快照外，ABI/公开头不可复验 |
+| M02 Runtime/Context | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 受阻（D01 入口缺失） | 已完成（`src/cui/` 内） |
+| M03 Device/HAL | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 不适用 | 部分完成 | 受阻 | 部分完成：`src/cui/hal/` 内复核，RM 末端与目标配置未知 |
+| M04 Memory/UVA/UVM | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 受阻 | 已完成（静态）：DMAL/RM 物理实现与运行验证仍缺 |
+| M05 Stream/Submit | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 受阻 | 已完成（静态）：doorbell/RM 末端与设备消费未验证 |
+| M06 Module/Launch | 已完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 已完成 | 部分完成 | 已完成 | 受阻（无 Graph Demo） | 部分完成：Graph 失败疑点未复现 |
+| M07 Kernel/Syscall | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 受阻 | 部分完成：`cudaSyscalls.nvmk` 快照外，生成链末端未知 |
+| M08 Tools/Debug | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 不适用 | 部分完成 | 部分完成 | D02（memcheck 消费者） | 部分完成：仅 host-side，`nvGenerateRules.nvmk` 快照外 |
+| M09 OpenCL/Interop | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 部分完成 | 不适用 | 部分完成 | D02（tools_cu_etbl 消费者） | 部分完成：仅 host-side，enqueue/fence 末端未验证 |
+| M10 Tests/Experiments | 受阻 | 受阻 | 受阻 | 受阻 | 受阻 | 受阻 | 不适用 | 受阻 | D02（注册链） | **受阻**：`tests/`、`mods/`、`experiments/` 全部不在快照内；但 `src/etbl/` 123 个 `eti*` 测试体经 D02 可复核注册链 |
+| D01 测试主线 | 受阻 | 受阻 | 受阻 | 受阻 | 受阻 | 部分完成 | 部分完成 | 受阻 | 自身 | **受阻**：入口 `tests/cuda_test/basic_sanity.cu` 不在快照内 |
+| D02 导出表机制 | 已完成 | 已完成 | 已完成 | 已完成 | 已完成 | 部分完成 | 部分完成 | 已完成 | 自身 | 部分完成（静态）:入口与全链路复核通过，但构建目标与 `cuda_etbl/*.h` 不可确认；`g_etblCudaGraphs` 3 个悬空引用提示快照不完整 |
 
 ## 相关文档
 

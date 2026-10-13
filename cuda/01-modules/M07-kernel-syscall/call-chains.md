@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M07-kernel-syscall/call-chains.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -82,7 +82,7 @@ cudaSyscalls.nvmk
  → runtime CUfunc + device-side syscall entry
 ```
 
-构建规则同时生成 CUDA 与 OpenCL syscall cubin 数组；每个架构先生成 `.cubin`，再由 `bin2c --static --const --type longlong` 转为 C 数组，并通过数组 entry 记录架构名、地址和大小。该链能静态确认“生成输入—内嵌镜像—运行时按架构选择”，但不能证明当前环境实际执行过 nvcc 或生成物与设备匹配（静态确认：[cudaSyscalls.nvmk:46-71,111-160]）。
+构建规则同时生成 CUDA 与 OpenCL syscall cubin 数组；每个架构先生成 `.cubin`，再由 `bin2c --static --const --type longlong` 转为 C 数组，并通过数组 entry 记录架构名、地址和大小。该链能静态确认“生成输入—内嵌镜像—运行时按架构选择”，但不能证明当前环境实际执行过 nvcc 或生成物与设备匹配（历史静态确认，快照外文件，当前不可复验：[cudaSyscalls.nvmk:46-71,111-160]）。
 
 ## 相关文档
 - [项目入口](../../README.md)

@@ -1,8 +1,8 @@
 # 总体架构
 
 - 文档目的：解释 MUSA Driver 的系统边界、分层架构、关键控制流/数据流、资源生命周期和首批架构判断。
-- 适用范围：`/home/shanfeng/workspace/linux-ddk/musa` 当前 HEAD。
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`。
+- 适用范围：`source/musa` 当前 HEAD。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）。
 - 证据状态：部分推断
 - 最后更新：2026-09-16
 - 前置阅读：[`project-overview.md`](project-overview.md)

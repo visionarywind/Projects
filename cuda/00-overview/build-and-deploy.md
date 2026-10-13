@@ -2,7 +2,7 @@
 
 - 文档目的：解释 00-overview/build-and-deploy.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../README.md)。
@@ -14,11 +14,11 @@
 
 ## 主构建
 
-该快照使用 NVIDIA nvmake/nvmk，不是独立 CMake 项目。`cuda.nvmk` 组织 API、CUI、架构 HAL、工具和 kernel/syscall 源，并生成 Linux `libcuda.so.1.1` 等目标（静态确认：[cuda.nvmk:348-492,513-597,1695-1817]）。
+该快照使用 NVIDIA nvmake/nvmk，不是独立 CMake 项目。`cuda.nvmk` 组织 API、CUI、架构 HAL、工具和 kernel/syscall 源，并生成 Linux `libcuda.so.1.1` 等目标（历史静态确认，快照外文件，当前不可复验：[cuda.nvmk:348-492,513-597,1695-1817]）。
 
 ## 测试构建
 
-`tests/makefile.nvmk` 先构建 `libcuda_test`，再构建 `cuda_test`；`tests/cuda_test/cuda_test.nvmk` 为每个 case 建 binary，并生成 dispatcher 列表（静态确认：[tests/makefile.nvmk:3-18]；[tests/cuda_test/cuda_test.nvmk:60-153]）。Linux DVS 包装入口见 `[tests/dvs-build-unix.sh:1-43]`。
+`tests/makefile.nvmk` 先构建 `libcuda_test`，再构建 `cuda_test`；`tests/cuda_test/cuda_test.nvmk` 为每个 case 建 binary，并生成 dispatcher 列表（历史静态确认，快照外文件，当前不可复验：[tests/makefile.nvmk:3-18]；[tests/cuda_test/cuda_test.nvmk:60-153]）。Linux DVS 包装入口见 `[tests/dvs-build-unix.sh:1-43]`。
 
 ## 部署边界
 

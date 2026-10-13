@@ -1,7 +1,12 @@
 # 跨模块调用链索引
 
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`
+- 文档目的：跨模块调用链：越过包装层到达实际实现。
+- 适用范围：90-cross-module《跨模块调用链索引》；源码根 `source/musa`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）
 - 证据状态：初始化、设备查询、普通内存分配、kernel launch 已静态追到 HAL/M3D 适配边界；M3D 内部到内核驱动/硬件仍未运行验证。
+- 最后更新：2026-10-07
+- 前置阅读：[`../01-modules/module-registry.md`](../01-modules/module-registry.md)、[`system-wiring.md`](system-wiring.md)
+- 后续阅读：[`interface-contracts.md`](interface-contracts.md)、[`../99-roadmap/risk-register.md`](../99-roadmap/risk-register.md)
 
 | 链 ID | 起点 | 终点 | 当前状态 | 主文档 |
 |---|---|---|---|---|
@@ -129,3 +134,26 @@ muapiLaunchKernel
 1. 本页是索引，不替代模块页；每条链的分支、错误和状态变化以模块文档为准。
 2. 动态回调、生成 wrapper、MUPTI/MUASAN/GDB hook 和 M3D 子模块内部路径必须单独标记证据状态。
 3. 不能从静态链接关系直接推断运行时调用；只有上面列出的函数调用链可视为当前静态确认。
+
+## 相关文档
+
+- [`system-wiring.md`](system-wiring.md)
+- [`interface-contracts.md`](interface-contracts.md)
+- [`cross-module-call-chains.md`](cross-module-call-chains.md)
+- [`../01-modules/module-registry.md`](../01-modules/module-registry.md)
+- [`../99-roadmap/risk-register.md`](../99-roadmap/risk-register.md)
+
+## 源码证据摘要
+
+- `src/musa/core/context.cpp`（4 处，例：[src/musa/core/context.cpp:1037-1086]）
+- `src/driver/mu_memory.cpp`（3 处，例：[src/driver/mu_memory.cpp:271-304]）
+- `src/musa/core/stream.cpp`（2 处，例：[src/musa/core/stream.cpp:554-671]）
+
+## 未解决问题
+
+1. 本文所有结论均为静态分析，未在授权硬件上执行构建、测试或运行验证。
+2. 本文未单列的风险条目见 [`../99-roadmap/risk-register.md`](../99-roadmap/risk-register.md)。
+
+## 下一步阅读建议
+
+阅读 [`interface-contracts.md`](interface-contracts.md)；阅读 [`../99-roadmap/risk-register.md`](../99-roadmap/risk-register.md)。

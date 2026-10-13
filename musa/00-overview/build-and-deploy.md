@@ -1,10 +1,10 @@
 # 构建、运行、测试和部署总览
 
 - 文档目的：汇总 MUSA Driver 当前源码可确认的构建选项、产物、测试入口、安装脚本和 CI 流程。
-- 适用范围：`/home/shanfeng/workspace/linux-ddk/musa`。
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`。
+- 适用范围：`source/musa`（MUSA-Runtime 5.3.0 develop 快照）。
+- 对应源码版本：`5.3.0 develop`（本地快照无 Git 元数据，见 [`analysis-state.md`](analysis-state.md)）。
 - 证据状态：已确认/命令未验证
-- 最后更新：2026-09-16
+- 最后更新：2026-10-05
 - 前置阅读：[`project-overview.md`](project-overview.md)
 - 后续阅读：[`../99-roadmap/quick-start.md`](../99-roadmap/quick-start.md)
 
@@ -23,10 +23,10 @@
 | 项 | 内容 | 状态 | 证据 |
 |---|---|---|---|
 | CMake | 最低 `3.15` | 已确认 | [CMakeLists.txt:1] |
-| C++ 标准 | UNIX: C++17；Windows: C++20 | 已确认 | [CMakeLists.txt:155-174] |
-| Linux 安全链接选项 | `-z now -z relro -z noexecstack` | 已确认 | [CMakeLists.txt:165-169] |
+| C++ 标准 | UNIX: C++17；Windows: C++20 | 已确认 | [CMakeLists.txt:87-106] |
+| Linux 安全链接选项 | `-z now -z relro -z noexecstack` | 已确认 | [CMakeLists.txt:97-101] |
 | 依赖库 | `libelf-dev`、`gcc-multilib` | README 确认，未验证 | [README.md:3-6] |
-| 子模块 | `module_version`、`m3d`、`musa_shared_include` | 已确认 | [.gitmodules:1-13] |
+| 子模块 | `module_version`、`m3d`、`musa_shared_include` | 已确认 | [.gitmodules:1-10] |
 | CI 容器/依赖 | 私有 Harbor 镜像、mt-toolchain、LLVM 14、libdrm-mt、shared_include | 已确认 | [.ciConfig.yaml:13-16], [.mthreads-ci.yml:37-52] |
 | 硬件/驱动 | MTGPU 内核驱动和 MUSA toolkit | CI 部分确认 | [.mthreads-ci.yml:125-148] |
 
@@ -35,18 +35,20 @@
 | 选项 | 默认值 | 作用 | 证据 |
 |---|---:|---|---|
 | `DDK_2_0` | OFF | ddk2.0 临时选项 | [CMakeLists.txt:21] |
-| `ENABLE_ASAN_CHECK` | OFF | AddressSanitizer | [CMakeLists.txt:22], [CMakeLists.txt:178-181] |
-| `ENABLE_TSAN_CHECK` | OFF | ThreadSanitizer | [CMakeLists.txt:23], [CMakeLists.txt:183-186] |
-| `MUSA_BUILD_DEBUG` | OFF | Debug 构建；否则 Release + IPO | [CMakeLists.txt:24], [CMakeLists.txt:195-200] |
-| `CSV_UNSUPPORTED` | OFF | README 称用于整理 unsupported API/flag 原因；CMake 中拼写为 `CSV_UNSPPORTED` | [README.md:34-35], [CMakeLists.txt:202-204] |
-| `M3D_BUILD_MT_TRACE_CAPTURE` | OFF | M3D trace capture 编译定义 | [CMakeLists.txt:26], [CMakeLists.txt:206-209] |
+| `ENABLE_ASAN_CHECK` | OFF | AddressSanitizer | [CMakeLists.txt:22], [CMakeLists.txt:110-113] |
+| `ENABLE_TSAN_CHECK` | OFF | ThreadSanitizer | [CMakeLists.txt:23], [CMakeLists.txt:115-118] |
+| `MUSA_BUILD_DEBUG` | OFF | Debug 构建；否则 Release + IPO | [CMakeLists.txt:24], [CMakeLists.txt:127-132] |
+| `CSV_UNSUPPORTED` | OFF | README 称用于整理 unsupported API/flag 原因；CMake 中拼写为 `CSV_UNSPPORTED` | [README.md:34-35], [CMakeLists.txt:25], [CMakeLists.txt:134-136] |
+| `M3D_BUILD_MT_TRACE_CAPTURE` | OFF | M3D trace capture 编译定义 | [CMakeLists.txt:26], [CMakeLists.txt:138-140] |
 | `M3D_BUILD_MTTX_TRACE` | ON | M3D mttx trace | [CMakeLists.txt:27] |
-| `ENABLE_USERQ_FOR_PRESI` | OFF | userq 编译定义 | [CMakeLists.txt:28], [CMakeLists.txt:210-212] |
-| `MUSA_BUILD_UT` | OFF | 启用 gtest 单元测试 | [CMakeLists.txt:29], [CMakeLists.txt:214-237] |
-| `MTUB_BUILD` | OFF | mt-toolchain 版本/打包集成 | [CMakeLists.txt:30], [CMakeLists.txt:38-61] |
-| `MUSA_WSL2_BUILD` | OFF | WSL2 构建宏 | [CMakeLists.txt:31], [CMakeLists.txt:170-173] |
+| `ENABLE_USERQ_FOR_PRESI` | OFF | userq 编译定义 | [CMakeLists.txt:28], [CMakeLists.txt:142-144] |
+| `MUSA_BUILD_UT` | OFF | 启用 gtest 单元测试 | [CMakeLists.txt:29], [CMakeLists.txt:146-154], [CMakeLists.txt:167-169] |
+| `MTUB_BUILD` | OFF | mt-toolchain 版本/打包集成 | [CMakeLists.txt:30], [CMakeLists.txt:40-61] |
+| `MUSA_WSL2_BUILD` | OFF | WSL2 构建宏 | [CMakeLists.txt:31], [CMakeLists.txt:102-105] |
 
-风险：`CSV_UNSUPPORTED` 与 `CSV_UNSPPORTED` 拼写不一致，可能导致 README 说明的开关无法触发 CMake 分支。状态：已确认；需后续验证是否有兼容变量或历史原因。
+风险 1：`CSV_UNSUPPORTED` 与 `CSV_UNSPPORTED` 拼写不一致，导致 `option(CSV_UNSUPPORTED)`（[CMakeLists.txt:25]）声明的变量与实际判断的 `CSV_UNSPPORTED`（[CMakeLists.txt:134]）不是同一个变量；README 所述开关无法触发该分支。状态：已确认。
+
+风险 2：该分支调用的 `python3 code_reason.py` 指向 `${CMAKE_CURRENT_SOURCE_DIR}/tool`，但本快照中不存在 `tool/` 目录，也无 `code_reason.py`（`scripts/` 下仅有 `clang_tidy.py`）。状态：已确认。若以 `CSV_UNSPPORTED=ON` 配置，构建会因脚本缺失失败。
 
 ## 3. 构建目标和链接关系
 
@@ -68,7 +70,7 @@ flowchart TD
     MuInfo --> Lib
 ```
 
-证据：`src/CMakeLists.txt` 添加子目录 [src/CMakeLists.txt:7-12]；driver 目标链接 `musaCore` [src/driver/CMakeLists.txt:17]；tools 链接 `${DRIVER_LIB_NAME}_dynamic` [src/tools/CMakeLists.txt:15]。
+证据：`src/CMakeLists.txt` 添加子目录 [src/CMakeLists.txt:7-15]；driver 目标链接 `musaCore` [src/driver/CMakeLists.txt:17]；tools 链接 `${DRIVER_LIB_NAME}_dynamic` [src/tools/CMakeLists.txt:15]。
 
 ## 4. 构建命令（未验证）
 
@@ -96,7 +98,7 @@ make
 
 来源：[README.md:39-45]。  
 当前状态：未执行。  
-代码效果：顶层 CMake 设置 `CMAKE_BUILD_TYPE` 为 Debug；否则 Release 并启用 IPO [CMakeLists.txt:195-200]。
+代码效果：顶层 CMake 设置 `CMAKE_BUILD_TYPE` 为 Debug；否则 Release 并启用 IPO [CMakeLists.txt:127-132]。
 
 ### 4.3 单元测试构建
 
@@ -107,8 +109,9 @@ ctest --test-dir build --output-on-failure
 ```
 
 来源：CMake 行为推导，未在 README 中完整写出。  
-当前状态：未执行。  
-证据：`MUSA_BUILD_UT` 时 FetchContent 拉取 googletest 并添加 `unittest` [CMakeLists.txt:214-237]；`unittest/CMakeLists.txt` 为每个 `.cpp` 添加 executable 和 CTest [unittest/CMakeLists.txt:1-46]。
+当前状态：未执行；且在本快照下**无法成功配置**。  
+证据：`MUSA_BUILD_UT` 时 FetchContent 拉取 googletest [CMakeLists.txt:146-154]；随后 `add_subdirectory(unittest)` [CMakeLists.txt:167-169]。但本快照不存在 `unittest/` 目录，因此以 `-DMUSA_BUILD_UT=ON` 配置会因缺少该子目录而失败。  
+原基线文档引用的 `unittest/CMakeLists.txt` 在本快照中不存在，无法作为证据。
 
 ### 4.4 CI 构建
 
@@ -149,18 +152,20 @@ CI 从 linux-ddk 根仓库执行：
 
 | 测试来源 | 内容 | 状态 | 证据 |
 |---|---|---|---|
-| `unittest` | gtest C++ 单元测试，每个 `.cpp` 一个可执行文件 | 已确认结构，未执行 | [unittest/CMakeLists.txt:1-46] |
-| `tests/*.cu` | 功能/示例候选：graph、memcpy batch、conditional node 等 | 已确认存在，未执行 | 文件清单 |
+| `unittest` | gtest C++ 单元测试目录 | **本快照不存在该目录** | [CMakeLists.txt:167-169] 声明但目录缺失 |
+| `tests/*.cu` | 功能/示例候选：graph、memcpy batch、conditional node 等 | **本快照不存在该目录** | 无法核对 |
 | CI Photon tests | 安装 MUSA/driver 后构建 Photon 和 photon_samples，运行 `run_tests.py` | 已确认 CI 脚本，未执行 | [.mthreads-ci.yml:181-207] |
+
+说明：`src/CMakeLists.txt` 递归加入的子目录为 `util`、`hal`、`musa`、`driver`、`loader`（仅 WIN32/WSL2）、`gdb`、`tools` [src/CMakeLists.txt:7-15]；本快照不含 `tests/` 与 `unittest/`。
 
 ## 7. 调试与 Sanitizer
 
 | 能力 | 开关/入口 | 状态 | 证据 |
 |---|---|---|---|
-| Debug 编译 | `-DMUSA_BUILD_DEBUG=ON` | 已确认 | [README.md:39-45], [CMakeLists.txt:195-200] |
-| ASAN | `-DENABLE_ASAN_CHECK=ON` | 已确认 | [CMakeLists.txt:178-181] |
-| TSAN | `-DENABLE_TSAN_CHECK=ON` | 已确认 | [CMakeLists.txt:183-186] |
-| GDB/debugger | `src/gdb`、`src/driver/mugdb` | 部分确认 | 源码清单、[src/CMakeLists.txt:11] |
+| Debug 编译 | `-DMUSA_BUILD_DEBUG=ON` | 已确认 | [README.md:39-45], [CMakeLists.txt:127-132] |
+| ASAN | `-DENABLE_ASAN_CHECK=ON` | 已确认 | [CMakeLists.txt:110-113] |
+| TSAN | `-DENABLE_TSAN_CHECK=ON` | 已确认 | [CMakeLists.txt:115-118] |
+| GDB/debugger | `src/gdb`、`src/driver/mugdb` | 部分确认 | 源码清单、[src/CMakeLists.txt:14] |
 | MUPTI/MUASAN hooks | `src/driver/mupti`、`src/driver/muasan` 被编译进 driver | 已确认 | [src/driver/CMakeLists.txt:4-11] |
 
 README 明确提示 ASAN 和 TSAN 互斥 [README.md:27-31]。
@@ -170,9 +175,10 @@ README 明确提示 ASAN 和 TSAN 互斥 [README.md:27-31]。
 | 场景 | 可能原因 | 首查位置 | 状态 |
 |---|---|---|---|
 | `install.sh` 报 build dir 不存在 | 未先构建或构建目录不是 `./build` | [install.sh:27-30] | 已确认 |
-| CMake 找不到子模块/头文件 | `src/musa_shared_include`、`src/hal/m3d/m3d` 未初始化 | [.gitmodules:5-13] | 推断 |
-| `MUSA_BUILD_UT` 拉取失败 | googletest URL 是私有/内网地址 | [CMakeLists.txt:214-221] | 推断 |
-| `CSV_UNSUPPORTED` 不生效 | CMake 中变量拼写为 `CSV_UNSPPORTED` | [README.md:34-35], [CMakeLists.txt:202-204] | 已确认 |
+| CMake 找不到子模块/头文件 | `src/musa_shared_include`、`src/hal/m3d/m3d` 未初始化 | [.gitmodules:5-10] | 推断 |
+| `MUSA_BUILD_UT` 配置失败 | `unittest/` 目录在本快照中缺失 | [CMakeLists.txt:167-169] | 已确认 |
+| `MUSA_BUILD_UT` 拉取 googletest 失败 | URL 是内网地址 `sh-moss.mthreads.com` | [CMakeLists.txt:146-154] | 推断 |
+| `CSV_UNSUPPORTED` 不生效 | 变量拼写为 `CSV_UNSPPORTED`，且 `tool/code_reason.py` 不存在 | [CMakeLists.txt:25], [CMakeLists.txt:134-136] | 已确认 |
 | 运行 `muInfo` 无设备 | 内核驱动、设备节点或 MUSA 安装环境缺失 | CI 安装/`modprobe mtgpu` 流程 | 推断 |
 
 ## 相关文档
@@ -183,10 +189,11 @@ README 明确提示 ASAN 和 TSAN 互斥 [README.md:27-31]。
 
 ## 源码证据摘要
 
-- CMake 选项：[CMakeLists.txt:21-35]
-- 构建类型和 sanitizer：[CMakeLists.txt:127-130], [CMakeLists.txt:178-200]
-- 单元测试：[CMakeLists.txt:214-237], [unittest/CMakeLists.txt:1-46]
-- driver/tools 产物：[src/driver/CMakeLists.txt:9-50], [src/tools/CMakeLists.txt:10-18]
+- CMake 选项：[CMakeLists.txt:21-31]
+- 版本与项目名：`5.3.0 develop` / `musa_driver` [CMakeLists.txt:33-35]
+- 构建类型和 sanitizer：[CMakeLists.txt:110-118], [CMakeLists.txt:127-132]
+- 单元测试：[CMakeLists.txt:146-154], [CMakeLists.txt:167-169]
+- driver/tools 产物：[src/driver/CMakeLists.txt:9-17], [src/tools/CMakeLists.txt:10-18]
 - 安装脚本：[install.sh:27-105]
 
 ## 未解决问题

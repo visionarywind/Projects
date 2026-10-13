@@ -1,6 +1,12 @@
 # Memory 与 MemoryPool：测试与验证策略
 
-- 对应源码版本：`b8dce2b2f23849e8e99350c20d7eaac3c129caba`
+- 文档目的：memory mempool：测试入口、缺口与建议用例（含未验证标注）。
+- 适用范围：M05 模块的《Memory 与 MemoryPool：测试与验证策略》；源码根 `source/musa`。
+- 对应源码版本：5.3.0 develop（本地快照 `source/musa`，无 Git 元数据）
+- 证据状态：已确认（引用与符号已脚本核对；运行期未验证）
+- 最后更新：2026-10-07
+- 前置阅读：[`README.md`](README.md)、[`../module-registry.md`](../module-registry.md)
+- 后续阅读：[`design.md`](design.md)、[`risks-and-debt.md`](risks-and-debt.md)
 - 当前状态：以下运行测试均未在本环境执行；策略用于下一轮目标机/构建环境验证。
 
 ## 1. 静态检查
@@ -8,20 +14,20 @@
 ### 1.1 调用链和对象登记
 
 - 核对 `muapiMemAlloc_v2`、`muMemAllocAsync`、`muMemFreeAsync`、pool API 是否都经过导出/accessor 表。
-- 核对 `Context::CreateMemory` 只有在 `Memory::Init` 成功后才把对象加入 Context 和 Platform tracker。[`src/musa/core/context.cpp:1037-1086`]
-- 核对 async alloc 的每个失败分支是否解除 `Bind`、销毁 virtual memory、释放 physical shared pointer。[`src/musa/core/stream.cpp:554-600`]
-- 核对 async free 的 callback 是否保留 virt/pool 生命周期直到 paging command 完成。[`src/musa/core/stream.cpp:634-671`]
+- 核对 `Context::CreateMemory` 只有在 `Memory::Init` 成功后才把对象加入 Context 和 Platform tracker。[src/musa/core/context.cpp:1037-1086]
+- 核对 async alloc 的每个失败分支是否解除 `Bind`、销毁 virtual memory、释放 physical shared pointer。[src/musa/core/stream.cpp:554-600]
+- 核对 async free 的 callback 是否保留 virt/pool 生命周期直到 paging command 完成。[src/musa/core/stream.cpp:634-671]
 
 ### 1.2 HAL allocator 不变量
 
-- `MakeKey(allocInfo) == MakeKey(poolInfo)` 才允许 `FullAllocate`。[`src/hal/m3d/memoryPool.cpp:82-95`]
-- `ResourceSplit` 后 busy range 必须插入 virtual `m_SegmentTracker`，free 时用相同 `{base,size}` 删除。[`src/hal/m3d/memoryPool.cpp:214-259,358-413`]
-- 左右 merge 后，只有 `isLeftMost && isRightMost` 才允许进入完整 chunk reuse/destroy。[`src/hal/m3d/memoryPool.cpp:318-331`]
-- `TrimPool` 不应释放含 busy segment 的 chunk。[`src/hal/m3d/memoryPool.cpp:480-510`]
+- `MakeKey(allocInfo) == MakeKey(poolInfo)` 才允许 `FullAllocate`。[src/hal/m3d/memoryPool.cpp:82-95]
+- `ResourceSplit` 后 busy range 必须插入 virtual `m_SegmentTracker`，free 时用相同 `{base,size}` 删除。[src/hal/m3d/memoryPool.cpp:214-259,358-413]
+- 左右 merge 后，只有 `isLeftMost && isRightMost` 才允许进入完整 chunk reuse/destroy。[src/hal/m3d/memoryPool.cpp:318-331]
+- `TrimPool` 不应释放含 busy segment 的 chunk。[src/hal/m3d/memoryPool.cpp:480-510]
 
 ### 1.3 统计和属性
 
-- `USED_MEM_*` 对应 Core requested bytes，`RESERVED_MEM_*` 对应 HAL total chunk bytes，不要在断言中混用。[`src/musa/core/memoryPool.cpp:380-427`]
+- `USED_MEM_*` 对应 Core requested bytes，`RESERVED_MEM_*` 对应 HAL total chunk bytes，不要在断言中混用。[src/musa/core/memoryPool.cpp:380-427]
 - `RELEASE_THRESHOLD` 影响 trim；reuse count/size limit 是另一套条件。[`src/musa/core/memoryPool.cpp:118-123,430-437`、`src/hal/m3d/memoryPool.cpp:318-331`]
 - 继续追踪三个 reuse attribute 的所有读取者，若没有读取者，应将其行为列为兼容性缺口而不是已实现特性。
 
@@ -91,7 +97,30 @@ ctest --test-dir build --output-on-failure
 在文档写回完成后运行：
 
 ```bash
-git -C /home/mtuser/workspace/Projects diff --check -- musa
+git -C .. diff --check -- musa
 ```
 
 该命令只检查本文档仓库的 whitespace，不证明 MUSA 远端源码可构建或硬件行为正确。
+
+## 相关文档
+
+- [`README.md`](README.md)
+- [`design.md`](design.md)
+- [`call-chains.md`](call-chains.md)
+- [`implementation.md`](implementation.md)
+- [`risks-and-debt.md`](risks-and-debt.md)
+
+## 源码证据摘要
+
+- `src/hal/m3d/memoryPool.cpp`（3 处，例：[src/hal/m3d/memoryPool.cpp:82-95]）
+- `src/musa/core/stream.cpp`（2 处，例：[src/musa/core/stream.cpp:554-600]）
+- `src/musa/core/context.cpp`（1 处，例：[src/musa/core/context.cpp:1037-1086]）
+
+## 未解决问题
+
+1. 本文所有结论均为静态分析，未在授权硬件上执行构建、测试或运行验证。
+2. 本文未单列的风险条目见 [`risks-and-debt.md`](risks-and-debt.md)。
+
+## 下一步阅读建议
+
+阅读 [`design.md`](design.md)；阅读 [`risks-and-debt.md`](risks-and-debt.md)。

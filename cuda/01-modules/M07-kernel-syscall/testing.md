@@ -2,7 +2,7 @@
 
 - 文档目的：解释 01-modules/M07-kernel-syscall/testing.md 的职责、证据和维护边界。
 - 适用范围：本页及其直接关联的源码、测试和配置；第三方、生成物与动态结果仅在有证据时纳入。
-- 对应源码版本：source/cuda HEAD 39d4a83（2026-09-15 只读确认）。
+- 对应源码版本：`source/cuda` 快照（仅含 `src/`；无 `.git`，提交未知；文件时间戳 2022-02-22）。
 - 证据状态：部分完成；静态证据优先，构建、运行和硬件行为未在本轮验证。
 - 最后更新：2026-09-15
 - 前置阅读：[项目入口](../../README.md)。
@@ -14,7 +14,7 @@
 
 ## 测试
 
-- `basic_sanity:kernel` 是当前最直接的 CNP/内建 device launch 使用者；通过 `CNP_SUPPORTED` 和设备 capability 分支决定预期结果（静态确认：[tests/cuda_test/basic_sanity.cu:127-145,194-225]）。
+- `basic_sanity:kernel` 是当前最直接的 CNP/内建 device launch 使用者；通过 `CNP_SUPPORTED` 和设备 capability 分支决定预期结果（历史静态确认，快照外文件，当前不可复验：[tests/cuda_test/basic_sanity.cu:127-145,194-225]）。
 - `bik/` 下有 kernel memcpy 和 memory utility 测试；文件存在但未执行。
 - stream/channel 测试可间接验证 syscall/launch 产生的提交活动，但不单独证明 device-side ABI。
 
