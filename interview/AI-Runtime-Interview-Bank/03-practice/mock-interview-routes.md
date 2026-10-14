@@ -10,10 +10,10 @@
 
 ### 技术深挖（25 分钟）
 
-1. B001：Framework 到设备调用链；
-2. B002：allocated/reserved/碎片；
-3. I001：多 Stream 生命周期；
-4. A001：设计异步 allocator；
+1. B001：Framework→Runtime→驱动→设备的分层职责；
+2. B004/B005：allocated/reserved/free 口径与碎片；
+3. I006：多 Stream 生产者/消费者的 event 编排；
+4. A004：设计多级异步 allocator；
 5. 追问：如何证明 buffer 可复用、OOM 在哪里定位。
 
 ### 源码/实现（15 分钟）
@@ -34,7 +34,7 @@
 
 1. 5 分钟介绍 Host 组网/网络项目；
 2. 10 分钟解释 AllReduce、Ring/Tree 和拓扑；
-3. 15 分钟做 A002：分块、双 buffer、通信 stream、event；
+3. 15 分钟做 A013：集合通信 overlap pipeline（分块、双 buffer、通信 stream、event）；
 4. 15 分钟排查 collective hang：rank 顺序、shape/dtype、连接、NUMA、buffer；
 5. 10 分钟估算 effective bandwidth 和 step time；
 6. 5 分钟说明 TCP 经验与 RDMA/NCCL 经验的边界。

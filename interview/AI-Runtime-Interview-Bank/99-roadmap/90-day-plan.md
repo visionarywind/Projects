@@ -6,7 +6,7 @@
 
 ## 1–30 天：把已有经历讲深
 
-- 完成首批 B001/B002/I001/A001/A002；
+- 完成首批 B001–B003 / I001 / A001 / A004；
 - 填完 MindSpore、UMD、多 Stream、Host 网络三个事实卡；
 - 每天画一张时序/状态/故障图；
 - 写 Toy allocator，做碎片和 deferred reclaim；

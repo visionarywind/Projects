@@ -3,13 +3,13 @@
 ## 第 1 周：建立主线
 
 - 读 `domain-overview`、`knowledge-map`、`terminology`；
-- 练 B001/B002：每题 1 分钟和 5 分钟回答；
+- 练 B001/B002/B003：每题 1 分钟和 5 分钟回答；
 - 画一张 Framework→Runtime→UMD→Device 链路；
 - 填写 MindSpore/UMD 个人事实卡的项目、职责和边界。
 
 ## 第 2 周：Memory + Stream
 
-- 练 I001/A001；
+- 练 I003/I004 与 A004；
 - 手算 segment/block、碎片、reserved/allocated；
 - 写 Toy allocator 或至少完成伪代码；
 - 完成多 Stream/Event 时序图和 3 个反例；
@@ -17,7 +17,7 @@
 
 ## 第 3 周：网络 + 性能
 
-- 练 A002；
+- 练 A013/A017；
 - 补 TCP/RDMA 基础、collective 语义、Ring/Tree、通信计算重叠；
 - 做 AllReduce 带宽手算和故障树；
 - 用固定指标解释检索引擎和 Java 经验如何迁移到 AI Infra；
