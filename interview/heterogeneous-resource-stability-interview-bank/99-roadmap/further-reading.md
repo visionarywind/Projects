@@ -2,12 +2,12 @@
 
 ## 本仓库资料
 
-- `cann/docs/project-understanding/00-overview/architecture.md`
-- `cann/docs/project-understanding/00-overview/global-error-model.md`
-- `cann/docs/project-understanding/90-cross-module/memory-and-resource-lifecycle.md`
-- `cann/docs/project-understanding/90-cross-module/error-boundaries.md`
-- `cann/docs/project-understanding/90-cross-module/performance-critical-paths.md`
-- `cann/docs/project-understanding/99-roadmap/debugging-guide.md`
+- `cann/00-overview/architecture.md`
+- `cann/00-overview/global-error-model.md`
+- `cann/90-cross-module/memory-and-resource-lifecycle.md`
+- `cann/90-cross-module/error-boundaries.md`
+- `cann/90-cross-module/performance-critical-paths.md`
+- `cann/99-roadmap/debugging-guide.md`
 - `MUSA/` 与 `LeetCUDA/` 中关于 Runtime、Context、Stream、内存和性能的证据文档
 
 ## 外部方向

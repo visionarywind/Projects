@@ -26,7 +26,7 @@
   -> 结果返回、资源回收或故障恢复
 ```
 
-在 CANN 证据基座中，GE 负责图和模型组织，Runtime 负责设备、内存、流、事件和任务接口，Driver 负责硬件接入；这是一条分层模型，不等于所有异构平台具有相同 API 或相同完成语义。[已确认] 来源：[cann/docs/project-understanding/00-overview/architecture.md:10-34]
+在 CANN 证据基座中，GE 负责图和模型组织，Runtime 负责设备、内存、流、事件和任务接口，Driver 负责硬件接入；这是一条分层模型，不等于所有异构平台具有相同 API 或相同完成语义。[已确认] 来源：[cann/00-overview/architecture.md:10-34]
 
 ## 3. 关键边界
 

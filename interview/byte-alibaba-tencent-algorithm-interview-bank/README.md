@@ -1,11 +1,11 @@
 # 字节 / 阿里 / 腾讯算法面试题库
 
-本题库面向准备字节跳动、阿里巴巴、腾讯等国内大厂算法面试的学习者，目标是把算法题从“记答案”变成“能建模、能证明、能编码、能举例、能应对追问”。题库采用目录化 Markdown，默认规划入门、中等、高级、专家级各 100 题，共 400 题。
+本题库面向准备字节跳动、阿里巴巴、腾讯等国内大厂算法面试的学习者，目标是把算法题从“记答案”变成“能建模、能证明、能编码、能举例、能应对追问”。题库采用目录化 Markdown，四级各 3 题，共 12 道精选题。
 
 ## 当前状态
 
-- 目标规模：B001–B100、I001–I100、A001–A100、E001–E100，共 400 题。
-- 当前批次：已一次性生成 B001–B100、I001–I100、A001–A100、E001–E100，共 400 道题。
+- 目标规模：B001–B003、I001–I003、A001–A003、E001–E003，共 12 题。
+- 历史说明：旧版四级各 100 题（同一批 12 道题重复约 8–9 次）已去重精简为本精选集。
 - 实现语言：默认 C++17。
 - 公司标签：`字节`、`阿里`、`腾讯` 表示公开经验和岗位能力侧重点的训练标签，不表示保密题库或官方原题。
 - 证据状态：算法结论按公开经典资料与静态检查记录；未逐题在目标 OJ 执行的结果仍标 `[待验证]`。
@@ -19,12 +19,8 @@
 - [生成状态](00-overview/generation-state.md)
 - [资料与证据](00-overview/sources-and-evidence.md)
 - [术语表](00-overview/terminology.md)
-- [入门题索引](01-question-bank/beginner/index.md)
-- [中等级索引](01-question-bank/intermediate/index.md)
-- [高级索引](01-question-bank/advanced/index.md)
-- [专家级索引](01-question-bank/expert/index.md)
+- 题库：[入门题索引](01-question-bank/beginner/index.md) · [中等级索引](01-question-bank/intermediate/index.md) · [高级索引](01-question-bank/advanced/index.md) · [专家级索引](01-question-bank/expert/index.md)
 - [知识域索引](02-knowledge-domains/README.md)
-- [字节路线](03-company-tracks/bytedance.md)、[阿里路线](03-company-tracks/alibaba.md)、[腾讯路线](03-company-tracks/tencent.md)、[通用核心](03-company-tracks/cross-company-core.md)
 - [练习与模拟](04-practice/timed-mock-interviews.md)
 - [质量审计](05-review/quality-audit.md)
 - [30 天路线](99-roadmap/30-day-plan.md)、[90 天路线](99-roadmap/90-day-plan.md)
@@ -48,4 +44,4 @@
 
 ## 续作规则
 
-继续生成时先读取 `00-overview/generation-state.md` 和 `00-overview/coverage-matrix.md`，从“下一批起始题目 ID”续作；不得重复题目、重排 ID 或把未运行代码写成已验证。
+新增题目时先读 `00-overview/coverage-matrix.md` 与 `00-overview/generation-state.md`，保持 ID 不重复、不重排；不得把未运行代码写成已验证。

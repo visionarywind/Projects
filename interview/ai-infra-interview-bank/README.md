@@ -1,34 +1,37 @@
-# AI Infra 领域专家级面试题库
+# AI Infra 面试题库
 
-本题库覆盖 AI 基础设施从硬件、驱动、运行时到训练、推理、平台和治理的完整链路。默认资料基线为当前工作区相关知识库与公开官方文档；版本、硬件性能和实验结果必须标注事实状态。
+覆盖 AI 训练/推理基础设施从硬件、驱动、运行时到分布式训练、推理服务、性能与可靠性的完整链路。题目以具体疑问句或设计指令取代名词式题干，每题答案含可验证事实单元（参数、机制推导、代码/伪代码、`path:line` 源码引用）。
 
 ## 当前状态
 
-- 目标规模：入门、中等级、高级、专家级各 100 题，共 400 题。
-- 题目范围：B001–B100、I001–I100、A001–A100、E001–E100。
-- 目录状态：一次性全量生成；四级各 100 题，静态题型计数为十类各 10 题；状态见 00-overview/generation-state.md。
+- 题量：80 题（入门 20、中级 25、高级 20、专家 15）
+- 题号：`AIInfra-B001`–`B020` / `I001`–`I025` / `A001`–`A020` / `E001`–`E015`
+- 知识域：12 个（K01–K12），覆盖 GPU 架构、驱动运行时、显存、网络、容器、调度、数据管道、分布式训练、推理服务、性能、可靠性、MLOps
+- 结构精简：`README` + `01-question-bank/`（四级题库）+ `02-knowledge-domains/`（知识讲解，与题目互链）
+
+## 证据规则
+
+- `[已确认]`：本仓库源码/文档中有 `path:line` 支撑的结论
+- `[推断]`：基于 [已确认] 事实的合理推导
+- `[待验证]`：无本仓库硬件/网络/压测运行记录的性能数字或版本行为
+- 无运行记录不给具体数字；薄弱域（K8s 调度细节、RoCE 网卡）明确标注待验证
 
 ## 导航
 
-- [领域总览](00-overview/domain-overview.md)
-- [知识地图](00-overview/knowledge-map.md)
-- [能力地图](00-overview/competency-map.md)
-- [覆盖矩阵](00-overview/coverage-matrix.md)
-- [资料与证据](00-overview/sources-and-evidence.md)
-- [术语表](00-overview/terminology.md)
-- [入门题](01-question-bank/beginner.md)
-- [中等级题](01-question-bank/intermediate.md)
-- [高级题](01-question-bank/advanced.md)
-- [专家题](01-question-bank/expert.md)
-- [知识域详解](02-knowledge-domains/README.md)
-- [实践实验](03-practice/hands-on-labs.md)
-- [排障案例](03-practice/debugging-cases.md)
-- [系统设计](03-practice/system-design-cases.md)
-- [模拟面试](03-practice/mock-interview-routes.md)
-- [质量审计](04-review/quality-audit.md)
-- [30 天路线](99-roadmap/30-day-plan.md)
+- [入门题](01-question-bank/beginner.md)（概念与机制，20 题）
+- [中级题](01-question-bank/intermediate.md)（流程、排障、推导，25 题）
+- [高级题](01-question-bank/advanced.md)（架构设计与权衡，20 题）
+- [专家题](01-question-bank/expert.md)（第一性原理与前沿决策，15 题）
+- [知识域详解](02-knowledge-domains/README.md)（K01–K12，与题目互链）
 
 ## 使用方式
 
-按 B → I → A → E 学习；每题先口述结论，再完成追问、反例和验证。涉及 CUDA、MUSA、RDMA、Kubernetes、训练集群或推理服务的结论，没有目标环境运行记录时统一标为 [待验证]。
+按 B → I → A → E 顺序学习；每题先口述结论，再完成追问、反例与验证。涉及 CUDA、MUSA、RDMA、训练集群或推理服务的实验结论，没有目标环境运行记录时按 `[待验证]` 处理。
 
+## 薄弱域说明
+
+本仓库知识供给不均：GPU 架构、驱动运行时、显存、并行、推理、profiling 有丰富源码级分析；Kubernetes 调度细节、RoCE/网卡、HCCL/MCCL 实现无源码沉淀——相关题目写通用机制并标 `[待验证]`，不编造版本参数。
+
+## 知识源
+
+主要引用本仓库分析文档：`cuda/`、`musa/`、`cann/`、`megatron-lm/`、`sglang/`、`ray/`、`LeetCUDA/`、`insights/` 等目录下的源码行级分析、调用链、性能指南与论文笔记。每题末尾 `**证据与来源：**` 行列出具体引用。

@@ -8,13 +8,13 @@
 
 ## 单题详解正文导入
 
-- 详细文件数：3459（按来源分类出现记录展开；同一去重题目可能跨专题重复）。
+- 详细文件数：2317（2026-10-14 去重清理后；每文件均为 `authorized-import`）。
 - `authorized-import`：2317。
 - `pending-fetch`：0。
-- `missing-endlesscheng-solution`：1142。
-- 2026-09-17 再检索一轮新增 207 个正文；四次超时在重试后恢复，最终临时失败 0 个。未匹配不等于证明不存在作者题解。
+- `missing-endlesscheng-solution`：0（原 1142 个仅有通用模板 + `// TODO` C++ 空壳的文件已删除）。
 - 导入接口：LeetCode GraphQL `questionSolutionArticles` + `solutionArticle`。
 - 批量策略：成功正文写入持久缓存；已有 `authorized-import` 跳过；限流、超时和网络错误保留为可重试状态，不作为无题解证据。
+- 清理策略：未取得授权正文的题不保留空壳占位；保留文件中的本地通用模板段已移除，避免以模板冒充原创。
 
 ## 来源题单
 

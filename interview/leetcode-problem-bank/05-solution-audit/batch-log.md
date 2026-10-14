@@ -32,3 +32,11 @@
 - 第二批：同样配置检索 973 个去重 slug；新增正文 0，稳定未匹配 1177 条来源记录，跳过 2519 条已处理或重复记录，临时失败 0。
 - 两批均按题目 slug 去重网络请求，并在每个结果完成后持久化缓存和 Markdown；超时项按指数退避重试，未把临时错误写成永久缺失。
 - 全量审计结果：3459 个详解文件中，2317 个 `authorized-import`，0 个 `pending-fetch`，1142 个 `missing-endlesscheng-solution`。本轮未发现新的可导入正文；未匹配状态仍不证明作者没有发表题解。
+
+## 去重清理：2026-10-14
+
+- 动作：删除 1142 个 `missing-endlesscheng-solution` 文件（仅有通用模板 + `// TODO` C++ 空壳）；从 2317 个保留文件中移除本地通用模板段（题意重述 / 暴力思路 / 关键观察 / 算法设计 / 正确性说明 / 复杂度分析 / C++17 实现 / 样例推演 / 易错点 / 扩展解析 / 同类题迁移），只保留元信息与授权导入正文。
+- 结果：详解文件由 3459 个降为 2317 个，全部为 `authorized-import`；`pending-fetch` 与 `missing-endlesscheng-solution` 均为 0。
+- 理由：未取得授权正文的空壳不构成有效题解，以通用模板占位会误导读者并稀释内容质量；清理后本库如实标注为“灵茶山艾府授权导入题解集合”。
+- 校验：`validate_leetcode_bank.py --require-authorized-bodies` 通过；`validate_cpp_solutions.py` 状态重新生成；`generate_solution_audit.py` 覆盖审计更新为 2317。
+- 未做：不补造未取得正文的题解；不声称存在本地 C++ 实现。

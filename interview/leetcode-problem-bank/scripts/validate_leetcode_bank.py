@@ -113,21 +113,16 @@ def validate_solution_enhancements(errors: list[str], require_bodies: bool = Fal
                 fail(f"source explanation missing `{heading}`: {path.relative_to(BASE_DIR)}", errors)
     detail_pages = sorted(DETAIL_DIR.rglob("*.md"))
     if len(detail_pages) < 36:
-        fail(f"expected at least 36 preview detailed solution files, found {len(detail_pages)}", errors)
+        fail(f"expected at least 36 detailed solution files, found {len(detail_pages)}", errors)
     required_sections = [
         "## 元信息",
         "## 授权导入：灵茶山艾府题解过程",
-        "## 本地原创解析",
-        "### 7. C++17 实现",
-        "### 10. 扩展解析",
     ]
     for path in detail_pages:
         text = path.read_text(encoding="utf-8")
         for section in required_sections:
             if section not in text:
                 fail(f"detailed solution missing `{section}`: {path.relative_to(BASE_DIR)}", errors)
-        if "```cpp" not in text:
-            fail(f"detailed solution missing cpp block: {path.relative_to(BASE_DIR)}", errors)
         if require_bodies:
             marker = "## 授权导入：灵茶山艾府题解过程"
             body = text.split(marker, 1)[1].split("\n## ", 1)[0].strip() if marker in text else ""
@@ -145,7 +140,7 @@ def validate_content_boundaries(errors: list[str]) -> None:
         # article wording. Apply the copied-content heuristic only to local
         # metadata and locally generated analysis sections.
         text_for_scan = re.sub(
-            r"\n## 授权导入：.*?(?=\n## 本地原创解析|\Z)",
+            r"\n## 授权导入：.*",
             "\n",
             text,
             flags=re.S,
